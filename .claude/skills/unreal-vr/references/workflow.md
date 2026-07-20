@@ -41,12 +41,13 @@
 ## ⚠ Rompe la caché (= un turno recomputado a precio completo)
 - **Cambiar de modelo** (Opus ↔ Sonnet) — reconstruye TODO
 - **Cambiar effort level** — cada nivel tiene su propia caché
-- **Conectar/desconectar servidores MCP** o plugins con MCP
-- **`/compact`** (por diseño)
-- **Actualizar Claude Code** · **fast mode** · **agregar deny rules**
+- **Prender fast mode a mitad de sesión** (header nuevo en el cache key) → prenderlo al INICIO, no en medio
+- **Que un servidor MCP se conecte/desconecte** SI sus tools están en el prefijo (las *deferred* —default— NO rompen). 🔴 Si el editor de Unreal cierra, el server `unreal` cae → **mantené Unreal abierto TODA la sesión.**
+- **`/compact`** (por diseño) · **actualizar Claude Code** · **resumir una sesión vieja** (reprocesa todo) · agregar deny rule de una tool entera
 
-## ✅ NO rompe la caché
-- Editar archivos · invocar skills · cambiar permission mode · rewind · `/recap`
+## ✅ NO rompe la caché (se agregan al final)
+- Editar/leer archivos · **invocar skills y `/commit`** · cambiar permission mode · `/recap` · **subagentes** (cache propia, no tocan la del padre)
+- **`/rewind`** → vuelve a un cache ya caliente. Para **abandonar un camino** usalo en vez de `/compact` (más barato).
 
 **→ Agrupar los cambios de config AL INICIO de la sesión, nunca a mitad.**
 **→ Esta sesión ya usa TTL de 1 hora** (suscripción Claude). Con API key el default es 5 min y se activa con `ENABLE_PROMPT_CACHING_1H=1`.
