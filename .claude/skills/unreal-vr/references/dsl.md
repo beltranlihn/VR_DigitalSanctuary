@@ -21,7 +21,10 @@
 - Ops: `+ - * / %`, `== != < <= > >=`, `and or xor not`, `(select cond a b)` ternary, `(neg x)`.
 - Component access: `(.x v) (.y v) (.z v)`, `(.pitch r) (.yaw r) (.roll r)`, `(.location t) (.rotation t) (.scale t)`.
 - Variables (on self): `(Variables|Default|GetMyVar)` / `(Variables|Default|SetMyVar value)`.
+- 🔴 **BOOL vars: la `b` inicial se CAE al escribir.** Una var declarada `bMyFlag` se lee/escribe como `(Variables|Default|GetMyFlag)` / `(Variables|Default|SetMyFlag ...)` (SIN la `b`). ⚠ El `read_graph_dsl` la RENDERIZA como forma corta `(|GetbMyFlag)` (CON la `b`), pero esa forma **NO es escribible** — `write` tira `|GetbMyFlag does not exist`. Regla: para escribir bools usá SIEMPRE la forma larga `Variables|Default|Get<NombreSinB>`; ignorá lo que emite el read. Ojo también con normalización rara de mayúsculas (`bWasInZone` → getter `GetWasinZone`, con `in` minúscula) — confirmá el nombre exacto con `find_node_types(graph, "Variables|Default|Get", [])` antes de escribir.
 - Variable on ANOTHER object: `(Class|<ClassNoUnderscore>|Get<Var> targetRef)` e.g. `(Class|BPOSCReceiver|GetScale osc)`.
+- El `write` **descarta args posicionales que igualan el default** (ej. `(MakeVector 1.0)` = X=1,Y=0,Z=0). Cosmético — la semántica queda intacta; no te asustes al re-`read`.
+- Función miembro sobre un COMPONENTE: target = **primer arg posicional** (`(Rendering|SetVisibility (Variables|Default|GetMiComp) true)`) o `:self`. Sobre el propio actor: OMITIR el target (`(Transformation|GetActorLocation)`). Para tintar un mesh sin variable MID: `(Rendering|Material|SetVectorParameterValueonMaterials (GetComp) "Param" vec)` crea el MID internamente (útil porque `add_variable` NO acepta tipos objeto — solo primitivos + Vector/Rotator/Transform/Vector2D/LinearColor).
 
 ## Control flow
 ```
