@@ -1,0 +1,51 @@
+# .gitignore para proyecto Unreal Engine 5
+# Preparado 17/07/2026. El repo NO está inicializado todavía — decisión pendiente del usuario.
+# Para activarlo:   git init  &&  git add -A  &&  git commit -m "Estado inicial de Soul Charger"
+# (Todo lo ignorado acá es regenerable por el editor. Lo que se versiona es Content/, Config/ y el .uproject.)
+
+# ---- Regenerables de Unreal ----
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/
+!Build/*/Application.mk
+!Build/*/UPL*.xml
+
+# ---- Solución/IDE ----
+.vs/
+.vscode/
+.idea/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.xcodeproj
+*.xcworkspace
+
+# ---- Plugins: mismos regenerables ----
+Plugins/**/Binaries/
+Plugins/**/Intermediate/
+
+# ---- Sistema ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# ---- Autosaves / backups ----
+*_BuiltData.uasset.tmp
+*.tmp
+*.autosave
+
+# ---- NOTA sobre binarios grandes ----
+# Los .uasset y .umap son binarios. Git los versiona pero no los diffea ni los mergea.
+# Si el proyecto crece mucho, considerar Git LFS:
+#   git lfs install
+#   git lfs track "*.uasset" "*.umap"
+# Hoy Content/SoulCharger pesa poco (~3 MB) — LFS todavía no hace falta.
+#
+# ⚠ IMPORTANTE: Unreal no mergea assets. Si en algún momento trabajan dos personas,
+# hay que usar File Locking o coordinar por fuera. Para un solo autor, git basta y sobra.
