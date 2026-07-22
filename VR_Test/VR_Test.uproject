@@ -38,11 +38,11 @@
 			"Enabled": true
 		},
 		{
-			"Name": "AllToolsets",
+			"Name": "UMGToolSet",
 			"Enabled": true
 		},
 		{
-			"Name": "UMGToolSet",
+			"Name": "MCPClientToolset",
 			"Enabled": true
 		},
 		{
