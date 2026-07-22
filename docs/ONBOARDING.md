@@ -47,7 +47,7 @@ Leé [`../GUIA-RAPIDA.md`](../GUIA-RAPIDA.md). Lo clave:
 
 ## 7. Antes de tu primer cambio
 1. Leé [`../CLAUDE.md`](../CLAUDE.md) entero (5 min).
-2. Leé [`WORKFLOW-EQUIPO.md`](WORKFLOW-EQUIPO.md) — cómo trabajamos en paralelo sin pisarnos.
+2. Leé [`WORKFLOW-EQUIPO.md`](WORKFLOW-EQUIPO.md) — cómo trabajamos en paralelo sin pisarnos. 🔴 **Arrancá por la §0 "El modelo mental: git sube cambios, no tu carpeta"** (el `pull` antes de `push` y por qué nadie pierde su trabajo).
 3. Mirá [`ESTADO-STAGES.md`](ESTADO-STAGES.md) para saber qué stage te toca y qué existe.
 4. Creá tu rama de stage: `git checkout -b stage/<tu-stage>`.
 5. Antes de tocar cualquier Blueprint, pedile a Claude que **lea su tracker** en `.claude/skills/unreal-vr/blueprints/`.

@@ -4,6 +4,27 @@ Dos (o más) devs trabajando el mismo proyecto Unreal, cada uno en **su stage**.
 
 ---
 
+## 0. El modelo mental: git sube CAMBIOS, no tu carpeta (leer esto primero)
+La duda más común al empezar en equipo: *"si yo subo Breath actualizado y Nico sube Touch desde una copia con Breath viejo, ¿me pisa el Breath?"* **No.** Y entender por qué evita el 90% de los problemas.
+
+**Git no sube "tu carpeta entera". Sube los cambios específicos que hiciste** (qué archivos tocaste y qué parte cambió). Un commit es una lista de *diferencias*, no una foto completa que reemplaza lo del otro.
+
+Ejemplo concreto:
+- Vos tocás archivos de **Breath** → tu commit dice "cambié estos archivos de Breath".
+- Nico toca archivos de **Touch** → su commit dice "cambié estos de Touch".
+- Aunque Nico tenga en su copia un Breath **viejo**, su commit **no incluye ningún cambio de Breath** (no los tocó) → al subir **no puede pisar tu Breath**.
+
+**El paso que lo hace seguro: `pull` antes de `push`.** Paso a paso:
+1. Vos avanzás Breath → `push`. `main` ya tiene tu Breath nuevo.
+2. Nico trabaja Touch en su copia (con el Breath viejo).
+3. Nico intenta `push` → **git se lo RECHAZA** ("estás atrasado, traé los cambios primero"). Git no te deja pisar lo del otro por accidente.
+4. Nico hace `pull` → git **fusiona** tu Breath nuevo en su copia. Como él no tocó Breath, **entra sin conflicto**; su Touch queda intacto.
+5. Ahora su copia tiene **tu Breath + su Touch** → `push` → `main` queda con las dos cosas. Nadie perdió nada. ✅
+
+**En una línea:** GitHub *integra* el trabajo de los dos, no lo reemplaza; cada push sube solo tus cambios; y git te obliga a traer lo del otro antes de subir. Lo tuyo nunca se pierde… **salvo que ambos editen el mismo `.uasset`** (binario, no se fusiona) — que es justo lo que evita la regla de "un stage cada uno" (§1).
+
+**Rutina diaria mínima:** al empezar → `git pull` (o `git pull --rebase`). Al terminar un hito → `commit` + `push`. Si el push se rechaza → `pull` y volvé a `push`.
+
 ## 1. Regla de oro
 > **Un dev = un stage = una rama. Nunca dos personas editan el mismo `.uasset` a la vez.**
 
