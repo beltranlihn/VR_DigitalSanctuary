@@ -42,7 +42,7 @@ Nivel para **levantar datos de muchos usuarios** y tunear los umbrales de detecc
 ## ⚪ Stages sin empezar (carpetas vacías o mínimas)
 - **Movement** — sistema de **dibujo 3D** (el usuario dibuja "el interior de la ameba"). Decisión de arquitectura ya tomada: **procedural mesh (ribbon), NO Niagara** (tiene que ser bakeable + persistible por usuario). Receta en `skills/unreal-vr/references/movement-3d-drawing.md` (algoritmo `PincelA_AddPoint` + color picker HSV + grab + persistencia SaveGame). Se revisaron 4 proyectos VR de referencia (en `Recursos/`).
 - **Mind** — stage mental. Sin empezar.
-- **Touch** — interacción táctil. Sin empezar (mecánicas de VR interesantes en el proyecto GDXR de `Recursos/`: botones, agarrar, mover cosas).
+- **Touch = "Attracting" (etapa de MÚSICA)** — 🟡 en diseño, a punto de arrancar (dev: Nico). NO es "interacción táctil genérica": es un **secuenciador de 5 pasos** donde apuntás burbujas sonoras con un beam, las atraés con trigger (far-grab con interp), las posás en los 5 bloques de una mesa y suenan cuantizadas (Quartz) sobre un pad; con los 5 llenos, "Guardar melodía" (SaveGame). **Brief + organigrama de construcción completo → [`stages/touch-attracting.md`](stages/touch-attracting.md)** (incluye el scaffold ya creado en `Stages/Touch/`: widget de instrucciones naranja + stubs de los BPs base + `SG_Melody`). Audio verificado en `skills/unreal-vr/references/audio-quest.md`. Las mecánicas de agarrar/apuntar de GDXR (`Recursos/`) sirven de referencia de interacción.
 - **Inicio** — entrada/onboarding de la obra. Sin empezar.
 - **Centro / Salida** — núcleo y cierre de la obra. Sin empezar.
 

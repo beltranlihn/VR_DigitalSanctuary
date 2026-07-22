@@ -46,6 +46,7 @@ Git no lo mergea. Opciones:
 El aprendizaje del equipo vive en el **repo**, no en la cabeza ni en la memoria local de Claude de cada uno:
 - **Técnica reusable** (un gotcha, un patrón de nodos, cómo se hace X en Quest) → PR a `.claude/skills/unreal-vr/` (a `references/` o `gotchas.md`).
 - **Estructura de un Blueprint** (qué hace cada variable, orden del grafo, qué palanca ajusta qué) → su tracker en `skills/unreal-vr/blueprints/<BP>.md`. 🔴 **Leelo antes de tocar el BP; actualizalo después.**
+- **Narrativa / diseño / concepto de un stage** → 🔴 **`Soul-Charger-Design.md` es la BIBLIA DE NARRATIVA** (documento vivo). Si cambia la idea/mecánica de cualquier etapa, **se actualiza ahí primero** (marcando el cambio, como la §4.4 de Touch). Los planes de construcción por stage van en `docs/stages/`.
 - **Estado de un stage** → [`ESTADO-STAGES.md`](ESTADO-STAGES.md).
 - **Memoria local de Claude Code** (`~/.claude/...`) = tus notas personales de sesión. NO es conocimiento de equipo (el otro no la ve). Si algo sirve al equipo, subilo al repo.
 

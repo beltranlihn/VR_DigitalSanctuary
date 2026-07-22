@@ -159,13 +159,18 @@ Cuatro fases, iguales para las cinco. **`BP_StageBase` implementa este esqueleto
 - **[ABIERTO]** 10-15s puede quedar corto para un baseline estable (la literatura sugiere 60-90s). Se puede estirar mientras Alma habla.
 
 ### 4.4 Attracting — Tacto — amarillo/naranja
-- **Objetivo:** componer **tu** melodía en un pequeño **secuenciador**. No existe nota equivocada.
-- **Input:** apuntar y click con el mando + **calidad del gesto**.
-- **Mecánica:** burbujas sonoras translúcidas flotan (rima visual: parecen mini-amebas). Apuntar = suenan. **Atraer con suavidad = vienen. Tirón brusco = se dispersan.** Se colocan en los **pedestales dorados** (las bases del secuenciador).
-- **Cama sonora constante** de base: el usuario no compone desde el silencio, **agrega capas pre-armonizadas** encima. Todo **cuantizado y pre-armonizado** por defecto; nunca se expone el interruptor para apagar la baranda.
-- **Botón de finish:** el usuario decide cuándo su melodía está terminada.
-- **Término:** finish. La melodía cierra en loop y la ameba la absorbe.
-- **Unicidad:** **5 keys distintos, cada uno con banco de 20-30 sonidos**, rotando por partida.
+> 🔄 **ACTUALIZADO 22/07 (narrativa vigente).** La versión anterior planteaba atraer por *calidad del gesto* (suave = viene / tirón = dispersa) y capas pre-armonizadas generadas. La mecánica vigente es un **secuenciador de 5 pasos con clips** y **agarre a distancia por trigger**. Plan de construcción paso a paso: [`docs/stages/touch-attracting.md`](docs/stages/touch-attracting.md).
+- **Objetivo:** componer **tu** melodía en un pequeño **secuenciador de 5 pasos**. No existe nota equivocada — todo cuantizado y en key.
+- **Escena:** una **mesa/secuenciador con 5 bloques** frente al usuario (en alcance de brazos, sentado) y **~20 burbujas sonoras** (mini-amebas translúcidas) flotando alrededor. De fondo, un **pad** suave en loop, ya sonando.
+- **Input:** un **beam/láser sutil** desde el mando (estilo el puntero default de Meta) + **trigger**.
+- **Mecánica:**
+  - **Hover** sobre una burbuja → reacción visual sutil + su sonido entra en **loop con fade** (preview). Sacás el hover → fade out. Así descubrís los timbres.
+  - **Trigger** → la **atraés a distancia** (far-grab): la burbuja te sigue con movimiento suave, como una varita mágica.
+  - La posás en uno de los **5 bloques** → queda fija y **entra al secuenciador**: suena **cuantizada** cuando el playhead pasa por su paso, con una **animación audioreactiva** en cada golpe.
+  - Posar sobre un bloque **ya ocupado** → **intercambio** (el anterior vuelve a su posición flotante). Iterás y probás armonías hasta que te guste tu patrón.
+- **Baranda invisible:** todo cuantizado y en key por defecto; nunca se expone el interruptor para apagarla. **El usuario no puede sonar mal.**
+- **Finish:** con los **5 bloques llenos** se habilita **"Guardar melodía"** (botón apuntable con el beam). Guardar cierra la etapa; la melodía queda persistida como tu **firma sonora** (para reusarla en las mecánicas siguientes).
+- **Sonido:** **solo clips** (one-shots rítmicos + pad), reproducidos con timing sample-accurate por **Quartz**. **Nada sintetizado en runtime** (ver [audio-quest.md](.claude/skills/unreal-vr/references/audio-quest.md)).
 - **Descartado:** repetir una melodía dada (tipo Simón). Es un test de memoria: carga cognitiva, estado de fracaso, y mata el "creando mi propia melodía". Ninguno de los grandes juguetes musicales en VR pide recordar ni repetir.
 
 ### 4.5 Surrounding — Movimiento — verde
@@ -190,7 +195,7 @@ Cuatro fases, iguales para las cinco. **`BP_StageBase` implementa este esqueleto
 | Recognizing | pulso promedio | **ritmo de pulsación** |
 | Entering | **regularidad** al seguir el 4/6 | **intensidad del halo** |
 | Loving | promedio de actividad | **partículas alrededor** — turbulencia y brillo |
-| Attracting | tu melodía | **firma sonora** (key + banco de la partida) |
+| Attracting | tu melodía | **firma sonora** (los 5 clips de tu secuencia + su orden) |
 | Surrounding | tu dibujo | **escultura interior** |
 | — | animación | **rotación de los anillos** |
 
