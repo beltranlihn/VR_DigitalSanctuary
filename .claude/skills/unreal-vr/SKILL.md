@@ -70,6 +70,8 @@ At the start of any Unreal session, verify the link cheaply before promising any
 - [references/movement-3d-drawing.md](references/movement-3d-drawing.md) — **sistema de dibujo 3D del stage Movement** (dibujar el interior de la ameba, bakeable + persistible por usuario). La receta = arquitectura de 3D Draw × geometría **ribbon ProceduralMesh** (algoritmo `PincelA_AddPoint` paso a paso, del TiltBrush propio del usuario) × **color picker HSV** × grab con `C_GrabComponent` × **persistencia SaveGame propia**. 🔴 NO Niagara/partículas (efímero, no bakeable). Incluye la comparación de los 4 proyectos VR revisados (2026-07-22) y el plan MVP.
 
 ## Per-Blueprint progress tracking — 🔴 REGLA (pedido explícito del usuario 2026-07-20)
+🗺️ **Índice maestro de TODOS los Blueprints del proyecto: [`blueprints/_INDEX.md`](blueprints/_INDEX.md)** — el mapa de un vistazo (qué es cada BP, dónde está, para qué sirve, estado, y link a su tracker). **Empezá por ahí** para ubicarte. Al crear/modificar un BP, actualizá **su fila en el índice** Y su tracker.
+
 For each BP we work on, keep a tracker at `blueprints/<BP>.md`. **Es OBLIGATORIO, no opcional:**
 - **ANTES de ajustar un BP → leer su tracker primero.** Si la info que necesitás (rol de una variable, estructura de un grafo) ya está ahí, NO re-leas el grafo. Solo leé el grafo si el tracker no lo cubre — y en ese caso, documentalo al terminar.
 - **DESPUÉS de ajustar un BP → actualizar el tracker** con un **registro de qué hace CADA variable** (su objetivo, no solo el nombre), la estructura del/los grafo(s) (orden del pipeline), y qué se ajustó y por qué. El objetivo es que la próxima vez sepas **dónde buscar sin releer el grafo entero**.

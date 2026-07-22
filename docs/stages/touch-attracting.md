@@ -68,10 +68,15 @@ El usuario llega a un **mesón/secuenciador con 5 bloques** vacíos. A su alrede
 - **Quest standalone**: fuentes espacializadas deben ser **mono** (ITD Panner in-graph si querés que las burbujas suenen posicionadas); todo horneado; ver `materials-vr.md`/`lighting-quest.md` para la estética.
 - **Widgets world-space** obligatorio (`widgets-vr.md`), event-driven, no property binding.
 
-## 6. Assets que hay que proveer (usuario / sound designer)
+## 6. Assets y contenido que hay que proveer (usuario / sound designer)
+**Audio:**
 - **20 one-shots** rítmicos, mismo key y tempo, seekeables → import **ADPCM**. (Placeholders mientras.)
 - **1 pad** de fondo en loop, mismo key/tempo → **Bink**.
 - Definir el **tempo/BPM** final (propuesta 72) y si el loop son 5 beats u otra subdivisión.
+
+**Contenido POR DEFINIR (bloquea el pulido, no el armado de la mecánica):**
+- 🖊️ **Textos del widget de instrucciones** de esta etapa (`WBP_TouchInstructions`) — **quedan por definir.** El widget ya está (fondo naranja); falta escribir las páginas (qué dice cada instrucción). Mientras, van placeholders.
+- 🖼️ **Imágenes / íconos para los materiales** de esta etapa (íconos de las páginas de instrucciones, y las texturas/íconos de las burbujas y la mesa si aplica) — **quedan por definir.** Se usan placeholders hasta que el usuario los cree/entregue.
 
 ## 6.b 🧰 Scaffold ya creado en `Stages/Touch/` (punto de partida)
 Ya están estos assets en `VR_Test/Content/SoulCharger/Stages/Touch/` para arrancar sin partir de cero:

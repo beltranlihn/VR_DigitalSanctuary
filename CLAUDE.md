@@ -33,7 +33,7 @@ Carpetas en `VR_Test/Content/SoulCharger/Stages/`: **Breath · Heart · Mind · 
 Todo lo operativo de Unreal está en la skill **`unreal-vr`** (`.claude/skills/unreal-vr/`), que **se auto-activa** cuando la tarea toca Unreal. No la reinventes. Estructura:
 - **`SKILL.md`** — guía operativa corta (empezá por acá): cómo llamar al MCP, el workflow de Blueprints, las golden rules.
 - **`references/`** (25 archivos, se cargan **a demanda, cuestan 0 hasta leerlos**) — materiales-vr, lighting-quest, dsl, nodes, toolsets, workflow, bp-practices, bp-lean-construction, bp-layout, vr, vr-pawn, input, widgets-vr, niagara-quest, audio-quest, packaging-pso, profiling-quest, motion-controller-data, motion-detection-thresholds, movement-3d-drawing, streaming-arch, gotchas, meta-quest-resources.
-- **`blueprints/`** — un **tracker por Blueprint** (estructura, variables, qué palanca ajusta qué). 🔴 **Obligatorio: leé el tracker ANTES de tocar un BP; actualizalo DESPUÉS.** Modelo: `BP_BreathSensor_V2.md`.
+- **`blueprints/`** — 🗺️ **`_INDEX.md` = mapa de TODOS los Blueprints** (qué es cada uno, dónde, para qué, estado) + un **tracker por Blueprint** con el detalle (variables, estructura de grafos, qué palanca ajusta qué). 🔴 **Obligatorio: leé el índice para ubicarte y el tracker del BP ANTES de tocarlo; actualizá ambos DESPUÉS.** Modelo de tracker: `BP_BreathSensor_V2.md`.
 - **`scripts/clean_orphans.py`** — limpieza de nodos huérfanos.
 
 ### 🔴 Dos reglas de oro (de la skill, no olvidar)
