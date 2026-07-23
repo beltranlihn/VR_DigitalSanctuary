@@ -63,6 +63,7 @@
 | **BP_CalibDirector** | `Calibration/` | Máquina de estados de 7 segmentos guiados + persistencia por usuario. | 🟢 (falta test visor) | ✓ (cubre el sistema) |
 | **BP_CalibProbe** | `Calibration/` | Sensor duplicado de V2 + `RecOn/RecOff`; calcula features para la captura. | 🟢 | ✓ (en `BP_CalibDirector.md`) |
 | **SG_CalibSession** / **SG_CalibIndex** | `Calibration/` | Persistencia: un `.sav` por usuario + contador. | 🟢 | ✓ (en `BP_CalibDirector.md`) |
+| **WBP_CalibInstructions** | `Calibration/Widget/` | Widget de instrucciones world-space (duplicado de Breath, Mode 1 icono+texto). Lo maneja el Director (`InstrPanel` component). | 🟢 (falta test visor + íconos) | ✓ (en `BP_CalibDirector.md`) |
 
 ## Externo
 | Blueprint | Ruta | Qué hace | Estado | Tracker |

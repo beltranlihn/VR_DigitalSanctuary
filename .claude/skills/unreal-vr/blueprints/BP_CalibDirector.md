@@ -19,6 +19,15 @@ Nivel de captura de datos para testear muchos usuarios y tunear umbrales con evi
   - *Tick*: si `SegIndex<NumSegs`: `PhaseTimer+=DT`. Phase 0 (settle) y `PhaseTimer>=SettleTime` → Phase 1, timer 0, `Probe.RecOn(CurName)`, `Probe.PlayGrabHaptic`, marcador **`CSEG,<GetGameTimeInSeconds>,<CurName>`**. Phase 1 (record) y `PhaseTimer>=CurDur` → `Probe.RecOff`, háptico, **`CSEGEND,<t>`**, `SegIndex+1`, Phase 0, timer 0, y si quedan segmentos `ConfigureSegment(nuevo)` + mostrar texto, si no `CALIB_SESSION_END`.
 - El **settle de 2s (sin grabar) = banda de guarda** incorporada al protocolo (descarta la transición donde el usuario se acomoda).
 
+## Instrucciones por widget world-space (2026-07-23)
+Reemplaza el `PrintString` por un widget visible en el visor, mismo formato que los otros stages.
+- **`WBP_CalibInstructions`** (`Calibration/Widget/`) — duplicado de `WBP_BreathInstructions`. Trae `SetInstruction(Text)`, `SetIconMaterial(Material)` (imagen por página) y `SetVisMode(Mode)`. Se usa **Mode 1** = solo Icono + InstructionText (oculta los sliders/círculo de Breath). Fondo del Border `BG` queda el azul de Breath (ajustable). **Íconos por página: los pone el usuario después** vía `SetIconMaterial` (hoy muestra el ícono default de Breath como placeholder).
+- **Componente `InstrPanel`** (WidgetComponent) agregado a `BP_CalibDirector`: `WidgetClass=WBP_CalibInstructions`, `Space=World`, `DrawSize 1000x600`, `RelativeLocation (180,0,70)`, `RelativeRotation yaw 180`, `RelativeScale3D 0.1`, `bIsTwoSided=true`. ⚠ **Posición/orientación a ajustar en editor** (se puso a ojo; el usuario la nudgea frente al PlayerStart).
+- **Vars nuevas del Director**: `InstrWidget` (ref WBP_CalibInstructions), `bStarted` (bool).
+- **Funciones nuevas**: `CacheWidgetAndWelcome()` (cachea el widget desde `InstrPanel.GetUserWidgetObject`+cast → `SetVisMode(1)` + muestra el texto de bienvenida) · `ShowInstruction()` (`InstrWidget.SetInstruction(CurText)`; el String→Text autoconvierte).
+- **Flujo nuevo (EventGraph reescrito)**: BeginPlay → `CacheWidgetAndWelcome` (muestra bienvenida) + busca probe/uidx/header, **NO arranca**. Tick: si `!bStarted` → poll `(or probe.GetLabel probe.GetLabelR)` (gatillo) → `bStarted=true`, `ConfigureSegment(0)`, `ShowInstruction`. Si `bStarted` → la máquina settle/record de siempre, y en cada cambio de segmento llama `ShowInstruction`; al terminar → `ConfigureSegment(NumSegs)` (Default = texto "Listo!") + `ShowInstruction` + `SaveSession`. **Arranque por gatillo reusando `probe.GetLabel` (no se cableó input nuevo en el Director).**
+- **Textos definitivos** (sin tildes por encoding): bienvenida + 7 ejercicios (Reposo/estómago/muslo/brazo/respira normal/respiración guiada/movimiento) + cierre "Listo! Datos guardados. Gracias." — están en `ConfigureSegment` (7) y `CacheWidgetAndWelcome` (bienvenida).
+
 ## L_Calibration (`Maps/Tests/`)
 Duplicado de `L_Test_Breath` (reusa pawn VR + gamemode + grab). Quitados `BP_BreathStageManager` + `BP_IntroFade`. Agregados `BP_CalibDirector` (0,0,50) y `BP_CalibProbe` (50,0,100). En `MapsToCook`.
 
