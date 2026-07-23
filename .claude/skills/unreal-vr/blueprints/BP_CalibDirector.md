@@ -43,3 +43,28 @@ Clases `SG_CalibSession` (`Data:String`, `UserIndex:int`) + `SG_CalibIndex` (`Co
 - ⏳ **Test en visor** (verificar grab + marcadores + BRLOG). Instrucciones v1 = PrintString (solo Link/PIE; NO en build VR → falta TextRender 3D o `WBP_CalibInstructions`).
 - ⏳ `BP_CalibPacer` (esfera 4s/4s) + wiring de `CurPacer` para el segmento 5.
 - ⏳ Íconos (los crea el usuario al final). Al terminar captura: `bCalibLog=false`.
+
+## 🔄 REDISEÑO 2026-07-23 (flujo del PDF de UI) — SUPERA todo lo anterior de este archivo
+El usuario entregó un PDF con la UI. El flujo cambió por completo. **5 ejercicios**, cada uno con 3 pantallas.
+
+### Widget `WBP_CalibInstructions` (extendido)
+- Elementos nuevos (TextBlocks, variables): **CountdownNumber** (el 3-2-1), **CenterTitle** (título centrado), **CircleText** (INHALA/SOSTEN/EXHALA). Posición/tamaño fino los ajusta el usuario en el editor.
+- Funciones nuevas: **`SetScreen(Mode)`** (colapsa todo + switch: `0`=instrucción[Icon+InstructionText+HintRow], `1`=countdown[CenterTitle+CountdownNumber], `2`=experiencia[CenterTitle+CalSlider], `3`=respiración[ReactiveCircle+CircleText+CalSlider]) · `SetCountdown(N:Text)` · `SetCenterTitle(T:Text)` · `SetCircleText(T:Text)`. Reusa las de Breath: `SetInstruction/SetCalProgress(slider)/SetTriggerProgress(radial)/SetCircleSize(RenderScale)`.
+
+### Director `BP_CalibDirector` — máquina de estados (switch en `Phase`)
+Vars nuevas: `Phase(0=WELCOME,1=INSTRUCTION,2=COUNTDOWN,3=EXPERIENCE,4=FINAL)` · `HoldTimer/HoldDur(1.0)` (trigger sostenido) · `CountDur(3.0)` · `CurTitle/CurType(0 normal,1 respiración)` · `bRightHand` · `BreathCycleTimer`.
+- **`ConfigureSegment(idx)`**: 5 ejercicios (EST 20s, PIERNA 15s, NAT 20s, GUIADA 40s type1, MOV 10s) → setea CurName/CurTitle/CurText/CurDur/CurType. Default = pantalla "Gracias" (Alma Digital).
+- **Tick (switch Phase):**
+  - `0 WELCOME`: si (probe agarrado Y trigger) → llena radial; al completar `HoldDur` → captura `bRightHand=probe.GetIsRightHand`, Phase=1, ConfigureSegment(0), ShowInstruction.
+  - `1 INSTRUCTION`: trigger sostenido llena el radial; al completar → Phase=2, SetScreen(1)+SetCenterTitle. (texto = `CurText`)
+  - `2 COUNTDOWN`: PhaseTimer sube; SetCountdown "3"/"2"/"1" por umbral; a los `CountDur`s → Phase=3, `RecOn`, **`PlayGrabHaptic` (pulso inicio)**, SetScreen(2 o 3 si type1).
+  - `3 EXPERIENCE`: PhaseTimer sube; `AppendRow`; SetCalProgress(et/CurDur); si type1 → BreathCycleTimer (wrap 10s) + `UpdateBreathing`; al llegar a CurDur → `RecOff`, **`PlayGrabHaptic` (pulso fin)**, SegIndex++; si quedan → Phase=1+ShowInstruction, si no → `SaveSession`+Phase=4+pantalla Gracias.
+  - `4 FINAL`: trigger sostenido → `OpenLevel("L_Calibration")` (reinicia para el próximo usuario).
+- **`UpdateBreathing(T)`** (T=0..10): inhala 0-4s (círculo 0.6→1.4, "INHALA"), sostén 4-6s (1.4, "SOSTEN"), exhala 6-10s (1.4→0.6, "EXHALA") vía `SetCircleSize`+`SetCircleText`.
+- **Arranque por gatillo** = poll `(or probe.GetLabel probe.GetLabelR)`. No hay input nuevo en el Director.
+
+### Audio/háptico
+Solo 2 pulsos por ejercicio (inicio/fin, vía `PlayGrabHaptic`). **Neutralizado en el probe CDO**: `HapticAmplitude=0` (mata el háptico continuo) + `AudioUmbral.Sound=null` + `bAutoActivate=false` (mata el audio). El `GrabPulse` (los 2 pulsos) usa amplitud 1.0 independiente, sigue funcionando.
+
+### ⏳ Pendiente (test del usuario en visor)
+Posición/tamaño de CountdownNumber/CenterTitle/CircleText y del círculo/slider **a ajustar en el editor** (a ojo por ahora). Verificar el feel del trigger-hold, el ciclo de respiración, y que graba/guarda por ejercicio. Íconos por página (SetIconMaterial) siguen pendientes.
