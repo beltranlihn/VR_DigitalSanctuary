@@ -68,3 +68,19 @@ Solo 2 pulsos por ejercicio (inicio/fin, vía `PlayGrabHaptic`). **Neutralizado 
 
 ### ⏳ Pendiente (test del usuario en visor)
 Posición/tamaño de CountdownNumber/CenterTitle/CircleText y del círculo/slider **a ajustar en el editor** (a ojo por ahora). Verificar el feel del trigger-hold, el ciclo de respiración, y que graba/guarda por ejercicio. Íconos por página (SetIconMaterial) siguen pendientes.
+
+### 🧹 Limpieza de huérfanos (2026-07-24)
+Barrido de vitalidad dirigida (`ProgrammaticToolset`, ver `scripts/clean_orphans.py`) tras las múltiples reescrituras del rediseño + portada. **1007 huérfanos borrados** con DSL vivo `identical=true` en los 3 grafos (cero cambio de lógica). Conteo actual de nodos vivos: **EventGraph 226 · ConfigureSegment 58 · UpdateBreathing 28**. Compila limpio, guardado.
+
+### 🖼️ Materiales de página asignados (2026-07-24)
+Las 10 vars `Icon*` (instance-editable) apuntan a Material Instances de `M_Instruct_Calib` en `Calibration/Material/`. Set vía `ObjectTools.set_properties` sobre el CDO. Mapa (var → MI): IconCover/IconFinal→Page1_Alma · IconWelcome→Page2_Sensor · IconEst→Page3_Umbral · IconApnea→Page4_Sosten · IconNat→Page5_Natural · IconRapida→Page6_Rapida · IconGuiada→Page7_Guided · IconPierna→Page8_Reposo · IconMov→Page9_Movement.
+
+### 🎨 Master `M_Instruct_Calib` — alpha "solo negro total" (2026-07-24)
+Translucent + MD_UI. `TextureSample.RGB → Emissive`; opacity = alpha por luminancia. Estaba `max(R,B)` **lineal** (grises oscuros semi-transparentes = "borraba mucho") y con bug de canal (ignoraba G, usaba `max(R,R)`). **Fix:** (1) reconecté canal G → `max(R,G,B)` real; (2) inserté rampa empinada `Max → Multiply(× AlphaSharpness) → Opacity`. **`AlphaSharpness`** = ScalarParameter (grupo "Alpha", default **16**, tuneable por instancia) → solo el negro casi-total (< ~1/16 luminancia) va a alpha, el resto opaco, conservando antialias de bordes. Subir el valor = recorte más agresivo.
+
+### 🎬 Videos (MediaPlayer) — reproducción on-demand (2026-07-24)
+**4 de las 10 páginas son video** (MediaTexture, no imagen fija): Page5_Natural(Inhaling_MD_Video), Page6_Rapida(Rapida_MP_Video), Page7_Guided(Guided_MP_Video), Page9_Movement(Movement_MP_Video). Cada MediaTexture ← un MediaPlayer (`_MP`/`_MD`) con **playOnOpen+loop=true** pero **sin source asignado** (playlist=None) → no arrancaban solos.
+- **8 vars objeto nuevas** en el Director (defaults en CDO): 4 MediaPlayer `MP_Nat/MP_Rap/MP_Gui/MP_Mov` + 4 MediaSource `Src_Nat/Src_Rap/Src_Gui/Src_Mov`. Mapa player↔source por nombre: Inhaling_MD←Inhaling-exhaling, Rapida_MP←Rapida, Guided_MP←Guided, Movement_MP←MovementHand.
+- **Función nueva `UpdateSegmentMedia`** (34 nodos): cierra los 4 players, luego `if SegIndex ∈ {2,3,4,6}` → `OpenSource(player, source)` del ejercicio actual (playOnOpen+loop lo reproduce en bucle). **1 decoder activo a la vez** (importante en Quest). Llamada **enganchada por cirugía al final de `ShowInstruction`** (tras `SetIconMaterial`), que corre 1× por segmento al aparecer su página. Compila limpio, guardado.
+- ⚠️ **Nota menor:** el último video (Movimiento, seg 6) sigue en loop invisible durante la pantalla "Gracias" (esa no llama ShowInstruction); se corta solo al recargar el nivel con el trigger. Sin impacto visible.
+- ✅ **PACKAGING DE VIDEO RESUELTO (2026-07-24):** los 4 `.mp4` movidos a `VR_Test/Content/Media/` (misma carpeta que los videos de Breath, ya staged). Cada `FileMediaSource` con FilePath **relativo** `./Media/<X>.mp4` (Guided/Rapida/MovementHand/Inhaling-exhaling). `DefaultGame.ini` **ya tenía** `+DirectoriesToAlwaysStageAsUFS=(Path="Media")` → no hizo falta tocar el ini. Originales borrados de `Recursos/Asset/Calibration/` (quedan solo las `.png` fuente). Empaquetar **Development**. Ver memoria `video-packaging-quest`.
