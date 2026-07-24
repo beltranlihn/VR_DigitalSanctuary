@@ -44,10 +44,6 @@
 		{
 			"Name": "MCPClientToolset",
 			"Enabled": true
-		},
-		{
-			"Name": "ModelContextProtocol",
-			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [
