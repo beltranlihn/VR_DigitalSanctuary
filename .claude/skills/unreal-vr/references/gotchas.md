@@ -224,3 +224,31 @@ Regla: si un puro lee algo que vas a modificar, no lo reuses a través de la esc
 
 ## Source of truth
 - The LIVE server is authoritative for toolset APIs, node `type_id`s and pins. Web/Epic docs are for CONCEPTS only; always verify exact ids live.
+
+## 🔴 CVars muertos: un `.ini` con un nombre inexistente se IGNORA EN SILENCIO (verificado 2026-07-25)
+Un CVar mal escrito o renombrado **no da error ni warning**: la línea del `.ini` simplemente no hace nada, y uno cree tener aplicada una config que nunca existió. Encontrados así en este proyecto (2 años de config muerta):
+
+| En el `.ini` | Realidad |
+|---|---|
+| `vr.PixelDensity=1.2` | **No existe desde UE 5.5.** Renombrado a `xr.SecondaryScreenPercentage.HMDRenderTarget`, y la escala pasó de `1.0` a **`100` = porcentaje**. Se renderizaba al 100%, no al 120%. |
+| `xr.OpenXRFB.FoveationLevel=2` | **No existe.** El nombre real va **sin punto** tras `OpenXRFB`: `xr.OpenXRFBFoveationLevel`. El FFR nunca se activó. |
+
+**Regla: antes de confiar en cualquier línea de `[SystemSettings]`, verificar que el CVar exista.**
+```
+EditorAppToolset.SearchCVars {name: "PixelDensity"}   → {} significa QUE NO EXISTE
+```
+Devuelve además el `value` actual y el `help`, así que sirve para confirmar el valor efectivo, no el que uno cree. En un build en device: escribir el nombre en la consola; si no imprime valor, no existe.
+
+**Config de nitidez VR correcta en 5.5+ (Quest 3, OpenXR, mobile forward):**
+```ini
+[/Script/OpenXRHMD.OpenXRHMDSettings]
+bIsFBFoveationEnabled=True          ; habilita la extension XR_FB_foveation
+
+[SystemSettings]
+xr.SecondaryScreenPercentage.HMDRenderTarget=125   ; 100=recomendado del runtime, 125~=panel nativo Quest 3
+xr.OpenXRFBFoveationLevel=1         ; 1=Low. Nivel 2-3 degrada visiblemente texto/UI del centro
+xr.OpenXRFBFoveationDynamic=1
+r.VRS.Enable=1                      ; el FFR por hardware necesita Support(ya=1) Y Enable
+```
+
+**Y lo que NO existe / no sirve en mobile forward** (no perder tiempo): TAA, TSR, TAAU y FXAA no están soportados en Forward (solo MSAA); `r.Tonemapper.Sharpen` no es de móvil y además con `r.MobileHDR=False` no hay tonemapper; MSAA >4x lo desaconseja Meta (mejor gastar en resolución). 🔴 **MSAA no actúa sobre objetos transparentes** → el aliasing de UI/iconos alpha-blend de un WidgetComponent (vive DENTRO de un render target) no lo arregla ningún MSAA; ahí las palancas son resolución de render, ajustes de textura, y sobre todo **Stereo Layers** (el panel va al compositor y no sufre el resampleo del eye buffer).
