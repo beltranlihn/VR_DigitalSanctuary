@@ -141,6 +141,22 @@ Componente **`Music`** (AudioComponent) en `BP_CalibDirector`: `Sound=/Game/Soul
 - **`UpdateWidgetFade(DT)`** (PRIMER nodo del Tick): mientras `bOpening` acumula `AnimTimer`; al llegar a **2.0 s** apaga `bOpening` y dispara **`FadeFromBlack(3.0)`**. Resultado: **2 s de negro puro** (durante los cuales el widget ya spawneó, invisible) **+ 3 s de fade de entrada**.
 - **Cierre** (fase 5, cadena por cirugía): `FadeOut música (3.5s)` → `StartFade(1.0, 2.5, negro)` → `Delay 3.0` → `OpenLevel`. Sin fade del widget: simplemente se va a negro con la música. Las vars `bClosing`/`AnimTimer` del ramp de cierre quedaron sin uso en el cierre (`bClosing` se sigue reseteando en `BeginOpening`).
 
+### ✅ VALIDACIÓN DE DATOS EN EL QUEST (2026-07-28) — el pipeline funciona end-to-end
+Primera verificación real de la data en el dispositivo, tras un APK exitoso.
+- **Ruta en el visor:** `/sdcard/Android/data/com.YourCompany.VR_Test/files/UnrealGame/VR_Test/VR_Test/Saved/SaveGames/`. El path `Este equipo\Quest 3\...` del explorador es **MTP** y no se puede leer con herramientas de archivos → usar **adb** (`adb shell ls` / `adb pull`). ⚠️ **Git Bash mangea las rutas Android** (`/sdcard/...` → `C:/Program Files/...`): usar la herramienta PowerShell para los comandos adb.
+- **4 sesiones acumuladas** (`CalibUser_1..4` + `CalibIndex`) → el contador por usuario y la persistencia entre apagados **funcionan**.
+- **Calidad de `CalibUser_4`:** 10.138 filas, **todas con 18 columnas** (0 corruptas), muestreo **~71-72 Hz** parejo, y **los 7 segmentos con duración exacta** a la configurada (20/10/20/15/52/15/10 s).
+- **La señal discrimina** (mediana de `ls`): reposo estómago 0.33 · reposo pierna 0.24 · natural 1.58 · rápida 2.68 · **movimiento 78.0**. Y la **geometría separa los sitios**: estómago `dist≈47 horiz≈15` vs **pierna `dist≈67 horiz≈36`** — justo el discriminador abdomen/muslo que se buscaba.
+- ℹ️ Dos cosas esperables, no bugs: **`bv=0` constante en MOV** (el band-pass se resetea a propósito cuando no hay quietud) y **`in`/`br`/`cal` siempre `false`** (la calibración está desactivada con `CalHold=9999` para que el umbral no interfiera con la captura cruda).
+- Scripts de extracción/análisis usados: `scratchpad/quest/parse.py` y `analyze.py` (el `.sav` es binario; el CSV sale extrayendo el bloque ASCII mayor y separando filas por el `\n` **literal**).
+
+### ⏳ PENDIENTE PARA LA PRÓXIMA SESIÓN — alargar 2 duraciones + textos
+Los tiempos actuales **están correctos y coinciden con los textos** (verificado contra la data del visor); no hay desfase. Pero para el rigor del estudio, **dos segmentos quedan cortos**:
+- **NAT (Natural) 20 s → 40 s.** A 12-16 resp/min, 20 s son solo **4-5 ciclos**: poco para estimar la amplitud propia de cada persona. Es uno de los dos segmentos de los que depende el problema abierto (inhala/exhala no generaliza con umbral global → hace falta normalización por usuario, ver [[calibracion-analisis-hallazgos]]).
+- **GUIADA 52 s → 78 s.** Hoy son exactamente **4 ciclos** de 13 s (el mínimo); si a alguien le sale mal uno quedan 3. Con 78 s son **6 ciclos**. ⚠️ Debe ser **múltiplo de 13** para que los ciclos cierren.
+- Costo: **+46 s** por persona (~5-6 min de sesión total). Barato frente al costo de conseguir participantes.
+- **Textos a tocar en el mismo cambio** (viven en el array `SegTexts`): actualizar "20 segundos"→"40" en Natural; **agregar la duración a GUIADA** (hoy no dice ninguna, se le quitó el "40 segundos" al pasar a 52 y no se repuso) y opcionalmente a MOVIMIENTO (tampoco menciona). Recordar: **saltos de línea reales**, no `\n`.
+
 ### 🎨🔊 Tanda de pulido UI + audio + háptico (2026-07-25/26)
 **UI de la respiración guiada**
 - **`BreathRing`** (`RadialSlider` de `/Script/AdvancedWidgets`) — anillo de progreso del ciclo. La clase ya se usaba para el trigger-hold. Full 360°, `showSliderHandle/Hand=false`, `locked=true`. **Mapeo por fase, no lineal**: cada fase ocupa **un cuarto exacto** del anillo (0→.25 aguanta, .25→.5 inhala, .5→.75 aguanta, .75→1 exhala), así el puntero **cambia de velocidad** según la duración real y siempre cae en la marca al cambiar de fase. Ventaja: si cambian las duraciones, los divisores no se mueven.
