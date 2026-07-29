@@ -57,6 +57,14 @@
 | **WBP_TouchInstructions** | `Stages/Touch/Widget/` | Widget de instrucciones (fondo naranja). **Textos por definir.** | 🧩 | — |
 | **SG_Melody** | `Stages/Touch/` | SaveGame de la melodía (array de 5 clip-IDs). **Falta el array.** | 🧩 stub | — |
 
+## Stage Movement = "Surrounding" 🧩 (`Content/SoulCharger/Stages/Movement/`) — scaffold
+> Plan completo: `docs/stages/movement-surrounding.md`. Sistema de dibujo 3D (cinta plana con frame por transporte paralelo, ProceduralMesh).
+
+| Blueprint | Ruta | Qué hace | Estado | Tracker |
+|---|---|---|---|---|
+| **BP_DrawCanvas** | `Stages/Movement/` | Motor de geometría: dueño del `ProceduralMeshComponent` y de los datos del dibujo. Variables + 4 grafos de función creados, **cuerpos vacíos**. | 🧩 scaffold | ✓ |
+| **BP_BrushTool** | `Stages/Movement/` | La herramienta: prop agarrable por proximidad que define la mano hábil, lee el gatillo y emite puntos al canvas. | 🧩 stub vacío | — |
+
 ## Herramienta Calibration 🟢 (`Content/SoulCharger/Calibration/`) — no es stage
 | Blueprint | Ruta | Qué hace | Estado | Tracker |
 |---|---|---|---|---|

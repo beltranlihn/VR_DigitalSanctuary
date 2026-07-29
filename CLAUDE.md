@@ -29,6 +29,8 @@ Carpetas en `VR_Test/Content/SoulCharger/Stages/`: **Breath · Heart · Mind · 
 
 **Regla al arrancar un stage nuevo:** usar **Breath como plantilla** (sensor/consumidor/manager separados, widget de instrucciones si aplica, cierre por manager + fade + transición) y crear su tracker en `skills/unreal-vr/blueprints/` desde el día 1.
 
+🔴 **Idioma de los textos in-headset: INGLÉS.** Todas las instrucciones y textos que ve el usuario dentro de los stages van en inglés. La única excepción es **`Calibration`**, que quedó en español por ser herramienta interna de investigación, no parte de la obra.
+
 ## 4. Cómo se trabaja acá — la skill es la biblia
 Todo lo operativo de Unreal está en la skill **`unreal-vr`** (`.claude/skills/unreal-vr/`), que **se auto-activa** cuando la tarea toca Unreal. No la reinventes. Estructura:
 - **`SKILL.md`** — guía operativa corta (empezá por acá): cómo llamar al MCP, el workflow de Blueprints, las golden rules.

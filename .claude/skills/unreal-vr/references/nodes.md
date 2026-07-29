@@ -108,3 +108,19 @@ OSC server + handler (write handler body into the Assign-generated event, NOT vi
   (switch Utilities|FlowControl|Switch|SwitchonString s
     (:Case_0 …)))   ; set the case match string ("/muse" etc.) in the editor Details panel
 ```
+
+## Procedural Mesh Component (verificado 2026-07-29, stage Movement)
+
+Plugin **habilitado por defecto** en UE 5.8 (`EnabledByDefault: true` en su `.uplugin`) — no hay que tocar el `.uproject`. Componente: `/Script/ProceduralMeshComponent.ProceduralMeshComponent` (se agrega al **CDO** con `ActorTools.add_component`).
+
+type_ids (categoria `Components|ProceduralMesh|`): `CreateMeshSection` · `UpdateMeshSection` · `ClearMeshSection` · `ClearAllMeshSections` · `SetMeshSectionVisible` · `IsMeshSectionVisible`.
+
+**`CreateMeshSection`** — pines de entrada por indice: `0 execute` · `1 self` (Procedural Mesh Component ref) · `2 SectionIndex` (int) · `3 Vertices` · `4 Triangles` · `5 Normals` · `6 UV0` · `7 UV1` · `8 UV2` · `9 UV3` · `10 VertexColors` (Array of Linear Color) · `11 Tangents` (Array of Proc Mesh Tangent) · `12 bCreateCollision` (default **false**) · `13 bSRGBConversion` (default **false**).
+
+**`UpdateMeshSection`** — `0 execute` · `1 self` · `2 SectionIndex` · `3 Vertices` · `4 Normals` · `5 UV0` · `6 UV1` · `7 UV2` · `8 UV3` · `9 VertexColors` · `10 Tangents` · `11 bSRGBConversion` (default **true**).
+
+🔴 **Dos cosas que definen la arquitectura:**
+1. **`UpdateMeshSection` NO tiene pin `Triangles`.** El index buffer no se puede cambiar al actualizar → para una geometria que crece hay que **pre-alocar** la seccion con su lista de triangulos completa y despues solo actualizar posiciones. Es la razon tecnica del diseno de `BP_DrawCanvas`.
+2. **`bSRGBConversion` tiene default DISTINTO en cada nodo** (Create=false, Update=true). Si se usan vertex colors con significado (color/dato horneado por vertice), hay que **forzar el mismo valor en los dos** o el color cambia solo entre la creacion y la primera actualizacion.
+
+`add_variable` **SI crea arrays** con `container_type: "Array"` (verificado: el CDO devuelve `{"Vertices":[]}`). La nota contraria en el plan de Touch estaba equivocada. Lo que sigue sin poder crearse por API son los **structs de usuario** (no hay tool de creacion de UserDefinedStruct) — esos van a mano en el editor.
