@@ -2,7 +2,7 @@
 
 Índice de alto nivel de dónde está cada stage. **Detalle fino de cada Blueprint → su tracker en `.claude/skills/unreal-vr/blueprints/<BP>.md`.** Actualizá este archivo al terminar de trabajar un stage.
 
-> Última actualización: **2026-07-22**.
+> Última actualización: **2026-07-30**.
 
 Stages (carpetas en `VR_Test/Content/SoulCharger/Stages/`): **Breath · Heart · Mind · Movement · Touch · Inicio · Centro · Salida**. Además hay una herramienta de investigación en `Content/SoulCharger/Calibration/` (no es un stage de la obra).
 
@@ -42,7 +42,7 @@ Nivel para **levantar datos de muchos usuarios** y tunear los umbrales de detecc
 ## ⚪ Stages sin empezar (carpetas vacías o mínimas)
 - **Movement** — sistema de **dibujo 3D** (el usuario dibuja "el interior de la ameba"). Decisión de arquitectura ya tomada: **procedural mesh (ribbon), NO Niagara** (tiene que ser bakeable + persistible por usuario). Receta en `skills/unreal-vr/references/movement-3d-drawing.md` (algoritmo `PincelA_AddPoint` + color picker HSV + grab + persistencia SaveGame). Se revisaron 4 proyectos VR de referencia (en `Recursos/`).
 - **Mind** — stage mental. Sin empezar.
-- **Touch = "Attracting" (etapa de MÚSICA)** — 🟡 en diseño, a punto de arrancar (dev: Nico). NO es "interacción táctil genérica": es un **secuenciador de 5 pasos** donde apuntás burbujas sonoras con un beam, las atraés con trigger (far-grab con interp), las posás en los 5 bloques de una mesa y suenan cuantizadas (Quartz) sobre un pad; con los 5 llenos, "Guardar melodía" (SaveGame). **Brief + organigrama de construcción completo → [`stages/touch-attracting.md`](stages/touch-attracting.md)** (incluye el scaffold ya creado en `Stages/Touch/`: widget de instrucciones naranja + stubs de los BPs base + `SG_Melody`). Audio verificado en `skills/unreal-vr/references/audio-quest.md`. Las mecánicas de agarrar/apuntar de GDXR (`Recursos/`) sirven de referencia de interacción.
+- **Touch = "Attracting" (etapa de MÚSICA)** — 🟡 **en construcción activa (dev: Nico), Fases 0-5 cableadas** (de 10 del organigrama). Secuenciador de 5 pasos: apuntás burbujas sonoras con un beam, las atraés (far-grab), las posás en 5 slots y suenan por step; con los 5, "Guardar melodía". **Hecho y compilando:** `L_Touch` + `DA_SoundBank`; `BP_AimBeam` (aim line-trace + hover + grab por grip); `BP_SoundBubble` (preview en hover con fade + follow + snap a slot); `BP_SeqSlot` ×5; `BP_AttractDirector` (playhead de 5 pasos por **timer**, hook de BEAT HIT). **Pendiente:** test en visor; **audio** (no hay clips → burbujas mudas, y el secuenciador es esqueleto por timer, migrar a **Quartz + Play Quantized** adaptando `Core/Sequencer/BP_Sequencer` cuando existan clips); trigger real (hoy grip); Fases 6-10 (audioreactivo, swap, guardar+SaveGame, instrucciones+cierre, Android). Detalle por-BP en `blueprints/BP_*.md`. Brief: [`stages/touch-attracting.md`](stages/touch-attracting.md).
 - **Inicio** — entrada/onboarding de la obra. Sin empezar.
 - **Centro / Salida** — núcleo y cierre de la obra. Sin empezar.
 

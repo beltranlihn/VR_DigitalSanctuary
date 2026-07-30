@@ -1,5 +1,12 @@
 # Gotchas & hard rules (hard-won — don't relearn these)
 
+## 🔴 El editor DEBE estar en inglés — si está localizado, el DSL de Blueprints no resuelve
+**El síntoma:** `write_graph_dsl` falla con "`Variables|Default|Get…` does not exist", el azúcar `if`/`switch`/`for` falla ("`Utilities|FlowControl|Branch` does not exist"), y `create_node` no instancia nodos. `find_node_types` devuelve ids en otro idioma (`Variables|Predeterminado|Obtener…`, `Utilidades|ControlDeFlujo|Rama`, `Colisión|LineTraceByChannel`).
+
+**La causa.** El registro de nodos y sus type_ids se construyen con los **display names localizados** al arrancar el editor. La skill (dsl.md/nodes.md) y el azúcar de control de flujo del DSL asumen los ids **en inglés**. Con el editor en español (o cualquier idioma), esos ids no existen → el DSL es inusable para grafos con ramas.
+
+**La solución:** **Editor Preferences → General → Region & Language → Editor Language = `English`**, y **reiniciar el editor por completo** (el UI cambia en vivo pero la base de nodos solo se reconstruye en un arranque nuevo; hasta entonces `find_node_types` sigue devolviendo el idioma viejo aunque el menú se vea en inglés). Verificá con `find_node_types(graph,"CurrentHovered",[])` → debe dar `Variables|Default|Get…` (no `Obtener…`). La preferencia queda guardada → futuras sesiones abren en inglés solas. **Ojo:** el reinicio del editor tira el MCP (reconectar con ToolSearch / reiniciar Claude) y puede reabrir otro mapa (verificá `get_current_level` antes de `add_to_scene`). Descubierto 2026-07-29 armando `BP_AimBeam`.
+
 ## 🔴 Háptico en OpenXR/Quest: `SetHapticsByValue` NO puede vibrar rápido — usa un asset de curva
 **El síntoma:** el háptico se siente como un pulso lento en vez de un zumbido continuo, y subir "Frequency" no cambia nada.
 
