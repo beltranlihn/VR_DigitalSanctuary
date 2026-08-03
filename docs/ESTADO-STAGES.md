@@ -2,7 +2,7 @@
 
 Índice de alto nivel de dónde está cada stage. **Detalle fino de cada Blueprint → su tracker en `.claude/skills/unreal-vr/blueprints/<BP>.md`.** Actualizá este archivo al terminar de trabajar un stage.
 
-> Última actualización: **2026-07-30**.
+> Última actualización: **2026-08-03**.
 
 Stages (carpetas en `VR_Test/Content/SoulCharger/Stages/`): **Breath · Heart · Mind · Movement · Touch · Inicio · Centro · Salida**. Además hay una herramienta de investigación en `Content/SoulCharger/Calibration/` (no es un stage de la obra).
 
@@ -39,10 +39,32 @@ Nivel para **levantar datos de muchos usuarios** y tunear los umbrales de detecc
 - **Hallazgos del análisis de datos** (guían el diseño de la obra): **reposo** se detecta robusto con `LinSpeed < 1` (generaliza entre personas); **posición del sensor** (en el cuerpo vs fuera) con `horiz < 17`; **inhala vs exhala NO se resuelve con un umbral global** — es sujeto-específico, hay que normalizar por usuario. Por eso el nivel de calibración captura un baseline por persona.
 - **Próximo:** test en Link/PIE → después texto in-headset 3D + pacer del segmento de respiración → empaquetar y testear con gente.
 
+## 🟡 TOUCH = "Attracting" (etapa de MÚSICA) — mecánica base completa, sin probar en visor
+Secuenciador de 5 pasos: apuntás burbujas sonoras con un beam, las atraés sosteniendo el gatillo, las posás en 5 slots y suenan por step. Brief: [`stages/touch-attracting.md`](stages/touch-attracting.md) · detalle por-BP en `blueprints/BP_*.md`.
+
+**Traspaso:** lo arrancó Nico (Fases 0-5) y desde el **2026-08-03** lo sigue Beltrán en `stage/touch`. 🔴 Al retomarlo se encontró que **todos los actores de gameplay estaban apilados en (0,0,0)** y que los eventos de far-grab **estaban vacíos**: las fases figuraban como hechas porque *compilaban*, pero nunca habían corrido. **Lección para el equipo: que compile no dice nada; una fase no está hecha hasta que se ve corriendo.**
+
+**Hecho y compilando:**
+- `L_Touch` armado de verdad: 5 slots en fila (X=55, Z=75), 6 `TP_Bubble_*` y 2 beams.
+- **Beam por mano** (`AimBeam_Right`/`Left`, `bIsRight` instance-editable), **attacheado al pawn** en BeginPlay → sobrevive al recentrado. Pose *Aim* (la de grip apunta casi hacia arriba en UE 5.x).
+- **Input propio**: `IA_Attract_Left/Right` + `IMC_Touch`, **trigger sostenido**, registrado por el Director con prioridad 1.
+- **Burbujas spawneadas por TargetPoint** con tag `BubbleSpawn` → la composición se arma moviendo puntos en el viewport, sin tocar Blueprints, y escala a las ~20 del brief.
+- Hover **push** (el beam avisa; `HoverCount` soporta las dos manos), far-grab, colocación en el **slot más cercano**, **swap** con vuelta a `HomeLocation`, y **pulso audioreactivo** en el beat.
+- Audio placeholder: `MS_Synth`/`MS_Perc` (MetaSounds procedurales, sin dependencias) en `Stages/Touch/Audio/`.
+- Materiales **unlit emisivos** para láser, burbuja y slot (`Stages/Touch/Materials/`).
+- Logs con prefijo **`TCH|`** para cruzar la prueba en visor con el Output Log.
+
+**Pendiente:**
+- 🔴 **Probar en visor** — nada de esto corrió nunca.
+- **Quartz**: el playhead sigue por **timer**. Bloqueado por un paso manual en el editor (crear el custom event desde el pin del `Subscribe`) — ver tracker de `BP_AttractDirector`.
+- Fase 8 (botón Guardar + `SG_Melody`), Fase 9 (instrucciones + cierre), Fase 10 (Android).
+- Variedad de clip por burbuja desde `DA_SoundBank` (hoy todas comparten el default).
+- `Stages/Touch/Ref/` tiene assets migrados con **4 referencias rotas** → riesgo de cook. Nadie los usa; decidir si se borran.
+- `L_Touch` **no está en MapsToCook** (no bloquea PIE, sí el APK).
+
 ## ⚪ Stages sin empezar (carpetas vacías o mínimas)
 - **Movement** — sistema de **dibujo 3D** (el usuario dibuja "el interior de la ameba"). Decisión de arquitectura ya tomada: **procedural mesh (ribbon), NO Niagara** (tiene que ser bakeable + persistible por usuario). Receta en `skills/unreal-vr/references/movement-3d-drawing.md` (algoritmo `PincelA_AddPoint` + color picker HSV + grab + persistencia SaveGame). Se revisaron 4 proyectos VR de referencia (en `Recursos/`).
 - **Mind** — stage mental. Sin empezar.
-- **Touch = "Attracting" (etapa de MÚSICA)** — 🟡 **en construcción activa (dev: Nico), Fases 0-5 cableadas** (de 10 del organigrama). Secuenciador de 5 pasos: apuntás burbujas sonoras con un beam, las atraés (far-grab), las posás en 5 slots y suenan por step; con los 5, "Guardar melodía". **Hecho y compilando:** `L_Touch` + `DA_SoundBank`; `BP_AimBeam` (aim line-trace + hover + grab por grip); `BP_SoundBubble` (preview en hover con fade + follow + snap a slot); `BP_SeqSlot` ×5; `BP_AttractDirector` (playhead de 5 pasos por **timer**, hook de BEAT HIT). **Pendiente:** test en visor; **audio** (no hay clips → burbujas mudas, y el secuenciador es esqueleto por timer, migrar a **Quartz + Play Quantized** adaptando `Core/Sequencer/BP_Sequencer` cuando existan clips); trigger real (hoy grip); Fases 6-10 (audioreactivo, swap, guardar+SaveGame, instrucciones+cierre, Android). Detalle por-BP en `blueprints/BP_*.md`. Brief: [`stages/touch-attracting.md`](stages/touch-attracting.md).
 - **Inicio** — entrada/onboarding de la obra. Sin empezar.
 - **Centro / Salida** — núcleo y cierre de la obra. Sin empezar.
 

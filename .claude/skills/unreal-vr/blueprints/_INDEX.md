@@ -48,11 +48,11 @@
 
 | Blueprint | Ruta | Qué hace (previsto) | Estado | Tracker |
 |---|---|---|---|---|
-| **BP_AttractDirector** | `Stages/Touch/` | Cerebro: step sequencer de 5 pasos. **Esqueleto por timer** (playhead+lookup+BEAT HIT) listo; falta Quartz+audio y flujo de stage. | 🟡 | ✓ |
-| **BP_SoundBubble** | `Stages/Touch/` | Burbuja sonora. Fases 2-4: preview en hover + far-grab con follow + snap a slot. Falta audio. 3 en `L_Touch`. | 🟢 | ✓ |
-| **BP_SeqSlot** | `Stages/Touch/` | Un slot (data: `StepIndex` + `Occupant`). 5 en `L_Touch` (StepIndex 0-4). La burbuja se auto-coloca por proximidad. | 🟢 | ✓ |
+| **BP_AttractDirector** | `Stages/Touch/` | Cerebro: registra `IMC_Touch`, **spawnea las burbujas por TargetPoint** (tag `BubbleSpawn`), cachea los slots por `StepIndex` y corre el playhead. Sigue **por timer**: Quartz bloqueado por un paso manual en el editor. | 🟡 | ✓ |
+| **BP_SoundBubble** | `Stages/Touch/` | Burbuja sonora. Hover **push** (`HoverCount`, sirve a las 2 manos), far-grab siguiendo **el beam que la agarró**, colocación en el **slot más cercano**, **swap** con vuelta a `HomeLocation`, y pulso audioreactivo. La spawnea el Director, no se coloca a mano. | 🟢 | ✓ |
+| **BP_SeqSlot** | `Stages/Touch/` | Un slot (data: `StepIndex` + `Occupant`). 5 en `L_Touch` en fila (X=55, Z=75), StepIndex 0-4 coincidiendo con el orden espacial. | 🟢 | ✓ |
 | **BP_SeqTable** | `Stages/Touch/` | Mesa visual bajo los slots. **Sin construir** (los slots funcionan sin ella). | 🧩 stub | — |
-| **BP_AimBeam** | `Stages/Touch/` | Láser de apuntado + hover (line-trace desde pose aim RightAim). Fase 1 cableada (Tick+SetHover, dispatchers OnHoverBegin/End). En `L_Touch` + cubo de test. Falta test visor + material láser + trigger (Fase 3). | 🟢 | ✓ |
+| **BP_AimBeam** | `Stages/Touch/` | Láser de apuntado por mano. **2 instancias** (`bIsRight`), **attacheadas al pawn** en BeginPlay. Trace desde la pose *Aim*, hover push hacia la burbuja, y far-grab con **trigger sostenido** (`IA_Attract_L/R`). Material unlit emisivo. | 🟢 | ✓ |
 | **BP_SaveButton** | `Stages/Touch/` | Botón "Guardar melodía" (gateado por 5 slots llenos). | 🧩 stub | — |
 | **BP_TouchInstructions** | `Stages/Touch/` | Driver de instrucciones (duplicado de Breath; **sin wirear** — ver plan). | 🧩 | — |
 | **WBP_TouchInstructions** | `Stages/Touch/Widget/` | Widget de instrucciones (fondo naranja). **Textos por definir.** | 🧩 | — |
