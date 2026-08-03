@@ -91,7 +91,9 @@ VR Unreal/                      ← raíz del repo (abrí Claude Code acá)
 - Trigger sostenido: **ya funcionaba** en Breath/Calibration (`IA_Continue` + `IMC_Continue`). Se armó uno nuevo con los **defaults** y no andaba — el que funciona usa `Priority=1000` + `bIgnoreAllPressedKeysUntilRelease=False` + `bForceImmediately=True`. Los defaults **suprimen el input**.
 - Pointer láser: **ya existía** `NS_MenuLaser` (XRFramework), manejado por `User.PointArray` índice 0/1. Reusarlo salió gratis.
 
-**El paso obligatorio:** ante "necesito un trigger / un puntero / un grab / un fade / un widget", **primero** `_INDEX.md` y `references/`, después construir. Y si algo se construye nuevo, **copiar la configuración del que ya anda**, no los valores por defecto.
+**El paso obligatorio:** ante "necesito un trigger / un puntero / un grab / un fade / un widget", **primero** [`references/assets-existentes.md`](.claude/skills/unreal-vr/references/assets-existentes.md) y `blueprints/_INDEX.md`, después construir. Y si algo se construye nuevo, **copiar la configuración del que ya anda**, no los valores por defecto.
+
+🗺️ **`references/assets-existentes.md` = el inventario de lo que YA EXISTE y es reusable** (input, audio, VFX, materiales, accesores del pawn, persistencia), con el estado de cada cosa: qué está probado en visor y qué no. El `_INDEX.md` mapea Blueprints; ese archivo mapea **assets**, que es justo lo que faltaba. **Mantenerlo vivo:** cuando descubras algo reusable o valides algo en visor, agregalo ahí.
 
 ## 8. Git, deploy y trabajo en paralelo (2 devs)
 Reglas completas en [`docs/WORKFLOW-EQUIPO.md`](docs/WORKFLOW-EQUIPO.md). Resumen:
