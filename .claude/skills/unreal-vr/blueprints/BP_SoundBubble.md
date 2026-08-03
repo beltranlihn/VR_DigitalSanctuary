@@ -48,7 +48,17 @@ Con **dos beams** (uno por mano) el modelo viejo se rompía: `BeginPlay` hacía 
 **`TryPlace()`:** `GetAllActorsOfClass(BP_SeqSlot)` → for-each → primer slot con Occupant inválido Y `Distance < PlaceRadius` → snap (`SetActorLocation` al slot), `bIsPlaced=true`, `MySlot=slot`, `slot.SetOccupant(self)`. (⚠ el `SetOccupant` cross-class es `(:Occupant valor :self target)` — el positional mapea mal.)
 **Quién dispara el grab:** el `BP_AimBeam` (input grip `IA_Grab_Right`) llama `SetGrabbed`. Ver su tracker.
 ✅ **Occupant stale ARREGLADO (2026-08-03).** `SetGrabbed` con `NewGrabbed=true` ahora hace `IsValid(MySlot)` → libera el slot viejo (`SetOccupant(null)`) → `MySlot = null` → `bIsPlaced = false`. Antes, re-agarrar una burbuja colocada dejaba el slot marcado como ocupado para siempre: el secuenciador lo seguía disparando y ninguna otra burbuja podía entrar ahí.
-**Falta todavía el SWAP (Fase 7):** soltar sobre un slot **ocupado** no intercambia — `PlaceInNearestSlot` solo mira slots libres. Necesita (a) `HomeLocation` en la burbuja (capturada al spawnear) y (b) que la función considere también los ocupados y mande la vieja de vuelta a su `HomeLocation`.
+## ✅ Fase 7 — SWAP hecho (2026-08-03)
+- **`HomeLocation : Vector`** capturada en un `EventBeginPlay` nuevo (`SetHomeLocation = GetActorLocation`). Como las burbujas las spawnea el Director en los TargetPoints, cada una guarda la posición de su punto.
+- **`ReturnHome()`**: `SetActorLocation(HomeLocation)` + `bIsPlaced=false` + `MySlot=null`.
+- **`EvictSlot(Slot)`**: si el slot tiene `Occupant` válido → le manda `ReturnHome`.
+- **`PlaceInNearestSlot` ya NO filtra slots libres**: busca el más cercano entre TODOS, y antes de colocarse llama `EvictSlot(best)`. Soltar sobre un bloque ocupado intercambia: la nueva entra, la vieja vuelve flotando a su lugar.
+- Combinado con el fix del `Occupant` stale, el ciclo agarrar → colocar → re-agarrar → mover a otro slot queda consistente.
+
+⚠ **Dos trampas del DSL que costaron un intento cada una:**
+- `(CallFunction|MiFuncion arg)` posicional se conecta al pin **`self`**, no al parámetro → usar **keyword** (`:Slot _best`). Igual que ya pasaba con `SetOccupant`.
+- Llamar una función **sobre otra instancia de la misma clase** no es `Class|BPSoundBubble|ReturnHome` (no existe): es `(CallFunction|ReturnHome :self _otro)`.
+- 🔴 Y la de siempre: **`remove_function_graph` sin `compile_blueprint` en el medio deja el nombre tomado** → el `add_function_graph` devuelve `PlaceInNearestSlot_0`. Además, borrar una función deja **colgado el nodo de llamada** en quien la usaba: hay que borrar ese nodo, compilar, recrear la función y recrear la llamada.
 
 ✅ **ARREGLADO 2026-08-03 — `TryPlace` fue reemplazada por `PlaceInNearestSlot`.** Ahora hace **mínimo corriente**: arranca con `BestDist = PlaceRadius` y `BestSlot = null`, recorre los slots libres quedándose con el de menor distancia, y recién al final coloca si `BestSlot` es válido. Vars nuevas `BestSlot` / `BestDist`. `SetGrabbed` llama a la función nueva; `TryPlace` fue borrada.
 ⚠ Se usó la receta de `gotchas.md` para rehacer un function graph sin dejar escombros: `remove_function_graph` → **`compile_blueprint`** → `add_function_graph` → `write_graph_dsl`. Un `write_graph_dsl` que falla a mitad **deja nodos sueltos**; ante un error, recrear el grafo en vez de parchear.
@@ -59,6 +69,14 @@ Con **dos beams** (uno por mano) el modelo viejo se rompía: `BeginPlay` hacía 
 🔴 **BUG conocido en `TryPlace` (detectado 2026-08-03, sin arreglar):** se queda con el **PRIMER** slot que devuelve `GetAllActorsOfClass` dentro de `PlaceRadius`, **no con el más cercano**. Con los slots cada 30cm y `PlaceRadius=25` las zonas de captura se superponen, así que soltar una burbuja entre dos slots la manda al que el array liste primero, no al que apuntó el usuario — en VR se siente como que el objeto salta al lugar equivocado. **Fix:** recorrer todos los slots libres, quedarse con el de menor distancia y recién ahí comparar contra `PlaceRadius`. Con eso el espaciado de la fila deja de ser crítico.
 
 </details>
+
+## 🟡 Fase 6 — pulso audioreactivo (lado burbuja LISTO, falta 1 conexión)
+- **Vars:** `PulseT`(0), `PulseAmount`(0.35), `PulseDecay`(5.0), `BaseScale`(0.16 = la escala real del mesh esfera).
+- **`PulseOnBeat()`** → `PulseT = 1.0`. Es el hook que llama el Director en el beat.
+- **`UpdatePulse(DeltaSeconds)`** → si `PulseT > 0`: decae por `DeltaSeconds * PulseDecay` (con `Max(0,…)`) y escala el `Mesh` a `BaseScale * (1 + PulseT * PulseAmount)`. Cuando llega a 0 deja de tocar la escala, así no cuesta nada en reposo.
+- **`EventTick`** llama `UpdatePulse` **siempre** (después de la rama de `DoFollow`), por eso el decay corre esté agarrada o no.
+
+🔴 **FALTA UNA SOLA CONEXIÓN:** que `BP_AttractDirector.OnBeat` llame `PulseOnBeat` sobre el `Occupant`. **Bloqueado por el gotcha del registro de nodos** (ver `gotchas.md`): `Class|BPSoundBubble|PulseOnBeat` no resuelve desde el grafo del Director hasta reiniciar el editor. Probado sin éxito: recompilar ambos BPs, `save_assets`, `load_asset`. **Al reabrir el editor, agregar ese nodo en el branch "Is Valid" del `OnBeat` y listo.**
 
 ## Audio placeholder — 2026-08-03
 `PreviewSound` tiene default en el CDO: **`Stages/Touch/Audio/MS_Synth`** (MetaSound **procedural**, no depende de ningún `.wav` → suena tal cual). Así las burbujas spawneadas dejan de ser mudas sin esperar al sound designer.

@@ -1,5 +1,12 @@
 # Gotchas & hard rules (hard-won — don't relearn these)
 
+## 🔴 El registro de nodos NO ve las funciones/variables creadas por MCP **desde otro Blueprint** hasta reiniciar el editor
+**El síntoma:** creás `MiFuncion` en `BP_A` (aparece en `list_functions` como `bIsImplemented: true`, compila, guarda). Desde el grafo de `BP_B` querés llamarla y **`Class|BPA|MiFuncion` "does not exist"**: no la lista `find_node_types` ni la instancia `create_node`. Las funciones/variables de `BP_A` creadas **antes**, en cambio, sí aparecen.
+
+**Lo que NO lo arregla** (probado 2026-08-03): `compile_blueprint` de `BP_A` · `compile_blueprint` de `BP_B` · `save_assets` · `AssetTools.load_asset` de `BP_A`. El snapshot del registro para esa clase queda congelado en un punto anterior de la sesión.
+
+**Qué hacer:** dentro del **mismo** BP no hay problema (`CallFunction|MiFuncion` funciona al toque). Para cross-blueprint: o creás la función **antes** de necesitarla desde afuera, o dejás esa única conexión pendiente y la hacés después de **reiniciar el editor** (que sí refresca el registro — ojo que se lleva puesto el MCP, ver arriba). **Planificá el orden**: si `BP_B` va a llamar algo de `BP_A`, creá esa API de `BP_A` temprano.
+
 ## 🔴 El editor DEBE estar en inglés — si está localizado, el DSL de Blueprints no resuelve
 **El síntoma:** `write_graph_dsl` falla con "`Variables|Default|Get…` does not exist", el azúcar `if`/`switch`/`for` falla ("`Utilities|FlowControl|Branch` does not exist"), y `create_node` no instancia nodos. `find_node_types` devuelve ids en otro idioma (`Variables|Predeterminado|Obtener…`, `Utilidades|ControlDeFlujo|Rama`, `Colisión|LineTraceByChannel`).
 
