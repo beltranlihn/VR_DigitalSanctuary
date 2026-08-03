@@ -41,8 +41,7 @@ Nivel para **levantar datos de muchos usuarios** y tunear los umbrales de detecc
 
 ## 🟢🟡 TOUCH = "Attracting" (etapa de MÚSICA) — mecánica base PROBADA EN VISOR · falta que el secuenciador suene
 
-> ✅ **2026-08-03 — corre end-to-end en el visor:** apuntás con las dos manos, la burbuja suena al hacer hover, la atraés sosteniendo el gatillo, la posás en un bloque y podés intercambiarla. Falta mucho fine tuning, pero la mecánica está.
-> 🔴 **Lo que NO suena todavía: el secuenciador.** `OnBeat` detecta el bloque ocupado y hace pulsar la burbuja, pero **nunca dispara el clip** — falta la reproducción, y migrar el playhead de timer a Quartz.
+> ✅ **2026-08-03 — FASES 0-7 CERRADAS, corre end-to-end en el visor:** apuntás con las dos manos, la burbuja suena al hacer hover, la atraés sosteniendo el gatillo, la posás en un bloque, podés intercambiarla, y **el secuenciador toca el patrón rítmico con el playhead sobre Quartz** (sin drift). Falta fine tuning y las Fases 8-10.
 
 Secuenciador de 5 pasos: apuntás burbujas sonoras con un beam, las atraés sosteniendo el gatillo, las posás en 5 slots y suenan por step. Brief: [`stages/touch-attracting.md`](stages/touch-attracting.md) · detalle por-BP en `blueprints/BP_*.md`.
 

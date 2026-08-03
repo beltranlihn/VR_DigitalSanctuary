@@ -18,6 +18,13 @@ Las burbujas **ya no se colocan a mano en el nivel**: el Director las spawnea en
 - Las burbujas spawneadas nacen sin `PreviewSound` (el CDO está vacío) → mudas hasta que se pueble `DA_SoundBank` y se asigne el clip en el spawn.
 - Se borraron del EventGraph un `EventTick` y un `ActorBeginOverlap` **vacíos** (el Tick vacío hacía tickear el actor al pedo).
 
+## ✅ Quartz RESUELTO — 2026-08-03 (el playhead ya no es timer)
+`BeginPlay`: `GetQuartzSubsystem` → `CreateNewClock("TouchClock")` → `SetClock` → `SetBeatsPerMinute(BPM)` → `SubscribeToQuantizationEvent(Beat, <custom event>)` → `StartClock`. El custom event llama `OnBeat`, que ya tenía la lógica de step. **`SetTimerbyFunctionName` eliminado** → se acabó el drift contra el reloj de audio.
+⚠ **`CreateNewClock` NO compila sin el `QuartzSubsystem` conectado a su pin Target.**
+🔴 **El único paso que el MCP no puede hacer:** crear el custom event con la firma del metrónomo (`add_event` no crea parámetros tipados). Lo hace el usuario en 10 segundos: nodo `Subscribe to Quantization Event` → click derecho en el pin rojo `On Quantization Event` → **"Add Custom Event…"**. Después el resto se cablea por MCP.
+
+<details><summary>Historial del bloqueo (resuelto)</summary>
+
 ## 🔴 Quartz: BLOQUEADO por una limitación del MCP — 2026-08-03
 La migración del playhead a Quartz **no se pudo completar por MCP**. El bloqueo es concreto y conviene no volver a chocarlo:
 
@@ -27,8 +34,13 @@ La migración del playhead a Quartz **no se pudo completar por MCP**. El bloqueo
 
 **No se dejó nada a medias:** el playhead sigue por **timer** y el BP compila. No conviene crear el clock hasta poder suscribirse, porque un clock que no dispara nada agrega complejidad sin beneficio.
 
-**Cuando se retome, el plan es:** `CreateNewClock` (BPM desde la var `BPM`) → `SubscribetoQuantizationEvent(Beat, <el custom event>)` → `StartClock`; el evento avanza el step y, en vez de un `PrintString`, la burbuja ocupante hace **`Audio|Components|Audio|PlayQuantized`** sobre su `PreviewAudio` (ojo: `PlayQuantized` vive en el **AudioComponent**, no en el Director → hace falta pasarle el `ClockHandle` a la burbuja).
-⚠ **Por qué el timer no alcanza como sustituto:** aunque se disparen los clips con `PlayQuantized` (que sí los engancha al beat), el timer y el clock corren por separado y **driftean**; a 72 BPM en 15 min son ~1080 beats, y unos pocos por ciento de deriva ya se oyen como un golpe doble o un beat vacío.
+**Cuando se retome, el plan es:** `CreateNewClock` (BPM desde la var `BPM`) → `SubscribetoQuantizationEvent(Beat, <el custom event>)` → `StartClock`.
+⚠ **Por qué el timer no alcanza como sustituto:** el timer y el clock corren por separado y **driftean**; a 72 BPM en 15 min son ~1080 beats, y unos pocos por ciento de deriva ya se oyen como un golpe doble o un beat vacío.
+
+</details>
+
+## Pendiente de audio (mejora, no bug)
+Hoy el clip lo dispara la burbuja con un `Play()` común desde `PulseOnBeat`. Lo **ideal** es **`Audio|Components|Audio|PlayQuantized`** en boundary `Beat`, que elimina el jitter de frame (ver `audio-quest.md`). Vive en el **AudioComponent**, así que hay que pasarle el `ClockHandle` a la burbuja. Con el playhead ya en Quartz, la diferencia es fina; con clips percusivos reales puede notarse.
 
 ## Slots cacheados + `Core/Sequencer` sacado de Core — 2026-08-03
 **`Slots : array<BP_SeqSlot>`** + función **`CacheSlots()`** (llamada en `BeginPlay` justo después del `AddMappingContext`): recorre `GetAllActorsOfClass` **una sola vez** y hace `SetArrayElem(Index = slot.StepIndex, bSizeToFit = true)` → el array queda **indexado por StepIndex**, no por orden de descubrimiento.
