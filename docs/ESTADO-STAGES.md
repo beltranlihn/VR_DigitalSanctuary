@@ -39,8 +39,32 @@ Nivel para **levantar datos de muchos usuarios** y tunear los umbrales de detecc
 - **Hallazgos del análisis de datos** (guían el diseño de la obra): **reposo** se detecta robusto con `LinSpeed < 1` (generaliza entre personas); **posición del sensor** (en el cuerpo vs fuera) con `horiz < 17`; **inhala vs exhala NO se resuelve con un umbral global** — es sujeto-específico, hay que normalizar por usuario. Por eso el nivel de calibración captura un baseline por persona.
 - **Próximo:** test en Link/PIE → después texto in-headset 3D + pacer del segmento de respiración → empaquetar y testear con gente.
 
+## 🟡 MOVEMENT = "Surrounding" (etapa de DIBUJO 3D) — en construcción
+
+**Fase 1 del plan construida entera (2026-07-29) — falta el test en visor.** Los dos Blueprints compilan limpio y están colocados en `Maps/Tests/L_Test_Movement`:
+- **`BP_DrawCanvas`** (motor de geometría): `BuildTriangles` / `BeginStroke` / `AddPoint` / `EndStroke` + `WriteRing` / `CollapseRing` / `PushMesh`, con pre-alocación de la sección, `UpdateMeshSection`, cinta plana con frame transportado y decimación por distancia + ángulo.
+- **`BP_BrushTool`** (la herramienta): auto-attach por proximidad a la mano que lo toca, gatillo de esa mano → `BeginStroke`/`AddPoint`/`EndStroke` con ancho fijo.
+
+✅ **Fase 1 probada en visor y funcionando** (2026-07-29): el pincel aparece, se toma con cualquier mano y dibuja. El trazo salía "feo y geométrico" porque **le faltaba el material** — se creó `Materials/M_Brush_Light` (unlit + Fresnel).
+
+✅ **Fase 2 construida, sin probar todavía**: taper de tres tiempos en la geometría, One-Euro sobre la punta, continuación de sección al pasar los 128 puntos, decimación afinada (1 cm / 6°).
+
+✅ **Cadena de widget propia**: `BP_MovementIntro` (sólo el fade) + `Widget/WBP_MovementInstructions` (verde) + su material. El nivel ya no arrastra nada de Breath.
+
+Trackers con el detalle: `skills/unreal-vr/blueprints/BP_DrawCanvas.md` y `BP_BrushTool.md`.
+
+✅ **Calma → luz** (Fase 3) y ✅ **paleta de configuración de 9 celdas** (Fase 4: color · grosor · pincel, selección tocando con la punta) construidas. **Color y grosor validados en visor.**
+
+⏸️ **PAUSA 2026-08-03 (sin batería en el visor) — falta UN test.** Lo último, sin probar: el material pasó a **aditivo con borde suave** y la cinta de **4 vértices a 2 (plana)**, copiando lo que hace el proyecto de Tilt Brush propio. **Qué mirar al retomar:** si desaparecieron las esquirlas triangulares en las esquinas agudas. Plan de contingencia y detalle en `skills/unreal-vr/blueprints/BP_DrawCanvas.md` (sección "RETOMAR ACÁ").
+
+🔴 **Aprendizaje de la sesión** (en `gotchas.md`): una **función impura usada inline como argumento de datos** deja el pin **desconectado en 0**, compilando limpio y sin warnings. Nos mordió dos veces (el ancho del pincel y la supresión de la paleta). Verificar siempre con `get_node_infos` que los pines tengan `connected_pins`.
+
+Falta: presión analógica descartada (el ancho ahora es discreto desde la paleta), roll de muñeca, audio/háptico del pincel, el driver de páginas de instrucciones (bloqueado por textos+íconos), cierre por timer y persistencia.
+
+Nivel de prueba: `Maps/Tests/L_Test_Movement`. Rama: `stage/movement`.
+
 ## ⚪ Stages sin empezar (carpetas vacías o mínimas)
-- **Movement = "Surrounding" (etapa de DIBUJO 3D)** — 🟡 en diseño, plan cerrado, a punto de arrancar. El usuario dibuja luz en el aire a su alrededor; **el ancho lo da la presión del gatillo dentro del techo que fija la paleta, y la suavidad del gesto modula la luz** (brusco = apagado, suave = luminoso). **Brief + organigrama de construcción completo → [`stages/movement-surrounding.md`](stages/movement-surrounding.md)** (motor de geometría, métrica de calma, los 3 pinceles, persistencia y las 10 fases). Decisiones cerradas: **procedural mesh, NO Niagara**; **cinta plana cuya cara sigue el trazo** (frame por transporte paralelo) con taper de tres tiempos y textura animada, estilo Open Brush; cierre por timer de ~2 min; **paleta en la mano izquierda** (ancho máximo + 2-4 pinceles preset); persistencia SaveGame desde el día 1; `r.MobileHDR=True`. Research de los 4 proyectos VR de referencia (en `Recursos/`) + el algoritmo `PincelA_AddPoint`: `skills/unreal-vr/references/movement-3d-drawing.md`.
+- **Movement — contexto de diseño** (el estado vivo está arriba). El usuario dibuja luz en el aire a su alrededor; **el ancho lo da la presión del gatillo dentro del techo que fija la paleta, y la suavidad del gesto modula la luz** (brusco = apagado, suave = luminoso). **Brief + organigrama de construcción completo → [`stages/movement-surrounding.md`](stages/movement-surrounding.md)** (motor de geometría, métrica de calma, los 3 pinceles, persistencia y las 10 fases). Decisiones cerradas: **procedural mesh, NO Niagara**; **cinta plana cuya cara sigue el trazo** (frame por transporte paralelo) con taper de tres tiempos y textura animada, estilo Open Brush; cierre por timer de ~2 min; **paleta en la mano izquierda** (ancho máximo + 2-4 pinceles preset); persistencia SaveGame desde el día 1; `r.MobileHDR=True`. Research de los 4 proyectos VR de referencia (en `Recursos/`) + el algoritmo `PincelA_AddPoint`: `skills/unreal-vr/references/movement-3d-drawing.md`.
 - **Mind** — stage mental. Sin empezar.
 - **Touch = "Attracting" (etapa de MÚSICA)** — 🟡 en diseño, a punto de arrancar (dev: Nico). NO es "interacción táctil genérica": es un **secuenciador de 5 pasos** donde apuntás burbujas sonoras con un beam, las atraés con trigger (far-grab con interp), las posás en los 5 bloques de una mesa y suenan cuantizadas (Quartz) sobre un pad; con los 5 llenos, "Guardar melodía" (SaveGame). **Brief + organigrama de construcción completo → [`stages/touch-attracting.md`](stages/touch-attracting.md)** (incluye el scaffold ya creado en `Stages/Touch/`: widget de instrucciones naranja + stubs de los BPs base + `SG_Melody`). Audio verificado en `skills/unreal-vr/references/audio-quest.md`. Las mecánicas de agarrar/apuntar de GDXR (`Recursos/`) sirven de referencia de interacción.
 - **Inicio** — entrada/onboarding de la obra. Sin empezar.
