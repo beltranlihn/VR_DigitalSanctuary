@@ -76,6 +76,23 @@ VR Unreal/                      ← raíz del repo (abrí Claude Code acá)
 - **`Recursos/`**: proyectos de terceros para consulta/copia de nodos; **no se migran assets** (arrastran dependencias del VRTemplate).
 - **`.uasset`/`.umap` son binarios**: no se mergean. Ver §8.
 
+## 7.b 🔴🔴 Dos reglas de proceso que ya nos costaron tiempo real
+
+### 1. El proyecto SIEMPRE completo en el árbol de trabajo — nunca una rama que esconda stages
+**Beltrán es el dev principal y trabaja a diario, muchas veces sin Claude.** Necesita **todo** el proyecto disponible: materiales, referencias, assets y Blueprints de *todos* los stages, siempre. Una rama por stage que deje las demás carpetas vacías en disco **no sirve** para este flujo — pasó el 2026-08-03 y dejó `Stages/Movement/` vacía mientras se trabajaba Touch.
+
+**Cómo se trabaja entonces:**
+- La rama de trabajo **contiene el proyecto entero**. Si hay que traer trabajo de otra rama, se **mergea** (los stages tocan `.uasset` distintos → sin conflictos binarios; los choques son de texto y se resuelven **conservando ambas versiones**).
+- **Nico solo toca Touch**, y **siempre parte de la última versión nuestra**. Nunca dos personas en el mismo stage a la vez.
+- ⚠ Para mergear/cambiar de rama hay que **cerrar Unreal**: con el editor abierto los `.uasset` quedan bloqueados y git falla con `unable to unlink ... Invalid argument`, dejando el merge a medio aplicar.
+
+### 2. ANTES de construir una interacción, buscar si ya existe en el proyecto
+**Para eso está la biblia de Blueprints** (`blueprints/_INDEX.md` + trackers) y las `references/`. Repetidamente se construyó desde cero algo que ya estaba resuelto y **probado en visor** en otro BP:
+- Trigger sostenido: **ya funcionaba** en Breath/Calibration (`IA_Continue` + `IMC_Continue`). Se armó uno nuevo con los **defaults** y no andaba — el que funciona usa `Priority=1000` + `bIgnoreAllPressedKeysUntilRelease=False` + `bForceImmediately=True`. Los defaults **suprimen el input**.
+- Pointer láser: **ya existía** `NS_MenuLaser` (XRFramework), manejado por `User.PointArray` índice 0/1. Reusarlo salió gratis.
+
+**El paso obligatorio:** ante "necesito un trigger / un puntero / un grab / un fade / un widget", **primero** `_INDEX.md` y `references/`, después construir. Y si algo se construye nuevo, **copiar la configuración del que ya anda**, no los valores por defecto.
+
 ## 8. Git, deploy y trabajo en paralelo (2 devs)
 Reglas completas en [`docs/WORKFLOW-EQUIPO.md`](docs/WORKFLOW-EQUIPO.md). Resumen:
 - **Repo:** `github.com/beltranlihn/VR_DigitalSanctuary`, rama base `main`.
