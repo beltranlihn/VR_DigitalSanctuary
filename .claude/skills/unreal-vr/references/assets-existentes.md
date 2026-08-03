@@ -4,7 +4,27 @@
 >
 > **Mantenerlo vivo:** cuando descubras un asset reusable o valides algo en visor, agregalo acá.
 
-## 🎮 Input — trigger sostenido (PROBADO EN VISOR)
+## 🎮🔴 INPUT — LA RECETA COMPLETA (copiar tal cual en cada stage)
+
+> Esto es lo que hace que el trigger funcione. Los tres puntos son necesarios; con cualquiera mal, **el input no llega y no hay error de compilación ni warning**. Reconstruido el 2026-08-03 a partir de `BP_Instructions` (Breath), que es el que anda en visor.
+
+**1. ¿DÓNDE? En el Tick, NO en BeginPlay.** Breath lo hace desde `InitRefs`, llamada **desde el Tick**. En `BeginPlay` el PlayerController puede no estar listo todavía y **`AddMappingContext` falla EN SILENCIO** (ya lo advierte `input.md` §5). Patrón: función `EnsureInput()` llamada cada Tick, guardada por un bool, que reintenta hasta que quede puesto.
+
+**2. ¿QUÉ? `EnableInput` + `AddMappingContext` en el MISMO actor que tiene los eventos**, y verificar:
+```
+EnableInput(self, PlayerController)
+AddMappingContext(subsystem, IMC, Priority = 1000,
+                  bIgnoreAllPressedKeysUntilRelease = False,   // el DEFAULT es True y SUPRIME el input
+                  bForceImmediately = True)                    // el DEFAULT es False
+bReady = HasMappingContext(subsystem, IMC)   // ← Breath verifica; copiar eso, es la red de seguridad
+```
+
+**3. ¿CON QUÉ ACCIÓN? Con una IA propia del stage, mapeada en un IMC propio.** No confíes en las del framework:
+🔴 **`IMC_Default` e `IMC_Weapon_*` tienen la lista de mapeos VACÍA** en este proyecto. `IA_Shoot_*`, `IA_Grab_*` existen como assets pero **no están mapeadas a ninguna tecla**. Cualquier BP que escuche esos eventos es código muerto — pasa en `BP_BrushTool` (Movement), `BP_CalibProbe` y `BP_Instructions`, que tienen esos eventos **vacíos o inertes**.
+
+**Molde a duplicar:** `IA_Continue` + `IMC_Continue` (`Stages/Breath/Input/`) → así se hicieron `IA_Attract_{Left,Right}` + `IMC_Touch`.
+
+## 🎮 Detalle de los assets de input
 
 **`IA_Continue` + `IMC_Continue`** (`Stages/Breath/Input/`) — el trigger que usan Breath, Heart y Calibration para avanzar páginas.
 - `IA_Continue`: `ValueType=Boolean`, trigger **`InputTriggerDown`** → `Triggered` cada frame mientras se sostiene, `Completed` al soltar.
