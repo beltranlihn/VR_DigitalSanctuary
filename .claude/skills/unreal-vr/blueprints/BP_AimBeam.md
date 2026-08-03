@@ -2,7 +2,7 @@
 
 Beam de apuntado del stage Touch (Fase 1 del brief [`docs/stages/touch-attracting.md`](../../../../docs/stages/touch-attracting.md)). Actor del lado del mando (NO en el pawn): line-trace desde la pose *aim*, láser, y hover/unhover sobre objetos apuntables.
 
-- **refPath**: `/Game/SoulCharger/Stages/Touch/BP_AimBeam.BP_AimBeam`  ·  **parent**: Actor  ·  **in level**: sí — `L_Touch` (`BP_AimBeam_C_0` en origen (0,0,0), alineado al PlayerStart)
+- **refPath**: `/Game/SoulCharger/Stages/Touch/BP_AimBeam.BP_AimBeam`  ·  **parent**: Actor  ·  **in level**: **2 instancias** en `L_Touch` — `AimBeam_Right` (`bIsRight`=true, `MotionSource`=RightAim) y `AimBeam_Left` (`bIsRight`=false, `MotionSource`=LeftAim). Se **attachean al pawn en BeginPlay**, no viven en el origen del mundo. (2026-08-03)
 - **Status**: 🟢 Fase 1 cableada y compila. Falta test en visor + material del láser. (Editor pasado a inglés → DSL desbloqueado.)
 
 ## Componentes (CDO)
@@ -38,9 +38,23 @@ Type_ids localizados descubiertos (por si se sigue en español): trace `Colisió
 4. Quitar el `DrawDebugType=ForOneFrame` (dev-only) y `ClearHover()` sin uso antes de cerrar el stage.
 5. Alineación robusta: hoy el beam se co-ubica con el PlayerStart (origen). Si el pawn se recentra/mueve, evaluar attachearlo al mando del pawn en BeginPlay (sin meter lógica en el pawn).
 
+## Dos manos + anclaje al pawn + trigger sostenido — 2026-08-03
+
+**Anclaje (arreglo del bug del origen del mundo).** `BeginPlay` ahora hace `Transformation|AttachActorToActor(GetPlayerPawn(0), SnapToTarget/SnapToTarget)` después del `EnableInput`. El beam pasa a vivir en el espacio de tracking del pawn → sobrevive al recentrado del guardian. Antes estaba clavado en (0,0,0) y solo funcionaba de casualidad porque el PlayerStart también estaba ahí.
+
+**Pose correcta — confirmado contra documentación (2026-08-03).** `MotionSource` Aim + `GetForwardVector` **es lo correcto**; no hay bug de ejes. Epic define aim como *"a ray from the user's hand or controller used to point at a target"*, y desde UE 4.27 el forward del motion controller **por defecto (grip) apunta casi hacia ARRIBA** — de ahí que haya que usar Aim ([hilo de Epic](https://forums.unrealengine.com/t/forward-vector-of-motioncontroller-component-in-unreal-engine-5/552275)). La nota vieja de este tracker sobre "−Z fwd / +Y up" describe la convención **nativa de OpenXR**, antes de que UE convierta la pose a sus ejes (X adelante, Z arriba); no significa usar −Z en Blueprint.
+
+**Dos manos con un solo BP.** Var nueva `bIsRight : bool` **instance-editable**. Las dos instancias reciben los dos eventos de input (ambas hacen `EnableInput`), y cada una filtra por su mano con un Branch: la derecha sale por `True`, la izquierda por `False` del **mismo** branch — así no hace falta ningún nodo `Not` y la condición es **un único getter compartido** entre los 4 branches (patrón de `bp-lean-construction.md`).
+⚠ **Al agregar `bIsRight`, la instancia que ya existía en el nivel quedó en `false`** aunque el CDO estaba en `true` — Unreal no propaga el default nuevo a instancias ya serializadas. **Revisar siempre las instancias del nivel después de agregar una variable a un BP ya colocado.**
+
+**Input: trigger sostenido.** Assets propios en `Stages/Touch/Input/`: `IA_Attract_Left` / `IA_Attract_Right` (Boolean, trigger **Down**, duplicados de `IA_Continue` de Breath) + `IMC_Touch` (gatillo izq `Click`+`Axis` → acción izq; der → der). Lo registra **`BP_AttractDirector` en BeginPlay** con `AddMappingContext` prioridad **1** (por encima de `IMC_Default`).
+🔴 Se usa **`Started` → `TryGrab`** y **`Completed` → `TryRelease`**, NO `Triggered`: con trigger Down, `Triggered` dispara **cada frame** mientras se sostiene el gatillo. Esto reemplaza el compromiso anterior de usar el grip.
+
+**`SetHover` ahora avisa a las burbujas (modelo push).** Además de los dispatchers, castea el `CurrentHovered` viejo → `NotifyHoverEnd`, y el `NewTarget` → `NotifyHoverStart`. El pin **`CastFailed` del primer cast va también a `SetCurrentHovered`** para que apuntar algo que NO es burbuja no corte la cadena y deje el hover sin actualizar. `TryGrab` pasa **`self`** en el nuevo pin `Beam` de `SetGrabbed`, así la burbuja sabe qué mano la agarró.
+
 ## Fase 3 (far-grab, input) — 2026-07-30
 **Vars nuevas:** `GrabbedBubble` (BP_SoundBubble ref), `GrabHoldDistance`(25) — lo lee la burbuja para el punto de agarre.
-**Input:** el beam hace `EnableInput(PlayerController)` en `BeginPlay` (actor no-pawn → sin esto no recibe Enhanced Input). Eventos `IA_Grab_Right_Pressed`.Triggered → `TryGrab`; `IA_Grab_Right_Released`.Triggered → `TryRelease`. 🔴 **Se usa el GRIP (`IA_Grab_Right`, en IMC_Default siempre activo), NO el trigger** que pide el brief: `IA_Shoot_Right` (trigger) vive en IMC_Weapon_Right (no activo) y un IMC propio arriesga el gotcha #7 de OpenXR. **Remap a trigger = pulido** (cambiar los 2 nodos de evento).
+**Input:** el beam hace `EnableInput(PlayerController)` en `BeginPlay` (actor no-pawn → sin esto no recibe Enhanced Input). Eventos `IA_Grab_Right_Pressed`.Triggered → `TryGrab`; `IA_Grab_Right_Released`.Triggered → `TryRelease`. 🔴 **DESACTUALIZADO — ver la sección de 2026-08-03 arriba.** Se usaba el GRIP porque el trigger vivía en un IMC no activo; ahora hay `IA_Attract_*` + `IMC_Touch` propios y va por trigger sostenido. Además los eventos `IA_Grab_Right_Pressed/Released` **estaban vacíos**: existían en el grafo pero no llamaban a `TryGrab`/`TryRelease`, o sea que la Fase 3 nunca estuvo cableada pese a figurar como hecha. Fueron borrados.
 **`TryGrab()`:** castea `CurrentHovered` a BP_SoundBubble → si es burbuja: `GrabbedBubble = it`, `it.SetGrabbed(true)`.
 **`TryRelease()`:** si `GrabbedBubble` válido → `it.SetGrabbed(false)`, limpia `GrabbedBubble`.
 El seguimiento lo hace la burbuja (su Tick, leyendo `MC_RightAim` + `GrabHoldDistance` del beam). Ver `BP_SoundBubble.md`.

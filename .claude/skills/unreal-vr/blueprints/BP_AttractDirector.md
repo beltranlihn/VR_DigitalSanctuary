@@ -4,7 +4,40 @@ Cerebro del stage **Touch = "Attracting"** (etapa de música). Plan completo y o
 
 - **refPath**: `/Game/SoulCharger/Stages/Touch/BP_AttractDirector.BP_AttractDirector`  ·  **parent**: Actor  ·  **in level**: sí — `L_Touch` (`BP_AttractDirector_C_0` en `(0,0,50)`)
 - **Purpose**: orquestador del stage — máquina de flujo (instrucciones → experiencia → guardar → cierre), **dueño del reloj Quartz y del step sequencer de 5 pasos** (avanza el playhead, dispara el clip del slot en su beat, corre el pad de fondo), cuenta bloques llenos → habilita el botón Guardar.
-- **Status**: 🟡 Esqueleto del secuenciador (Fase 5) construido por TIMER y compila. Falta migrar a Quartz + audio (necesita clips) y el flujo de stage (instrucciones/guardar/cierre).
+- **Status**: 🟡 Esqueleto del secuenciador (Fase 5) por TIMER + spawn de burbujas por TargetPoint. Compila. Falta migrar a Quartz + audio (necesita clips) y el flujo de stage (instrucciones/guardar/cierre).
+
+## Spawn de burbujas por TargetPoint — 2026-08-03
+Las burbujas **ya no se colocan a mano en el nivel**: el Director las spawnea en `BeginPlay`, una por cada `TargetPoint` con el tag **`BubbleSpawn`**. Así la composición se arma moviendo/duplicando TargetPoints en el viewport, sin tocar Blueprints, y la cantidad es data-driven (escala a las ~20 del brief).
+
+**También registra el input del stage:** `BeginPlay` arranca con `AddMappingContext(IMC_Touch, priority=1)` vía `GetEnhancedInputLocalPlayerSubsystem(GetPlayerController(0))`. Prioridad 1 para ganarle a `IMC_Default` el gatillo. Sin esto los `IA_Attract_*` del beam no disparan.
+
+**BeginPlay (cirugía de nodos, no reescritura):**
+`GetAllActorsOfClassWithTag(TargetPoint, "BubbleSpawn")` → `ForEachLoop` → `SpawnActorFromClass(BP_SoundBubble, GetActorTransform(elemento), AlwaysSpawn)` → al `Completed` sigue el `SetTimerbyFunctionName("OnBeat")` de antes.
+- `CollisionHandlingOverride` puesto explícito en **`AlwaysSpawn`** (con `Undefined` una burbuja podía no spawnear por colisión).
+- En `L_Touch` hay 6 puntos: `TP_Bubble_01..06`. Las 3 burbujas colocadas a mano fueron **borradas** del nivel.
+- Las burbujas spawneadas nacen sin `PreviewSound` (el CDO está vacío) → mudas hasta que se pueble `DA_SoundBank` y se asigne el clip en el spawn.
+- Se borraron del EventGraph un `EventTick` y un `ActorBeginOverlap` **vacíos** (el Tick vacío hacía tickear el actor al pedo).
+
+## 🔴 Quartz: BLOQUEADO por una limitación del MCP — 2026-08-03
+La migración del playhead a Quartz **no se pudo completar por MCP**. El bloqueo es concreto y conviene no volver a chocarlo:
+
+**`QuartzClock|SubscribetoQuantizationEvent` pide un pin `OnQuantizationEvent` de tipo `Delegate (by ref)`.** Para llenarlo hace falta un **custom event con la firma exacta del metrónomo de Quartz** (`ClockName:Name`, `QuantizationType:enum`, `NumBars:int`, `Beat:int`, `BeatFraction:float`). `BlueprintTools.add_event` **crea custom events pero NO parámetros tipados**, y `list_compatible_event_functions` sobre un `EventDispatchers|CreateEvent` conectado a ese pin devuelve **`[]`** (no hay ningún evento con esa firma para bindear). Mismo problema en `NotifyonQuantizationBoundary`: toda la API de eventos de Quartz es delegate-based.
+
+**Paso manual que lo desbloquea (10 segundos en el editor):** poner el nodo `Subscribe to Quantization Event`, **click derecho en el pin rojo `On Quantization Event` → "Add Custom Event…"** — Unreal genera el evento con la firma correcta sola. A partir de ahí el resto sí se cablea por MCP.
+
+**No se dejó nada a medias:** el playhead sigue por **timer** y el BP compila. No conviene crear el clock hasta poder suscribirse, porque un clock que no dispara nada agrega complejidad sin beneficio.
+
+**Cuando se retome, el plan es:** `CreateNewClock` (BPM desde la var `BPM`) → `SubscribetoQuantizationEvent(Beat, <el custom event>)` → `StartClock`; el evento avanza el step y, en vez de un `PrintString`, la burbuja ocupante hace **`Audio|Components|Audio|PlayQuantized`** sobre su `PreviewAudio` (ojo: `PlayQuantized` vive en el **AudioComponent**, no en el Director → hace falta pasarle el `ClockHandle` a la burbuja).
+⚠ **Por qué el timer no alcanza como sustituto:** aunque se disparen los clips con `PlayQuantized` (que sí los engancha al beat), el timer y el clock corren por separado y **driftean**; a 72 BPM en 15 min son ~1080 beats, y unos pocos por ciento de deriva ya se oyen como un golpe doble o un beat vacío.
+
+## Slots cacheados + `Core/Sequencer` sacado de Core — 2026-08-03
+**`Slots : array<BP_SeqSlot>`** + función **`CacheSlots()`** (llamada en `BeginPlay` justo después del `AddMappingContext`): recorre `GetAllActorsOfClass` **una sola vez** y hace `SetArrayElem(Index = slot.StepIndex, bSizeToFit = true)` → el array queda **indexado por StepIndex**, no por orden de descubrimiento.
+**`OnBeat` reescrito**: se fue el `GetAllActorsOfClass` **por beat** y el loop de búsqueda. Ahora es `IsValidIndex(Slots, step)` → `Slots[step]` → chequear `Occupant`. Acceso directo O(1). El array sigue sirviendo igual cuando se migre a Quartz.
+⚠ `OnBeat` se puede borrar y recrear sin miedo: el timer lo referencia **por string** (`SetTimerbyFunctionName "OnBeat"`), no por nodo.
+
+**`Core/Sequencer/` desarmado** (violaba §7 del CLAUDE.md: `Core/` es compartido y eran assets migrados de terceros). Nada del stage lo referenciaba. Quedó:
+- `Stages/Touch/Audio/` → **`MS_Synth`** y **`MS_Perc`**, los 2 MetaSounds **procedurales** (sin dependencias externas) → **usables como placeholders ya**. Cargados en `DA_SoundBank.Clips`.
+- `Stages/Touch/Ref/` → `BP_Sequencer`, `MS_Kick`, `MS_HiHats`, `M_ON`, `M_OFF`. **Solo referencia.** 🔴 Siguen con **4 referencias rotas** (`SM_Button`, `P_Destruction_Electric`, `A_drumz_kick_dirty`, `RAW_DDT_HAT_02`) → **riesgo de que el cook falle**. Recomendación: borrarlos (nadie los usa) o proveer los samples faltantes.
 
 ## Fase 5 (secuenciador de 5 pasos) — 2026-07-30
 **Vars:** `BPM`(72), `CurrentStep`(-1 → arranca en 0), `NumSteps`(5).
@@ -70,4 +103,5 @@ Cerebro del stage **Touch = "Attracting"** (etapa de música). Plan completo y o
 
 ## Session log
 - 2026-07-23: creado el tracker (Fase 0). Rama `stage/touch` creada desde `main`. Nivel `L_Touch` y `DA_SoundBank` pendientes (requieren Unreal abierto). Stubs de los BPs ya existían del scaffold.
+- 2026-08-03: **traspaso del stage a Beltrán** (rama `stage/touch` actualizada con `main`). 🔴 **Hallazgo grave al abrir `L_Touch`: TODOS los actores de gameplay estaban en (0,0,0)** — beam, 3 burbujas, 5 slots y el Director apilados en el origen. Los trackers documentaban posiciones (burbujas "~120cm al frente", slots "X=55, Z=75", cubo de test "(150,0,120)") que **no estaban en el `.umap` guardado**; el cubo apareció en (0,0,120), o sea perdió la X. Conclusión: las Fases 1-4 nunca fueron testeables, y no por el código sino porque la escena no estaba armada. **Lección: verificar la posición real de los actores con `get_actor_transform` antes de dar una fase por lista** — que compile no dice nada de la escena, y el tracker puede describir una escena que no existe. Arreglado: slots en fila (X=55, Z=75, Y −60/−30/0/+30/+60, `StepIndex` 0-4 verificados y coincidentes con el orden espacial), burbujas migradas a spawn por TargetPoint.
 - 2026-07-28: **Fase 0 completada por MCP.** `L_Touch` (dup de `L_Test_Breath`, sin los BPs de Breath) + `BP_AttractDirector` colocado (0,0,50) + `DA_SoundBank` (PrimaryDataAsset, arrays Clips/Previews vacíos). GameMode `BP_SoulChargerGameMode` verificado. Guardado. Falta test en visor + poblar audio + MapsToCook. (El MCP se cortó y reconectó a mitad; los assets ya estaban guardados, sin pérdida.)

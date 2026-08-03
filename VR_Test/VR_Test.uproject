@@ -44,6 +44,42 @@
 		{
 			"Name": "MCPClientToolset",
 			"Enabled": true
+		},
+		{
+			"Name": "ModelContextProtocol",
+			"Enabled": true
+		},
+		{
+			"Name": "AllToolsets",
+			"Enabled": true
+		},
+		{
+			"Name": "ConfigSettingsToolset",
+			"Enabled": true
+		},
+		{
+			"Name": "AutomationTestToolset",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayTagsToolset",
+			"Enabled": true
+		},
+		{
+			"Name": "GameFeaturesToolset",
+			"Enabled": true
+		},
+		{
+			"Name": "NiagaraToolsets",
+			"Enabled": true
+		},
+		{
+			"Name": "PCGToolset",
+			"Enabled": true
+		},
+		{
+			"Name": "PluginToolset",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

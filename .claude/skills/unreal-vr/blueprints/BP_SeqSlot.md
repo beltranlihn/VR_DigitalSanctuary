@@ -2,7 +2,7 @@
 
 Un slot del secuenciador del stage Touch (Fase 4). Data holder: sabe su paso y qué burbuja tiene encima.
 
-- **refPath**: `/Game/SoulCharger/Stages/Touch/BP_SeqSlot.BP_SeqSlot`  ·  **parent**: Actor  ·  **in level**: 5 en `L_Touch` (`SeqSlot_0..4`, fila a `X=55, Z=75`, StepIndex 0-4).
+- **refPath**: `/Game/SoulCharger/Stages/Touch/BP_SeqSlot.BP_SeqSlot`  ·  **parent**: Actor  ·  **in level**: 5 en `L_Touch`, fila a `X=55, Z=75`, `Y = −60/−30/0/+30/+60` (120cm de ancho = alcance de brazo sentado). `StepIndex` 0-4 verificado y **coincidente con el orden espacial izquierda→derecha**, así la melodía suena en el mismo orden en que se ve. (Posiciones aplicadas el 2026-08-03: estaban las 5 apiladas en el origen.)
 - **Status**: 🟢 Fase 4 lista y compila (solo estructura de datos, sin lógica propia).
 
 ## Componentes
