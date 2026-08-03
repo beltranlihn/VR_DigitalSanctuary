@@ -1,5 +1,26 @@
 # Gotchas & hard rules (hard-won — don't relearn these)
 
+## 🔴🔴 EL error recurrente del proyecto: "declarado ≠ aplicado". Verificá el VALOR EFECTIVO, no la declaración
+**El patrón**, encontrado **cinco veces en un solo día** (2026-08-03, stage Touch): la pieza existe, está declarada, compila — y **nunca se aplicó al lugar donde tenía que llegar**. Ninguna de las cinco produjo un error de compilación:
+
+| Lo declarado | Lo efectivo | Síntoma |
+|---|---|---|
+| Var `PreviewSound` = `MS_Synth` | `AudioComponent.Sound` = **None** | `FadeIn` hacía el fade **del silencio** |
+| Trackers: burbujas "~120cm al frente", slots "X=55, Z=75" | **Todos los actores en (0,0,0)** | El stage entero apilado en el origen |
+| Eventos `IA_Grab_Right_*` + funciones `TryGrab`/`TryRelease` | Los eventos **sin conectar a nada** | Far-grab "hecho" que no existía |
+| CDO `bIsRight` = true | Instancia del nivel = **false** | La mano derecha se comportaba como izquierda |
+| Tracker: cubo en `(150,0,120)` | Cubo en `(0,0,120)` | — |
+
+**La causa raíz es la misma:** una variable/asset **describe** algo, y alguien asume que por describirlo ya llega a destino. Un `AudioComponent` reproduce **su** `Sound`, no tu variable. Un actor está donde dice su transform, no donde dice el tracker. Un evento dispara lo que tiene **cableado al pin exec**, no lo que sugiere su nombre.
+
+**La regla:** después de conectar algo, **leé el valor efectivo en el objeto final**, no el que escribiste.
+- ¿Audio? → `get_properties(AudioComponent, ["Sound"])`, no la variable que lo alimenta.
+- ¿Posiciones? → `get_actor_transform`, nunca el tracker.
+- ¿Variable nueva en un BP con instancias ya colocadas? → leerla **en cada instancia** (Unreal NO propaga el default nuevo a instancias ya serializadas).
+- ¿Evento o función que "ya está"? → mirar que el **pin exec esté conectado**; `list_functions` diciendo `bIsImplemented: true` no significa que alguien la llame.
+
+🔴 **Corolario: `compile_blueprint` sin error NO es evidencia de nada.** Las cinco fallas compilaban. Lo único que prueba el compilador es que los tipos cierran.
+
 ## 🔴 El registro de nodos NO ve las funciones/variables creadas por MCP **desde otro Blueprint** hasta reiniciar el editor
 **El síntoma:** creás `MiFuncion` en `BP_A` (aparece en `list_functions` como `bIsImplemented: true`, compila, guarda). Desde el grafo de `BP_B` querés llamarla y **`Class|BPA|MiFuncion` "does not exist"**: no la lista `find_node_types` ni la instancia `create_node`. Las funciones/variables de `BP_A` creadas **antes**, en cambio, sí aparecen.
 
