@@ -19,10 +19,22 @@ AddMappingContext(subsystem, IMC, Priority = 1000,
 bReady = HasMappingContext(subsystem, IMC)   // ← Breath verifica; copiar eso, es la red de seguridad
 ```
 
-**3. ¿CON QUÉ ACCIÓN? Con una IA propia del stage, mapeada en un IMC propio.** No confíes en las del framework:
-🔴 **`IMC_Default` e `IMC_Weapon_*` tienen la lista de mapeos VACÍA** en este proyecto. `IA_Shoot_*`, `IA_Grab_*` existen como assets pero **no están mapeadas a ninguna tecla**. Cualquier BP que escuche esos eventos es código muerto — pasa en `BP_BrushTool` (Movement), `BP_CalibProbe` y `BP_Instructions`, que tienen esos eventos **vacíos o inertes**.
+**3. 🔴🔴 ¿CON QUÉ ACCIÓN? CON `IA_Shoot_Right` / `IA_Shoot_Left` DEL XRFRAMEWORK. PUNTO.**
+`/Game/XRFramework/Input/Actions/IA_Shoot_{Right,Left}` es **la única acción de trigger que se entrega de verdad** en este proyecto. Un **actor suelto del nivel** la recibe sin problema: así funciona el pincel de Movement, **validado en visor**.
 
-**Molde a duplicar:** `IA_Continue` + `IMC_Continue` (`Stages/Breath/Input/`) → así se hicieron `IA_Attract_{Left,Right}` + `IMC_Touch`.
+```
+BP_BrushTool (Movement) — el patrón que anda:
+  evento IA_Shoot_Right . Triggered → TrigOnR   (custom event → bTrigHeld = true)
+  evento IA_Shoot_Right . Completed → TrigOffR  (bTrigHeld = false)
+  y el Tick actúa mientras bTrigHeld
+```
+⚠ `Triggered` dispara **cada frame** mientras se sostiene → el handler tiene que ser **idempotente** (setear un bool, o guardar con un `IsValid`), nunca una acción con efecto acumulativo.
+
+🔴 **NO sirve inventar una IA/IMC propios.** Se probó en Touch el 2026-08-03 con `IA_Attract_*` + `IMC_Touch` duplicando el molde de `IA_Continue`: el contexto se registraba (`HasMappingContext` = **true**), las 4 acciones resueltas, `EnableInput` correcto, `DefaultInputComponentClass=EnhancedInputComponent`… **y el evento no disparaba nunca.** Horas perdidas. Con `IA_Shoot_*` anda.
+
+⚠ **Los `Mappings` de los IMC no explican nada**: `IMC_Default` e `IMC_Weapon_*` leen **VACÍOS** en este proyecto — y también en el proyecto original de Soul Charger, donde todo funciona. Las teclas llegan por el sistema de contextos por defecto de UE 5.6+ (`EnhancedInput.EnableDefaultMappingContexts=True` en `DefaultInput.ini`), no por el asset. **No diagnostiques por ahí.**
+
+ℹ️ `IA_Continue` + `IMC_Continue` (Breath) existen y `BP_Instructions` los registra con la config de arriba, pero **ningún BP tiene el evento `IA_Continue`** — lo que Breath escucha es `IA_Shoot_Right`. El IMC quedó vestigial.
 
 ## 🎮 Detalle de los assets de input
 
