@@ -85,6 +85,86 @@ Fuente de verdad = **serializar los datos del trazo** (`{brushId, puntos[], anch
 3. Grab de la herramienta/paleta con patrón `C_GrabComponent`.
 4. Paleta con color picker HSV world-space.
 5. Familia ISM (confeti) como 2º pincel opcional.
+
+---
+
+## 🔬 Auditoría del Pincel A original (2026-07-29) — qué tenía además del algoritmo
+
+Leído directamente de los `.uasset` de `Neural Canvas\Unreal\Neural Canvas 5.8\Content\Drawing\` (extracción de strings del name table; el proyecto no se abrió). Esto es **lo que faltaba** en la lista de la §"Algoritmo de referencia", que sólo cubría la geometría.
+
+### `M_Brush` — el material del Pincel A
+**Unlit · `BLEND_Additive` · TwoSided · `TLM_VolumetricNonDirectional`.**
+- **Parámetros:** `EmissiveColor` (vector) · `EmissiveBrightness` · `ShrinkAmount` · `StrokeLength` · `SamplingScale` · `SpeedY`.
+- **Expresiones:** `Panner` (velocidad `SpeedY`) sobre un `TextureSample` de la textura de ruido del motor `OffsetNoiseDistanceFields_ForNormals`, con `TextureCoordinate × SamplingScale`; más `Sine`, `Divide`, `Subtract`, `OneMinus`, `Saturate`, `ComponentMask`, `AppendVector` y `VertexNormalWS`.
+- `bUsedWithInstancedStaticMeshes` (lo comparte con los pinceles de estampado).
+- **Lectura:** el "no se ve geométrico" del original venía de **tres cosas juntas**: aditivo (los cruces de trazos suman luz y disuelven la silueta), textura de ruido animada por Panner, y el taper por `ShrinkAmount`.
+
+### `M_StrokeUnlit` — la versión simple
+**Unlit · `BLEND_Opaque` · TwoSided**, emissive = `VertexColor × Constant3Vector`. Nada más. Es el punto de partida barato y el que se copió para `M_Brush_Light` de Soul Charger.
+
+### `BP_Stroke` — lo que el actor tenía y nuestro diseño todavía no
+**Componentes:** `StrokeMesh` (ProceduralMesh) · `AudioPincelA` / `AudioPincelB` / `AudioPincelc` (un AudioComponent por pincel) · `InstancedPincel2` / `InstancedPincel3` (ISM para los pinceles de estampado) · `SceneCaptureComponent2D` (photo booth).
+
+**Funciones:** `PincelA_StartStroke` / `PincelA_AddPoint` / `PincelA_EndStroke` · `StartPincelB` / `StopPincelB` · `StartPincelC` / `StopPincelC` · `CapturaFoto` / `TestCapture`.
+
+**Variables que NO estaban en la lista del algoritmo** y son el resto de "las varias cosas":
+| Variable(s) | Para qué |
+|---|---|
+| `DynamicMaterial` + `CreateDynamicMaterialInstance` + `SetScalarParameterValue` | **Un MID por trazo** que maneja `ShrinkAmount` y `StrokeLength` → el **taper se hacía en el material**, no en la geometría. |
+| `WidthMultiplier` · `FinalWidth` · `OverrideWidth` | Ancho en tres capas (base × multiplicador × override por llamada). |
+| `LastPointTime` | **Decimación por TIEMPO** además de por distancia. |
+| `MinDistanceMesh` · `LastSpawnLocation` | Umbral de distancia **aparte** para el estampado ISM (más grande que el del ribbon). |
+| `FadeInDuration` · `FadeOutDuration` · `FadeOutCounter` · `FadeVolumeLevel` · `IsFadingOut` | Audio del pincel con **fade in al empezar y fade out al soltar** (evita el click). |
+| `HapticEffect` (`HapticFeedbackEffect_Curve`) + `PlayHapticEffect` / `StopHapticEffect` | Háptico **por curva**, no por `SetHapticsByValue`. |
+| `Tangents` | Alimentaba el buffer de tangentes del PMC (nosotros no). |
+| `StrokeLength` · `StrokePointCount` | Métricas del trazo que consumía el material. |
+
+### 🔴 Dónde divergimos a propósito (que no se re-abra el debate)
+1. **Sin MID por trazo.** El original creaba un Material Instance Dinámico por trazo para el `ShrinkAmount`. Nuestro §4.8 lo rechaza: un MID por trazo impide fusionar trazos en pocas secciones y hace explotar los draw calls. **El taper va en la geometría** (Fase 2) y la animación de textura por `Time` + semilla en `UV1.Y`.
+2. **Pincel A opaco, no aditivo.** El original era aditivo; en Quest eso es fill-rate, que es *el* cuello de botella. Nuestro §7 presupuesta el aditivo sólo para el Pincel B ("Velo"). ⚠ **Pero el aditivo es gran parte de por qué el original no se veía geométrico** — si con opaco+Fresnel el trazo sigue leyéndose duro, la variante aditiva es la siguiente palanca, midiendo el costo.
+3. **Un actor lienzo, no un actor por trazo** (§4.1).
+
+## 🔬🔬 SEGUNDA AUDITORÍA — con el proyecto ABIERTO por MCP (2026-08-03)
+El usuario abrió Neural Canvas con el MCP para comparar contra nuestro trazo ("el de allá se veía fluido, el nuestro se ve muy geométrico"). Esto es lectura directa de los grafos, no extracción de binario.
+
+### 🔴 POR QUÉ EL DE ELLOS SE VE FLUIDO Y EL NUESTRO GEOMÉTRICO — la respuesta
+**No es la geometría. Es el MATERIAL.** Verificado en vivo en `M_Brush`:
+- **`BLEND_Additive` · `MSM_Unlit` · `TwoSided`.**
+- **`MP_Opacity` ← el canal ALFA de una textura** (`Asset_345`), muestreada con **UV0 sin conectar** → usa UV0 directo, donde **U = 0→1 a lo ancho de la cinta**. O sea: **la cinta se desvanece hacia sus bordes con un degradé de textura.** Nunca se ve el borde del polígono.
+- `MP_EmissiveColor` = `EmissiveColor.RGB × (Sine × TextureSample.RGB)` — el `Sine` le da un latido/veta a lo largo del trazo.
+- **`MP_WorldPositionOffset` NO está conectado** → confirma que el taper **no** es geométrico (ver abajo).
+
+**Nuestro `M_Brush_Light` es Opaco con Fresnel** → cada borde de la cinta es un canto de polígono nítido, y cada faceta se lee. **Ese es el "geométrico".** El aditivo + alfa suave es lo que convierte una banda en un trazo de luz.
+
+### 🔴 EL TAPER LO HACEN EN EL MATERIAL, NOSOTROS EN LA GEOMETRÍA
+`AddPoint` (de ellos) pasa por trazo dos parámetros al MID:
+```
+SetScalarParameterValue(DynamicMaterial, "StrokeLength",  TotalDistance)
+SetScalarParameterValue(DynamicMaterial, "ShrinkAmount", StrokeWidth × -1)
+```
+y el material los combina (`Divide → Saturate` ×2, `Subtract`, `OneMinus`) para afinar las puntas **en el shader**. Su geometría es **siempre de ancho pleno**.
+→ **Es mucho más robusto que lo nuestro**: sin ventana de refresco, sin depender de la densidad de puntos, sin poder "congelarse" a mitad de rampa. Nuestro taper geométrico (`RefreshTail`/`RefreshRing`) tiene esos tres riesgos. **Candidato fuerte a migrar al material.** (El costo: un MID por trazo, que es justo lo que §4.8 evitaba para poder fusionar trazos. Trade-off a decidir: fusión vs robustez del taper.)
+
+### La geometría de ellos, exacta (`PincelA_AddPoint`)
+```
+side = normalize(cross(dir, controllerUp)) × StrokeWidth
+Vertices.Add(newLoc + side)      ← SOLO 2 VÉRTICES POR PUNTO
+Vertices.Add(newLoc − side)
+Normals.Add(side) ; Normals.Add(−side)      ← normal = el propio side (da igual: es Unlit)
+UV.Add(0, TotalDistance) ; UV.Add(1, TotalDistance)
+Triangles: (b, b+2, b+1) y (b+1, b+2, b+3)
+CreateMeshSection(0, …)   ← RECREA la sección entera en CADA punto
+```
+- **Cinta plana pura, sin espesor** (2 verts). La nuestra es una caja de 4 verts → tiene silueta propia y se lee como objeto.
+- 🔴 **`StrokeWidth` es el SEMI-ancho**: el ancho total = **2 × StrokeWidth**. Con su default `StrokeWidth = 1` → **cinta de 2 cm**. La nuestra usa `W × 0.5` como semi-ancho → ancho total = `W`. **Nuestro W=6 debería ser 3× más ancha que la de ellos.**
+- **Defaults de referencia:** `StrokeWidth = 1` (→2 cm de ancho) · `MinDistance = 2` (¡decimación de **2 cm**, 4× más gruesa que nuestro 0.5!) · `MinDistanceMesh = 2`.
+- 🔑 **Con `MinDistance=2` NO se ve facetado** — porque el alfa suave del material disimula los quiebres. Nosotros bajamos a 0.5 cm y 2° peleando el facetado **por el lado equivocado**: el problema era el material, no la densidad. Podemos volver a una densidad sana (menos vértices, más perf).
+
+### Lo que sí conviene copiar (y está pendiente)
+- **Decimación por tiempo** además de distancia/ángulo (`LastPointTime`) — evita el racimo de puntos cuando la mano se queda casi quieta con el gatillo apretado.
+- **Fade in/out del audio del pincel** (Fase 5) — el original lo tenía resuelto con 5 variables.
+- **Háptico por curva** (`HapticFeedbackEffect_Curve`), no por valor plano.
+- **Tangentes** en el buffer del PMC, si algún material las necesita (los unlit sin normal map no).
 6. Perf: `UpdateMeshSection`, cap de presupuesto, merge al finalizar, profiling en device.
 
 Alineado con la preferencia de arquitectura: **cada mecánica en su BP, pawn liviano** (el `BP_Stroke` hace la geometría; el pawn solo dispara y provee la mano).

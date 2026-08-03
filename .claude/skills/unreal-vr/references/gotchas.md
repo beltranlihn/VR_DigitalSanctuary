@@ -83,6 +83,11 @@ No es "casi igual con detalles": copiar la salida del read y editarla **falla si
 `GetLinearVelocity` devuelve `OutLinearVelocity` (Vector, pin 0) **y** `ReturnValue` (Boolean, pin 1). El grafo real usaba el **bool**; el read imprimió `(and (MotionControllerUpdate|GetLinearVelocity _mcref) (...))`, que leído literalmente es "and de dos vectores" — **una mentira, no una abreviatura**. Al escribirlo: `Could not connect pin OutLinearVelocity to A`.
 → **Ante cualquier nodo con más de un output, `get_node_type_pins` antes de creer el read.** Y capturar con `(bind (a b) (Node ...))`, que además evita que el nodo puro se reevalúe por consumidor (el `Step` original llamaba `GetLinearVelocity` **4 veces** por este motivo).
 
+### 🔴 Un nodo puro se RE-EVALÚA en cada consumidor → leer-modificar-escribir la misma variable se corrompe
+Un `(bind _arc (+ (GetArcLength) _dist))` consumido por **`SetArcLength`** y además por un `CallFunction` produce **dos** evaluaciones de la suma. La primera escribe `old+dist`; la segunda ya lee el valor nuevo y entrega `old+2·dist`. Compila limpio, no hay warning, y el síntoma aparece recién en runtime como un valor que crece al doble.
+**Regla:** cuando un valor derivado de una variable se escribe en **esa misma** variable y además se pasa a otro nodo, poner **primero el `Set`** y después **leer la variable otra vez** — dos getters distintos, sin `bind` que los una. (Bindear un puro sigue siendo lo correcto cuando el valor **no** depende de algo que el propio grafo muta en el medio; ver `bp-lean-construction.md` §1.)
+Verificarlo: `get_node_infos` sobre el nodo consumidor y mirar qué nodo alimenta cada pin. El `read_graph_dsl` inlinea los puros y **no** deja ver esto.
+
 ### 🔴 Los booleanos PIERDEN la `b` en el type_id del nodo
 La variable se llama `bInvert`, `bStill`, `bBreathing`, `bDebug`, `bInThreshold`, `bInit`, `bTracked`… pero el nodo es **`Variables|Default|GetInvert`**, `GetStill`, `GetBreathing`, `GetDebug`, `GetInThreshold`, `GetInit`, `GetTracked`. El motor usa el **display name** (que se come el prefijo húngaro `b`), no el nombre de la variable. `get_variable_category` devuelve `"Default"` igual, así que **no da ninguna pista**. Aplica también a variables de otro objeto: `bIsRightHand` → `(Class|BPBreathSensor|GetIsRightHand ref)`.
 → Método barato y definitivo: **`find_node_types(graph, "Variables|Default|", [])`** lista los getters/setters reales de TODAS las variables del BP de una vez. Hacerlo **antes** de escribir, no después de 5 errores.
@@ -147,6 +152,30 @@ Los IDs delatan las generaciones: `VariableSet_15..36`, `_52..73`, `_85..89`, `_
 ## `write_graph_dsl` NO borra los eventos que faltan en el código nuevo
 Reescribir un grafo **reconstruye solo los eventos que declarás**; los que existían y ya no están en el código **sobreviven huérfanos**. Peor: si borraste una variable que ese evento usaba, su getter se reemplaza por un **literal** (`(if (GetbUseRightHand))` → `(if true)`) y **compila igual**, en silencio.
 **Regla: después de reescribir un grafo, `list_events` y borrá a mano los eventos que quedaron de más** (`find_nodes` con `node_class: /Script/BlueprintGraph.K2Node_CustomEvent` → `get_node_infos` para identificar cuál es cuál por su `type_id` `AddEvent|Custom|X` → `delete_node`). El título en `find_nodes` no matchea ("Acquire Controller" devuelve `[]`); pasá `title: ""` y filtrá por type_id.
+
+## `SpawnActorFromClass`: el pin `SpawnTransform` es BY-REF → hay que cablearlo SIEMPRE
+Dejarlo en su valor por defecto compila mal: *"'Spawn Transform' in action 'BeginDeferredActorSpawnFromClass' must have an input wired into it ("by ref" params expect a valid input to operate on)"*. Para spawnear en la identidad: `(Math|Transform|MakeTransform)` **sin argumentos** (su default de Scale ya es 1,1,1). Y ojo — el error aparece en el **compile**, o sea que el `write_graph_dsl` ya escribió los nodos: si falla así, hay que **recrear el function graph**, no reescribirlo (o quedan huérfanos).
+
+## `create_node` con `CallFunction|<CustomEvent>`: la búsqueda normaliza mayúsculas de forma inconsistente
+Verificado 2026-07-29 en `BP_BrushTool`, con los cuatro eventos creados en la misma pasada de DSL: `CallFunction|TrigOnL` ✅ · `CallFunction|TrigOffL` ✅ · `CallFunction|TrigOffR` ✅ · **`CallFunction|TrigOnR` ❌ "does not exist"** → `CallFunction|TrigonR` (con la `o` minúscula) ✅. Es la misma familia que la normalización de los bools (`bWasInZone` → `GetWasinZone`).
+→ Si `create_node` dice que una función/evento que **sabés que existe** no existe: confirmá con `list_events` (que sí da el nombre real), y después probá la variante con la letra siguiente a un prefijo en minúscula. **No asumas que el evento no se creó.**
+
+## `get_node_type_pins` NO deja el nodo en el grafo
+Devuelve un `refPath` con pinta de nodo real (`...:MiFuncion.K2Node_CallFunction_0`), pero es transitorio: `delete_node` sobre él responde *"is not valid EdGraphNode"*. O sea que consultar pines **no ensucia el grafo** y no hace falta limpiar después. (Verificado 2026-07-29.)
+
+## 🔴🔴 UNA FUNCIÓN IMPURA INLINE COMO ARGUMENTO DE DATOS = PIN SILENCIOSAMENTE DESCONECTADO
+La trampa más cara del DSL hasta ahora — **costó dos sesiones de debug** (2026-07-30 y 2026-08-03, stage Movement).
+```
+(Class|BPDrawCanvas|AddPoint _c :NewLoc _f :Width (CallFunction|ComputeWidth :DT _dt) …)
+                                        ↑ función CON pines de exec, usada como expresión de datos
+```
+**Qué pasa:** el parser lo acepta, el nodo de la función **se crea y se enchufa a la cadena de exec**, el Blueprint **compila limpio** (incluso con `warnings_as_errors`)… y el pin destino (`Width`) queda **sin conectar, en su valor por defecto (0.0)**. Cero errores, cero warnings.
+**Síntoma:** el parámetro "no hace nada" por más que loguees que el valor de origen es correcto. En Movement, `Width` llegaba 0 → **todos los trazos salían del grosor mínimo** sin importar lo que eligiera el usuario en la paleta; y como el ancho real era 0, lo que se veía era sólo el piso de `MinThickness` — un filamento de sección fija, que **también explicaba el "se ve muy geométrico"**.
+- 🔑 **Sólo aplica a funciones IMPURAS** (las que crea `add_function_graph` por defecto, o cualquiera que toque variables). Los **getters de variable y los nodos puros SÍ se inlinean bien**.
+- **Cómo escribirlo bien:** llamar la función como **statement** y bindear su resultado — `(bind _w (CallFunction|MiFn :X v))` — y recién ahí usar `_w`. ⚠ Ojo: si la función es de **otra clase**, el bind del return **también falla** ("produced no output pin") → en ese caso la otra clase expone el resultado en una **variable** y se lee con un getter cross-clase (patrón usado en `BP_BrushPalette.bOver`/`CurWidth`).
+- **Y si no hace falta la función**, mejor: pasar el getter puro directo.
+- 🔴 **CÓMO DETECTARLO (hacerlo siempre tras escribir un `CallFunction` con argumentos):** `get_node_infos` del nodo consumidor y verificar que **cada pin de entrada tenga `connected_pins` no vacío**. Un pin con `"value":"0.0", "connected_pins":[]` que *debería* venir cableado es exactamente este bug. **El `read_graph_dsl` NO lo muestra** (el pin desconectado se relee como su literal por defecto, indistinguible de un valor puesto a mano).
+- Mismo fallo, mismo día, en `(Variables|Default|SetOverPalette (Class|…|UpdateTouch …))`.
 
 ## Llamar a una función propia desde el DSL: el arg 0 es `self`
 `(CallFunction|MiFuncion DeltaSeconds)` falla con *"Could not connect pin DeltaSeconds to self"* — el primer pin posicional de una función de la clase es **`self`**. Usar **keyword**: `(CallFunction|MiFuncion :MiParam DeltaSeconds)`.

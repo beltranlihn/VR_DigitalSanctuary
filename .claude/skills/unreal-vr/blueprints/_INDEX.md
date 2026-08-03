@@ -58,6 +58,17 @@
 | **WBP_TouchInstructions** | `Stages/Touch/Widget/` | Widget de instrucciones (fondo naranja). **Textos por definir.** | 🧩 | — |
 | **SG_Melody** | `Stages/Touch/` | SaveGame de la melodía (array de 5 clip-IDs). **Falta el array.** | 🧩 stub | — |
 
+## Stage Movement = "Surrounding" 🧩 (`Content/SoulCharger/Stages/Movement/`) — scaffold
+> Plan completo: `docs/stages/movement-surrounding.md`. Sistema de dibujo 3D (cinta plana con frame por transporte paralelo, ProceduralMesh).
+
+| Blueprint | Ruta | Qué hace | Estado | Tracker |
+|---|---|---|---|---|
+| **BP_DrawCanvas** | `Stages/Movement/` | Motor de geometría: dueño del `ProceduralMeshComponent` y de los datos del dibujo. `BuildTriangles`/`BeginStroke`/`AddPoint`/`EndStroke` + 3 auxiliares (`WriteRing`/`CollapseRing`/`PushMesh`) **construidos y compilando**; falta probarlo en visor. | 🟡 Fase 1 | ✓ |
+| **BP_BrushTool** | `Stages/Movement/` | La herramienta: prop agarrable por proximidad que define la mano hábil, lee el gatillo y emite puntos al canvas. Auto-attach + gatillo por mano + `BeginStroke`/`AddPoint`/`EndStroke` **construidos y compilando**; ancho fijo, sin presión ni calma todavía. | 🟡 Fase 1 | ✓ |
+| **BP_BrushPalette** | `Stages/Movement/` | La paleta de configuración: grilla plana de 9 celdas (3 color · 3 grosor · 3 pincel) en la mano no hábil, selección por toque. 4.1-4.3 hechas y probadas: **color funciona**; 🐛 **grosor no responde** (bug pendiente, ver tracker) — sospecha #1 = pose/alcance. | 🟡 4.3 + bug | ✓ |
+| **BP_MovementIntro** | `Stages/Movement/` | Duplicado de `Core/UI/BP_IntroFade` recortado: **sólo el fade from black**. Se le sacó el spawn del `BP_Instructions` de Breath y los dos `OpenSource` de los MediaPlayer de Breath. En Fase 6 volverá a spawnear, pero el driver de páginas de Movement. | 🟢 ok | — |
+| **WBP_MovementInstructions** | `Stages/Movement/Widget/` | Duplicado del widget de instrucciones de Breath, con el Border `BG` en **verde** (0.04/0.30/0.16, a 0.5). Es sólo el visual; el driver de páginas está sin hacer (Fase 6). Material propio: `Widget/Material/W_MovementInstruction`. | 🧩 scaffold | — |
+
 ## Herramienta Calibration 🟢 (`Content/SoulCharger/Calibration/`) — no es stage
 | Blueprint | Ruta | Qué hace | Estado | Tracker |
 |---|---|---|---|---|

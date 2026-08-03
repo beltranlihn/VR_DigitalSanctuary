@@ -61,9 +61,32 @@ Secuenciador de 5 pasos: apuntás burbujas sonoras con un beam, las atraés sost
 - Variedad de clip por burbuja desde `DA_SoundBank` (hoy todas comparten el default).
 - `Stages/Touch/Ref/` tiene assets migrados con **4 referencias rotas** → riesgo de cook. Nadie los usa; decidir si se borran.
 - `L_Touch` **no está en MapsToCook** (no bloquea PIE, sí el APK).
+## 🟡 MOVEMENT = "Surrounding" (etapa de DIBUJO 3D) — en construcción
+
+**Fase 1 del plan construida entera (2026-07-29) — falta el test en visor.** Los dos Blueprints compilan limpio y están colocados en `Maps/Tests/L_Test_Movement`:
+- **`BP_DrawCanvas`** (motor de geometría): `BuildTriangles` / `BeginStroke` / `AddPoint` / `EndStroke` + `WriteRing` / `CollapseRing` / `PushMesh`, con pre-alocación de la sección, `UpdateMeshSection`, cinta plana con frame transportado y decimación por distancia + ángulo.
+- **`BP_BrushTool`** (la herramienta): auto-attach por proximidad a la mano que lo toca, gatillo de esa mano → `BeginStroke`/`AddPoint`/`EndStroke` con ancho fijo.
+
+✅ **Fase 1 probada en visor y funcionando** (2026-07-29): el pincel aparece, se toma con cualquier mano y dibuja. El trazo salía "feo y geométrico" porque **le faltaba el material** — se creó `Materials/M_Brush_Light` (unlit + Fresnel).
+
+✅ **Fase 2 construida, sin probar todavía**: taper de tres tiempos en la geometría, One-Euro sobre la punta, continuación de sección al pasar los 128 puntos, decimación afinada (1 cm / 6°).
+
+✅ **Cadena de widget propia**: `BP_MovementIntro` (sólo el fade) + `Widget/WBP_MovementInstructions` (verde) + su material. El nivel ya no arrastra nada de Breath.
+
+Trackers con el detalle: `skills/unreal-vr/blueprints/BP_DrawCanvas.md` y `BP_BrushTool.md`.
+
+✅ **Calma → luz** (Fase 3) y ✅ **paleta de configuración de 9 celdas** (Fase 4: color · grosor · pincel, selección tocando con la punta) construidas. **Color y grosor validados en visor.**
+
+⏸️ **PAUSA 2026-08-03 (sin batería en el visor) — falta UN test.** Lo último, sin probar: el material pasó a **aditivo con borde suave** y la cinta de **4 vértices a 2 (plana)**, copiando lo que hace el proyecto de Tilt Brush propio. **Qué mirar al retomar:** si desaparecieron las esquirlas triangulares en las esquinas agudas. Plan de contingencia y detalle en `skills/unreal-vr/blueprints/BP_DrawCanvas.md` (sección "RETOMAR ACÁ").
+
+🔴 **Aprendizaje de la sesión** (en `gotchas.md`): una **función impura usada inline como argumento de datos** deja el pin **desconectado en 0**, compilando limpio y sin warnings. Nos mordió dos veces (el ancho del pincel y la supresión de la paleta). Verificar siempre con `get_node_infos` que los pines tengan `connected_pins`.
+
+Falta: presión analógica descartada (el ancho ahora es discreto desde la paleta), roll de muñeca, audio/háptico del pincel, el driver de páginas de instrucciones (bloqueado por textos+íconos), cierre por timer y persistencia.
+
+Nivel de prueba: `Maps/Tests/L_Test_Movement`. Rama: `stage/movement`.
 
 ## ⚪ Stages sin empezar (carpetas vacías o mínimas)
-- **Movement** — sistema de **dibujo 3D** (el usuario dibuja "el interior de la ameba"). Decisión de arquitectura ya tomada: **procedural mesh (ribbon), NO Niagara** (tiene que ser bakeable + persistible por usuario). Receta en `skills/unreal-vr/references/movement-3d-drawing.md` (algoritmo `PincelA_AddPoint` + color picker HSV + grab + persistencia SaveGame). Se revisaron 4 proyectos VR de referencia (en `Recursos/`).
+- **Movement — contexto de diseño** (el estado vivo está arriba). El usuario dibuja luz en el aire a su alrededor; **el ancho lo da la presión del gatillo dentro del techo que fija la paleta, y la suavidad del gesto modula la luz** (brusco = apagado, suave = luminoso). **Brief + organigrama de construcción completo → [`stages/movement-surrounding.md`](stages/movement-surrounding.md)** (motor de geometría, métrica de calma, los 3 pinceles, persistencia y las 10 fases). Decisiones cerradas: **procedural mesh, NO Niagara**; **cinta plana cuya cara sigue el trazo** (frame por transporte paralelo) con taper de tres tiempos y textura animada, estilo Open Brush; cierre por timer de ~2 min; **paleta en la mano izquierda** (ancho máximo + 2-4 pinceles preset); persistencia SaveGame desde el día 1; `r.MobileHDR=True`. Research de los 4 proyectos VR de referencia (en `Recursos/`) + el algoritmo `PincelA_AddPoint`: `skills/unreal-vr/references/movement-3d-drawing.md`.
 - **Mind** — stage mental. Sin empezar.
 - **Inicio** — entrada/onboarding de la obra. Sin empezar.
 - **Centro / Salida** — núcleo y cierre de la obra. Sin empezar.

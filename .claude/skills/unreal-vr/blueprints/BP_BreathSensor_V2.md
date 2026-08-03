@@ -59,6 +59,9 @@ Geometría, todo relativo a la **cámara/cabeza** (`GetPlayerCameraManager`):
 ### Estado del conteo (NUEVAS, sección aparte abajo)
 `ContinuousInhaleTime` `MaxBreathCount` `BreathCount` `InhaleHoldTimer` `bHoldCounted` `bCountingEnabled` `bStageComplete` — documentadas en "Variables — NUEVAS".
 
+## Layout ordenado (2026-07-30)
+`Step` (231 nodos) se pasó por **`scripts/auto_layout.py`** (ProgrammaticToolset): exec en fila, un carril por rama, getters debajo del consumidor. **`identical: true`** — el DSL vivo quedó byte por byte igual, la lógica del pipeline no se tocó (el auto-layout sólo hace `set_node_position`, que es cosmético y ni aparece en el DSL). 🔴 Esto **NO contradice** el "no tocar Step": la regla es no **reescribir** (`write_graph_dsl` es lossy); mover nodos es seguro. Compila limpio, guardado.
+
 ## Estructura de `Step(DT)` — orden del pipeline (para no re-leer)
 `Step` es UNA función larga, frágil (**no reescribir desde el read, es lossy** — cirugía de nodos). Orden:
 1. Lee ejes del mando (`Forward/Right/Up . Z`) y velocidades (`GetLinear/AngularVelocity`, con sus bool de tracking).

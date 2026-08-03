@@ -108,3 +108,36 @@ OSC server + handler (write handler body into the Assign-generated event, NOT vi
   (switch Utilities|FlowControl|Switch|SwitchonString s
     (:Case_0 …)))   ; set the case match string ("/muse" etc.) in the editor Details panel
 ```
+
+## Procedural Mesh Component (verificado 2026-07-29, stage Movement)
+
+Plugin **habilitado por defecto** en UE 5.8 (`EnabledByDefault: true` en su `.uplugin`) — no hay que tocar el `.uproject`. Componente: `/Script/ProceduralMeshComponent.ProceduralMeshComponent` (se agrega al **CDO** con `ActorTools.add_component`).
+
+type_ids (categoria `Components|ProceduralMesh|`): `CreateMeshSection` · `UpdateMeshSection` · `ClearMeshSection` · `ClearAllMeshSections` · `SetMeshSectionVisible` · `IsMeshSectionVisible`.
+
+**`CreateMeshSection`** — pines de entrada por indice: `0 execute` · `1 self` (Procedural Mesh Component ref) · `2 SectionIndex` (int) · `3 Vertices` · `4 Triangles` · `5 Normals` · `6 UV0` · `7 UV1` · `8 UV2` · `9 UV3` · `10 VertexColors` (Array of Linear Color) · `11 Tangents` (Array of Proc Mesh Tangent) · `12 bCreateCollision` (default **false**) · `13 bSRGBConversion` (default **false**).
+
+**`UpdateMeshSection`** — `0 execute` · `1 self` · `2 SectionIndex` · `3 Vertices` · `4 Normals` · `5 UV0` · `6 UV1` · `7 UV2` · `8 UV3` · `9 VertexColors` · `10 Tangents` · `11 bSRGBConversion` (default **true**).
+
+🔴 **Dos cosas que definen la arquitectura:**
+1. **`UpdateMeshSection` NO tiene pin `Triangles`.** El index buffer no se puede cambiar al actualizar → para una geometria que crece hay que **pre-alocar** la seccion con su lista de triangulos completa y despues solo actualizar posiciones. Es la razon tecnica del diseno de `BP_DrawCanvas`.
+2. **`bSRGBConversion` tiene default DISTINTO en cada nodo** (Create=false, Update=true). Si se usan vertex colors con significado (color/dato horneado por vertice), hay que **forzar el mismo valor en los dos** o el color cambia solo entre la creacion y la primera actualizacion.
+
+`add_variable` **SI crea arrays** con `container_type: "Array"` (verificado: el CDO devuelve `{"Vertices":[]}`). La nota contraria en el plan de Touch estaba equivocada. Lo que sigue sin poder crearse por API son los **structs de usuario** (no hay tool de creacion de UserDefinedStruct) — esos van a mano en el editor.
+
+## Arrays y math — nodos y limitaciones del DSL (verificado 2026-07-29, `BP_DrawCanvas`)
+
+**Arrays** (categoria `Utilities|Array|`): `Add` · `AddUnique` · `Clear` · `Resize` (`TargetArray`, `Size`) · `SetArrayElem` (`TargetArray`, `Index`, `Item`, **`bSizeToFit`** default `false` — en `true` agranda el array solo) · `Length` · `LastIndex` · `IsValidIndex` · `Insert` · `RemoveIndex` · `RemoveItem` · `FindItem` · `ContainsItem` · `AppendArray` · `MakeArray` · `Get(aref)`/`Get(acopy)`.
+El pin `TargetArray` es **por referencia**: conectarle el getter de una variable array la modifica in place (no hace falta un `Set` despues). Bindear el getter una vez y alimentar con el a los N nodos.
+
+🔴 **Limitaciones reales del parser del DSL** (pagadas construyendo el motor de cinta):
+
+1. **No hay operador modulo.** `(% a b)` esta en la doc del DSL pero falla con `Utilities|Operators|Modulo does not exist`. Para `(k+1) mod 4` con k chico: `(select (== k 3) 0 (+ k 1))`.
+2. **Una funcion SIN parametros necesita la lista vacia explicita**: `(fn MiFuncion () …)`. Sin el `()`, el parser toma el primer statement como lista de parametros y falla con *"Function parameter(s) not found in graph"*.
+
+✅ **CORRECCION (2026-07-29, 2a sesion): los `type_id` CON PARENTESIS SI se escriben desde el DSL.** La doc oficial (`get_graph_dsl_docs`) lo dice explicito — *"Type IDs are used verbatim: `(Math|Float|sin(degrees) angle)`"* — y se verifico en vivo compilando `RefreshRing` con **`Utilities|Array|Get(acopy)`** y **`Math|Float|Clamp(Float)`**. La nota anterior de este archivo decia lo contrario y **era falsa**; se generalizo mal desde el caso suelto de `Game|OpenLevel(byName)` (que falla por otra razon, no por los parentesis).
+→ Consecuencia practica: **`Utilities|Array|Get(acopy)` da acceso aleatorio a arrays desde el DSL**, y estan disponibles `Math|Float|Max(Float)`, `Math|Trig|Acos(Degrees)`, `Math|Color|NewOpacity(LinearColor)`, `Math|Vector|Distance(Vector)`, etc. No hace falta ningun rodeo.
+
+**Funciones con valor de retorno**: `add_function_param(graph, "ReturnValue", tipo, input_param: false)` crea el pin de salida, y en el DSL se escribe `(return expr)` — soporta varios `return` en ramas distintas de un `if/else`. Para consumir el valor: `(bind _x (CallFunction|MiFuncion :Arg v))` **como statement** (la funcion es impura si toca variables, asi que va en la cadena de exec, no inline).
+
+**Frame ortonormal a lo largo de una curva sin trigonometria** (transporte de frame / rotation-minimizing frame): `Math|Vector|GetUpVector (Math|Rotator|MakeRotfromXZ Dir UpPrevio)`. `MakeRotFromXZ` construye la base con X = `Dir` y Z lo mas cerca posible de `UpPrevio` — es Gram-Schmidt con fallback propio para el caso paralelo. Dos nodos, cero casos degenerados a manejar a mano. Sirve igual para **sembrar** el frame (pasandole el up del mando) y para **transportarlo** (pasandole el frame anterior).

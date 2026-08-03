@@ -25,9 +25,12 @@ Carpetas en `VR_Test/Content/SoulCharger/Stages/`: **Breath · Heart · Mind · 
 | **Breath** | 🟢 Completo end-to-end | **Plantilla arquitectónica** de la obra. Copiar su patrón. |
 | **Heart** | 🟡 En progreso | Sensor de latido por OSC + visualizador de zona segura (debug). |
 | **Calibration** (herramienta) | 🟢 Pipeline listo, falta test en visor | Nivel de captura de datos multi-usuario (`Content/SoulCharger/Calibration/`). No es un stage de la obra: es tooling de investigación. |
-| Mind, Movement, Touch, Inicio, Centro, Salida | ⚪ Vacíos | Sin empezar. |
+| **Movement** ("Surrounding", dibujo 3D) | 🟡 En progreso | `BP_DrawCanvas` (motor de geometría) + `BP_BrushTool` (la herramienta) construidos y compilando, colocados en `L_Test_Movement`. **Falta el test en visor.** Plan: [`docs/stages/movement-surrounding.md`](docs/stages/movement-surrounding.md). |
+| Mind, Touch, Inicio, Centro, Salida | ⚪ Vacíos | Sin empezar (Touch tiene plan y scaffold). |
 
 **Regla al arrancar un stage nuevo:** usar **Breath como plantilla** (sensor/consumidor/manager separados, widget de instrucciones si aplica, cierre por manager + fade + transición) y crear su tracker en `skills/unreal-vr/blueprints/` desde el día 1.
+
+🔴 **Idioma de los textos in-headset: INGLÉS.** Todas las instrucciones y textos que ve el usuario dentro de los stages van en inglés. La única excepción es **`Calibration`**, que quedó en español por ser herramienta interna de investigación, no parte de la obra.
 
 ## 4. Cómo se trabaja acá — la skill es la biblia
 Todo lo operativo de Unreal está en la skill **`unreal-vr`** (`.claude/skills/unreal-vr/`), que **se auto-activa** cuando la tarea toca Unreal. No la reinventes. Estructura:
