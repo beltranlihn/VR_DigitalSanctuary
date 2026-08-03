@@ -15,6 +15,23 @@ We drive Unreal from the native UE 5.8 **ModelContextProtocol** plugin, register
 > Medido acá: `describe_toolset` = **72k chars** · `find_nodes` sin filtro = **146k** · `get_connected_subgraph` = **1.7M**.
 > **Filtro específico siempre. `node_class` siempre. Si ya se volcó a archivo → procesarlo con PowerShell/Grep, no leerlo. Si hay que leerlo entero → subagente.** Ver [workflow.md](references/workflow.md).
 
+> ## 🔴 PROTOCOLO DE ARRANQUE DE TAREA — 2 minutos, ANTES de escribir el primer nodo
+> Aplica a **toda** tarea que construya una interacción, efecto, sonido, UI o mecánica. **Es rutina, no hay que pedirlo.** Se instauró el 2026-08-03 después de perder horas reconstruyendo un trigger y un pointer que ya existían y estaban probados.
+>
+> **1. ¿Ya existe?** → [`references/assets-existentes.md`](references/assets-existentes.md) (input · audio · VFX · materiales · pawn · persistencia) y [`blueprints/_INDEX.md`](blueprints/_INDEX.md) (Blueprints). **Buscar por FUNCIÓN, no por nombre**: "apuntar", "sostener", "agarrar", "fade", "guardar", "instrucciones".
+>
+> **2. ¿Está PROBADO o solo existe?** Distinguir "compila" de "anda en visor". Si está probado → **copiarlo con su CONFIGURACIÓN**, no solo el asset. Los defaults suelen ser justamente lo que no funciona (caso `AddMappingContext`).
+>
+> **3. ¿Ya nos mordió?** → [`gotchas.md`](references/gotchas.md), empezando por **"declarado ≠ aplicado"**.
+>
+> **4. ¿Voy a tocar un BP existente?** → leer su tracker en `blueprints/<BP>.md` **antes**.
+>
+> **5. 🔴 REGLA DE CORTE:** si algo **no funciona después de 2 intentos**, **parar de depurar** y volver al paso 1 — buscar si existe una versión que ya anda. Los loops largos de hoy fueron siempre eso: depurar una construcción propia teniendo la solución probada a dos archivos de distancia.
+>
+> **6. Al terminar** → actualizar el tracker del BP **y** `assets-existentes.md` si apareció algo reusable o se validó algo en visor. Si no queda escrito, la próxima vez se vuelve a construir.
+>
+> ⚠ Y para verificar: **leé el valor efectivo en el objeto final, nunca la declaración** (`get_properties` del componente, `get_actor_transform` del actor, `connected_pins` del pin). **Que compile no prueba nada.**
+
 ## Session startup (check this first)
 MCP links are established when Claude starts, so **Unreal must already be running before the Claude session begins** (opening the project auto-starts the server — Auto Start Server is enabled on port 8000). If Unreal wasn't up at launch, the `unreal` tools won't exist and no amount of opening it now will attach them — the user must restart Claude.
 
