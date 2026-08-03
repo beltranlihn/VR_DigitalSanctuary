@@ -1,5 +1,14 @@
 # Gotchas & hard rules (hard-won — don't relearn these)
 
+## 🔴🔴 `read_graph_dsl` SOLO imprime el pin exec PRIMARIO — lo demás se ve VACÍO aunque esté cableado
+**El síntoma:** leés un grafo y un evento aparece sin cuerpo — `(event EnhancedInputActionIA_Shoot_Right (ActionValue ...))` y nada más. Concluís que es código muerto. **Está perfectamente cableado**, pero por `Started` / `Completed` / `CastFailed` / `Is Not Valid`, que el read **no imprime**.
+
+Costó **tres desvíos en un solo día** (2026-08-03): se dio por muertos los eventos de input de `BP_BrushTool`, `BP_CalibProbe` y `BP_Instructions` — y eran justamente **el patrón que funciona**, con `Triggered`/`Completed` conectados. Eso mandó a inventar una IA propia que nunca disparó.
+
+**La regla:** ante un evento o rama que el read muestra vacía, **`get_node_infos` del nodo y mirar `connected_pins` de CADA pin de salida** antes de sacar conclusiones. Lo mismo para caminos que convergen (dos exec a un mismo destino): el read muestra uno solo.
+
+⚠ Relacionado: el read también miente con el **prefijo de clase** cuando dos BPs tienen funciones con el mismo nombre (`Class|BPCalibProbe|DoFadeOut` para una función propia). El `type_id` real del nodo (`|DoFadeOut`, con pin `self`) es lo que vale.
+
 ## 🔴🔴 EL error recurrente del proyecto: "declarado ≠ aplicado". Verificá el VALOR EFECTIVO, no la declaración
 **El patrón**, encontrado **cinco veces en un solo día** (2026-08-03, stage Touch): la pieza existe, está declarada, compila — y **nunca se aplicó al lugar donde tenía que llegar**. Ninguna de las cinco produjo un error de compilación:
 

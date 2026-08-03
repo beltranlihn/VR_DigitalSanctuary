@@ -3,7 +3,14 @@
 Beam de apuntado del stage Touch (Fase 1 del brief [`docs/stages/touch-attracting.md`](../../../../docs/stages/touch-attracting.md)). Actor del lado del mando (NO en el pawn): line-trace desde la pose *aim*, láser, y hover/unhover sobre objetos apuntables.
 
 - **refPath**: `/Game/SoulCharger/Stages/Touch/BP_AimBeam.BP_AimBeam`  ·  **parent**: Actor  ·  **in level**: **2 instancias** en `L_Touch` — `AimBeam_Right` (`bIsRight`=true, `MotionSource`=RightAim) y `AimBeam_Left` (`bIsRight`=false, `MotionSource`=LeftAim). Se **attachean al pawn en BeginPlay**, no viven en el origen del mundo. (2026-08-03)
-- **Status**: 🟢 Fase 1 cableada y compila. Falta test en visor + material del láser. (Editor pasado a inglés → DSL desbloqueado.)
+- **Status**: 🟢 **PROBADO EN VISOR (2026-08-03)** — apunta con las dos manos, hover, y far-grab con trigger sostenido. Falta fine tuning.
+
+## ✅ Lo que hizo que funcionara (2026-08-03) — los 3 arreglos
+1. **Tracking:** el beam **no tiene MotionControllerComponent propio** (uno en un actor del nivel **nunca trackea**: solo consulta si su actor tiene *local net owner*, cosa que se cumple en el Pawn). `CacheAimSource()` toma el `MotionControllerRightAim`/`LeftAim` **del pawn** según `bIsRight`.
+2. **Input:** con **`IA_Shoot_Right`/`IA_Shoot_Left` del XRFramework** — `Triggered` → `TryGrab`, `Completed` → `TryRelease`. Inventar `IA_Attract_*` + `IMC_Touch` propios **no disparó nunca** pese a registrarse bien. Ver `assets-existentes.md`. ⚠ `Triggered` corre cada frame → `TryGrab` lleva guard `IsValid(GrabbedBubble)`.
+3. **`Accessed None` del Tick:** el `AND` de Blueprint evalúa las dos ramas, así que `ActorHasTag(HitActor)` se ejecutaba sin impacto, cada frame. Reemplazado por `ResolveHover(bHit, HitActor)` con ramas anidadas + `IsValid`.
+
+**Visual:** beam **Niagara** `NS_TouchBeam` (duplicado de `NS_MenuLaser`) manejado por `User.PointArray` índice 0 = origen, 1 = impacto; más un componente `Cursor` (esfera, `NoCollision`) que se posiciona en `BeamEnd` y se oculta sin impacto. El `StaticMesh` de largo fijo se eliminó.
 
 ## Componentes (CDO)
 - `DefaultSceneRoot` (SceneComponent) — raíz.

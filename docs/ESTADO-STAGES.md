@@ -39,7 +39,11 @@ Nivel para **levantar datos de muchos usuarios** y tunear los umbrales de detecc
 - **Hallazgos del análisis de datos** (guían el diseño de la obra): **reposo** se detecta robusto con `LinSpeed < 1` (generaliza entre personas); **posición del sensor** (en el cuerpo vs fuera) con `horiz < 17`; **inhala vs exhala NO se resuelve con un umbral global** — es sujeto-específico, hay que normalizar por usuario. Por eso el nivel de calibración captura un baseline por persona.
 - **Próximo:** test en Link/PIE → después texto in-headset 3D + pacer del segmento de respiración → empaquetar y testear con gente.
 
-## 🟡 TOUCH = "Attracting" (etapa de MÚSICA) — mecánica base completa, sin probar en visor
+## 🟢🟡 TOUCH = "Attracting" (etapa de MÚSICA) — mecánica base PROBADA EN VISOR · falta que el secuenciador suene
+
+> ✅ **2026-08-03 — corre end-to-end en el visor:** apuntás con las dos manos, la burbuja suena al hacer hover, la atraés sosteniendo el gatillo, la posás en un bloque y podés intercambiarla. Falta mucho fine tuning, pero la mecánica está.
+> 🔴 **Lo que NO suena todavía: el secuenciador.** `OnBeat` detecta el bloque ocupado y hace pulsar la burbuja, pero **nunca dispara el clip** — falta la reproducción, y migrar el playhead de timer a Quartz.
+
 Secuenciador de 5 pasos: apuntás burbujas sonoras con un beam, las atraés sosteniendo el gatillo, las posás en 5 slots y suenan por step. Brief: [`stages/touch-attracting.md`](stages/touch-attracting.md) · detalle por-BP en `blueprints/BP_*.md`.
 
 **Traspaso:** lo arrancó Nico (Fases 0-5) y desde el **2026-08-03** lo sigue Beltrán en `stage/touch`. 🔴 Al retomarlo se encontró que **todos los actores de gameplay estaban apilados en (0,0,0)** y que los eventos de far-grab **estaban vacíos**: las fases figuraban como hechas porque *compilaban*, pero nunca habían corrido. **Lección para el equipo: que compile no dice nada; una fase no está hecha hasta que se ve corriendo.**
