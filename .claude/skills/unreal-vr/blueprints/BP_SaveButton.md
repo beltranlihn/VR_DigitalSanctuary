@@ -23,13 +23,16 @@ Botón **"FINISH MELODY"** del stage Touch (fase **R5** del brief [`docs/stages/
 - `HoldT : float` — segundos acumulados del hold actual.
 - `AvailT : float` — 0→1 interpolado, el "cuánto se ve disponible". Separa el estado lógico (`bAvailable`, binario) de la lectura visual (suave).
 - `BaseScale : **Vector**` — 🔴 **la escala AUTORAL del componente, capturada en BeginPlay** con `Class|SceneComponent|GetRelativeScale3D`. NO es un float ni un 1.0 fijo. Ver la trampa de abajo.
-- `AvailScale`(1.25, instance-editable) · `AvailSpeed`(6) — palancas del feedback.
+- `AvailScale`(1.25, instance-editable) · `AvailSpeed`(6) — palancas del feedback de disponibilidad.
+- `Beams : BP_AimBeam[]` — los dos beams, cacheados en BeginPlay. · `bHovered : bool` — alguno me está apuntando.
+- `HoverT : float` · `HoverScale`(1.12, instance-editable) · `HoverSpeed`(8) — el crecimiento por hover, **igual que las esferas**. 🔴 **Solo crece si además está disponible**: sin los 5 slots, apuntarlo no hace nada.
 - `MID : MaterialInstanceDynamic` — creado en `CacheDirector`, **listo para el color**, todavía sin usar (ver TODO).
 - **Dispatcher `OnConfirmed`** — lo que R6 va a escuchar para guardar y cerrar la etapa.
 
 ## Grafos
 - **EventBeginPlay**: `CacheDirector()`.
-- **EventTick**: `RefreshAvailable()` → `UpdateHold(Delta)` → `UpdateVisual(Delta)`.
+- **EventTick**: `RefreshAvailable()` → `RefreshHover()` → `UpdateHold(Delta)` → `UpdateVisual(Delta)`.
+- **`RefreshHover()`**: `bHovered = false`, y recorre `Beams` — si alguno tiene `CurrentHovered == self`, true. 🔴 **Se resolvió POLEANDO, no extendiendo `SetHover` de `BP_AimBeam`**: ese grafo es el corazón del hover, ya está probado en visor, y meterle otro cast/notify por el botón era riesgo puro. Recorrer 2 beams por frame no se mide. Cuando algo funciona, el camino barato de al lado gana.
 - **`CacheDirector()`**: `GetAllActorsOfClass(BP_AttractDirector_C)` → `Director`; crea el `MID` sobre `Mesh`.
 - **`RefreshAvailable()`**: pone `bAvailable = true` y recorre `Director.Slots`; **cualquier slot con `Occupant` inválido lo baja a false**. Sin early-exit y sin contador: setear-true-y-desmentir es más corto y no necesita salir del bucle.
 - **`BeginHold(Beam)`**: solo si `bAvailable` → guarda el beam, `bHolding=true`, `HoldT=0`.
@@ -37,7 +40,11 @@ Botón **"FINISH MELODY"** del stage Touch (fase **R5** del brief [`docs/stages/
 - **`UpdateHold(Delta)`**: si `bHolding` → `IsValid(HoldingBeam)` → `TickHold(Delta)`; si el beam murió, `EndHold()`.
 - **`TickHold(Delta)`**: si **dejó de estar disponible** o **el beam ya no me apunta** (`beam.CurrentHovered != self`) → `EndHold()`. Si no, acumula `HoldT` y al pasar `HoldDuration` llama `Confirm()`.
 - **`Confirm()`**: `EndHold()` → `bAvailable=false` → log → **`CallOnConfirmed`**.
-- **`UpdateVisual(Delta)`**: `AvailT` con `FInterpTo` hacia 0/1, y escala = `BaseScale × (1 + AvailT×(AvailScale−1)) × (1 + progreso×0.35)`. **La misma escala comunica las dos cosas**: disponible (crece y se queda) y progreso del hold (sigue creciendo mientras sostenés).
+- **`UpdateVisual(Delta)`**: `AvailT` y `HoverT` con `FInterpTo` hacia 0/1, y
+  ```
+  escala = BaseScale × (1 + AvailT×(AvailScale−1)) × (1 + HoverT×(HoverScale−1)) × (1 + progreso×0.35)
+  ```
+  **La misma escala comunica tres cosas encadenadas**: disponible (crece y se queda) → hover (crece un poco más, como las esferas) → progreso del hold (sigue creciendo mientras sostenés). Los tres factores son multiplicativos, así se acumulan sin pisarse.
 
 ## Cómo recibe el input (vive en `BP_AimBeam`)
 El botón **no lee el gatillo**: se lo avisa el beam, que ya es el dueño del input.
