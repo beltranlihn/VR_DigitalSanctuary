@@ -40,7 +40,14 @@ Mismo patrón que los otros stages, usando el **`BP_FadeSphere` compartido de `C
 - **`TickWelcome()`**: `AnySensorTaken()` → si algún beam tiene `bEquipped`, `NextPage()`. **La página 1 avanza sola al tomar un sensor**, no con el gatillo.
 - **`TickHoldPage(Delta)`**: `AnyTriggerHeld()` → si **no** hay gatillo, resetea `HoldT` y el radial a 0; si lo hay, acumula, actualiza `SetTriggerProgress(HoldT/HoldDuration)` y al pasar el umbral llama `NextPage()`. Mismo gesto que Calibration.
 - **`ShowPage()`**: 🔴 **guardado con `IsValidIndex`** — si el índice se sale del array, llama `Finish()` en vez de indexar fuera de rango. Así un `PageTexts` vacío no rompe: simplemente no hay instrucciones.
-- **`NextPage()`** / **`Finish()`**: `Finish` esconde el panel y pone **`bGrabEnabled = true` en los dos beams**.
+- **`NextPage()`** / **`Finish()`**: `Finish` habilita **`bGrabEnabled = true` en los dos beams** y después **`DestroyActor(self)`**.
+
+## 🔴🔴 El panel BLOQUEABA el line-trace — dos arreglos (2026-08-05, reportado en visor)
+**Síntoma:** con las instrucciones terminadas no se podían agarrar las esferas: el rayo chocaba contra el panel invisible.
+1. **`Finish` DESTRUYE el actor, no lo esconde.** `SetActorHiddenInGame` deja la colisión viva y el trace sigue chocando — el mismo error que ya había mordido en `BP_SaveButton`. Como el panel no vuelve a usarse, `DestroyActor` es lo correcto. ⚠ El `SetGrabEnabled` a los beams va **ANTES** del destroy.
+2. **La colisión del `Panel` se apaga en BeginPlay, por código.** El `WidgetComponent` viene con perfil **`UI`**, que **bloquea el canal Visibility** → el beam le hacía hover incluso durante las instrucciones.
+   - 🔴 **No se puede arreglar desde las propiedades del editor:** setear `BodyInstance.collisionEnabled = NoCollision` funciona en el **CDO** pero **la instancia del nivel lo revierte a `QueryOnly`/perfil `UI`** — el WidgetComponent lo regenera. Verificado leyendo el valor efectivo después de setearlo.
+   - **La solución que sí aplica** es `Collision|SetCollisionEnabled(Panel, NoCollision)` como primera línea de `CacheRefs`. Caso de manual de "declarado ≠ aplicado": ponerlo donde de verdad toma efecto.
 
 ## 🔴 Cómo se bloquea la interacción
 En `BP_AimBeam`:

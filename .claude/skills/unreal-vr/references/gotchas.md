@@ -9,6 +9,12 @@ Costó **tres desvíos en un solo día** (2026-08-03): se dio por muertos los ev
 
 ⚠ Relacionado: el read también miente con el **prefijo de clase** cuando dos BPs tienen funciones con el mismo nombre (`Class|BPCalibProbe|DoFadeOut` para una función propia). El `type_id` real del nodo (`|DoFadeOut`, con pin `self`) es lo que vale.
 
+## 🔴🔴 Esconder un actor NO lo saca del line-trace — y un WidgetComponent bloquea el rayo
+**El síntoma:** algo invisible sigue frenando el `LineTraceByChannel` (el beam hace hover contra la nada, o no se puede agarrar lo que está detrás).
+- **`SetActorHiddenInGame(true)` no toca la colisión.** Para sacar algo de en medio hay que **`SetActorEnableCollision(false)`** además, o directamente **`DestroyActor`** si no vuelve a usarse. Mordió dos veces el 2026-08-05: en `BP_SaveButton` al confirmar y en `BP_TouchInstrPanel` al terminar las instrucciones.
+- 🔴 **Un `WidgetComponent` en world-space usa el perfil de colisión `UI`, que BLOQUEA el canal Visibility** → cualquier panel de UI se come el rayo del puntero.
+  **Y no se arregla desde el editor:** poner `BodyInstance.collisionEnabled = NoCollision` funciona en el CDO pero **la instancia del nivel lo revierte** (el WidgetComponent lo regenera del perfil). Hay que hacerlo **por código en BeginPlay**: `Collision|SetCollisionEnabled(Panel, NoCollision)`. Verificar siempre el **valor efectivo de la instancia**, no el del CDO.
+
 ## 🔴🔴 Animar escala: SIEMPRE partir de la escala AUTORAL, nunca de 1.0
 **El síntoma:** el objeto aparece **gigante** en el visor (o microscópico) apenas empieza a correr la lógica de escala. En el editor se veía bien.
 
