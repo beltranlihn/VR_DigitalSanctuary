@@ -4,6 +4,47 @@
 
 ---
 
+# 🔴🔴🔴 0. CÓMO DEPURAR — la autopsia del beam invisible (2026-08-04/05)
+
+> **Un día entero de trabajo no llegó a nada. Al día siguiente, lo mismo se resolvió en 20 minutos.** La diferencia no fue conocimiento técnico: fue **método**. Esta sección es la lección más cara del proyecto. Leerla antes de arrancar cualquier depuración larga.
+
+**Qué pasó, en una línea:** se construyó un instrumento de medición (capturas del viewport del editor + medición de píxeles), **nunca se lo validó**, dio 13 negativos seguidos, y sobre esos negativos falsos se hicieron 8 ediciones destructivas a un asset sin versionar hasta arruinarlo. La solución real —mover el componente Niagara al actor que ya estaba pegado a la mano— nunca se consideró porque nadie se salió del marco "por qué no dibuja".
+
+## Las 6 reglas que salen de ahí
+
+### 1. 🔴 Un instrumento sin control positivo NO mide: un negativo suyo no es evidencia
+Antes de creerle a **cualquier** aparato de medición (captura, log, parser, script), **hacelo detectar algo que sabés que está**. Si nunca produjo un verdadero positivo, **no puede distinguir "no está" de "estoy ciego"**.
+- Acá: 13 capturas dijeron "no hay beam". El instrumento **jamás** había mostrado un beam que se supiera presente. Todo el razonamiento posterior se construyó sobre un sensor apagado.
+- **Costo del control positivo: 1 iteración. Costo de omitirlo: un día.**
+
+### 2. 🔴 La observación directa del usuario le GANA a mi tooling. Siempre.
+El usuario dijo, textual y dos veces: *"El niagara claramente funciona, lo estoy probando en el world y en simulate"*. Se siguió confiando en las capturas.
+- **Ante una contradicción entre lo que reporta el usuario y lo que dice mi herramienta: la herramienta está mal hasta que se demuestre lo contrario. PARAR y reconciliar. No seguir adelante con la hipótesis propia.**
+- Corolario: el usuario tiene el visor. Para VFX/VR **el oráculo es el visor**, no el editor. Un test de 5 minutos con el visor puesto vale más que una hora de inferencia. **Pedirlo temprano no es molestar: es el camino corto.**
+
+### 3. 🔴 NUNCA editar en cadena un asset binario sin versionar
+`LineTrace.uasset` estaba `??` en git. Se le hicieron 8 ediciones seguidas sin línea base ni respaldo → cuando se quiso volver al estado bueno conocido, **ya no existía**. Un problema de diagnóstico se convirtió en uno de corrupción irreversible.
+- **Antes de la PRIMERA edición: commitear, o al menos copiar el `.uasset` al scratchpad.** Cuesta 10 segundos.
+- Si el asset no está trackeado, **decirlo y frenar** antes de tocarlo, no después.
+
+### 4. 🔴 Un experimento = una variable
+La captura 7 cambió el valor literal **y** el flag `Absolute` a la vez → resultado ininterpretable, ronda perdida. Con dos variables, un negativo no te dice cuál falló.
+
+### 5. 🔴 Regla de parada + re-encuadre obligatorio
+Si el mismo bucle falla **3 veces seguidas**, el problema no es el próximo intento: es el **marco**. Parar y preguntar explícitamente:
+- ¿Estoy midiendo bien? (regla 1)
+- ¿Esto tiene que vivir **acá**? ← **la que resolvió el caso.** El beam no había que arreglarlo en `BP_AimBeam`: había que ponerlo en el actor que **ya estaba attacheado a la mano**, y entonces el origen salía gratis de la transform del componente.
+- ¿Hay un asset/patrón que ya funciona del que pueda copiar? (§7.b del `CLAUDE.md`)
+
+### 6. 🔴 Distinguir MEDIDO de INFERIDO, y no reportar inferencias como hallazgos
+Se anunció *"encontré la causa raíz"* sobre esta cadena: `Beam_Starts` no está conectado **[medido, cierto]** → entonces el beam sale del origen del mundo **[inferido, NUNCA verificado]** → por eso no se ve **[falso]**. La primera parte era verdad y aun así la conclusión estaba mal.
+- Al reportar: **decir qué se midió y qué se dedujo.** Una inferencia sin verificar no se anuncia como causa raíz.
+
+## Lo que SÍ funcionó (el patrón a repetir)
+Cambio estructural pequeño → **test en visor** → confirmación del usuario → siguiente cambio. Cinco ajustes seguidos, cinco verificaciones, cero retrocesos. **El ciclo corto con oráculo real le gana por goleada al ciclo largo con oráculo dudoso.**
+
+---
+
 # 🔴 1. LA REGLA #1: NUNCA traer una respuesta MCP gigante al contexto principal
 
 **Medido en este proyecto:**

@@ -1,5 +1,51 @@
 # Niagara / VFX en UE 5.8 para Meta Quest 3 standalone (Soul Charger)
 
+> ## 🔴🔴🔴 UN USER PARAMETER PUEDE EXISTIR Y NO ESTAR CONECTADO A NADA — verificalo SIEMPRE
+> **El síntoma más engañoso de todos:** desde Blueprint escribís el parámetro, `GetNiagaraVariable` lo lee de vuelta con el valor correcto y `bIsValid = true`… y el efecto lo ignora por completo. **`bIsValid` solo dice que el parámetro existe en el store del componente. NO dice que algún módulo lo consuma.**
+>
+> **Caso real (2026-08-04, `LineTrace` del stage Touch, costó una sesión entera):** el sistema tenía `User.Beam_Starts` (⚠ tipo `Vector3f`) pero el input **`Beam Start`** del módulo `BeamEmitterSetup001` **no estaba linkeado a él**. El beam salía siempre del **origen del mundo (0,0,0)** — en el editor, con el actor lejos del origen, eso *parece* un beam y uno concluye "el asset funciona"; en VR, sentado sobre el origen, no se ve nada. Todo lo demás (posición del componente, `Beam_End`, `Life`, `Spawn`, bounds, material, `BeamWidth`) estaba bien.
+>
+> **Diagnóstico (2 llamados, barato):**
+> ```
+> GetSystemSummary(system)                    → qué user params existen y de qué tipo
+> GetModuleInputValues(moduleRef)             → qué inputs los consumen
+> ```
+> En `GetModuleInputValues`, un input en modo **`StackInputData_Linked`** apunta a un parámetro (`linkedVariable.name`); **`StackInputData_DynamicInput`** cuelga de una cadena (seguila con `GetDynamicInputChain`). 🔴 **`StackInputData_Unsupported` en un input `bIsVisible/bIsEditable = true` es una BANDERA ROJA**: el toolset no pudo leerlo, y en la práctica significó "valor local horneado, sin link" — no lo interpretes como "está bien".
+>
+> **Fix estructural (el que aplicamos):** no pelear con el link viejo. **Crear un user param del MISMO tipo que el input** y linkearlo:
+> ```
+> AddUserVariables(system, [{name:"User.Beam_Start", type:{classStructOrEnum:"/Script/Niagara.NiagaraPosition", underlyingType:2, flags:0}, ...}])
+> SetStackInputData(<...,inputNameStack:["Beam Start"]>, {struct:"…StackInputData_Linked", value:{linkedVariable:{name:"User.Beam_Start", type:{…NiagaraPosition}}}})
+> RemoveUserVariables(system, [el viejo])
+> ```
+> `Beam Start`/`Beam End` de `BeamEmitterSetup` son **`NiagaraPosition`** → el user param también, y desde BP se escriben con **`SetNiagaraVariable(Position)`**. Evitá `Vector3f` acá: obliga a meter un `ConvertVectorToPosition` en el medio y el toolset de componentes **no sabe setear `Vector3f`** (su lista de tipos tiene `Vector` (double) pero no `Vector3f`, así que el set falla en silencio).
+> ⚠ Chequeá también **`Absolute Beam Start` / `Absolute Beam End`**: si están en `true`, los puntos son **world space** (que es lo que queremos para un puntero); si están en `false`, son offsets locales al componente.
+>
+> 👉 **Regla general: "el parámetro llega al componente" ≠ "el efecto lo usa". Lo único que cierra la pregunta es leer los inputs del módulo, o medir dónde se dibuja de verdad.**
+
+> ## 🔴🔴🔴 BEAM (ribbon) INVISIBLE O QUE MUERE AL PRIMER FRAME → son los BOUNDS, es un problema CONOCIDO de Epic
+> > *"When using Niagara's Ribbon Renderer to create beam effects with occlusion culling enabled, the system becomes invisible **or is destroyed after the first frame**"* — [hilo oficial del foro de Epic](https://forums.unrealengine.com/t/niagara-ribbon-renderer-beam-bounds-issue/478199)
+>
+> **Causa:** el cálculo de **bounds dinámicos del ribbon renderer solo considera el ancho de la cinta**, no su largo. Un beam que se extiende cientos de unidades desde el componente queda con bounds minúsculos → **occlusion/frustum culling lo mata**. Es el caso típico del **puntero láser en VR**: el componente vive en la mano (o peor, en el origen del pawn) y el beam llega a metros de distancia.
+> **Explica también que `IsActive()` dé `false`**: el sistema no está "apagado", está **destruido**.
+> ⚠ El hilo aclara que **no se puede usar Fixed Bounds con simulaciones CPU** (y el ribbon renderer no admite GPU), así que `SetSystemFixedBounds` NO es la salida.
+> **Palancas que sí se pueden tocar desde el componente** (`ObjectTools.set_properties` sobre el `NiagaraComponent`): **`BoundsScale`** (subirlo mucho, p. ej. 200), **`bNeverDistanceCull=true`**, **`bAllowCullDistanceVolume=false`**. La solución del hilo (spawnear con un *owner actor* propio) requiere C++.
+> 🔎 Aplicado 2026-08-04 en `BP_AimBeam.BeamFX`.
+
+> ## 🔴🔴 RIBBON INVISIBLE → mirá `RibbonWidthBinding.bBindingExistsOnSource` en el RENDERER
+> **Una cinta sin ancho no dibuja NADA**, aunque el sistema simule, el material esté asignado, el renderer habilitado y las posiciones sean correctas. Síntoma: "todo correcto y no se ve".
+> **Diagnóstico en un solo llamado:** `NiagaraToolset_System.GetRendererData` → si `RibbonWidthBinding.bBindingExistsOnSource` es **`false`**, **ningún módulo escribe `Particles.RibbonWidth`**.
+> **Causa típica:** el módulo **`BeamWidth`** (Particle Spawn) está **desactivado**, o el `Ribbon Width Mode` de `InitializeParticle` está en *Unset*. Fix: `SetModuleEnabled(BeamWidth, true)`.
+> ✅ **Verificar el arreglo re-leyendo el binding**: tiene que pasar a `true`. (2026-08-04, `LineTrace` del stage Touch: venía con `BeamWidth` desactivado y por eso no se veía nada.)
+> 👉 Generalizable: **los `bBindingExistsOnSource` del renderer son un checklist de diagnóstico gratis** — cada `false` es un atributo que el renderer espera y nadie produce.
+
+> ## 🔴 Para GATEAR un efecto en el tiempo: `Activate(bReset)` / `Deactivate`, NUNCA `SetVisibility`
+> `SetVisibility(false)` **oculta pero NO detiene la simulación**: el sistema sigue corriendo invisible, se consume sus partículas, y al volver a mostrarlo **no hay nada que dibujar**. Muerde justo en el patrón "el efecto arranca apagado y algo lo enciende más tarde".
+> - **Encender:** `Components|Activation|Activate` con **`bReset = true`**. Sin el reset, `Activate` sobre un sistema ya activo **no re-spawnea nada**.
+> - **Apagar:** `Components|Activation|Deactivate` — además deja de simular (gratis en Quest, contra simular invisible).
+> - Diagnosticado 2026-08-04 en `BP_AimBeam`: el beam no se veía. El código de manejo (`NiagaraSetVectorArrayValue` sobre `User.PointArray`) era **idéntico** al del `BP_Menu` del XRFramework que sí funciona; la única diferencia era que nosotros ocultábamos el componente en BeginPlay. **Comparar contra el asset que ya anda es lo que acortó el diagnóstico.**
+> - ⚠ Corolario: un beam manejado por **array de puntos** (origen/impacto) **no se arregla alargándolo** — su largo lo dan los puntos, no una escala ni el `TraceDistance`.
+
 Investigación con verificación en código fuente (`C:\Program Files\Epic Games\UE_5.8`) y documentación oficial. Contexto: obra fill-rate bound, todo horneado, sin Lumen/Nanite/VSM/Distance Fields, con un parámetro de respiración (float + fase) que llega desde Blueprint en tiempo real.
 
 Clasificación de fuentes en cada punto:

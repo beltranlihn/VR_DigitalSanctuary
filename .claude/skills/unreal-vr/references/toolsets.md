@@ -4,6 +4,43 @@ Call any tool via `mcp__unreal__call_tool {toolset_name, tool_name (SHORT), argu
 
 Toolsets: BlueprintTools, SceneTools, ActorTools, ObjectTools, AssetTools, PrimitiveTools, StaticMeshTools, MaterialTools, MaterialInstanceTools, TextureTools, SkeletalMeshTools, DataTableTools, DataAssetTools, CurveTableTools, StringTableTools, EditorAppToolset, LogsToolset, ProgrammaticToolset, AgentSkillToolset.
 
+🔴 **ESTA LISTA ESTABA INCOMPLETA y costó una sesión entera** (2026-08-04): se afirmó "el MCP no puede inspeccionar Niagara" basándose en ella. **Falso.** `list_toolsets` en vivo devuelve ~45 toolsets. Los que faltaban acá y son relevantes:
+**NiagaraToolsets** (`NiagaraToolset_System`, `_Component`, `_Blueprint`, `_Info`, `_Assets`) · **UMGToolSet** · **ConfigSettingsToolset** · **SlateInspectorToolset** (automatización de la UI del editor) · **SemanticSearchToolset** · **AutomationTestToolset** · **PhysicsAssetToolset** · **PluginToolset** · **GameplayTagsToolset** · **GameFeaturesToolset** · **PCGToolset** · GASToolsets · Sequencer/ControlRig (`animation_toolset.*`) · StateTree / BehaviorTree / Conversation / DataRegistry / Dataflow / WorldConditions.
+👉 **Ante la duda, corré `list_toolsets` (es barato) en vez de confiar en este archivo.**
+
+## NiagaraToolsets.NiagaraToolset_System (`NiagaraToolsets.NiagaraToolset_System`)
+⛔ `describe_toolset` = **278k chars**. Firmas destiladas acá; si falta una, extraé nombres con python/grep sobre el archivo volcado, no lo leas entero.
+**Inspección (leer antes de tocar):**
+- **GetSystemSummary**(system) — nombre, **user variables con tipo y default**, emitters (bEnabled, simTarget, renderers). **Empezá por acá.**
+- **GetEmitterTopology**(emitterRef) — 🗺️ **el mapa completo**: todos los scripts (EmitterSpawn/EmitterUpdate/ParticleSpawn/ParticleUpdate), **cada módulo con `enabled`**, y todos sus inputs con nombre y tipo. Es el equivalente a `read_graph_dsl` para Niagara.
+- **GetModuleInputValues**(moduleRef) — los **valores efectivos** de los inputs de un módulo (enums con `displayName` legible). Así se leen `Loop Behavior`, `Life Cycle Mode`, `Lifetime`, etc.
+- **GetSystemCompileState**(system) — `bHasErrors`/`bHasWarnings` por script. · **GetStackIssues**(system) — errores/warnings/infos con su ubicación exacta.
+- **GetScriptStackTopology**(scriptRef) — los módulos de UN script. Para el nivel sistema: `emitterName:""`, `scriptName:"SystemUpdateScript"`.
+- También: GetUserVariables, GetSystemData/Schema, GetEmitterSummary/Data/Schema/InputValues, GetRendererData/Schema, GetStackInputData/Schema/Topology, GetModuleTopology/Schema, GetDynamicInputChain/Schema, GetAvailableDynamicInputs, GetSystemDependencies.
+
+**Modificación:** **SetModuleEnabled**(moduleRef, bEnabled) · SetStackInputData(stackInputRef, inputData) · SetSystemData / SetEmitterData / SetRendererData · AddModule / RemoveModule · AddEmitter / RemoveEmitter · AddRenderer / RemoveRenderer · AddUserVariables / RemoveUserVariables · AddSetParametersModule / AddSetParameterEntry / RemoveSetParameterEntry · CreateNiagaraSystem · ApplyStackIssueFix.
+
+🔴 **`moduleRef` / `scriptRef` / `emitterRef` = `NiagaraExt_StackItemReference` y exige TODOS los campos**, aunque no apliquen:
+```json
+{"system":{"refPath":"/Game/..."},"emitterName":"MiEmitter","scriptName":"ParticleUpdateScript",
+ "moduleName":"MiModulo","rendererIndex":-1,"inputNameStack":[]}
+```
+Mandar solo `{system, emitterName}` **falla** pidiendo el ref completo. Nombres de script verificados: `EmitterSpawnScript`, `EmitterUpdateScript`, `ParticleSpawnScript`, `ParticleUpdateScript`, `SystemUpdateScript` (este último con `emitterName:""`).
+
+**Recetas verificadas 2026-08-04** (para llegar a un input del stack se usa `inputNameStack:["Beam Start"]` sobre el `moduleRef`):
+```json
+// linkear un input del módulo a un user parameter
+SetStackInputData(stackInputRef, {"struct":{"refPath":"/Script/NiagaraEditor.NiagaraExt_StackInputData_Linked"},
+  "value":{"linkedVariable":{"name":"User.Beam_Start","type":{"classStructOrEnum":{"refPath":"/Script/Niagara.NiagaraPosition"}}}}})
+// crear un user parameter — underlyingType: 0=None 1=Class 2=Struct 3=Enum · flags:0
+AddUserVariables(system, [{"name":"User.Beam_Start","description":"...",
+  "type":{"classStructOrEnum":{"refPath":"/Script/Niagara.NiagaraPosition"},"underlyingType":2,"flags":0},
+  "defaultValue":{"struct":{"refPath":"/Script/Niagara.NiagaraPosition"},"value":{"x":0,"y":0,"z":0}}}])
+```
+- Modos de valor que devuelve `GetModuleInputValues`: `StackInputData_Linked` (link a un parámetro) · `_DynamicInput` (cadena → `GetDynamicInputChain`) · `_Enum` · el struct pelado (valor local) · **`_Unsupported`**. Los inputs con `bIsVisible:false` salen `_Unsupported` porque están tapados por un static switch — **pero un `_Unsupported` en un input VISIBLE y EDITABLE es sospechoso**, ahí escondía un valor local sin conectar.
+- ⚠ **`NiagaraToolset_Component.SetVariable` no soporta `Vector3f`** — su lista de tipos tiene `Vector` (FVector double), `NiagaraPosition`, floats, etc., pero no `Vector3f`; setear uno **falla en silencio**. Y **leer** un `NiagaraPosition` devuelve `value:{}` (hueco del serializador), así que no sirve para verificar.
+- ⚠ **`AddUserVariables`/`RemoveUserVariables` reconstruyen el override store de los componentes ya colocados** → los valores que habías seteado en las instancias **se pierden**. Volvé a setearlos después de tocar el set de parámetros.
+
 ---
 
 ## BlueprintTools (`editor_toolset.toolsets.blueprint.BlueprintTools`)
@@ -136,6 +173,27 @@ Add StaticMeshComponent primitives to an actor — pass the BP's **CDO** (get_de
 - Selection: **GetVisibleActors** / **GetSelectedActors** / **SelectActors**(actors[]) / **GetSelectedAssets** / **SelectAssets**(paths[]) / **GetOpenAssets** / **OpenEditorForAsset**(assetPath).
 - Content browser: **GetContentBrowserPath** / **SetContentBrowserPath**(path).
 - **SearchCVars**(name) / **WorldPosToScreenCoords**(pos) / **ScreenCoordsToWorld**(coords, traceDistance?).
+
+🔴 **CICLO DE DEBUGGING AUTÓNOMO (descubierto 2026-08-04 — no depender del usuario para cada prueba):**
+```
+LogsToolset.SetVerbosity("Verbose","LogNiagara")      ← hacer hablar al subsistema
+EditorAppToolset.StartPIE({bSimulate,playMode,warmupSeconds})
+LogsToolset.GetLogEntries(pattern, category, maxEntries)   ← leer los PrintString y los logs del motor
+EditorAppToolset.StopPIE()
+```
+Con esto se corre PIE, se leen los logs y se cierra **sin pedirle al usuario que se ponga el visor**. Combinado con `PrintString` de estado, es el bucle de diagnóstico más rápido que tenemos.
+- ⚠ **`StartPIE` y `CaptureViewport` exigen TODOS sus campos** (`options` completo; `captureTransform` + `bShowUI` + `annotations`), aunque el schema los muestre opcionales.
+- ⚠ **`CaptureViewport` captura el viewport del EDITOR, no la vista de PIE** (se ven los billboards de iconos que PIE oculta). Sirve para inspeccionar el nivel, **no** para ver qué renderiza el juego.
+- ⚠ Devuelve el PNG en **base64 dentro del JSON (~373-700k chars)**. 🔴 **NUNCA lo traigas al contexto principal.**
+
+🔴 **CICLO DE DEBUGGING VISUAL AUTÓNOMO (2026-08-04) — "ver" el viewport sin gastar contexto**
+La forma barata de sacar la captura es que **Unreal mismo escriba el PNG a disco**, con `ProgrammaticToolset.execute_tool_script`: adentro del script llamás a `CaptureViewport` y volcás `returnValue.image.data` con `AssetTools.write_file`.
+- 🔴 La ruta de `write_file` tiene que ser **ABSOLUTA y dentro de `VR_Test/Saved/`** — las relativas se resuelven contra el binario del engine y fallan en silencio. Su parámetro es **`content`** (singular) y **rechaza extensiones** fuera de `.csv/.html/.json/.md/.py/.txt` → volcá el base64 a un `.txt`.
+- 🔴 `mcp__unreal__call_tool` usa el campo **`arguments`**, NO `parameters`. Con el nombre equivocado la llamada llega vacía y el error **parece** un problema de schema del tool destino: se pierde tiempo depurando el tool equivocado.
+- 🔴🔴 **El viewport del editor NO es un oráculo confiable para VFX.** 13 capturas dijeron "el beam no se dibuja" mientras el usuario, mirando su propio viewport, veía el mismo asset dibujando sin problema. Antes de sacar cualquier conclusión de una captura, **validala contra algo que ya sabés que se ve**; y ante una contradicción entre la captura y lo que reporta el usuario, **gana el usuario**. Para VFX el oráculo real es el visor.
+- Después: `base64.b64decode` con Python local → `.png` → **`Read`** (la herramienta Read muestra imágenes).
+- Encuadre reproducible: `EditorAppToolset.SetCameraTransform({transform:{location,rotation,scale}})` y **`WorldPosToScreenCoords`** para convertir puntos del mundo a píxeles → así se **mide** dónde cae de verdad lo dibujado, en vez de opinar sobre la imagen. Fue lo que probó que el beam salía del origen del mundo.
+- 👉 Si la captura es grande igual, **delegá el ciclo entero a un subagente** y pedile solo el veredicto en texto: el base64 se come SU contexto, no el tuyo.
 
 ## LogsToolset (`EditorToolset.LogsToolset`)
 - **GetLogEntries**(pattern, category?, maxEntries?) / **GetLogCategories**(filter) / **GetVerbosity**(category?) / **SetVerbosity**(verbosity, category?).

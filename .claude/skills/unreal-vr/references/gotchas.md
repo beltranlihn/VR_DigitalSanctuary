@@ -133,6 +133,22 @@ Las rutas completas ya están en los encabezados de [toolsets.md](toolsets.md).
 - **`ObjectTools.get_properties`** = `{instance, properties: ["A","B"]}` — la lista se llama `properties`, no `property_names`. Devuelve un JSON string.
 - **`LogsToolset.GetLogEntries`** = `{category, pattern, maxEntries}` — NO `search_regex`/`max_entries`. Y `category` tiene default `"LogsToolset"` que **no existe** → pasar `category: ""`.
 - **`SceneTools`** no tiene `get_actors`. Para listar todo el nivel: **`find_actors {name:"", tag:"", collision_channels:[]}`**.
+- **`AssetTools.save_assets`** = `{asset_paths: ["/Game/Ruta/MiAsset"]}` — **strings sueltos, SIN el sufijo `.MiAsset`** y **sin** el envoltorio `{refPath}` que usa el resto de las tools. Con `{assets:[{refPath}]}` falla pidiendo `asset_paths`. (2026-08-04)
+
+## 🔴 `CollisionProfileName` NO aplica el perfil — hay que setear `collisionEnabled`
+Setear `BodyInstance.collisionProfileName = "NoCollision"` por `set_properties` **deja `collisionEnabled` en `QueryAndPhysics`**: el componente sigue colisionando. El perfil es una etiqueta; lo que gobierna es el enum. **Setear los dos** (`{"BodyInstance":{"collisionEnabled":"NoCollision","collisionProfileName":"NoCollision"}}`) y verificar el valor efectivo. Otro caso de manual de "declarado ≠ aplicado". (2026-08-04, `BP_TouchSensor.Mesh`)
+
+## ⚠ Un nombre de variable `bFoo` se come el nombre de función `SetFoo`
+La var `bEquipped` genera un setter llamado **`SetEquipped`** (el DSL le come la `b` inicial). Si además querés una función pública que haga más cosas al setearla, **NO la llames `SetEquipped`** — colisiona. En `BP_AimBeam` se resolvió llamándola **`Equip(NewEquipped)`**. (2026-08-04)
+
+## ⚠ `find_node_types` con filtro genérico devuelve CIENTOS de entradas
+El `type_id_filter` es *substring*, no prefijo. `"Distance"` devolvió ~300 type_ids (todo PCG, Interchange, fog, spline…) = miles de tokens tirados. **El filtro tiene que ser el prefijo completo del namespace**: `"Math|Vector|VectorLength"`, no `"VectorLength"`; `"Variables|Default|Get"`, no `"Get"`. (2026-08-04)
+
+## ⚠ Los type_ids con PARÉNTESIS que emite el `read` son riesgosos de escribir
+`Math|Vector|Distance(Vector)`, `Utilities|Array|Get(acopy)` — los paréntesis del nombre chocan con el parser del S-expr. Si hay una alternativa sin paréntesis, usarla: para "¿llegué al destino?" salió **`Math|Vector|VectorLengthSquared` del delta** (y de paso evita la raíz cuadrada). (2026-08-04)
+
+## 🔴 `VInterpTo` con `InterpSpeed <= 0` SALTA al target — un default en 0 es un teleport silencioso
+Si agregás una var de velocidad por MCP, su default es **0.0** y `add_variable` no lo cambia. Un `VInterpTo` alimentado con esa var **no interpola: teleporta**, sin error ni warning — exactamente el bug que la interpolación venía a arreglar. **Setear el default en el CDO (`ObjectTools.set_properties` + compilar) y verificarlo con `get_properties`.** (2026-08-04, `BP_SoundBubble.TravelSpeed`)
 
 ## DSL: `elif` / `else` se ANIDAN, y los eventos se declaran ANTES de llamarlos
 - **`(elif)` debe ser la ÚLTIMA forma del cuerpo del `(if)`, y el `(else)` va DENTRO del `(elif)`** — no son hermanos. Error si no: *"(elif) must be the last form inside an (if) or (elif) body"*.

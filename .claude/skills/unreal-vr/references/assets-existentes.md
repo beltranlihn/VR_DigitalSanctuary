@@ -71,12 +71,70 @@ AddMappingContext(IMC, Priority = 1000,
 
 | Asset | Qué es | Cómo se maneja |
 |---|---|---|
-| `XRFramework/VFX/NS_MenuLaser` | **Pointer láser** del menú | `NiagaraSetVectorArrayValue` sobre **`User.PointArray`**: índice **0 = origen**, índice **1 = punta**. Duplicado a `Stages/Touch/VFX/NS_TouchBeam`. |
+| `XRFramework/VFX/NS_MenuLaser` | **Pointer láser** del menú | 🔴 **NO se maneja por `User.PointArray`** — ver la corrección de abajo. Duplicado a `Stages/Touch/VFX/NS_TouchBeam`. |
 | `XRFramework/VFX/NS_TeleportTrace` / `NS_TeleportRing` | Arco y anillo de teleport | — |
 | `XRFramework/VFX/NS_PlayAreaBounds` | Límites del área | — |
 | `Stages/Breath/NS_BreathParticles` | Partículas de respiración | — |
 
 ⚠ **El pointer NO trae cursor de impacto.** `BP_Menu` lo resuelve con un `StaticMeshComponent` aparte (esfera + `XRFramework/Materials/M_VRCursor`). Si querés punta, va como componente.
+
+### 🔴🔴 CORRECCIÓN (2026-08-04): `NS_MenuLaser` NO lee `User.PointArray`
+La fila de arriba decía que se manejaba con `NiagaraSetVectorArrayValue` sobre `User.PointArray` índices 0/1. **Era falso, y costó una sesión entera de diagnóstico.** Abierto el sistema en el editor, su emitter (`TeleportColor`) es un **Beam emitter** cuya geometría sale del módulo **`Beam Emitter Setup`**:
+- **`Beam Start`** = binding a `Simulation Position`, con *Absolute Beam Start* **tildado**.
+- **`Beam End`** = vector **hardcodeado `(0,0,100)`**, con *Absolute Beam End* **destildado** (o sea, relativo). **Ese 100 ES el largo fijo del láser.**
+- Spawn = **`Spawn Burst Instantaneous`, 5 partículas en t=0** → es un one-shot: si esas partículas mueren, no vuelve nada hasta un `Activate(bReset=true)`.
+
+**Por qué no fallaba nada — y esto es lo insidioso:** `User.PointArray` **SÍ existe** en el sistema (tipo *Niagara Data Interface Array Float 3*), **pero nadie lo consume**. Las escrituras eran válidas y exitosas, y completamente inertes. Ni siquiera había un parámetro fantasma que delatara el problema.
+
+**Cómo se maneja de verdad un beam entre dos puntos de mundo (resuelto y aplicado 2026-08-04):** en el módulo `Beam Emitter Setup`, `Beam Start` y `Beam End` se conectan a **parámetros de usuario** (`BeamStart` / `BeamEnd`) vía `Convert Vector to Position`, con **los dos "Absolute" tildados** (coordenadas de mundo). Desde Blueprint:
+```
+Niagara|SetNiagaraVariable(Vector3)  <comp>  "User.BeamStart"  <origen>
+Niagara|SetNiagaraVariable(Vector3)  <comp>  "User.BeamEnd"    <fin>
+```
+🔴 Son **`Vector3`, NO `Position`** (por pasar por el `Convert Vector to Position`), y el prefijo **`User.`** va sí o sí aunque el panel los liste sin él. Implementado en `BP_AimBeam.UpdateBeamPoints`.
+
+🔴 **Lección de método:** "ya existe y está probado" vale para el **asset**, pero la **forma de manejarlo** hay que verificarla en el asset, no heredarla de una nota. Esta fila estaba escrita de memoria y nadie la había confirmado.
+
+### 🔴🔴🔴🔴 EL TIPO DEL SETTER TIENE QUE COINCIDIR EXACTO — si no, NO-OP SILENCIOSO
+`Position` y `Vector3` **NO son intercambiables**. Escribir un parámetro de tipo **`NiagaraPosition`** con `SetNiagaraVariable(**Vector3**)` **no hace nada, no avisa y no rompe la compilación.**
+
+🔬 **CÓMO VERIFICARLO EN 1 MINUTO — el nodo `GetNiagaraVariable(...)` devuelve un pin `bIsValid`:**
+```
+(bind (_ok _val) (Niagara|GetNiagaraVariable(Position) _fx "Beam_End"))
+```
+- **`bIsValid = false`** → el parámetro **no existe con ESE tipo** en el store del componente. Probá el otro tipo.
+- **`bIsValid = true`** → existe, y `_val` te dice **si tu escritura llegó de verdad**.
+
+**Medido en `LineTrace` (2026-08-04):**
+| Parámetro | Tipo real | Setter correcto |
+|---|---|---|
+| `Beam_End` | **`NiagaraPosition`** | `SetNiagaraVariable(**Position**)` |
+| `Beam_Start` | **`NiagaraPosition`** | `SetNiagaraVariable(**Position**)` |
+| `Life` / `Spawn` | Float | `SetNiagaraVariable(Float)` |
+
+> ⚠ **Cambió el 2026-08-04:** antes existía `Beam_Starts` (con **s**, tipo `Vector3f`) y **no estaba conectado a ningún input del emisor** — el beam salía siempre del origen del mundo. Se lo reemplazó por **`Beam_Start`** (singular, `NiagaraPosition`), linkeado explícitamente al input `Beam Start` de `BeamEmitterSetup001`. Ver el bloque de arriba de todo en [`niagara-quest.md`](niagara-quest.md).
+
+⚠ **Dos parámetros del MISMO módulo pueden tener tipos distintos.** Confirmar cada uno con `GetSystemSummary` (da el tipo) o con `bIsValid`.
+🔴 **Loguear `bIsValid` + el valor leído de vuelta es EL método para depurar Niagara desde Blueprint.** Loguear lo que uno *manda* no prueba nada — hay que leer lo que el sistema *recibió*. Esto habría ahorrado una sesión entera.
+🔴🔴 **PERO `bIsValid=true` NO prueba que el efecto use el parámetro** — solo que existe en el store. El único cierre real es **leer los inputs del módulo** (`GetModuleInputValues`) o **medir dónde se dibuja**. Ver `niagara-quest.md`, bloque "un user parameter puede existir y no estar conectado a nada".
+
+### 🔴🔴🔴 `SetNiagaraVariable(...)` va SIN el prefijo `User.` — con prefijo es un NO-OP SILENCIOSO
+Extraído del código del pawn de Soul Charger que **sí funciona** (copiado como texto de Blueprint, 2026-08-04):
+```
+MemberName="SetVariableVec3"     InVariableName="Beam_End"    ← SIN "User."
+MemberName="SetVariableFloat"    InVariableName="Life"        InValue=500.0
+```
+🔴 **Los nodos `Set Niagara Variable (…)` son métodos del COMPONENTE (`UNiagaraComponent::SetVariableVec3/Float/...`) y agregan el namespace `User.` ellos mismos.** Si vos escribís `"User.Beam_End"`, termina buscando `User.User.Beam_End` → **parámetro fantasma, escritura exitosa, efecto cero**.
+⚠ **NO confundir con la familia de ARRAYS** (`SetNiagaraArrayVector`, `NiagaraSetVectorArrayValue`), que son de `NiagaraDataInterfaceArrayFunctionLibrary` y **sí llevan el nombre completo con `User.`**. Dos familias de nodos, dos convenciones opuestas — es la trampa perfecta.
+**Regla:** ante un parámetro de Niagara que "se escribe bien y no hace nada", **probar el nombre sin prefijo antes que cualquier otra hipótesis.**
+
+### 🔴🔴 Para escribir un array de Niagara: `SetNiagaraArrayVector` (array ENTERO), NO el setter por índice
+Verificado 2026-08-04 comparando contra el beam que **sí funciona** en el proyecto viejo Soul Charger (`Content/VRPawnSC.uasset` manejando `Content/Asset/FX/LineTrace.uasset`):
+- ✅ **Lo que funciona:** **`SetNiagaraArrayVector`** (`NiagaraDataInterfaceArrayFunctionLibrary`) — recibe un **`TArray<FVector>`** y **reemplaza el array completo**, así que **siempre queda bien dimensionado**.
+- ❌ **Lo que falla en silencio:** `NiagaraSetVectorArrayValue` (setter **por índice**) con **`bSizeToFit=false`** → si el array viene sin dimensionar, **la escritura se descarta sin error ni warning**.
+- 🔴 **Y el daño no termina ahí:** un módulo que muestrea un array **vacío** produce **posiciones NaN**, y Niagara entonces **MATA el sistema** → `IsActive()` pasa a `false` y **no vuelve**. Síntoma: "el efecto no se ve y no hay ningún error". Diagnosticalo logueando **`IsActive` del componente**, no solo los valores que mandás.
+- **Regla:** el array **nunca debe quedar vacío mientras el sistema simula** — sembralo en `BeginPlay` con valores válidos aunque el efecto todavía no se use.
+- El pawn que funciona **llama `Activate` y NUNCA `Deactivate`**; el gateo visual lo hace con `SetVisibility`.
 
 ## 🎨 Materiales reusables
 - `XRFramework/Materials/M_VRCursor` — cursor del puntero.

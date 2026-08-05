@@ -50,7 +50,7 @@ Secuenciador de 5 pasos: apuntás burbujas sonoras con un beam, las atraés sost
 **Hecho y compilando:**
 - `L_Touch` armado de verdad: 5 slots en fila (X=55, Z=75), 6 `TP_Bubble_*` y 2 beams.
 - **Beam por mano** (`AimBeam_Right`/`Left`, `bIsRight` instance-editable), **attacheado al pawn** en BeginPlay → sobrevive al recentrado. Pose *Aim* (la de grip apunta casi hacia arriba en UE 5.x).
-- **Input propio**: `IA_Attract_Left/Right` + `IMC_Touch`, **trigger sostenido**, registrado por el Director con prioridad 1.
+- **Input**: **trigger sostenido** con `IA_Shoot_Right`/`IA_Shoot_Left` del **XRFramework** (`Started`→`TryGrab`, `Completed`→`TryRelease`). ⚠ Los `IA_Attract_*` + `IMC_Touch` propios están creados y se registran bien, pero **nunca dispararon** — no construir input nuevo sin leer `references/assets-existentes.md`.
 - **Burbujas spawneadas por TargetPoint** con tag `BubbleSpawn` → la composición se arma moviendo puntos en el viewport, sin tocar Blueprints, y escala a las ~20 del brief.
 - Hover **push** (el beam avisa; `HoverCount` soporta las dos manos), far-grab, colocación en el **slot más cercano**, **swap** con vuelta a `HomeLocation`, y **pulso audioreactivo** en el beat.
 - Audio placeholder: `MS_Synth`/`MS_Perc` (MetaSounds procedurales, sin dependencias) en `Stages/Touch/Audio/`.
@@ -58,9 +58,15 @@ Secuenciador de 5 pasos: apuntás burbujas sonoras con un beam, las atraés sost
 - Logs con prefijo **`TCH|`** para cruzar la prueba en visor con el Output Log.
 
 **Pendiente:**
-- 🔴 **Probar en visor** — nada de esto corrió nunca.
-- **Quartz**: el playhead sigue por **timer**. Bloqueado por un paso manual en el editor (crear el custom event desde el pin del `Subscribe`) — ver tracker de `BP_AttractDirector`.
-- Fase 8 (botón Guardar + `SG_Melody`), Fase 9 (instrucciones + cierre), Fase 10 (Android).
+- 🆕 🔴 **2026-08-04 — la mecánica se REARMÓ.** Fases nuevas **R1-R8** en el §4.b del brief, en este orden:
+  - ✅ **R1** todos los movimientos con **interp** — **PROBADO EN VISOR 2026-08-04** (`UpdateMove` con un único `VInterpTo`; `DoFollow` eliminada).
+  - ✅ **R2** **sacar burbujas a mano** — **PROBADO EN VISOR 2026-08-04** (soltarla lejos de la mesa libera el slot y la manda de vuelta a su `HomeLocation`).
+  - 🟡 **Ajustes de tacto tras ese test** (construidos, sin probar): **hover = la burbuja se agranda** (`UpdatePulse` pasó a combinar pulso × hover en una sola escala), **`GrabSpeed` 12→3** y **`ReturnSpeed`=3 separada de `TravelSpeed`=6** (volver a casa es más lento que ir al slot).
+  - ✅ **R3** 🆕 **dos sensores flotantes** — **PROBADOS EN VISOR 2026-08-04, funcionan.** Uno por mano, **cada uno solo responde a su propia mano**, se toman **por contacto** (por distancia, sin tocar el pawn), se attachean a ese mando y **encienden el beam de esa mano**. Nuevo `BP_TouchSensor` + `bEquipped`/`Equip()` en `BP_AimBeam`, que ahora **arranca apagado**.
+  - **R4** verificar en visor que apuntar con **las dos manos** no duplica el audio (`HoverCount` ya está);
+  - **R5-R7** botón **FINISH MELODY** + `SG_Melody` + instrucciones y cierre;
+  - **R8** audio real + Android.
+- 🆕 **Arquitectura de audio cerrada** (§3.b del brief): el banco sigue siendo `DA_SoundBank`; la voz pasa a **un solo `MS_BubbleVoice`** parametrizado por wave (mono + `ITD Panner` + reverb in-graph), pad con `On Nearly Finished`, disparo por `PlayQuantized`. **Se hace en R8, con los clips reales.**
 - Variedad de clip por burbuja desde `DA_SoundBank` (hoy todas comparten el default).
 - `Stages/Touch/Ref/` tiene assets migrados con **4 referencias rotas** → riesgo de cook. Nadie los usa; decidir si se borran.
 - `L_Touch` **no está en MapsToCook** (no bloquea PIE, sí el APK).

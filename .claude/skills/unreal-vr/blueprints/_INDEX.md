@@ -45,15 +45,18 @@
 
 ## Stage Touch = "Attracting" 🧩 (`Content/SoulCharger/Stages/Touch/`) — scaffold
 > Plan completo: `docs/stages/touch-attracting.md`. Los stubs están vacíos, listos para construir por fase.
+> 🆕 **2026-08-04 — la mecánica se rearmó** (sensores flotantes que encienden el beam, botón FINISH MELODY, sacar burbujas a mano, interp en TODOS los movimientos) y se cerró la **arquitectura de audio** (§3.b del brief). Fases nuevas **R1-R8** en el §4.b. Antes de tocar `BP_SoundBubble` o `BP_AimBeam`, leer la sección "Rearmado" de su tracker.
 
 | Blueprint | Ruta | Qué hace (previsto) | Estado | Tracker |
 |---|---|---|---|---|
 | **BP_AttractDirector** | `Stages/Touch/` | Cerebro: registra `IMC_Touch`, **spawnea las burbujas por TargetPoint** (tag `BubbleSpawn`), cachea los slots por `StepIndex` y corre el playhead. Sigue **por timer**: Quartz bloqueado por un paso manual en el editor. | 🟡 | ✓ |
-| **BP_SoundBubble** | `Stages/Touch/` | Burbuja sonora. Hover **push** (`HoverCount`, sirve a las 2 manos), far-grab siguiendo **el beam que la agarró**, colocación en el **slot más cercano**, **swap** con vuelta a `HomeLocation`, y pulso audioreactivo. La spawnea el Director, no se coloca a mano. | 🟢 | ✓ |
+| **BP_SoundBubble** | `Stages/Touch/` | Burbuja sonora. Hover **push** (`HoverCount`, sirve a las 2 manos), far-grab siguiendo **el beam que la agarró**, colocación en el **slot más cercano**, **swap**, y pulso audioreactivo. La spawnea el Director, no se coloca a mano. 🆕 **2026-08-04: todo el movimiento pasó a una sola función `UpdateMove` con un único `VInterpTo`** (se acabaron los teleports) + **soltarla lejos de la mesa la manda de vuelta a casa**. Falta test en visor. | 🟢 | ✓ |
 | **BP_SeqSlot** | `Stages/Touch/` | Un slot (data: `StepIndex` + `Occupant`). 5 en `L_Touch` en fila (X=55, Z=75), StepIndex 0-4 coincidiendo con el orden espacial. | 🟢 | ✓ |
 | **BP_SeqTable** | `Stages/Touch/` | Mesa visual bajo los slots. **Sin construir** (los slots funcionan sin ella). | 🧩 stub | — |
-| **BP_AimBeam** | `Stages/Touch/` | Láser de apuntado por mano. **2 instancias** (`bIsRight`), **attacheadas al pawn** en BeginPlay. Trace desde la pose *Aim*, hover push hacia la burbuja, y far-grab con **trigger sostenido** (`IA_Attract_L/R`). Material unlit emisivo. | 🟢 | ✓ |
-| **BP_SaveButton** | `Stages/Touch/` | Botón "Guardar melodía" (gateado por 5 slots llenos). | 🧩 stub | — |
+| **BP_AimBeam** | `Stages/Touch/` | Láser de apuntado por mano. **2 instancias** (`bIsRight`), **attacheadas al pawn** en BeginPlay. Trace desde la pose *Aim*, hover push hacia la burbuja, y far-grab con **trigger sostenido** (`IA_Shoot_L/R` del XRFramework). 🆕 **2026-08-04: arranca APAGADO** (`bEquipped=false`) — lo enciende `BP_TouchSensor` vía `Equip()`. | 🟢 | ✓ |
+| 🆕 **BP_TouchSensor** | `Stages/Touch/` | Sensor flotante que se toma **por contacto** (por distancia, sin colisión en el pawn). 2 en `L_Touch`, uno por mano (`bIsRight` instance-editable), y **cada uno solo responde a SU mano**: se attachea a ese mando, su mesh es la herramienta visible y **enciende el beam de esa mano** (`Equip`). | 🟡 falta visor | [✓](BP_TouchSensor.md) |
+| 🆕 **BP_HandPointer** | `Stages/Touch/` | **Arranque limpio del puntero (2026-08-05).** Solo el **line trace por canal** que sale de la mano: se attachea al aim del pawn, traza `TraceDistance` hacia adelante y publica `TraceStart`/`TraceEnd`/`HitLocation`. Hoy se ve por **debug draw**; el visual va encima. Nace porque el Niagara de `BP_AimBeam` nunca se pudo hacer ver y su asset `LineTrace` quedó dañado. | 🟡 falta visor | [✓](BP_HandPointer.md) |
+| **BP_SaveButton** | `Stages/Touch/` | Botón **"FINISH MELODY"** (gateado por 5 slots llenos): guarda la melodía y cierra la etapa. | 🧩 stub | — |
 | **BP_TouchInstructions** | `Stages/Touch/` | Driver de instrucciones (duplicado de Breath; **sin wirear** — ver plan). | 🧩 | — |
 | **WBP_TouchInstructions** | `Stages/Touch/Widget/` | Widget de instrucciones (fondo naranja). **Textos por definir.** | 🧩 | — |
 | **SG_Melody** | `Stages/Touch/` | SaveGame de la melodía (array de 5 clip-IDs). **Falta el array.** | 🧩 stub | — |
