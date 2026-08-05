@@ -25,10 +25,18 @@ Se copió de `Calibration` (`WBP_CalibInstructions` + `BP_CalibInstrPanel`) pero
 - `PageIndex : int` · `HoldT : float` · `HoldDuration : float = 1.5` (instance-editable) · `bFinished : bool`
 - `bSensorTaken` / `bAnyTrigger` — resultados de los dos polls. Son **variables miembro, no valores de retorno**: el DSL no expone cómo escribir un output param de función.
 
+## 🆕 Apertura del nivel: negro → fade → widget
+Mismo patrón que los otros stages, usando el **`BP_FadeSphere` compartido de `Core/UI/`** (no una copia: es infraestructura común, no contenido del stage).
+- **`CacheRefs()` (BeginPlay)** termina con `GetActorOfClass(BP_FadeSphere)` → **`StartFade(NewTarget=1.0, Duration=0.01, negro)`** = **negro instantáneo**. El widget ya se armó detrás.
+- **`TickOpening(Delta)`** acumula `OpenT`; al pasar `OpenDelay` (0.6 s) llama **`StartFade(0.0, FadeInDuration=2 s, negro)`** y marca `bOpened`. La escena y el panel aparecen juntos.
+- 🔴 **Las páginas no corren hasta `bOpened`**: `UpdatePages` gatea todo detrás de la apertura, así el gatillo no puede saltarse la primera página durante el fundido.
+- ⚠ Requiere un **`BP_FadeSphere` colocado en el nivel** — `L_Touch` no tenía; se agregó (`FadeSphere`, en el origen). Sin él, el cast falla y loguea `TCH|no hay BP_FadeSphere en el nivel` (no rompe, solo no hay fundido).
+- `OpenDelay` y `FadeInDuration` son **instance-editable**.
+
 ## Grafos
-- **EventBeginPlay**: `CacheRefs()` → cachea widget + beams, `PageIndex = 0`, `ShowPage()`.
+- **EventBeginPlay**: `CacheRefs()` → cachea widget + beams, `PageIndex = 0`, `ShowPage()`, y arranca en negro.
 - **EventTick**: `UpdatePages(Delta)`.
-- **`UpdatePages(Delta)`**: si `bFinished` no hace nada. Página **0** → `TickWelcome()`; el resto → `TickHoldPage(Delta)`.
+- **`UpdatePages(Delta)`**: si aún no está `bOpened` → `TickOpening(Delta)`. Si ya abrió y no está `bFinished`: página **0** → `TickWelcome()`; el resto → `TickHoldPage(Delta)`.
 - **`TickWelcome()`**: `AnySensorTaken()` → si algún beam tiene `bEquipped`, `NextPage()`. **La página 1 avanza sola al tomar un sensor**, no con el gatillo.
 - **`TickHoldPage(Delta)`**: `AnyTriggerHeld()` → si **no** hay gatillo, resetea `HoldT` y el radial a 0; si lo hay, acumula, actualiza `SetTriggerProgress(HoldT/HoldDuration)` y al pasar el umbral llama `NextPage()`. Mismo gesto que Calibration.
 - **`ShowPage()`**: 🔴 **guardado con `IsValidIndex`** — si el índice se sale del array, llama `Finish()` en vez de indexar fuera de rango. Así un `PageTexts` vacío no rompe: simplemente no hay instrucciones.
@@ -46,6 +54,7 @@ En `BP_AimBeam`:
 - **`Utilities|Array|Get` no existe** como type_id: son `Get(acopy)` y `Get(aref)`.
 - **Llamar una función propia con parámetros**: el primer pin posicional es `self` → usar keyword (`:DeltaSeconds DeltaSeconds`).
 - **Dangling `else`**: con ifs anidados, poner el caso de cancelación **primero** (`if (not cond) … (else …)`) y dejar el if interno como última sentencia del bloque `else`.
+- 🔴 **Un `bind` con sublistas `:then`/`:CastFailed` CONSUME el resto de la función**: todo lo que va después queda como *"Unreachable code after branch/return"* y el DSL lo rechaza. Un cast con ramas explícitas tiene que ir **al final**, o hay que repetir la continuación dentro de cada rama. Por eso `CacheRefs` hace `ShowPage()` **antes** de buscar el `FadeSphere`.
 
 ## TODO / next
 1. 🔴 **Test en visor**: arranca el panel con la página 1; al tomar un sensor pasa a la 2; gatillo sostenido ~1.5 s avanza cada página con el radial llenándose; al terminar el panel desaparece y **recién ahí** se puede agarrar. Antes de eso, apuntar y gatillar no agarra nada.
