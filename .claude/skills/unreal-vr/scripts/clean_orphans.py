@@ -18,6 +18,14 @@
 #   read_graph_dsl ANTES y DESPUÉS por grafo y devuelve identical=(before==after): si es False,
 #   NO guardar y hacer Ctrl+Z en el editor. Compilar + save_assets sólo si identical=True en todos.
 
+# 🔴🔴 NO REIMPLEMENTES ESTE SCRIPT DE MEMORIA — COPIALO TAL CUAL (2026-08-05).
+#   Se reescribió "a ojo" una version inline con ENTRY=['FunctionEntry','Event','CustomEvent','Tunnel']
+#   y un match por SUBCADENA. Los nodos de Enhanced Input se llaman K2Node_EnhancedInputAction_N y
+#   NO contienen "Event" -> se tomaron por huerfanos y BORRO toda la cadena de input de BP_AimBeam
+#   (2 eventos + 4 branches + TryGrab/TryRelease). La ENTRY de abajo, la del archivo, ya los cubria.
+#   Lo delato identical=False. POR ESO se compara el DSL antes/despues: si sale False, NO GUARDAR.
+#   Y commitear los .uasset ANTES de correr esto: reconstruir a mano es caro.
+
 import json, re
 BP='editor_toolset.toolsets.blueprint.BlueprintTools.'
 def gv(d,k):
