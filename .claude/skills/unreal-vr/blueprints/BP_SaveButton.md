@@ -39,7 +39,15 @@ Botón **"FINISH MELODY"** del stage Touch (fase **R5** del brief [`docs/stages/
 - **`EndHold()`**: limpia las tres.
 - **`UpdateHold(Delta)`**: si `bHolding` → `IsValid(HoldingBeam)` → `TickHold(Delta)`; si el beam murió, `EndHold()`.
 - **`TickHold(Delta)`**: si **dejó de estar disponible** o **el beam ya no me apunta** (`beam.CurrentHovered != self`) → `EndHold()`. Si no, acumula `HoldT` y al pasar `HoldDuration` llama `Confirm()`.
-- **`Confirm()`**: `EndHold()` → `bAvailable=false` → log → **`CallOnConfirmed`**.
+- **`Confirm()`** — el cierre de la mesa (2026-08-05):
+  1. `EndHold()` + `bAvailable = false`
+  2. **`ClearLooseBubbles()`** — desaparecen las esferas sueltas
+  3. log + **`CallOnConfirmed`** (el broadcast va **antes** de esconderse, para que los oyentes vean un estado consistente)
+  4. **el botón se esconde**: `SetActorHiddenInGame(true)` + `SetActorEnableCollision(false)` + `SetActorTickEnabled(false)`
+  - 🔴 **Esconder no alcanza, hay que apagar la colisión**: un actor oculto **sigue frenando el line trace**, así que el beam seguiría haciendo hover sobre un botón invisible. Y apagar el Tick evita que `UpdateVisual` siga escalando algo que ya no se ve.
+- **`ClearLooseBubbles()`**: `GetAllActorsOfClass(BP_SoundBubble_C)` → **destruye toda burbuja con `bIsPlaced == false`**. Las de la mesa quedan intactas porque el sequencer las sigue necesitando.
+  - **El criterio es `bIsPlaced` de la burbuja**, no recorrer `Director.Slots` buscando ocupantes: la burbuja ya lleva ese estado, y evita el bucle anidado.
+  - Es seguro destruirlas: en el momento de confirmar **ninguna mano puede tener una burbuja agarrada** (el guard de `TryGrab` impide sostener el botón con una burbuja en la mano), y `CurrentHovered`/`LastHitActor` de los beams se consultan siempre con `IsValid`.
 - **`UpdateVisual(Delta)`**: `AvailT` y `HoverT` con `FInterpTo` hacia 0/1, y
   ```
   escala = BaseScale × (1 + AvailT×(AvailScale−1)) × (1 + HoverT×(HoverScale−1)) × (1 + progreso×0.35)
@@ -63,7 +71,7 @@ El botón **no lee el gatillo**: se lo avisa el beam, que ya es el dueño del in
 - ⚠ **`bAvailable` genera los accesores `GetAvailable`/`SetAvailable`** (sin la `b`).
 
 ## TODO / next
-1. 🔴 **Test en visor**: con 4 slots el botón está chico y el hold no hace nada; al llenar el 5º **crece**; lo apuntás + gatillo 3s → crece progresivamente y confirma (log `TCH|FINISH MELODY confirmed`). Soltar antes, o dejar de apuntarlo, **cancela y vuelve a cero**. Sacar una burbuja lo desactiva.
+1. 🔴 **Test en visor**: con 4 slots el botón está chico y el hold no hace nada; al llenar el 5º **crece**; al apuntarlo **crece un poco más** (hover); gatillo sostenido 3 s → crece progresivamente y confirma (log `TCH|FINISH MELODY confirmed`). Soltar antes, o dejar de apuntarlo, **cancela y vuelve a cero**. Sacar una burbuja lo desactiva. **Al confirmar: desaparecen todas las esferas que no están en la mesa y el botón mismo**; las 5 de la mesa siguen sonando.
 2. **Material unlit emisivo** con parámetros escalares `Available` y `Progress`; el `MID` ya está creado esperándolo. Agregar los `SetScalarParameterValue` **por cirugía** (ver trampa arriba).
 3. **Texto "FINISH MELODY"** — en **inglés** (regla del proyecto). Falta decidir si va como widget world-space o textura en el material.
 4. **R6**: suscribirse a `OnConfirmed` desde el Director → `SG_Melody` + `SaveGameToSlot` + vuelta final + fade + `OpenLevel`.
