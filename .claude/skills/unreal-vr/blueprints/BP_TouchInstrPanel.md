@@ -36,9 +36,17 @@ Mismo patrón que los otros stages, usando el **`BP_FadeSphere` compartido de `C
 ## Grafos
 - **EventBeginPlay**: `CacheRefs()` → cachea widget + beams, `PageIndex = 0`, `ShowPage()`, y arranca en negro.
 - **EventTick**: `UpdatePages(Delta)`.
-- **`UpdatePages(Delta)`**: si aún no está `bOpened` → `TickOpening(Delta)`. Si ya abrió y no está `bFinished`: página **0** → `TickWelcome()`; el resto → `TickHoldPage(Delta)`.
-- **`TickWelcome()`**: `AnySensorTaken()` → si algún beam tiene `bEquipped`, `NextPage()`. **La página 1 avanza sola al tomar un sensor**, no con el gatillo.
-- **`TickHoldPage(Delta)`**: `AnyTriggerHeld()` → si **no** hay gatillo, resetea `HoldT` y el radial a 0; si lo hay, acumula, actualiza `SetTriggerProgress(HoldT/HoldDuration)` y al pasar el umbral llama `NextPage()`. Mismo gesto que Calibration.
+- **`UpdatePages(Delta)`**: si aún no está `bOpened` → `TickOpening(Delta)`. Si ya abrió y no está `bFinished` → `TickHoldPage(Delta)`. **Todas las páginas avanzan igual**, con gatillo sostenido.
+- **`TickHoldPage(Delta)`**: corre `AnyTriggerHeld()` + `AllSensorsTaken()` + `ComputeCanHold()`. Si **no** se puede sostener, resetea `HoldT` y el radial a 0; si sí, acumula, actualiza `SetTriggerProgress(HoldT/HoldDuration)` y al pasar el umbral llama `NextPage()`.
+- **`AllSensorsTaken()`**: `bSensorTaken = true` y **cualquier beam sin `bEquipped` lo baja a false** — o sea, exige **los DOS sensores tomados**. Mismo patrón "setear-true-y-desmentir" que `RefreshAvailable` del botón.
+- **`ComputeCanHold()`** — las dos condiciones de guarda, en un solo lugar:
+  ```
+  si no hay gatillo        -> bWaitingRelease = false   (soltar rearma)
+  si no, y no esta esperando release, y (PageIndex > 0 o los dos sensores tomados)
+                           -> bCanHold = true
+  ```
+  1. 🔴 **La página 1 solo avanza con los DOS sensores en la mano.** Sostener el gatillo antes no hace nada, ni siquiera llena el radial.
+  2. 🔴 **`bWaitingRelease`: hay que SOLTAR el gatillo entre página y página.** `NextPage()` lo pone en `true`; solo se limpia cuando el gatillo vuelve a estar suelto. Sin esto, **un gatillo sostenido avanza solo por todas las páginas de corrido** — el mismo bug que ya se había arreglado en las instrucciones de Calibration.
 - **`ShowPage()`**: 🔴 **guardado con `IsValidIndex`** — si el índice se sale del array, llama `Finish()` en vez de indexar fuera de rango. Así un `PageTexts` vacío no rompe: simplemente no hay instrucciones.
 - **`NextPage()`** / **`Finish()`**: `Finish` habilita **`bGrabEnabled = true` en los dos beams** y después **`DestroyActor(self)`**.
 
@@ -64,7 +72,7 @@ En `BP_AimBeam`:
 - 🔴 **Un `bind` con sublistas `:then`/`:CastFailed` CONSUME el resto de la función**: todo lo que va después queda como *"Unreachable code after branch/return"* y el DSL lo rechaza. Un cast con ramas explícitas tiene que ir **al final**, o hay que repetir la continuación dentro de cada rama. Por eso `CacheRefs` hace `ShowPage()` **antes** de buscar el `FadeSphere`.
 
 ## TODO / next
-1. 🔴 **Test en visor**: arranca el panel con la página 1; al tomar un sensor pasa a la 2; gatillo sostenido ~1.5 s avanza cada página con el radial llenándose; al terminar el panel desaparece y **recién ahí** se puede agarrar. Antes de eso, apuntar y gatillar no agarra nada.
+1. 🔴 **Test en visor**: arranca en negro, funde y aparece el panel en la página 1. Con **un solo sensor** en la mano el gatillo no hace nada; con **los dos**, el gatillo sostenido ~1.5 s avanza. **Sostener el gatillo NO debe encadenar páginas**: hay que soltar y volver a apretar en cada una. Al terminar, el panel desaparece por completo y **recién ahí** se puede agarrar.
 2. **Arte por página** → llenar `PageIcons` (hoy vacío) y volver a conectar el `Icon` en `ShowPage` cuando exista.
 3. **Textos definitivos en INGLÉS** (regla del proyecto). Los 4 actuales son placeholder en español.
 4. Ajustar posición/altura del panel sentado — hoy (120, 0, 135) a ojo.
