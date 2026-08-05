@@ -48,7 +48,8 @@ Mismo patrón que los otros stages, usando el **`BP_FadeSphere` compartido de `C
   1. 🔴 **La página 1 solo avanza con los DOS sensores en la mano.** Sostener el gatillo antes no hace nada, ni siquiera llena el radial.
   2. 🔴 **`bWaitingRelease`: hay que SOLTAR el gatillo entre página y página.** `NextPage()` lo pone en `true`; solo se limpia cuando el gatillo vuelve a estar suelto. Sin esto, **un gatillo sostenido avanza solo por todas las páginas de corrido** — el mismo bug que ya se había arreglado en las instrucciones de Calibration.
 - **`ShowPage()`**: 🔴 **guardado con `IsValidIndex`** — si el índice se sale del array, llama `Finish()` en vez de indexar fuera de rango. Así un `PageTexts` vacío no rompe: simplemente no hay instrucciones.
-- **`NextPage()`** / **`Finish()`**: `Finish` habilita **`bGrabEnabled = true` en los dos beams** y después **`DestroyActor(self)`**.
+- **`NextPage()`** / **`Finish()`**: `Finish` habilita **`bGrabEnabled = true` en los dos beams**, llama **`DirectorRef.StartExperience()`** (que arranca el pulso de los slots, ver [`BP_SeqSlot`](BP_SeqSlot.md)) y después **`DestroyActor(self)`**.
+  - ⚠ El `IsValid(DirectorRef)` va **al final** y el `DestroyActor` se repite en sus dos ramas: `Utilities|IsValid`, igual que un cast con `:then`/`:CastFailed`, **consume el resto de la función** en el DSL.
 
 ## 🔴🔴 El panel BLOQUEABA el line-trace — dos arreglos (2026-08-05, reportado en visor)
 **Síntoma:** con las instrucciones terminadas no se podían agarrar las esferas: el rayo chocaba contra el panel invisible.
@@ -69,7 +70,7 @@ En `BP_AimBeam`:
 - **`Utilities|Array|Get` no existe** como type_id: son `Get(acopy)` y `Get(aref)`.
 - **Llamar una función propia con parámetros**: el primer pin posicional es `self` → usar keyword (`:DeltaSeconds DeltaSeconds`).
 - **Dangling `else`**: con ifs anidados, poner el caso de cancelación **primero** (`if (not cond) … (else …)`) y dejar el if interno como última sentencia del bloque `else`.
-- 🔴 **Un `bind` con sublistas `:then`/`:CastFailed` CONSUME el resto de la función**: todo lo que va después queda como *"Unreachable code after branch/return"* y el DSL lo rechaza. Un cast con ramas explícitas tiene que ir **al final**, o hay que repetir la continuación dentro de cada rama. Por eso `CacheRefs` hace `ShowPage()` **antes** de buscar el `FadeSphere`.
+- 🔴 **Un `bind` con sublistas `:then`/`:CastFailed` — y también `Utilities|IsValid` con sus ramas — CONSUME el resto de la función**: todo lo que va después queda como *"Unreachable code after branch/return"* y el DSL lo rechaza. Un cast con ramas explícitas tiene que ir **al final**, o hay que repetir la continuación dentro de cada rama. Por eso `CacheRefs` hace `ShowPage()` **antes** de buscar el `FadeSphere`.
 
 ## TODO / next
 1. 🔴 **Test en visor**: arranca en negro, funde y aparece el panel en la página 1. Con **un solo sensor** en la mano el gatillo no hace nada; con **los dos**, el gatillo sostenido ~1.5 s avanza. **Sostener el gatillo NO debe encadenar páginas**: hay que soltar y volver a apretar en cada una. Al terminar, el panel desaparece por completo y **recién ahí** se puede agarrar.
