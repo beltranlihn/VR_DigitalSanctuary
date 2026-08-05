@@ -4,7 +4,7 @@ Botón **"FINISH MELODY"** del stage Touch (fase **R5** del brief [`docs/stages/
 
 - **refPath**: `/Game/SoulCharger/Stages/Touch/BP_SaveButton.BP_SaveButton` · **parent**: Actor
 - **in level**: `FinishMelodyButton` (`BP_SaveButton_C_0`) en `L_Touch`, en **(55, 0, 55)** con pitch 90 — o sea **al centro de la fila de slots (que están en X=55, Z=75) y 20 cm por debajo**.
-- **Status**: 🟡 **Compila y guardado. FALTA TEST EN VISOR.**
+- **Status**: 🟢 **PROBADO EN VISOR (2026-08-05) — funciona end-to-end**: se activa con los 5 slots, crece al hover, el hold de 3 s confirma, y al confirmar desaparecen las esferas sueltas y el botón. Queda el material/color y el texto.
 
 ## 🔴 Las dos decisiones de diseño (dadas por el usuario, 2026-08-05)
 1. **El botón SIEMPRE está presente.** No aparece ni desaparece. Vive fijo al centro de la mesa, justo abajo. Lo que cambia al llenarse los 5 slots es que **se "activa"**: crece un poco (y más adelante, color). La disponibilidad se comunica, no se revela.
@@ -71,7 +71,7 @@ El botón **no lee el gatillo**: se lo avisa el beam, que ya es el dueño del in
 - ⚠ **`bAvailable` genera los accesores `GetAvailable`/`SetAvailable`** (sin la `b`).
 
 ## TODO / next
-1. 🔴 **Test en visor**: con 4 slots el botón está chico y el hold no hace nada; al llenar el 5º **crece**; al apuntarlo **crece un poco más** (hover); gatillo sostenido 3 s → crece progresivamente y confirma (log `TCH|FINISH MELODY confirmed`). Soltar antes, o dejar de apuntarlo, **cancela y vuelve a cero**. Sacar una burbuja lo desactiva. **Al confirmar: desaparecen todas las esferas que no están en la mesa y el botón mismo**; las 5 de la mesa siguen sonando.
+1. ✅ **Test en visor — HECHO 2026-08-05, funciona.** (El recorrido probado: con 4 slots está chico y el hold no hace nada; al llenar el 5º crece; al apuntarlo crece un poco más; gatillo sostenido 3 s confirma; soltar antes o dejar de apuntarlo cancela; al confirmar desaparecen las esferas sueltas y el botón, y quedan las 5 de la mesa sonando.)
 2. **Material unlit emisivo** con parámetros escalares `Available` y `Progress`; el `MID` ya está creado esperándolo. Agregar los `SetScalarParameterValue` **por cirugía** (ver trampa arriba).
 3. **Texto "FINISH MELODY"** — en **inglés** (regla del proyecto). Falta decidir si va como widget world-space o textura en el material.
 4. **R6**: suscribirse a `OnConfirmed` desde el Director → `SG_Melody` + `SaveGameToSlot` + vuelta final + fade + `OpenLevel`.
