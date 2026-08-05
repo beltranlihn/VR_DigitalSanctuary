@@ -22,7 +22,8 @@ Botón **"FINISH MELODY"** del stage Touch (fase **R5** del brief [`docs/stages/
 - `HoldDuration : float = 3` · **instance-editable** — la palanca del tiempo de confirmación.
 - `HoldT : float` — segundos acumulados del hold actual.
 - `AvailT : float` — 0→1 interpolado, el "cuánto se ve disponible". Separa el estado lógico (`bAvailable`, binario) de la lectura visual (suave).
-- `BaseScale`(1) · `AvailScale`(1.25, instance-editable) · `AvailSpeed`(6) — palancas del feedback.
+- `BaseScale : **Vector**` — 🔴 **la escala AUTORAL del componente, capturada en BeginPlay** con `Class|SceneComponent|GetRelativeScale3D`. NO es un float ni un 1.0 fijo. Ver la trampa de abajo.
+- `AvailScale`(1.25, instance-editable) · `AvailSpeed`(6) — palancas del feedback.
 - `MID : MaterialInstanceDynamic` — creado en `CacheDirector`, **listo para el color**, todavía sin usar (ver TODO).
 - **Dispatcher `OnConfirmed`** — lo que R6 va a escuchar para guardar y cerrar la etapa.
 
@@ -45,6 +46,8 @@ El botón **no lee el gatillo**: se lo avisa el beam, que ya es el dueño del in
 - Var nueva en el beam: `HeldButton : BP_SaveButton`.
 
 ## ⚠ Trampas ya mordidas al construirlo
+- 🔴🔴 **`SetRelativeScale3D` con un escalar uniforme PISA la escala autoral del componente.** Mordió en visor: el botón apareció **gigante** (un cilindro de 1 m que tapaba toda la vista). Causa: `PrimitiveTools.add_cylinder(radius=8, height=3)` no crea un mesh de ese tamaño — usa `/Engine/BasicShapes/Cylinder` (100 u) y **codifica el tamaño pedido en `RelativeScale3D` = (0.16, 0.16, 0.03)**, que además es **NO uniforme**. Escribir `scale = 1.0` lo devolvía a 100 u.
+  **Regla:** cualquier animación de escala tiene que **partir de la escala autoral, no de 1**. Guardarla en una var **Vector** en BeginPlay (`Class|SceneComponent|GetRelativeScale3D`) y multiplicar por un factor escalar. Sirve para cualquier componente con escala no uniforme, y sobrevive a que después se cambie el tamaño en el editor.
 - 🔴 **`(bind _s ...)` usado 3 veces dentro de un `MakeVector` NO deduplica**: el DSL lo **inlineó las 3 veces** (3× toda la cadena de multiplicaciones). Fix: `(* (Math|Vector|VectorOne) _s)` → una sola evaluación. **Verificar siempre releyendo el grafo**, es el §1 de `bp-lean-construction.md` y muerde en silencio.
 - 🔴 **`Rendering|Material|SetScalarParameterValue` está DUPLICADO** (uno para `MaterialParameterCollection`, otro para `MID`) y `write_graph_dsl` **agarra el equivocado** ("Could not connect pin MID to Collection"). El DSL no sabe desambiguar → hay que crear ese nodo por **cirugía con `declaring_class`**. Por eso el color quedó pendiente.
 - **Llamar una función propia con parámetros desde el DSL**: el primer pin posicional es **`self`**, no el primer argumento. Usar keyword: `(CallFunction|TickHold :DeltaSeconds DeltaSeconds)`.

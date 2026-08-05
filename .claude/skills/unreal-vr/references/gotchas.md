@@ -9,6 +9,18 @@ Costó **tres desvíos en un solo día** (2026-08-03): se dio por muertos los ev
 
 ⚠ Relacionado: el read también miente con el **prefijo de clase** cuando dos BPs tienen funciones con el mismo nombre (`Class|BPCalibProbe|DoFadeOut` para una función propia). El `type_id` real del nodo (`|DoFadeOut`, con pin `self`) es lo que vale.
 
+## 🔴🔴 Animar escala: SIEMPRE partir de la escala AUTORAL, nunca de 1.0
+**El síntoma:** el objeto aparece **gigante** en el visor (o microscópico) apenas empieza a correr la lógica de escala. En el editor se veía bien.
+
+**La causa:** `PrimitiveTools.add_sphere/add_cube/add_cylinder(radius, height, …)` **no crea un mesh de ese tamaño**: usa los `/Engine/BasicShapes/*` (100 unidades) y **codifica el tamaño pedido en el `RelativeScale3D` del componente**, que además suele ser **NO uniforme** — un `add_cylinder(radius=8, height=3)` deja `(0.16, 0.16, 0.03)`. Cualquier `SetRelativeScale3D` con un valor uniforme (típico `MakeVector(s,s,s)` con `s≈1`) **pisa esa escala** y devuelve el mesh a su tamaño base de 1 metro.
+
+**La regla:** guardar la escala autoral en una variable **Vector** en BeginPlay —
+```
+BaseScale = Class|SceneComponent|GetRelativeScale3D(Mesh)
+```
+— y animar multiplicando por un **factor escalar**: `SetRelativeScale3D(Mesh, BaseScale * factor)`. Así funciona con escalas no uniformes y **sobrevive a que después cambien el tamaño en el editor**.
+🔎 Mordió el 2026-08-05 en `BP_SaveButton` (el botón tapaba toda la vista en el visor). Relacionado con la nota vieja de "escala autoral 0.3 de componentes".
+
 ## 🔴🔴 EL error recurrente del proyecto: "declarado ≠ aplicado". Verificá el VALOR EFECTIVO, no la declaración
 **El patrón**, encontrado **cinco veces en un solo día** (2026-08-03, stage Touch): la pieza existe, está declarada, compila — y **nunca se aplicó al lugar donde tenía que llegar**. Ninguna de las cinco produjo un error de compilación:
 
