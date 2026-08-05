@@ -9,6 +9,20 @@ Costó **tres desvíos en un solo día** (2026-08-03): se dio por muertos los ev
 
 ⚠ Relacionado: el read también miente con el **prefijo de clase** cuando dos BPs tienen funciones con el mismo nombre (`Class|BPCalibProbe|DoFadeOut` para una función propia). El `type_id` real del nodo (`|DoFadeOut`, con pin `self`) es lo que vale.
 
+## 🔴🔴🔴 Recompilar un BP puede BORRAR sus actores del nivel EN MEMORIA — no guardes el nivel, recargalo
+**El síntoma:** después de agregarle variables/funciones a un Blueprint y recompilarlo, **sus instancias desaparecen del nivel**. Pasó el 2026-08-05 con `BP_SeqSlot` (×5) y `BP_AttractDirector` tras una tanda de cambios: se fueron la mesa y, con el Director, las burbujas que él spawnea.
+
+**Lo importante: casi siempre es solo la copia EN MEMORIA.** El `.umap` en disco está intacto mientras no lo guardes.
+
+**Protocolo cuando falten actores:**
+1. **NO guardar el nivel.** Guardar en ese estado es lo que convierte una molestia en pérdida real.
+2. Confirmar que el disco está sano: `git status -- ruta/al/L_Xxx.umap` → **sin cambios = el nivel bueno sigue ahí**.
+3. Recargar: `SceneTools.load_level` **falla** con *"the level has unsaved changes"*. La salida es **cargar otro nivel primero** (p. ej. `/Engine/Maps/Templates/OpenWorld`), lo que descarta los cambios en memoria, y después volver a cargar el nuestro.
+4. Verificar el conteo de actores y los valores por instancia (`StepIndex`, etc.) antes de seguir.
+
+👉 **Corolario preventivo: commitear el nivel ANTES de una tanda de cambios a Blueprints con instancias colocadas.** Es lo que salvó este caso.
+⚠ **`find_actors(name)` matchea el LABEL, no el nombre del objeto** — 23 TargetPoints etiquetados "Bubble…" devolvían 0 buscando "TargetPoint". Para inventariar de verdad: `find_actors` con `name: ""` y leer los `refPath`.
+
 ## 🔴🔴 Esconder un actor NO lo saca del line-trace — y un WidgetComponent bloquea el rayo
 **El síntoma:** algo invisible sigue frenando el `LineTraceByChannel` (el beam hace hover contra la nada, o no se puede agarrar lo que está detrás).
 - **`SetActorHiddenInGame(true)` no toca la colisión.** Para sacar algo de en medio hay que **`SetActorEnableCollision(false)`** además, o directamente **`DestroyActor`** si no vuelve a usarse. Mordió dos veces el 2026-08-05: en `BP_SaveButton` al confirmar y en `BP_TouchInstrPanel` al terminar las instrucciones.
