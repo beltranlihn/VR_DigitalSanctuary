@@ -71,7 +71,7 @@ El loop cierra en `ShowAndEnter`, así que con el placeholder recorre las 3 etap
 
 ## 🐛 Bugs conocidos
 
-### 0. 🔴🔴 `BlackHold` es una CARRERA contra `AddToWorld` — el bug prioritario
+### 0. ✅ ARREGLADO — `BlackHold` era una CARRERA contra `AddToWorld`
 **Detectado por log el 2026-08-11, y es el caso de libro de lo que `streaming-arch.md` prohíbe.** El log decía:
 ```
 DIR: swap hecho bajo negro
@@ -84,12 +84,21 @@ DIR: la sala visible no tiene BP_Door
 
 🔴 **Insidioso:** con `BlackHold = 0.5` la carrera se gana a veces. La primera corrida completa pareció andar perfecta; la falla apareció recién en la segunda. **Una corrida verde no prueba nada acá.**
 
-**Mitigación aplicada (NO es el fix):** `BlackHold` 0.5 → **2.0 s**. Verificado por log: con 2.0 los mensajes de cast fallido desaparecen. Es barato y además el negro largo está **narrativamente motivado** (§9.2: "entre sala y sala hay vacío"). Pero sigue siendo una suposición temporal y **en device, con carga más lenta, puede volver**.
+## ✅ EL FIX (2026-08-11): esperar la CONDICIÓN, no un tiempo
+`ShowAndEnter` ya no agenda `EnterRoom` directo, agenda **`TryEnter`**:
+```
+TryEnter():  CacheRoom · CacheDoor · si RoomRef inválido -> re-agendarse a 0.1 s
+                                    si válido -> EnterIfFresh()
+EnterIfFresh():  si RoomRef == PrevRoom -> re-agendar TryEnter (es la sala VIEJA)
+                 si no -> PrevRoom = RoomRef · EnterRoom()
+```
+🔴 **La comparación contra `PrevRoom` es la mitad no obvia del fix, y sin ella el arreglo es falso.** Cuando un nivel se oculta **queda cargado**: sus actores no se destruyen, así que la referencia vieja **sigue pasando `IsValid`**. Chequear sólo validez habría entrado con la sala anterior en las transiciones 2+ y el bug se habría "arreglado" sólo en la primera. `PrevRoom` se actualiza recién cuando se confirma una sala **distinta**.
 
-**El fix real, en orden de preferencia:**
-1. **Esperar la condición que de verdad importa: que el actor exista.** Un evento `TryEnter` que llame `CacheRoom` y, si `RoomRef` no es válido, se re-agende a sí mismo cada 0.1 s hasta que lo sea. Es más robusto que `OnLevelShown` para este uso, porque lo que el director necesita no es "el nivel es visible" sino "los actores están".
-2. **`OnLevelShown`**, que es lo que pide el doc. Nodo verificado: **`EventDispatchers|AssignOnLevelShown`** (auto-genera el custom event tipado, patrón de `AssignOnOscMessageReceived` en `nodes.md`). ⚠ El binding tiene que vivir en el **EventGraph** (los eventos no existen en grafos de función), y el EventGraph ya está escrito → hay que hacerlo por **cirugía de nodos**, no reescribiendo.
-3. En cualquiera de los dos casos, **limpiar `RoomRef`/`DoorRef` antes de re-cachear**, para que un fallo no pueda quedar manejando la sala anterior en silencio.
+⚠ Se eligió esperar "el actor existe" en vez de `OnLevelShown` porque **es la condición que el director de verdad necesita**: que el nivel esté visible no garantiza que sus actores estén registrados. (`EventDispatchers|AssignOnLevelShown` queda verificado y disponible si algún día hace falta; su binding tendría que ir por cirugía, porque los eventos no existen en grafos de función.)
+
+**Verificado por log:** swap a las 18:02:36.499 → `DIR: sala nueva confirmada en el mundo` a las 18:02:37.499 (el retry esperó ~0.2 s más que `BlackHold`) → `EnterRoom`. **Cero** mensajes de cast fallido en toda la corrida. `BlackHold` volvió a **0.8 s**, que ahora es sólo un beat de negro deliberado y no una tapadera de la carrera.
+
+⚠ **Nota de método:** con `BlackHold = 0.5` la carrera se ganaba **a veces** — la primera corrida completa pareció perfecta y la falla salió en la segunda. **Una corrida verde no prueba nada en este tipo de bug.** Lo que lo delató fue leer el log, no mirar.
 
 ### 1. 🔴 **`OnPawnPassed` de la puerta nueva dispara espurio en el swap.** Visto en el log: dos `OnPawnPassed` seguidos, uno legítimo y otro 0,7 s después, justo tras el swap. Causa: al momento del swap el pawn está en X≈500 (fin del tramo de salida) y la puerta de la sala nueva está en X=460, así que `dot(pawn−door, forward) > 0` es verdadero **antes** de que el tramo de entrada lo reposicione a −500. Como `bPassed` se pone una sola vez, el cruce real de esa puerta después **ya no dispara**.
    **Fix propuesto:** gatear `CheckPassed` a que la puerta esté revelada (`RevealProgress > 0.5`). Es semánticamente correcto además: una puerta que todavía no existe (§9.8) no se puede cruzar. Requiere borrar y recrear el grafo `CheckPassed` (reescribirlo duplicaría el cuerpo).
