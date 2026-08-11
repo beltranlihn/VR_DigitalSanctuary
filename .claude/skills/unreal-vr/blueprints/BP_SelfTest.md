@@ -46,12 +46,17 @@ EditorAppToolset.StopPIE()
 | `Summary` | La línea de totales. |
 | `RunAll` | Orquesta. Se dispara por timer a `StartDelay`. |
 
-## Qué cubre hoy (15 aserciones)
+## Qué cubre hoy (18 aserciones)
 **Presencia:** BioHub · ProtoSoul · StageDirector · **una sala visible en el mundo** (o sea que el streaming la mostró de verdad).
 **BioHub:** conectado con el fake · 180 casillas dimensionadas · casilla 0 acumuló · **casilla 170 es hueco explícito** · `CalmSmooth` en 0-1 · `HeartSmooth` plausible 30-200 · `GetCalmBinAvg(0)` devuelve dato · **`GetCalmBinAvg(170)` devuelve 0 en el hueco**.
 **Ameba:** el pulso avanza · pitch negativo (bajo el horizonte) · zona muerta en rango.
+**Sensores** (🆕 2026-08-11): hay **exactamente 2** · **exactamente 1 es derecho** · los 2 cachearon su mano del pawn.
 
 💡 **Las dos aserciones del "hueco explícito" son las que más valen.** Son la propiedad de §5 de la que depende que el panel dibuje huecos *tenues* y no *rotos*, y es exactamente el tipo de cosa que se rompe en silencio con un refactor.
+💡 **La de "exactamente 1 es derecho" es la del mismo tipo.** Los dos sensores con el mismo `bIsRight` es el bug que el tracker de `BP_TouchSensor` marca en rojo, es invisible mirando el nivel, y ahora lo caza una corrida de PIE.
+
+🔴 **Cómo se agrega un grupo de aserciones nuevo** (el patrón, que ya se repitió 3 veces): una función `ScanX` que hace el `GetAllActorsOfClass` y **cuenta en variables** (con `TallyX` para el cuerpo del loop, porque un `ForEach` es multi-exec), una `XAsserts` plana con los `Check`, y una línea en `RunAll`.
+⚠ **`RunAll` NO se re-escribe con `write_graph_dsl`: se DUPLICA.** Hay que borrar el grafo y recrearlo — y entre el `remove` y el `add` va un compile (que va a dar error por el llamador huérfano) o el grafo nuevo sale con sufijo `_0`.
 
 ## Config
 | Variable | Default | Rol |
