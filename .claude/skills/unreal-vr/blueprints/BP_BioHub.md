@@ -71,7 +71,29 @@ Medido acá el 2026-08-11. Pasarle un evento con nombre explícito desde el DSL 
 ⚠ **Los getters de promedio por casilla todavía no existen.** El consumidor (el panel) va a necesitar algo tipo `GetBinAverage(i)` = `Sum / Count` con `Count == 0` → devolver el flag de hueco, no 0.
 
 **Verificado en PIE:** `InitBins` loguea, y tras ~30 s `CurrentBin = 6` con `BinElapsed = 0.33` — el reloj de casillas corre exacto a 5 s. `CurrentStage = -1` mientras nadie lo setea.
-🔴 **Lo que NO está verificado: la acumulación.** Sin fuente OSC no entró ni una muestra, así que `AccumCalm`/`AccumHeart` **compilan pero nunca corrieron**. Es justo el tipo de cosa que parece andar.
+## ✅ Modo fake y verificación de la acumulación (2026-08-11)
+`bFakeSignal` + `FakeHz` (instance-editable) hacen que el Tick genere dos senos y los meta **por el mismo `Ingest`** que va a usar la fuente real. 🔴 **Esa es la decisión de método:** el fake no escribe `Calm`/`Heart` directo — entra por la puerta de verdad, así que ejercita `Ingest → AccumCalm → arrays`. Un fake que escribiera las variables finales no probaría nada de lo que importa.
+
+**Resultado, leído del actor en PIE:**
+```
+bConnected  true
+Calm        0.100      <- crudo, en un valle del seno (rango 0.1..0.9)
+CalmSmooth  0.210      <- REZAGADO respecto del crudo: el EMA filtra
+Heart       60.8   HeartSmooth 62.3
+BinCalmCount [17,15,17,15,15,17,15,1,0,0,0, ... 0]
+```
+🔴 **La forma de ese array es la prueba que importaba:** casillas 0-6 llenas, la 7 en curso, y **de la 8 en adelante exactamente 0**. El hueco es *explícito*, no un cero que parece dato. Y `CalmSmooth` yendo detrás del crudo prueba el filtro sin necesidad de graficar nada.
+
+⚠ Los ~16 samples por casilla de 5 s son ~3 Hz, y **no es un bug**: Unreal **estrangula el PIE cuando la ventana no tiene foco**. El reloj de casillas va por delta time, así que avanza bien igual. Ojo con esto al medir cualquier tasa desde PIE por MCP.
+
+## Getters para el consumidor (el panel)
+| Función | Devuelve |
+|---|---|
+| `BinHasCalm(i)` / `BinHasHeart(i)` | bool — **hay que preguntar esto ANTES** de leer el promedio |
+| `GetCalmBinAvg(i)` / `GetHeartBinAvg(i)` | `Sum / Count`, y **0 si no hay muestras** |
+| `LogBin(i)` | debug: loguea índice, n y promedio de una casilla |
+
+🔴 **El par "Has + Avg" es deliberado y no se debe colapsar en una sola función.** Si `GetAvg` devolviera un centinela, el panel dibujaría ese centinela como si fuera dato. §5 pide que los huecos se vean **tenues, no rotos**: *"un hueco roto parece falla, uno callado parece un pasaje"*. El consumidor **tiene** que consultar `BinHas*` y decidir. Con dos funciones, olvidarse es imposible de ignorar; con una, es el default.
 
 ## TODO
 - [ ] Probar con una fuente OSC real (Muse). Hasta entonces, la ingesta está **construida pero no ejercitada**.
