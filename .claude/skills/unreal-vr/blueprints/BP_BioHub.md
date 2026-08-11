@@ -45,13 +45,26 @@
 
 **EMA:** `v += (target − v) · clamp01(Δt / SmoothTau)`. El `clamp01` es lo que lo hace estable con hitches: sin él, un frame largo daría un factor > 1 y el filtro sobrepasaría.
 
-## 🔴 Gotcha nuevo: el nodo `Assign` regenera un evento vacío en CADA compile
-Medido acá el 2026-08-11. Pasarle un evento con nombre explícito desde el DSL —`(Audio|OSC|AssignOnOscMessageReceived _srv (AddEvent|Custom|OnOscMessageReceived_Event))`— crea **un custom event suelto**, y el `K2Node_AssignDelegate` **igual genera el suyo** al reconstruirse. Resultado: en cada compile aparece un evento vacío más, tomando el primer nombre libre.
+## 🔴🔴 GOTCHA GRANDE: el nodo `Assign` REPRODUCE eventos vacíos en cada compile hasta que se GUARDA
+Diagnosticado y **resuelto** acá el 2026-08-11. Vale para cualquier `Assign<Delegate>`, no solo el de OSC.
 
-- ✅ **No es runaway**: siempre queda **uno** suelto, porque reusa el nombre que se liberó.
-- ✅ **El cableado real está bien**: se verificó con `get_node_infos` que el `OutputDelegate` del evento con el handler va al `K2Node_AssignDelegate_0`.
-- ⚠ **`clean_orphans.py` NO lo va a borrar**: los custom events son tipo ENTRY y el script nunca los toca (y hace bien).
-- 👉 **Lo correcto es lo que dice `nodes.md`**: crear el nodo `Assign` **sin** pasarle un evento y escribir el cuerpo en el que él genera. Acá quedó al revés por haberlo nombrado; funciona, pero deja ese vacío. **Si se reconstruye este BP, hacerlo del modo correcto.**
+**El síntoma:** cada `compile_blueprint` agrega **un custom event vacío más**. Llegué a tener **seis** (`OnOscMessageReceived_Event`, `_1` … `_5`) antes de darme cuenta. La lógica seguía intacta —el que tenía el handler seguía cableado— pero el grafo crecía sin techo.
+
+⚠ **Mi primera conclusión fue equivocada y la dejo escrita como advertencia:** dije *"no es runaway, siempre queda uno"* porque al borrarlos y recompilar reusaba el nombre liberado. **Falso.** Reusa nombres libres, pero si no hay ninguno libre **sigue sumando**. Una sola observación no alcanzaba.
+
+**Lo que NO era la causa:** pensé que era por haberle pasado un evento con nombre explícito desde el DSL. Reconstruí el nodo `Assign` desde cero con `create_node` —que genera y **posee** su propio evento, exactamente como manda `nodes.md`— y **seguía duplicando en cada compile.**
+
+🔴 **La causa real: el asset sin guardar.** El `K2Node_AssignDelegate` no reencuentra su evento generado hasta que el paquete se **serializa**. Verificado en vivo:
+| Acción | Resultado |
+|---|---|
+| compile, compile, compile… | +1 evento vacío cada vez |
+| **`save_assets`** → compile | **estable, sigue habiendo uno solo** |
+| compile otra vez | **sigue uno solo** |
+
+✅ **LA REGLA: después de cablear un `Assign<Delegate>`, `save_assets` ANTES de volver a compilar.** Por eso `BP_OSCReceiver` nunca tuvo el problema: se guardó hace meses.
+
+⚠ **`clean_orphans.py` NO limpia esto**: los custom events son tipo ENTRY y el script no los toca nunca (y hace bien — borrarlos automáticamente sería peligrosísimo). Hay que borrarlos a mano con `delete_node`.
+⚠ **Y `auto_layout.py` lo delata:** su chequeo `identical` dio **false** en este EventGraph, que fue lo que me hizo mirar. El script hizo bien su trabajo; la diferencia no era de layout, era un evento nuevo aparecido en el medio.
 
 ⚠ `LogOSC: Warning: Outer object not set. OSCServer may be garbage collected if not referenced.` es esperable y está cubierto: el server se guarda en la variable `OSCServer`, que es la mitigación que documenta `nodes.md`. Se puede silenciar pasándole el pin `Outer`.
 

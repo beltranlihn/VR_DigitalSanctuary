@@ -104,7 +104,13 @@
 
 ---
 
+## Paso 2 — el trío persistente (`Core/`, rama `core/esqueleto`)
+| Blueprint | Ruta | Qué hace | Estado | Tracker |
+|---|---|---|---|---|
+| 🆕 **BP_ProtoSoul** | `Core/Amoeba/` | §5: **la ameba ES el HUD** — pulso = ritmo, agitación = calma, anillos = carga. Lazy-follow **solo en yaw** (seguir el pitch la pondría en la cara), zona muerta 10°, **pitch fijo −14° por debajo del horizonte**. `SoulMesh`/`SoulMaterial`/`VariantId` por instancia, aplicados en el **Construction Script**, para poder autorar las variantes elegibles lado a lado. Faltan anillos y flujo de elección. | 🟡 verificado en PIE, falta visor | [✓](BP_ProtoSoul.md) |
+| **BP_Sensor** | `Core/` | §9.3: uno por mano, persistente. Enum de estado + malla que se reconfigura por etapa. Refactor de `BP_TouchSensor` (§9.7). | ⬜ **sin construir** | — |
+
 ## Por clasificar (revisar qué son al tocarlos)
-`Core/Amoeba/F_SoulPortrait`, `Core/Flow/F_Beat`, `Core/Signals/F_Signal` — prefijo `F_` (¿function library / struct / material function?). `Stages/Breath/Widget/Deprecated/Widget_1` (🗑️). Auditar y mover a la tabla que corresponda cuando se trabajen.
+`Core/Flow/F_Beat`, `Core/Signals/F_Signal` — prefijo `F_`. ✅ **`Core/Amoeba/F_SoulPortrait` es un `UserDefinedStruct`** (auditado 2026-08-11): el retrato de datos del usuario. `Stages/Breath/Widget/Deprecated/Widget_1` (🗑️). Auditar y mover a la tabla que corresponda cuando se trabajen.
 
 > Assets que NO son Blueprints (materiales `M_`/`W_`, Niagara `NS_`, audio, input `IA_`/`IMC_`, fuentes) no van en este mapa — se referencian desde el tracker del BP que los usa.
