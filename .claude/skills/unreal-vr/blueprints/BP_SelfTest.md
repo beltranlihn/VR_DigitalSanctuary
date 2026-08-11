@@ -41,22 +41,48 @@ EditorAppToolset.StopPIE()
 | `Check(TestName, bOk)` | Cuenta y loguea PASS/FAIL. **El único lugar con una rama.** |
 | `Skip(TestName)` | Cuenta y loguea SKIP, para lo que no aplica en este modo. |
 | `CacheBio` / `CacheSoul` / `CacheDir` / `CacheWorld` / `CachePawn` | Un `Cast` cada una, y dejan su bool. |
-| `RunBio` / `RunSoul` | `if bHasX → asserts, else Skip`. Evita leer una ref nula. |
-| `BioAsserts` / `SoulAsserts` | Las aserciones en sí, planas. |
+| `ScanSensors` + `TallySensor` / `TallyRight` · `ScanRooms` | Cuentan actores en variables. El `Tally` es el cuerpo del loop. |
+| `RunBio` / `RunSoul` / `SensorHandAsserts` | `if bHasX → asserts, else Skip`. Evita leer una ref nula **y** distingue "no aplica" de "está mal". |
+| `BioAsserts` / `SoulAsserts` / `SensorAsserts` / `RoomAsserts` | Las aserciones en sí, planas. |
 | `Summary` | La línea de totales. |
 | `RunAll` | Orquesta. Se dispara por timer a `StartDelay`. |
 
-## Qué cubre hoy (18 aserciones)
+## 🏆 Lo que ya encontró (la justificación del arnés)
+| # | Hallazgo | Cómo salió |
+|---|---|---|
+| 1 | `BP_ProtoSoul.UpdateFollow` leía `CamRef` **sin guarda** | Simulate: "Accessed None" cada frame. En PIE normal es invisible. |
+| 2 | 🔴 **`LoadLevelInstance` devolvía `nullptr`** porque el nombre de la instancia se repetía al cerrar el loop de etapas → la obra se quedaría **en negro para siempre** | El **barrido de errores** del log, no una aserción. Ver el bug #2 de [[BP_StageDirector]]. |
+| 3 | Los sublevels viejos **se acumulaban** | La aserción nueva `no se acumulan salas`, corriendo la batería a los 42 s (3 ciclos). |
+| 4 | En **Simulate** `GetPlayerPawn(0)` devuelve un pawn que **no es el VR pawn** (no tiene `CameraComponent`) | Un `TEST FAIL` que era del arnés, no del código. Ver abajo. |
+
+🔴 **El #2 es el argumento entero de este Blueprint**: es un bug fatal, silencioso, que aparece recién a la cuarta transición, y ninguna cantidad de mirar la pantalla lo habría encontrado.
+
+## ⚠ `bHasPawn` significa "hay pawn VR", no "hay pawn"
+Al gatear la aserción del sensor por `bHasPawn` seguía fallando en Simulate: **`GetPlayerPawn(0)` devuelve algo** en Simulate-in-Editor, pero es un `DefaultPawn` sin `CameraComponent` (lo confirmó el log: `FS 2: ERROR - ese pawn NO tiene CameraComponent`). Un `IsValid` sobre eso da true y el gate no gatea nada.
+→ **`CachePawn` ahora hace `CastToBP_VRPawn_SC`**, no `IsValid`. Así `bHasPawn` significa lo que los consumidores necesitan: *"hay un pawn del que se pueden leer manos y cámara"*.
+
+## Qué cubre hoy (20 aserciones)
 **Presencia:** BioHub · ProtoSoul · StageDirector · **una sala visible en el mundo** (o sea que el streaming la mostró de verdad).
 **BioHub:** conectado con el fake · 180 casillas dimensionadas · casilla 0 acumuló · **casilla 170 es hueco explícito** · `CalmSmooth` en 0-1 · `HeartSmooth` plausible 30-200 · `GetCalmBinAvg(0)` devuelve dato · **`GetCalmBinAvg(170)` devuelve 0 en el hueco**.
 **Ameba:** el pulso avanza · pitch negativo (bajo el horizonte) · zona muerta en rango.
-**Sensores** (🆕 2026-08-11): hay **exactamente 2** · **exactamente 1 es derecho** · los 2 cachearon su mano del pawn.
+**Sensores** (🆕 2026-08-11): hay **exactamente 2** · **exactamente 1 es derecho** · los 2 cachearon su mano del pawn (**SKIP en Simulate**, va por `SensorHandAsserts`).
+**Salas** (🆕 2026-08-11): **no se acumulan** (2 o menos en el mundo) · hay al menos 1.
+
+**Resultado hoy:** **20 pass / 0 fail** en PIE normal · **19 pass / 0 fail / 1 skip** en Simulate.
+
+💡 **La de "no se acumulan salas" hay que correrla TARDE para que sirva.** Con `StartDelay` 12 s no hubo ni un ciclo todavía y pasa igual sin probar nada. La corrida que vale es con `StartDelay` en ~42 s, después de 3 transiciones. **Cuando se toque el streaming, correrla así.**
 
 💡 **Las dos aserciones del "hueco explícito" son las que más valen.** Son la propiedad de §5 de la que depende que el panel dibuje huecos *tenues* y no *rotos*, y es exactamente el tipo de cosa que se rompe en silencio con un refactor.
 💡 **La de "exactamente 1 es derecho" es la del mismo tipo.** Los dos sensores con el mismo `bIsRight` es el bug que el tracker de `BP_TouchSensor` marca en rojo, es invisible mirando el nivel, y ahora lo caza una corrida de PIE.
 
-🔴 **Cómo se agrega un grupo de aserciones nuevo** (el patrón, que ya se repitió 3 veces): una función `ScanX` que hace el `GetAllActorsOfClass` y **cuenta en variables** (con `TallyX` para el cuerpo del loop, porque un `ForEach` es multi-exec), una `XAsserts` plana con los `Check`, y una línea en `RunAll`.
-⚠ **`RunAll` NO se re-escribe con `write_graph_dsl`: se DUPLICA.** Hay que borrar el grafo y recrearlo — y entre el `remove` y el `add` va un compile (que va a dar error por el llamador huérfano) o el grafo nuevo sale con sufijo `_0`.
+🔴 **Cómo se agrega un grupo de aserciones nuevo** (el patrón, que ya se repitió 4 veces): una función `ScanX` que hace el `GetAllActorsOfClass` y **cuenta en variables** (con `TallyX` para el cuerpo del loop, porque un `ForEach` es multi-exec), una `XAsserts` plana con los `Check`, y una línea en `RunAll`.
+
+⚠ **`RunAll` NO se re-escribe con `write_graph_dsl`: se DUPLICA.** Dos formas de meterle un llamado:
+- **Borrar y recrear** el grafo entero — y entre el `remove` y el `add` va un compile (que va a dar **error** por el llamador huérfano) o el grafo nuevo sale con sufijo `_0`.
+- ✅ **Mejor: cirugía.** `create_node` con `CallFunction|MiFuncion` y dos `connect_pins` para intercalarlo en la cadena de exec. Es lo que se hizo con `ScanRooms`/`RoomAsserts`/`SensorHandAsserts` y no toca nada más. **Conectar a un input ya conectado lo REEMPLAZA**, así que insertar en el medio son exactamente 2 llamadas.
+
+🔴🔴 **Los literales string de una función PROPIA se pierden al escribir DSL.** Pasó 2 de 2 veces con `(CallFunction|Check "texto" (== a b))`: el literal **desaparece** y el DSL, para no dejar el pin vacío, mete un `ToString(Boolean)` **del bool en el pin `TestName`** — el grafo compila, corre, y loguea `TEST FAIL: false`. Con funciones nativas (`PrintString`, `Append`) los literales sí entran.
+👉 **Después de escribir un grafo que llame funciones propias con strings, LEERLO.** El arreglo es `set_pin_value` sobre el pin `TestName` + `connect_pins` del bool al pin `bOk` + borrar el `ToString` que sobra.
 
 ## Config
 | Variable | Default | Rol |
@@ -65,7 +91,7 @@ EditorAppToolset.StopPIE()
 | `StartDelay` | 12 s | Cuánto espera antes de correr. Tiene que alcanzar para que el director cargue la sala y el BioHub llene alguna casilla. |
 
 ## TODO
-- [ ] Aserciones del **ciclo de transición**: hoy solo verifico que haya una sala visible. Falta comprobar que `CurLevel` cambie tras un swap y que el `StageIndex` avance.
+- [ ] Aserciones del **ciclo de transición**: falta comprobar que `CurLevel` cambie tras un swap y que el `StageIndex` avance. (Lo de "no se acumulan salas" ya cubre el leak.)
 - [ ] Aserciones del **walker** (posición sobre el spline) y de la **puerta** (`RevealProgress`/`OpenProgress`), que **requieren pawn** → van con `bHasPawn` y `Skip` en Simulate.
 - [ ] Que el `TEST FAIL` incluya el valor esperado y el obtenido. Hoy solo dice qué falló, no por cuánto.
 - [ ] Evaluar los **Functional Tests** de Unreal (`/Script/FunctionalTesting.FunctionalTest` está disponible, y el MCP tiene `AutomationTestToolset` con `RunTests`/`GetTestResults`). Darían resultados estructurados en vez de log parseado, pero necesitan mapa de test y más andamiaje. El arnés por log ya cubre la necesidad; esto es la versión industrial.

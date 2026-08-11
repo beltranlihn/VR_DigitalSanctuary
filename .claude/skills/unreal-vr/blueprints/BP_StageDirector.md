@@ -40,7 +40,7 @@ Aclarado por Beltrán el 2026-08-11 y confirmado contra §3 del documento maestr
 | Evento | Qué hace | Agenda |
 |---|---|---|
 | `BeginPlay` | Cachea fade y walker · **negro instantáneo** · `PreloadNext(0)` | `ShowAndEnter` a 1.5 s |
-| `ShowAndEnter` | `SwapRooms()` | `EnterRoom` a `BlackHold` |
+| `ShowAndEnter` | `SwapRooms()` = oculta la vieja · **`UnloadOldRoom()`** · muestra la nueva | `TryEnter` a `BlackHold` |
 | `EnterRoom` | Cachea room y door de la sala nueva · `ConfigureRoom()` · fade **from** black · `Walk(0→500)` = entra desde el umbral al centro | `EndStage` a `StageDuration` |
 | `EndStage` | `StageIndex++` · `WrapIndex()` · `PreloadNext(i)` · `DimAndReveal()` (sólo atenúa) · `RevealDoor()` (**agenda** el revelado) | `WalkOut` a `RevealHold` |
 | `WalkOut` | `Walk(500→1000)` = del centro al umbral · `OpenDoor()` | `GoBlack` a `FadeOutDelay` |
@@ -67,7 +67,9 @@ El loop cierra en `ShowAndEnter`, así que con el placeholder recorre las 3 etap
 | `StageNames` | ENTERING / RECOGNIZING / SURROUNDING | Placeholder de 3 etapas. **Su largo define cuántas hay** (`WrapIndex` cierra el loop). |
 | `StageColors` | azul / rojo / verde | El acento de cada sala y de su puerta. Es lo que hace que las transiciones se **vean** distintas siendo el mismo asset. |
 | `StageIndex` | 0 | Etapa actual. |
+| `RoomSerial` | 0 | 🆕 Contador **monótono** que nombra la instancia de nivel. **No es el índice de etapa** — ver bug #2. |
 | `CurLevel` / `NextLevel` | — | Los `LevelStreamingDynamic` que devuelve `LoadLevelInstance`. |
+| `PrevRoom` | — | La sala de la que ya se entró. Es la mitad no obvia del fix del bug #0. |
 
 ## 🔴 El ORDEN de la transición, y por qué estos números (ajustado en visor 2026-08-11)
 Beltrán reportó dos cosas al probarlo, y las dos eran de secuencia, no de código:
@@ -96,23 +98,28 @@ Beltrán reportó dos cosas al probarlo, y las dos eran de secuencia, no de cód
 ⚠ **La restricción a respetar si se toca cualquiera de estos números:** `RevealHold > LightFadeTime + RevealTime` y `LegTime ≥ FadeOutTime`. Romper la primera hace que se camine con el marco a medio trazar; romper la segunda hace que **el swap se vea**.
 
 ### Tiempos (todos instance-editable en el actor del persistente)
-| Variable | Default | Rol |
+🔴 **Estos son los valores EFECTIVOS de la instancia de `L_Persistent`, leídos con `get_properties` el 2026-08-11**, no los defaults del CDO. Las variables instance-editable se serializan como override en el actor, así que **cambiar el CDO no las mueve** — hay que setear la instancia y verificarla.
+
+| Variable | Valor | Rol |
 |---|---|---|
 | `StageDuration` | 8.0 s | Placeholder de la mecánica de la etapa. Lo reemplaza `BP_StageBase.RunStage()`. |
 | `LightRiseTime` | 2.5 s | La sala nueva sube de luz. |
 | `LightFadeTime` | 2.0 s | La sala baja al terminar la etapa. |
-| `RevealHold` | 2.8 s | Cuánto se mira el marco trazado antes de empezar a caminar. |
+| `RevealHold` | **4.2 s** | Cuánto se mira el marco trazado antes de empezar a caminar. Cubre `LightFadeTime + RevealTime` + un beat. |
 | `FadeOutDelay` | 1.2 s | Desde que arranca la caminata hasta que empieza el negro. |
 | `FadeOutTime` | 1.5 s | Duración del fundido a negro. |
-| `FadeInTime` | 1.8 s | Duración del fundido de entrada. |
-| `LegTime` | 4.2 s | Cuánto se deja correr el tramo de salida antes del swap. **Tiene que ser ≥ `FadeOutDelay + FadeOutTime`** o el swap se ve. |
-| `BlackHold` | 0.5 s | Negro sostenido después del swap, para que `AddToWorld` termine. |
+| `FadeInTime` | **1.4 s** | Duración del fundido de entrada. |
+| `LegTime` | **1.8 s** | Cuánto se deja correr el tramo de salida antes del swap. **Tiene que ser ≥ `FadeOutTime`** o el swap se ve. |
+| `BlackHold` | **0.4 s** | Beat de negro deliberado después del swap. Ya **no** es la tapadera de la carrera con `AddToWorld` (eso lo cubre el retry de `TryEnter`). |
+| `bAutoStart` | true | Hoy arranca solo para poder probar. **Lo apaga el menú** cuando exista: el punto de entrada es `StartExperience()`. |
 
 ## Streaming — lo que se respetó de `references/streaming-arch.md`
 - ✅ **`OptionalLevelNameOverride` en cada `LoadLevelInstance`** (`Room_0`, `Room_1`, …). Sin eso cada llamada crea un paquete nuevo y **filtra niveles**. Verificado en el log de PIE: las instancias se cargan como `Room_N`.
+- 🔴 **El sufijo sale de `RoomSerial`, un contador MONÓTONO, no de `StageIndex`.** Ver el bug #2 de abajo: con el índice de etapa el nombre **se repite** al cerrar el loop y `LoadLevelInstance` devuelve `nullptr`.
+- ✅ **`UnloadOldRoom()` en el swap** (2026-08-11): descarga la sala que se acaba de ocultar, **bajo negro**, que es donde el GC que fuerza no se siente.
 - ✅ **Precarga invisible**: el nodo BP de `LoadLevelInstance` **no expone `bInitiallyVisible`** y su default en el struct es `true`, así que se llama `SetShouldBeVisible(false)` inmediatamente después. Es la única forma de conseguir el "Make Visible After Load = false" del §9.2 por Blueprint.
 - ✅ El swap sólo **cambia visibilidad**, que es lo instantáneo; la carga ya ocurrió segundos antes, durante el revelado de la puerta.
-- 🔴🔴 **BUG ACTIVO — `BlackHold` es una CARRERA, no una espera.** Es el bug #0 y hay que arreglarlo antes de seguir. Ver abajo.
+- ✅ El bug #0 (`BlackHold` era una carrera contra `AddToWorld`) está arreglado. Ver abajo.
 
 ## 🐛 Bugs conocidos
 
@@ -145,17 +152,38 @@ EnterIfFresh():  si RoomRef == PrevRoom -> re-agendar TryEnter (es la sala VIEJA
 
 ⚠ **Nota de método:** con `BlackHold = 0.5` la carrera se ganaba **a veces** — la primera corrida completa pareció perfecta y la falla salió en la segunda. **Una corrida verde no prueba nada en este tipo de bug.** Lo que lo delató fue leer el log, no mirar.
 
-### 1. 🔴 **`OnPawnPassed` de la puerta nueva dispara espurio en el swap.** Visto en el log: dos `OnPawnPassed` seguidos, uno legítimo y otro 0,7 s después, justo tras el swap. Causa: al momento del swap el pawn está en X≈500 (fin del tramo de salida) y la puerta de la sala nueva está en X=460, así que `dot(pawn−door, forward) > 0` es verdadero **antes** de que el tramo de entrada lo reposicione a −500. Como `bPassed` se pone una sola vez, el cruce real de esa puerta después **ya no dispara**.
-   **Fix propuesto:** gatear `CheckPassed` a que la puerta esté revelada (`RevealProgress > 0.5`). Es semánticamente correcto además: una puerta que todavía no existe (§9.8) no se puede cruzar. Requiere borrar y recrear el grafo `CheckPassed` (reescribirlo duplicaría el cuerpo).
-   **Impacto hoy: ninguno** — nadie consume el dispatcher todavía. Pero hay que arreglarlo **antes** de que el director lo use.
-2. ⚠ **La puerta abre antes del negro, no después.** El §9.2 literal dice `negro completo -> swap -> la puerta abre`. Acá abre durante la aproximación, así que se camina a través de una puerta abierta hacia el negro. Se hizo así porque con todas las salas en el mismo origen, la puerta que "abre revelando la sala nueva" quedaría **detrás** del pawn tras el swap. **Es una decisión autoral pendiente de Beltrán**, no un descuido.
+### 1. ✅ ARREGLADO — `OnPawnPassed` de la puerta nueva disparaba espurio en el swap
+Visto en el log: dos `OnPawnPassed` seguidos, uno legítimo y otro 0,7 s después, justo tras el swap. Causa: al momento del swap el pawn está en X≈500 (fin del tramo de salida) y la puerta de la sala nueva está en X=460, así que `dot(pawn−door, forward) > 0` es verdadero **antes** de que el tramo de entrada lo reposicione a −500. Como `bPassed` se pone una sola vez, el cruce real de esa puerta después **ya no disparaba**.
+**Fix aplicado:** `CheckPassed` de [[BP_Door]] está gateado a `RevealProgress > 0.5`. Es lo semánticamente correcto además: una puerta que **todavía no existe** (§9.8) no se puede cruzar.
+
+### 2. ✅ ARREGLADO — el nombre de la instancia de nivel se REPETÍA al cerrar el loop
+🔴 **Lo encontró el barrido de errores del log, no una observación** — es invisible mirando:
+```
+LogLevelStreaming: Error: LoadLevelInstance called with a name that already exists,
+returning nullptr. LevelPackageName:/Game/SoulCharger/Maps/Rooms/UEDPIE_0_Room_0
+```
+`PreloadNext(Suffix)` construía el nombre desde el **`StageIndex`**, que da la vuelta (`WrapIndex`). Al volver a la etapa 0, el nombre `Room_0` **ya existía** — porque los sublevels viejos nunca se descargaban — así que `LoadLevelInstance` devolvía **`nullptr`**, `NextLevel` quedaba nulo y **la obra se quedaba en negro para siempre**. Con 3 etapas placeholder eso pasa a la cuarta transición.
+
+**Fix aplicado, en dos partes, y las dos hacen falta:**
+1. **`RoomSerial`**, un contador **monótono** que se incrementa en cada `PreloadNext` y es el que nombra la instancia. Por construcción no puede repetirse, sin depender de que la descarga haya terminado (que es **asíncrona**).
+2. **`UnloadOldRoom()`** en `SwapRooms`, entre ocultar la vieja y mostrar la nueva: `SetIsRequestingUnloadandRemoval` sobre `CurLevel`, que en ese instante todavía apunta a la sala **vieja**. Cierra además el leak de sublevels.
+
+⚠ **`Suffix` quedó como parámetro sin uso** de `PreloadNext` (los llamadores le siguen pasando el `StageIndex`). No molesta, pero **el nombre de la instancia ya no tiene relación con la etapa**: `Room_3` no es la etapa 3.
+
+**Verificado por log** (PIE, 3 ciclos completos, batería corrida a los 42 s): preloads `Room_0 → Room_1 → Room_2 → Room_3`, y `SELFTEST: salas en el mundo = 1` con **`TEST PASS: no se acumulan salas`**. Sin la descarga ese número crecería por ciclo.
+
+⚠ **Los 2 errores de "name already exists" que quedan en el log son un artefacto de recompilar con PIE corriendo** (el recompile re-corre `BeginPlay` sobre la instancia viva y vuelve a precargar con el mismo nombre). No son del ciclo: mirar el timestamp contra el del compile antes de perseguirlos.
+
+### 3. ⚠ **La puerta abre antes del negro, no después.** El §9.2 literal dice `negro completo -> swap -> la puerta abre`. Acá abre durante la aproximación, así que se camina a través de una puerta abierta hacia el negro. Se hizo así porque con todas las salas en el mismo origen, la puerta que "abre revelando la sala nueva" quedaría **detrás** del pawn tras el swap. **Es una decisión autoral pendiente de Beltrán**, no un descuido.
 
 ## TODO
-- [ ] Test en visor.
-- [ ] Los 2 bugs de arriba.
-- [ ] `OnLevelShown` en lugar de `BlackHold`.
-- [ ] Descargar la sala vieja (`SetIsRequestingUnloadAndRemoval`) — hoy quedan todas las instancias cargadas e invisibles. Con 3 salas placeholder no importa; con 9 salas reales **sí**. ⚠ Descargar fuerza un GC (`s.ForceGCAfterLevelStreamedOut` viene en 1) y ese GC **es** el hitch → hacerlo bajo negro.
+- [ ] 🔴 Test en visor.
+- [ ] La decisión autoral del bug #3 (¿la puerta abre antes o después del negro?).
+- [ ] **Separar "sala" de "etapa"**: son 7 salas y 5 etapas (§3). Hoy `StageNames` mezcla los dos conceptos.
+- [ ] **Caso terminal**: la sala final **no lleva puerta**, así que el último tramo no puede pasar por el ciclo ni por `WrapIndex`.
+- [ ] Llamar `SetMode` de [[BP_Sensor]] al entrar a cada etapa, y `Release` al cerrarla.
 - [ ] `StageDuration` sale cuando exista `BP_StageBase`: el cierre lo va a pedir la etapa, no un timer.
+- [ ] Medir el hitch de la descarga **en device**. El GC que fuerza (`s.ForceGCAfterLevelStreamedOut` viene en 1) queda bajo negro, que es lo correcto, pero eso no prueba que no se sienta en Quest.
 
 ## Relacionados
 - [[BP_Room]] (`Configure`/`SetLight`/`RampLight`) · [[BP_Door]] (`Configure`/`Reveal`/`Open`) · [[BP_Walker]] (`StartWalk`) · `BP_FadeSphere` · `BP_DebugDirector` (sin construir)

@@ -54,7 +54,7 @@ Named exec outputs are sub-lists whose head starts with `:` and come AFTER data/
 - `find_node_types(graph, type_id_filter, context_pins:[])` to get the exact `type_id`.
 - `get_node_type_pins(graph, type_id)` for exact pin names (and the derived `_underscore` output vars).
 
-## 🔴 Tres trampas del parser (pagadas 2026-08-11 construyendo el esqueleto)
+## 🔴 Cuatro trampas del parser (pagadas 2026-08-11 construyendo el esqueleto)
 
 ### 1. UN SOLO nodo multi-exec, y va AL FINAL. Todo lo que le siga es "unreachable"
 `if`, `switch`, `CastTo*` e `IsValid` **terminan la lista de statements**. Poner cualquier cosa después da:
@@ -71,6 +71,15 @@ Aunque el grafo se llame `:UserConstructionScript`, escribir `(fn UserConstructi
 ### 3. Un `type_id` puede estar DUPLICADO y el DSL elige el que no querés
 `find_node_types` puede devolver el **mismo string dos veces** cuando hay dos funciones homónimas en clases distintas. Medido con `Rendering|Material|SetScalarParameterValue`, que existe para `MaterialInstanceDynamic` **y** para `MaterialParameterCollection`; el DSL toma la segunda y falla con *"Could not connect pin MIDFloor to **Collection**"*. **El nombre del pin en el mensaje de error te dice qué overload agarró.**
 → Salida limpia para materiales: usar las variantes sobre el componente, **`Rendering|Material|Set{Scalar,Vector}ParameterValueonMaterials`** (`self` = MeshComponent, `ParameterName`, `ParameterValue`). Crean y reusan el MID internamente, así que **eliminan la variable MID, el `CreateDynamicMaterialInstance` y el `IsValid`** — menos nodos y ninguna ambigüedad. Si de verdad necesitás el overload exacto, hay que ir por `create_node` con `declaring_class`.
+
+### 4. 🔴🔴 Los literales STRING de una función PROPIA se PIERDEN — y el grafo compila igual
+Escribiendo `(CallFunction|Check "no se acumulan salas" (<= _n 2))` el literal **desaparece**, y el DSL, para no dejar el pin `TestName` vacío, le enchufa un **`Utilities|String|ToString(Boolean)` del bool**. Resultado: el `bOk` queda en su default (`false`) y el log dice `TEST FAIL: false`. **Compila, corre, y miente.** Pasó 2 de 2 veces con funciones propias; con funciones **nativas** (`PrintString`, `Append`) los literales entran bien.
+
+👉 **Después de escribir un grafo que llame a funciones propias con argumentos string, LEERLO** (`read_graph_dsl`). Si aparece un `ToString(...)` que no escribiste, es esto.
+**El arreglo, por cirugía:** `delete_node` del `ToString` · `set_pin_value` del pin string con el texto · `connect_pins` del bool al pin que le corresponde.
+
+### 5. El getter de un bool `bAlgo` se escribe **sin la `b`**
+`read_graph_dsl` imprime `(|GetbHasPawn)`, pero escribir eso falla con *"does not exist"* — y `Variables|Default|GetbHasPawn` también. El `type_id` real **come el prefijo**: `Variables|Default|GetHasPawn`. Es otra forma de la regla general: **el read no es escribible tal cual**. Si un `Get`/`Set` "no existe" y la variable sí, probá sin la `b` (o confirmá con `find_node_types` filtrando por el nombre **sin** prefijo).
 
 ## 🔴 Escribir DSL COMPACTO — reglas para no inflar el grafo (aprendidas a la mala)
 El conteo de nodos explota por DOS causas: (1) **escombros de reescritura**, (2) **subexpresiones repetidas**. Las dos se controlan.
