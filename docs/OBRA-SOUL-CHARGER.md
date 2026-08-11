@@ -66,7 +66,7 @@ La medición se muestra, se explica y se enmarca como relación, no como diagnó
 |---|---|---|
 | 0 | **Intro** — logos, título, Start / About | — |
 | 1 | **Oscuridad** — voz femenina espacializada, preguntas que instalan el mood | ~45 s |
-| 2 | **La caminata** — pasos en negro, silueta de puerta, *Soul Charger Center*. Timbre: apoyas la mano y te escanea | ~45 s |
+| 2 | **La caminata** — desde el botón Start el pawn ya avanza por spline. Pasos, silueta de puerta, *Soul Charger Center*. Timbre: apoyas la mano y te escanea | ~45 s |
 | 3 | **Hall** — Alma te recibe, explica las 5 etapas, calibración, eliges tu Proto Soul | ~90 s |
 | 4–8 | **Las cinco etapas** | 5 × ~2 min |
 | 9 | **Sala final** — la arquitectura se transforma (no hay compuerta), gráfico de datos, constelación, despedida | ~2 min |
@@ -75,6 +75,8 @@ La medición se muestra, se explica y se enmarca como relación, no como diagnó
 > ⚠ **El presupuesto es real: la obra da ~15 min, no 10–12.** Para festival es una duración normal, pero hay que asumirlo. **Si hay que recortar, se recorta intro y final, no las etapas** — ahí están los ~3,5 min más pasivos.
 >
 > ⚠ *Attracting* y *Surrounding* son abiertas y se pasarán de 2 min casi siempre. Cierran con **invitación suave** (el pad crece, la luz se entibia, Alma habla), nunca con corte seco.
+
+> 🔴 **La caminata de la intro tiene dos trabajos:** instala el mood **y es donde se toma el baseline** (§5). Conviene que sean **30–40 s de avance estable**, para que la medición tenga de dónde promediar.
 
 ### El timbre es el tutorial
 Apoyar la mano para que te escanee **es la misma gramática que tomar el sensor**. Enseña el gesto en los primeros 60 segundos sin decir "tutorial". El timbre y los sensores deben **parecerse visualmente** para que la rima sea evidente.
@@ -231,7 +233,41 @@ No se puede caminar por un spline hacia una pantalla de carga, y el sensor, la a
 
 ⚠ **Los niveles de test NO se tiran.** Se siguen usando para iterar cada mecánica aislada; el nivel persistente es de **ensamblaje**.
 
-### 9.2 Los cinco objetos persistentes
+### 9.2 Movimiento y transiciones
+
+**El efecto de caminata — validado en visor (2026-08-06).** Traslación vertical + giro suave de cámara de lado a lado + viñeta. Probado y cómodo.
+- Vertical **1,5–2 cm**, angular **1–2 grados**.
+- 🔴 **Acoplado a la cadencia de las pisadas**, nunca una oscilación independiente. Lo que marea es el roll rápido o desincronizado; a ritmo de paso el cerebro lo lee como locomoción y lo acepta.
+- La amplitud entra y sale con la rampa de velocidad. Aceleración suave (~1 s) y velocidad constante en el medio: **la aceleración es lo que marea, no la velocidad**.
+- **Viñeta dinámica** mientras hay movimiento, fuera al detenerse. Reduce el flujo óptico periférico, que es el motor real del mareo.
+- ⚠ La susceptibilidad varía muchísimo entre personas. Dejarlo como **parámetro ajustable, incluso a cero**, y probarlo con gente ajena al equipo antes de cerrarlo.
+- 🔴 **El suelo necesita patrón.** Sin referencia visual, el avance no se lee como avance y la caminata se siente rara sin que se sepa por qué.
+
+**Velocidad y distancias.** Salas de 10 m de diámetro → centro a centro ~10–12 m. A **1,5–2 m/s son 5–7 s**, que es el largo correcto de un beat de transición.
+
+**Recognizing es el único cambio de movimiento: hacia arriba** — y con otra personalidad. La caminata es **rítmica**; la subida es **continua y lisa, sin bob ni pasos**: flotas. 🔴 Necesita una **referencia vertical fija** (columna de luz, anillos que pasan al lado): sin ella, ascender en un espacio liso y curvo es de las cosas peor toleradas, porque el ojo no tiene con qué medir el movimiento.
+
+**El vacío negro entre salas.** La puerta abre a **negro absoluto**, igual que la entrada al Center en la intro. Nada de portales reales (scene capture es caro en Quest) ni de salas contiguas.
+
+🔴 **Todas las salas se construyen en el MISMO origen.** El pawn avanza hacia el umbral, el negro tapa el intercambio, y vuelve al centro sin que se note. Eso elimina toda restricción de layout, hace trivial el streaming, y convierte el fundido en algo **narrativamente motivado**: entre sala y sala hay vacío. Y rima — cada transición repite el umbral de entrada a la obra.
+
+⚠ Para que funcione, **el exterior de los espacios debe ser negro profundo**. El interior es el que está iluminado y tiene color.
+
+**La secuencia de transición:**
+```
+carga del anillo  -> empieza a PRECARGAR el sublevel siguiente (Make Visible After Load = false)
+la luz de la sala baja + se traza el marco de la puerta + se enciende el cartel
+negro completo    -> swap: oculta A, muestra B, reposiciona el pawn
+la puerta abre    -> la nueva sala sube de luz a tu alrededor
+```
+
+🔴 **La precarga es obligatoria.** El streaming en Quest no es instantáneo: si la carga ocurre en el momento del apagón, hay un tirón justo cuando el usuario está mirando. Cargando durante la animación del anillo, al llegar el negro solo hay que **hacerlo visible**, que sí es instantáneo.
+
+Y aunque la luz de la sala haga el trabajo narrativo, **mantener un fundido a negro real por encima** que llegue a 1.0 en el instante del swap. Es el cinturón de seguridad: si algo hitchea, no se ve.
+
+**Placeholder de sala:** disco de piso de **10 m** con patrón sutil + cilindro de muro de **4–5 m** de alto, sin techo. No hace falta recortar el hueco de la puerta: como el fundido ocurre antes de llegar, el clip no se ve.
+
+### 9.3 Los cinco objetos persistentes
 
 | Objeto | Responsabilidad |
 |---|---|
@@ -243,7 +279,7 @@ No se puede caminar por un spline hacia una pantalla de carga, y el sensor, la a
 
 🔴 **El BioHub no sabe nada de etapas y las etapas no saben nada de OSC.** Si se cambia de dispositivo, se toca un solo Blueprint.
 
-### 9.3 `BP_StageBase`
+### 9.4 `BP_StageBase`
 ```
 BeginStage()
   → instrucciones (o saltarlas)
@@ -256,21 +292,58 @@ Duración, timeout, si lleva widget y la intensidad de la carga son **variables 
 
 **`BP_StageDirector`** en el nivel persistente lleva la lista ordenada, mueve el pawn por el spline y maneja las compuertas.
 
-### 9.4 Captura de datos: casillas, no muestras
+### 9.5 Captura de datos: casillas, no muestras
 **180 casillas** para toda la experiencia (~5 s cada una). Cada una acumula **suma, cantidad de muestras, mínimo y máximo**, más **a qué etapa pertenece**.
 
 Eso resuelve de una sola vez: el suavizado (promediar en ventanas de 5 s *es* el filtro), la memoria (180 en vez de 9.000), los huecos (cantidad de muestras en cero es un hueco *explícito*, no un cero que parece dato), el tamaño fijo de la geometría, y las bandas de color del gráfico.
 
-### 9.5 Dibujar el gráfico
+### 9.6 Dibujar el gráfico
 **Ribbon 3D reusando el generador de trazos de *Surrounding***. Cada casilla es un punto: `x = índice × separación`, `z = valor × altura`. Ventaja no solo técnica: **el gráfico queda hecho del mismo material que el dibujo del usuario.**
 Los **cinco pétalos**: cinco meshes con la escala manejada por profundidad y duración.
 Alternativa rápida si urge: UMG con `OnPaint` + `Draw Lines`, con líneas gruesas (en Quest las finas alias feo).
 
-### 9.6 Refactor de lo ya construido
+### 9.7 Refactor de lo ya construido
 - **`BP_TouchSensor`** → `BP_Sensor` persistente. No se toma en cada etapa; **la etapa le dice en qué convertirse**.
 - **`BP_AimBeam`** deja de depender de que un sensor lo equipe; el gate pasa al director.
 - **`BP_AttractDirector`** pierde el reloj de Quartz y la orquestación general (suben a `BP_StageDirector`); se queda con el secuenciador.
 - **La melodía guardada** sube al GameInstance.
+
+### 9.8 `BP_Door`
+
+**Un solo Blueprint.** El mesh del marco y el color de acento son **variables** que el `BP_StageDirector` setea desde el DataAsset de la etapa: cambiar el look de una puerta es cambiar un asset en una tabla, no editar un BP.
+
+- Dos paneles, **3 m de ancho × 4 de alto**, 10 cm de espesor, con Timeline de apertura.
+- **Cartel sobre el dintel**, variable `StageName` (Text), que se enciende **por separado** de la apertura.
+- **Plano negro detrás** — es lo que hace funcionar el vacío.
+- Interfaz: `Reveal()` · `Open()` · `Close()` · evento `OnPawnPassed`.
+
+🔴 **La puerta NO existe durante la etapa.** Se revela al terminar: baja la luz de la sala, una línea de luz **traza el marco** sobre el muro, se enciende el cartel, y recién ahí abre. Dos motivos: que la sala esté sellada comunica *"esto es lo único que tienes que hacer ahora"*, y evita que un elemento arquitectónico compita con el objeto reactivo en una sala que es casi vacío.
+
+**A quién pertenece la puerta:**
+- **El marco es de la sala donde estás** — es un hueco en *ese* muro, con *esa* arquitectura.
+- **La luz que se cuela y el cartel son de la sala que viene.** El resplandor por la rendija ya es rojo si vas a Recognizing, verde si vas a Surrounding.
+
+El cartel muestra el nombre de **la sala a la que vas**, por eso revelarlo al final es el momento correcto. Repite cinco veces el gesto de la entrada al Center: silueta oscura, y al abrirse aparece la luz del interior.
+
+**Fase placeholder:** un solo marco genérico; varía únicamente el color de acento.
+
+### 9.9 Sistema de debug
+
+🔴 **El skip de debug y el cortafuegos por inactividad son la MISMA función.** `BP_StageBase` ya necesita una salida de emergencia (regla §2.2); esa es la que usa el debug. Cero arquitectura extra.
+
+```
+ForceComplete(bFastCharge)
+```
+
+Recorre **el mismo camino que una finalización real**: cierra los datos de la etapa, otorga el anillo, reconfigura el sensor, revela la puerta y avisa al director. Lo único distinto es que acelera la animación de carga.
+
+🔴 **El skip nunca es "saltar a la etapa N", siempre es "completar esta ahora".** Teletransportar se salta efectos colaterales y deja estados inconsistentes que después se depuran como fantasmas. Completar deja el estado bien **por definición**, porque es el mismo código que corre en la experiencia real.
+
+- **`BP_DebugDirector`**, suelto en el nivel persistente: se borra y listo. **Ningún código de debug esparcido por las etapas.**
+- Bind a un botón poco usado (Y o menú) **con combinación**, para que no se dispare sin querer con el visor puesto.
+- Gate por un bool del GameInstance que se apaga en el build.
+- **HUD de debug**: etapa actual, tiempo transcurrido, conexión del sensor, calma y ritmo. Es lo que más tiempo ahorra de todo esto.
+- **`JumpToResults`** que **sintetice datos plausibles** — si saltas directo, las 180 casillas están vacías y el panel no dibuja nada.
 
 ---
 
@@ -278,7 +351,12 @@ Alternativa rápida si urge: UMG con `OnPaint` + `Draw Lines`, con líneas grues
 
 **El esqueleto antes que los órganos.** Las mecánicas existen pero están sueltas; el riesgo es pulir órganos que no conectan. Y las preguntas abiertas —¿dura mucho?, ¿el ritual cansa?— **solo se responden caminando la obra completa**, cosa que se puede hacer sin una sola mecánica conectada.
 
-1. **La caminata entre dos salas vacías.** Pawn sobre spline, compuerta, sublevel que carga y descarga. Es el mayor riesgo técnico. **Probar comodidad en visor antes de construir nada más.**
+1. **La caminata entre dos salas vacías.** Es el mayor riesgo técnico y todo lo demás cuelga de ahí. **Probar comodidad en visor antes de construir nada más.** Cinco piezas:
+   1. Nivel persistente + sublevel de sala (piso de 10 m con patrón + cilindro de 4–5 m).
+   2. **Mover por spline** con rampa, bob (vertical + angular) y viñeta. Se usa desde el botón Start, antes que cualquier sala.
+   3. **`BP_Door`** con revelado del marco, cartel y color de acento.
+   4. El ciclo **precarga → apagón → swap → reposicionar → subir luz**.
+   5. **`BP_DebugDirector`** con `ForceComplete`, desde el primer día.
 2. **El trío persistente**: `BP_BioHub`, `BP_Sensor`, `BP_ProtoSoul`. Que sobrevivan a la caminata y que la ameba lata con datos reales.
 3. **`BP_StageBase` + cinco etapas vacías** (instrucciones → esperar N s → carga → puerta), con cajas grises como salas.
    👉 **Aquí ya se camina la obra completa de 15 minutos** y se responden las preguntas de ritmo.
