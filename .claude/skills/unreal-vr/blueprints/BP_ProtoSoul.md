@@ -6,7 +6,17 @@
 🔴 **No es un HUD pegado al casco ni un reloj.** §5 descarta las dos: pegado al casco es incómodo y borroso en los bordes y rompe el lugar; reloj compite con el sensor que llevás en la mano.
 
 ## Status
-🟡 **Lazy-follow, pulso y agitación construidos y verificados en PIE** (2026-08-11). ⬜ Faltan los **anillos de carga** y el **flujo de elección** (ver abajo).
+🟡 **Lazy-follow, pulso y agitación construidos y verificados en PIE** (2026-08-11). 🆕 **Variantes configurables en runtime y adopción desde el GameInstance.** ⬜ Faltan los **anillos de carga** y el test en visor.
+
+## 🆕 Lo que se agregó el 2026-08-11 (para la elección del Hall)
+| Función | Rol |
+|---|---|
+| `ConfigureVariant(Id, Mesh, Mat, Color)` | 🔴 **La API pública de la variante.** El Construction Script sirve para autorar en el editor, pero una candidata **spawneada** necesita configurarse en runtime, y el CS no vuelve a correr. Setea las 4 variables y aplica las tres cosas. |
+| `ApplyVariantColor()` | Aplica `SoulColorOverride` al parámetro `SoulColor` del material, **gateado por `bUseColorOverride`**. Ese bool es el flag que distingue "color negro" de "sin override": sin él, el default (0,0,0) apagaría la ameba. |
+| `AdoptFromState()` / `AdoptStep(St)` | Lee [[BP_SoulState]] (el GameInstance) y, **si `bHasChosen`**, se configura con la elección. Corre en `BeginPlay`, así que **la identidad elegida sobrevive a los cambios de nivel** sin que nadie la reenvíe. |
+| `TickStep(Delta)` / `HudStep(Delta)` | 🔴🔴 **El Tick ahora está gateado por `bIsHUD`.** `UpdateReadout` (pulso y agitación) corre en **todas** — las candidatas del Hall también laten, y eso es deseable: se ven vivas. Pero `UpdateFollow` + `ApplyPlacement` corren **sólo en el HUD**. Sin ese gate, cada candidata se pegaría a la cámara y se apilarían todas encima. |
+
+⚠ **`SoulColorOverride` era dato muerto hasta hoy**: existía la variable y el parámetro del material, pero nada las conectaba. Es el caso típico de "declarado ≠ aplicado".
 
 ## 🔴 Dos roles en el mismo Blueprint: HUD y variante elegible
 Aclarado por Beltrán el 2026-08-11: **las Proto Souls aparecen en TargetPoints frente al usuario, y la que elige el usuario es la que queda** (§3, escena 3 del Hall). Así que el mismo BP tiene que servir para dos cosas:
@@ -68,7 +78,8 @@ Parámetros: `SoulColor` · `Brightness` · `Agitation` · `AgitationSpeed`.
 ## TODO
 - [ ] 🔴 **Test en visor.** El lazy-follow es de esas cosas que solo se juzgan con la cabeza puesta: la zona muerta y la recuperación se sienten, no se calculan.
 - [ ] **Los anillos de carga** (§5: *"sus anillos son la carga"*). Uno por etapa completada, 5 en total. Va con `ChargeAnimation(índiceAnillo, intensidad)` del `BP_StageBase` (§9.4).
-- [ ] **El flujo de elección**: spawn por TargetPoint con tag propio (patrón de `BP_AttractDirector`), selección por gesto, y persistir `VariantId` en el GameInstance — §9.3 dice que la malla y el color del usuario viven ahí.
+- [x] ~~**El flujo de elección**~~ → construido en [[BP_SoulChoice]] + [[BP_SoulState]] (2026-08-11). Falta cerrar su bug y probarlo en visor.
+- [ ] Higiene de nodos de los 6 grafos nuevos: **están encimados en el origen**, nunca se les corrió `auto_layout.py`.
 - [ ] La **agitación** hoy es un seno de brillo. §5 pide *"agitación de su superficie"*, o sea deformación real. Cuando haya mesh definitivo, evaluar World Position Offset (barato en vértices) antes que Niagara.
 - [ ] Medir en device: es un objeto chico, debería ser gratis, pero el Fresnel + el seno corren por píxel.
 

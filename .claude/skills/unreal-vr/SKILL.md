@@ -46,6 +46,12 @@ EditorToolset.EditorAppToolset.StopPIE()
 ⚠ **El log es acumulativo: mirar los timestamps.** Entradas de corridas viejas se confunden con las nuevas y llevan a conclusiones falsas.
 🔴 **Lo que se MIDE se verifica por log; lo que se SIENTE (comodidad, ritmo, mareo) solo se juzga en visor.** Un `TEST PASS` no dice que algo se sienta bien. No confundir las dos cosas al reportar.
 
+### 🔴🔴 NUNCA compilar un Blueprint con PIE corriendo (2026-08-11: colgó el editor y hubo que matarlo)
+Un `compile_blueprint` con PIE vivo dejó el editor **sin responder**, con la memoria creciendo (11,7 → 12,0 GB en 20 s) y la CPU al palo; a los ~7 min no había vuelto y hubo que `Stop-Process`. **El orden es siempre `StopPIE` → compilar → `StartPIE`.**
+- ✅ **`save_assets` ANTES de cada `StartPIE`.** Es lo que hizo que matar el editor no costara nada: lo único que se perdió fue la última cirugía de nodos, sin guardar.
+- ⚠ Recompilar con PIE vivo también **re-corre `BeginPlay`** sobre las instancias vivas → mete **errores falsos** en el log (precargas duplicadas, refs nulas). Antes de perseguir un error, comparar su timestamp con el del compile.
+- 💡 Diagnóstico barato de un cuelgue, sin MCP: `Get-Process UnrealEditor | Select Responding, WorkingSet64, CPU` **dos veces separadas**. Si la memoria crece, no se va a recuperar sola.
+
 ## Session startup (check this first)
 MCP links are established when Claude starts, so **Unreal must already be running before the Claude session begins** (opening the project auto-starts the server — Auto Start Server is enabled on port 8000). If Unreal wasn't up at launch, the `unreal` tools won't exist and no amount of opening it now will attach them — the user must restart Claude.
 
