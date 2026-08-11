@@ -108,8 +108,27 @@ AddUserVariables(system, [{"name":"User.Beam_Start","description":"...",
 - **read_file**(file_path) / **write_file**(file_path, content) — text files under /Game/, plugin Content/, or Saved/.
 - **get/update_metadata_tags** / **get_asset_tags** / **can_edit_asset** / **is_checked_out**.
 
+## 🔴🔴 LOS TRANSFORMS NO SE APLICAN AL COLOCAR — hay que setearlos después, SIEMPRE
+Medido el 2026-08-11 construyendo el esqueleto. **Tres tools aceptan un transform, devuelven éxito, y NO lo aplican:**
+
+| Tool | Qué ignora | Qué sí aplica |
+|---|---|---|
+| `PrimitiveTools.add_*` | el `local_transform` **entero** | la escala derivada de `radius`/`height`/`dimensions` |
+| `SceneTools.add_to_scene_from_asset` | el `xform` | — |
+| `ActorTools.set_actor_transform` | **todo** (devuelve `true` y no mueve nada) | — |
+
+✅ **La vía que SÍ funciona, para componentes y para actores del nivel:**
+```
+ObjectTools.set_properties(<componente o rootComponent>, '{"relativeLocation":{"x":..,"y":..,"z":..}}')
+```
+Para un actor del nivel: `ActorTools.get_root_component(actor)` y setearle `relativeLocation` a ese componente.
+🔴 **Y verificar siempre después** con `get_properties` (componentes) o `get_actor_transform` (actores). Es el caso de libro de "declarado ≠ aplicado": los tres devuelven éxito.
+
+⚠ Los **basic shapes del motor están centrados en su origen** (bounds −50..+50, verificado en `/Engine/BasicShapes/Cylinder`). Para apoyar algo en Z=0 hay que compensar media altura a mano.
+
 ## PrimitiveTools (`editor_toolset.toolsets.primitive.PrimitiveTools`)
 Add StaticMeshComponent primitives to an actor — pass the BP's **CDO** (get_default_object) as `actor`, not the asset. Returns the component.
+- `dimensions` (cubo) se pasa en **cm** y se traduce a escala sobre el cubo de 100³ — cómodo, pero ver el bloque de transforms de arriba.
 - **add_sphere**(actor, name, radius?=50, local_transform?).
 - **add_cube**(actor, name, dimensions?={100,100,100}, local_transform?).
 - **add_cylinder**(actor, name, radius?=50, height?=100, local_transform?).
