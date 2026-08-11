@@ -23,7 +23,7 @@ la puerta abre -> la nueva sala sube de luz
 | `BeginPlay` | Cachea fade y walker · **negro instantáneo** · `PreloadNext(0)` | `ShowAndEnter` a 1.5 s |
 | `ShowAndEnter` | `SwapRooms()` | `EnterRoom` a `BlackHold` |
 | `EnterRoom` | Cachea room y door de la sala nueva · `ConfigureRoom()` · fade **from** black · `Walk(0→500)` = entra desde el umbral al centro | `EndStage` a `StageDuration` |
-| `EndStage` | `StageIndex++` · `WrapIndex()` · `PreloadNext(i)` · `DimAndReveal()` · `RevealDoor()` | `WalkOut` a `RevealHold` |
+| `EndStage` | `StageIndex++` · `WrapIndex()` · `PreloadNext(i)` · `DimAndReveal()` (sólo atenúa) · `RevealDoor()` (**agenda** el revelado) | `WalkOut` a `RevealHold` |
 | `WalkOut` | `Walk(500→1000)` = del centro al umbral · `OpenDoor()` | `GoBlack` a `FadeOutDelay` |
 | `GoBlack` | fade **to** black | `ShowAndEnter` a `LegTime` |
 
@@ -49,6 +49,32 @@ El loop cierra en `ShowAndEnter`, así que con el placeholder recorre las 3 etap
 | `StageColors` | azul / rojo / verde | El acento de cada sala y de su puerta. Es lo que hace que las transiciones se **vean** distintas siendo el mismo asset. |
 | `StageIndex` | 0 | Etapa actual. |
 | `CurLevel` / `NextLevel` | — | Los `LevelStreamingDynamic` que devuelve `LoadLevelInstance`. |
+
+## 🔴 El ORDEN de la transición, y por qué estos números (ajustado en visor 2026-08-11)
+Beltrán reportó dos cosas al probarlo, y las dos eran de secuencia, no de código:
+
+**1. "Las puertas aparecen cuando todavía se ve todo. Es rudo, aparecen de la nada."**
+`EndStage` disparaba `DimAndReveal()` y `RevealDoor()` en el **mismo instante**, así que el marco se trazaba sobre una sala brillante. El orden correcto (y el del §9.2) es **primero oscuro, después la puerta**.
+→ **`RevealDoor()` ahora sólo AGENDA**: pone un timer a `DoRevealDoor` a `LightFadeTime`, o sea cuando el atenuado terminó. `DoRevealDoor` tiene el cuerpo real (Configure + Reveal).
+→ Como el revelado arranca tarde, `RevealHold` **se mide desde `EndStage`** y tiene que cubrir `LightFadeTime + RevealTime` **más un beat**, o se empieza a caminar con el marco a medio dibujar.
+
+**2. "Al pasar la puerta pasa mucho rato oscuro hasta que volvemos a ver."**
+`LegTime` estaba en 4.2 s porque lo había dimensionado para que el tramo de salida **terminara**. No hace falta: el tramo de entrada resetea `Dist` igual, así que lo único que `LegTime` tiene que cubrir es que **el fundido a negro haya terminado**. Sobraban ~2,7 s de negro puro esperando de gusto.
+→ `LegTime` 4.2 → **1.8** (= `FadeOutTime` 1.5 + margen), `BlackHold` 0.8 → **0.4** (el retry de `TryEnter` cubre la espera real), `FadeInTime` 1.8 → **1.4**.
+
+**Medido por log después del ajuste** (segunda transición, t desde `EndStage`):
+| t | Qué |
+|---|---|
+| 0,00 s | la sala empieza a atenuarse |
+| **+2,03 s** | se traza el marco — **ya a oscuras** |
+| +3,83 s | el marco queda completo |
+| **+4,37 s** | abre (0,5 s de beat con la puerta ya dibujada) |
+| +7,10 s | swap |
+| +8,37 s | sala nueva confirmada, sube la luz |
+
+**Negro puro: 1,3 s** (antes 3,7).
+
+⚠ **La restricción a respetar si se toca cualquiera de estos números:** `RevealHold > LightFadeTime + RevealTime` y `LegTime ≥ FadeOutTime`. Romper la primera hace que se camine con el marco a medio trazar; romper la segunda hace que **el swap se vea**.
 
 ### Tiempos (todos instance-editable en el actor del persistente)
 | Variable | Default | Rol |
