@@ -32,6 +32,20 @@ We drive Unreal from the native UE 5.8 **ModelContextProtocol** plugin, register
 >
 > ⚠ Y para verificar: **leé el valor efectivo en el objeto final, nunca la declaración** (`get_properties` del componente, `get_actor_transform` del actor, `connected_pins` del pin). **Que compile no prueba nada.**
 
+## 🧪 Verificar SIN visor y sin humano — el bucle que hay que usar
+Existe **`Core/Debug/BP_SelfTest`** (tracker: [`blueprints/BP_SelfTest.md`](blueprints/BP_SelfTest.md)): una batería de aserciones que loguea `TEST PASS/FAIL/SKIP` y una línea `TEST SUMMARY`. El bucle completo, sin que nadie toque la máquina:
+```
+EditorToolset.EditorAppToolset.StartPIE({bSimulate:false, playMode:"PlayMode_InViewPort", warmupSeconds:16})
+EditorToolset.LogsToolset.GetLogEntries(pattern:"TEST ", category:"LogBlueprintUserMessages")
+EditorToolset.LogsToolset.GetLogEntries(pattern:"Accessed None", category:"")   ← NO OMITIR
+EditorToolset.EditorAppToolset.StopPIE()
+```
+🔴 **Correr las dos variantes: PIE normal y `bSimulate:true` + `playMode:"PlayMode_Simulate"`.** Simulate corre el mundo **sin pawn**, y por eso expone las dependencias no declaradas con el pawn y la cámara. Ya encontró un bug real de `BP_ProtoSoul` que el PIE normal escondía por completo.
+
+⚠ **Un `TEST SUMMARY` verde no prueba que no haya errores de runtime** — las aserciones miran valores, no la salud del grafo. Por eso el `Accessed None` va aparte.
+⚠ **El log es acumulativo: mirar los timestamps.** Entradas de corridas viejas se confunden con las nuevas y llevan a conclusiones falsas.
+🔴 **Lo que se MIDE se verifica por log; lo que se SIENTE (comodidad, ritmo, mareo) solo se juzga en visor.** Un `TEST PASS` no dice que algo se sienta bien. No confundir las dos cosas al reportar.
+
 ## Session startup (check this first)
 MCP links are established when Claude starts, so **Unreal must already be running before the Claude session begins** (opening the project auto-starts the server — Auto Start Server is enabled on port 8000). If Unreal wasn't up at launch, the `unreal` tools won't exist and no amount of opening it now will attach them — the user must restart Claude.
 
