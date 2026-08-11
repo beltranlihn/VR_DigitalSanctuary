@@ -59,8 +59,21 @@ Medido acá el 2026-08-11. Pasarle un evento con nombre explícito desde el DSL 
 - `LogOSC: Display: OSCServer 'BioHub' started` → el server levanta en el puerto configurado.
 - Sin fuente OSC: `bConnected = false`, `bHadFirstSample = false`, `SinceLastMsg` acumulando. **El watchdog funciona.**
 
+## ✅ Las 180 casillas de §9.5 (construido 2026-08-11)
+9 arrays de 180: `BinCalm{Sum,Count,Min,Max}`, `BinHeart{Sum,Count,Min,Max}` y `BinStage`. `InitBins` los redimensiona en `BeginPlay`; `AdvanceBin` (desde el Tick) corre el índice cada `BinSeconds` y lo **clampea** al último para que la obra pueda pasarse de largo sin desbordar.
+
+🔴 **La acumulación va en `Ingest`, o sea POR MUESTRA RECIBIDA, no por frame.** Es la decisión que hace que el dato signifique algo: si acumulara por tick, `Count` contaría *frames* y una casilla sin señal quedaría con muchas muestras de un valor viejo. Acumulando por mensaje, **`Count == 0` es un hueco de verdad** — y de eso depende que el panel dibuje huecos *tenues* y no *rotos* (§5), que es la diferencia entre "un pasaje" y "una falla".
+
+💡 **Min/max sin necesidad de pre-llenar con infinito:** la rama `Count <= 0` (primera muestra de la casilla) fija min **y** max al valor; de ahí en adelante compara. Así los arrays se inicializan en 0 sin que eso contamine el mínimo.
+
+**`SetCurrentStage(StageId)`** es la única superficie por donde entra el concepto de etapa, y entra como **int opaco**: el BioHub lo guarda en `BinStage` sin preguntar qué significa. Es lo que cumple la regla de §9.3.
+
+⚠ **Los getters de promedio por casilla todavía no existen.** El consumidor (el panel) va a necesitar algo tipo `GetBinAverage(i)` = `Sum / Count` con `Count == 0` → devolver el flag de hueco, no 0.
+
+**Verificado en PIE:** `InitBins` loguea, y tras ~30 s `CurrentBin = 6` con `BinElapsed = 0.33` — el reloj de casillas corre exacto a 5 s. `CurrentStage = -1` mientras nadie lo setea.
+🔴 **Lo que NO está verificado: la acumulación.** Sin fuente OSC no entró ni una muestra, así que `AccumCalm`/`AccumHeart` **compilan pero nunca corrieron**. Es justo el tipo de cosa que parece andar.
+
 ## TODO
-- [ ] 🔴 **Las 180 casillas (§9.5)** — el binning es la mitad que falta. Cada casilla de ~5 s acumula **suma, cantidad de muestras, mínimo y máximo**, más **a qué etapa pertenece** (int opaco vía un `SetCurrentStage`). 🔴 **Cantidad de muestras en cero es un hueco EXPLÍCITO, no un cero que parece dato** — de eso depende que el panel dibuje huecos *tenues* y no *rotos* (§5), que es la diferencia entre "un pasaje" y "una falla".
 - [ ] Probar con una fuente OSC real (Muse). Hasta entonces, la ingesta está **construida pero no ejercitada**.
 - [ ] Un `BP_BioHub_Fake` para poder trabajar sin EEG. Ya existen `BP_SignalProvider` / `BP_SignalProvider_Fake` en `Core/Signals/` (⚪ sin auditar): **revisarlos antes de construir**, puede que el mock ya esté hecho.
 - [ ] Decidir qué pasa con **`BP_OSCReceiver`**: el BioHub lo reemplaza para la obra, pero sigue en uso en los niveles de test de Heart. Dos servidores en el mismo puerto UDP **no pueden coexistir** → no poner los dos en el mismo nivel.
