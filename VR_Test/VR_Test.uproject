@@ -42,14 +42,6 @@
 			"Enabled": true
 		},
 		{
-			"Name": "MCPClientToolset",
-			"Enabled": true
-		},
-		{
-			"Name": "AllToolsets",
-			"Enabled": true
-		},
-		{
 			"Name": "ConfigSettingsToolset",
 			"Enabled": true
 		},
@@ -75,6 +67,10 @@
 		},
 		{
 			"Name": "PluginToolset",
+			"Enabled": true
+		},
+		{
+			"Name": "MCPClientToolset",
 			"Enabled": true
 		},
 		{

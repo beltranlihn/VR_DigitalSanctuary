@@ -9,7 +9,9 @@ Obra de **VR inmersiva de sanación/meditación** para **Meta Quest 3**. Experie
 
 **Objetivos de diseño:** presencia, calma, que el cuerpo del usuario (respiración, latido, gesto) **maneje** lo que ve/siente. Cada mecánica se construye para que el input físico sutil (inclinar un mando ~1°, respirar, sostener un control en el pecho) module luz/sonido/escala.
 
-Documentos de diseño (raíz): [`Soul-Charger-Design.md`](Soul-Charger-Design.md) (visión completa), [`Soul-Charger-Plan-Reconstruccion.md`](Soul-Charger-Plan-Reconstruccion.md), [`Soul-Charger-Variables-Respiracion.md`](Soul-Charger-Variables-Respiracion.md).
+🔴 **Documento maestro de la obra: [`docs/OBRA-SOUL-CHARGER.md`](docs/OBRA-SOUL-CHARGER.md)** (revisión completa de guión, 2026-08-06). Narrativa escena por escena, las 5 etapas con sus mecánicas, las **reglas transversales** (capa autoral + capa viva, cero callejones sin salida, el arco del gesto, medir como parte de la obra), estética, arquitectura de Blueprints y orden de construcción. **Es la fuente autoritativa de QUÉ es la obra** — lo reemplaza el design doc de la raíz.
+
+Otros documentos de diseño (raíz): [`Soul-Charger-Design.md`](Soul-Charger-Design.md) (superado), [`Soul-Charger-Plan-Reconstruccion.md`](Soul-Charger-Plan-Reconstruccion.md), [`Soul-Charger-Variables-Respiracion.md`](Soul-Charger-Variables-Respiracion.md).
 > ⚠️ **El design doc es previo al pivote a Quest** y en partes está desactualizado: dice/asume **PC VR** (falso, ver §2) y referencia el *Gameplay Message Router* de Lyra (no existe en 5.8, ver `skills/unreal-vr/references/streaming-arch.md`). Donde el design doc choque con lo de abajo o con la skill, **gana la skill**.
 
 ## 2. 🔴 Target técnico — cambia TODAS las respuestas
