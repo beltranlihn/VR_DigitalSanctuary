@@ -69,7 +69,7 @@ La medición se muestra, se explica y se enmarca como relación, no como diagnó
 | 2 | **La caminata** — desde el botón Start el pawn ya avanza por spline. Pasos, silueta de puerta, *Soul Charger Center*. Timbre: apoyas la mano y te escanea | ~45 s |
 | 3 | **Hall** — Alma te recibe, explica las 5 etapas, calibración, eliges tu Proto Soul | ~90 s |
 | 4–8 | **Las cinco etapas** | 5 × ~2 min |
-| 9 | **Sala final** — la arquitectura se transforma (no hay compuerta), gráfico de datos, constelación, despedida | ~2 min |
+| 9 | **Sala final** — la arquitectura se transforma (no hay compuerta), gráfico de datos, **la pregunta de Alma y la elección**, constelación, despedida | ~2 min |
 | | **Total** | **≈ 14–15 min** |
 
 > ⚠ **El presupuesto es real: la obra da ~15 min, no 10–12.** Para festival es una duración normal, pero hay que asumirlo. **Si hay que recortar, se recorta intro y final, no las etapas** — ahí están los ~3,5 min más pasivos.
@@ -77,6 +77,43 @@ La medición se muestra, se explica y se enmarca como relación, no como diagnó
 > ⚠ *Attracting* y *Surrounding* son abiertas y se pasarán de 2 min casi siempre. Cierran con **invitación suave** (el pad crece, la luz se entibia, Alma habla), nunca con corte seco.
 
 > 🔴 **La caminata de la intro tiene dos trabajos:** instala el mood **y es donde se toma el baseline** (§5). Conviene que sean **30–40 s de avance estable**, para que la medición tenga de dónde promediar.
+
+### El giro final: la pregunta de Alma
+
+🔴 **Es el único momento de la obra donde algo está en juego.** Sin él son cinco beats de "haz algo" y un certificado; con él, la obra deja una pregunta abierta que el usuario se lleva puesta. Y no hay que inventarlo: la obra trata sobre **qué significa medir un alma**, y la colaboración con Bioética deja de vivir solo en los créditos.
+
+Justo antes de la constelación, **Alma cuestiona lo que ella misma acaba de hacer**:
+
+> *"¿Esto eres tú? ¿O es solo lo que yo pude medir de ti?"*
+
+Y **no la responde**. La deja abierta.
+
+Lo que la hace funcionar es **quién la dice**: Alma es la que midió. Que dude de su propia medición es lo que le da peso — dicha por un narrador externo sería una moraleja; dicha por ella es una confesión.
+
+**Reglas de la línea:** corta, la dice Alma, y **queda sin respuesta**.
+
+> *Alternativas registradas por si se ajusta el tono:*
+> *— "Medí tu respiración, tu pulso, tu atención. Pero no sé si eso es tu alma." (más tierna, Alma admitiendo su límite)*
+> *— "Esto es lo que registré. Lo que eres, solo lo sabes tú." (la más segura y afirmativa)*
+
+**Puesta en escena:**
+
+1. El alma completa al frente, sonando.
+2. El gráfico se dibuja solo. *Esto es lo que pude medir de ti.*
+3. **Silencio de 5–10 s.** La obra viene densa de eventos y lo necesita.
+4. Alma aparece y hace la pregunta.
+5. Ofrece la elección: **quedarse el alma o darla a la constelación.**
+
+🔴 **Las dos respuestas llevan a un final construido.** Si "no" fuera un callejón, la elección sería falsa y se nota.
+
+| Elección | Gesto | Resultado |
+|---|---|---|
+| **Compartir** | empujar el alma hacia arriba con la mano | la constelación aparece y el alma se suma a ella |
+| **Quedarse el alma** | traerla hacia el pecho | la constelación aparece igual, **sin ti**: se ve a los demás desde afuera |
+
+El segundo final es **más barato de construir** — la misma escena menos un elemento — y probablemente el más conmovedor. Nadie sale sintiendo que eligió mal.
+
+🔴 **El cierre es un gesto del usuario, no un fundido.** Es la misma interacción en dos direcciones, y resuelve el final pasivo que tenía el guión original.
 
 ### El timbre es el tutorial
 Apoyar la mano para que te escanee **es la misma gramática que tomar el sensor**. Enseña el gesto en los primeros 60 segundos sin decir "tutorial". El timbre y los sensores deben **parecerse visualmente** para que la rima sea evidente.
@@ -369,8 +406,6 @@ Recorre **el mismo camino que una finalización real**: cierra los datos de la e
 
 ## 11. Lo que falta decidir
 
-- **La pregunta grande del final.** La obra tiene cinco beats de "haz algo" y **ningún giro dramático** — sin él es un menú de spa con certificado. El material ya está: trata sobre qué significa medir un alma. Antes de la constelación, Alma podría complicar lo que acaba de hacer: *"¿Esto eres tú? ¿O es solo lo que yo pude medir de ti?"* Y compartir tu alma deja de ser un botón para ser **una decisión con peso**.
-- **El cierre debería ser un gesto del usuario**, no un fundido: que seas tú quien coloca su alma en la constelación, con la mano.
-- **Silencio antes del final**: 5–10 s de nada después de *Surrounding*. La obra viene densa de eventos.
+> ✅ **El giro final quedó resuelto** (2026-08-06): la pregunta de Alma, la elección con dos finales construidos y el cierre por gesto. Ver §3.
 - Número de ejes de simetría del mandala (probar 5 en visor).
 - Ancho y brillo del pincel: el primer trazo tiene que ser satisfactorio de inmediato.
