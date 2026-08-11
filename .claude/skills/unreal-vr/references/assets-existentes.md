@@ -136,8 +136,27 @@ Verificado 2026-08-04 comparando contra el beam que **sí funciona** en el proye
 - **Regla:** el array **nunca debe quedar vacío mientras el sistema simula** — sembralo en `BeginPlay` con valores válidos aunque el efecto todavía no se use.
 - El pawn que funciona **llama `Activate` y NUNCA `Deactivate`**; el gateo visual lo hace con `SetVisibility`.
 
+## 🧱 Esqueleto / salas / movimiento (nuevo 2026-08-11)
+| Asset | Qué es | Estado |
+|---|---|---|
+| `Core/Rooms/BP_Room` + `Maps/Rooms/L_Room_Placeholder` | La sala vacía como **streaming sublevel**, en el origen. `SetLight(Alpha)` / `Configure(Nombre, Acento)`. | 🟡 compila, falta visor |
+| `Core/Movement/BP_Walker` | Caminata por spline con rampa + bob acoplado al paso + viñeta. **Antes de construir cualquier locomoción, reusar esto.** | 🟡 compila, falta visor |
+| `Core/UI/BP_Vignette` + `M_Vignette` | Viñeta de comodidad pegada a la cámara, máscara geométrica (correcta en estéreo). | 🟡 compila, falta visor |
+| `Core/UI/BP_FadeSphere` | ✅ **Ya andaba: el fade a negro de la obra.** Funciones `StartFade(Alpha, Duración, Color)` y `FadeFromBlack`. **Es el patrón canónico de "malla pegada a la cámara"** — copiarlo, no reinventarlo. | 🟢 probado |
+
+🔴 **La receta de attach a la cámara que funciona** (de `BP_FadeSphere`, reusada en `BP_Vignette`):
+```
+GetPlayerPawn(0) -> Actor|GetComponentByClass("/Script/Engine.CameraComponent")
+Transformation|AttachActorToComponent(self, cam, "None", "SnapToTarget", "SnapToTarget", "KeepWorld", false)
+```
+⚠ Solo desde el **nivel persistente**. Un actor de sublevel attacheado al pawn se desattachea solo al guardar (`streaming-arch.md` §7).
+⚠ Si le pones una malla alrededor de la cabeza, **apagale la colisión** o bloquea todos los line traces de los punteros.
+
 ## 🎨 Materiales reusables
 - `XRFramework/Materials/M_VRCursor` — cursor del puntero.
+- `Core/Rooms/Materials/M_RoomFloor` — unlit con **grilla por posición de mundo** (no por UV, así la escala del mesh no la estira). Parámetros `GridSize`/`LineWidth`/`LineColor`/`BaseTone`/`Brightness`.
+- `Core/Rooms/Materials/M_RoomWall` — unlit **TwoSided** con gradiente vertical. `WallHeight`/`Falloff`/`WallColor`/`Brightness`.
+- 💡 **Truco reusable:** los dos exponen `Brightness` con **el mismo nombre**, así una sola llamada modula toda la sala. Y como el gradiente del muro llega a negro en `WallHeight`, **la tapa del cilindro se vuelve invisible** — se consigue "sin techo" sin recortar geometría.
 - `Stages/Touch/Materials/M_TouchUnlit` — base **Unlit + Emissive** con parámetros `EmissiveColor` y `Brightness`; instancias `MI_Laser`, `MI_Bubble`, `MI_Slot`. Patrón correcto para Quest (ver `materials-vr.md`).
 - `Stages/Movement/Materials/M_Brush_Light` — unlit + Fresnel, aditivo con borde suave (validado en visor dibujando).
 

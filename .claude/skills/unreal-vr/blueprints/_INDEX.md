@@ -16,7 +16,19 @@
 |---|---|---|---|---|
 | **BP_VRPawn_SC** | `Core/Pawn/` | El pawn VR de la obra (derivado del VR template; obra sentada). | ⚪ | — |
 | **BP_SoulChargerGameMode** | `Core/Flow/` | GameMode; `DefaultPawnClass = BP_VRPawn_SC`. | ⚪ | — |
-| **BP_FlowDirector** | `Core/Flow/` | Orquestador maestro del flujo entre stages (level streaming del persistente). | ⚪ por auditar | — |
+| **BP_FlowDirector** | `Core/Flow/` | 🔴 **AUDITADO 2026-08-11: es un SMOKE TEST, no el director.** Delays hardcodeados de 5/8/3 s que cargan `L_Test_Stage` y hacen un fade. Solo 2 variables. **Valor real: probó que `LoadLevelInstance(byName)` y `BP_FadeSphere.StartFade` funcionan.** Tiene el bug de llamar `LoadLevelInstance` **sin** `OptionalLevelNameOverride` → filtra un paquete nuevo por llamada. Lo reemplaza `BP_StageDirector` (§9.4). | 🗑️ a deprecar | — |
+
+## 🦴 Esqueleto de la obra — paso 1 del orden de construcción (`Core/`, rama `core/esqueleto`)
+> Nivel persistente + caminata entre salas. Es el **mayor riesgo técnico de la obra** y todo lo demás cuelga de ahí (`docs/OBRA-SOUL-CHARGER.md` §10). Empezado 2026-08-11.
+
+| Blueprint | Ruta | Qué hace | Estado | Tracker |
+|---|---|---|---|---|
+| **BP_Room** | `Core/Rooms/` | La sala placeholder: piso disco de 10 m con patrón + cilindro de muro de 4,5 m sin techo, en el origen. `SetLight(Alpha)` sube y baja su luz; `Configure(Nombre, Acento)` la pinta desde el director. Se instancia como **streaming sublevel** (`Maps/Rooms/L_Room_Placeholder`). | 🟡 falta visor | [✓](BP_Room.md) |
+| **BP_Walker** | `Core/Movement/` | La caminata: spline + rampa smoothstep + bob vertical y giro **acoplados a la cadencia del paso** + viñeta. Rango por tramo (`StartWalk(From, To, RampIn, RampOut)`) porque la caminata son **dos tramos de 5 m** con el negro en el medio. Todo parametrizable, incluido a cero. Vive en el persistente. | 🟡 falta visor | [✓](BP_Walker.md) |
+| **BP_Vignette** | `Core/UI/` | Viñeta de comodidad: esfera pegada a la cámara (patrón de `BP_FadeSphere`), máscara **geométrica** (correcta en estéreo, no screen-space). Sin colisión para no tapar los line traces. | 🟡 falta visor + medición | [✓](BP_Vignette.md) |
+| **BP_Door** | `Core/Doors/` | §9.8: dos paneles de 3×4 m, cartel con `StageName`, plano negro detrás, `Reveal`/`Open`/`Close` + `OnPawnPassed`. **No existe durante la etapa**: se revela al terminar. | ⬜ **sin construir** | — |
+| **BP_StageDirector** | `Core/Flow/` | §9.4/§9.2: el ciclo precarga → baja la luz + revela la puerta → negro → swap + reposiciona el pawn → abre y sube la luz. Reemplaza a `BP_FlowDirector`. | ⬜ **sin construir** | — |
+| **BP_DebugDirector** | `Core/Debug/` | §9.9: `ForceComplete(bFastCharge)` por el mismo camino que una finalización real, y HUD de debug. Suelto en el persistente. | ⬜ **sin construir** | — |
 | **BP_SignalProvider** | `Core/Signals/` | Abstracción de la señal biométrica (respiración/latido/EEG) que consumen los stages. | ⚪ por auditar | — |
 | **BP_SignalProvider_Fake** | `Core/Signals/` | Mock de señal para testear sin sensor real. | ⚪ por auditar | — |
 | **BP_FadeSphere** | `Core/UI/` | Esfera de fade a negro (transiciones). Compartida por los stages. | 🟢 | — |

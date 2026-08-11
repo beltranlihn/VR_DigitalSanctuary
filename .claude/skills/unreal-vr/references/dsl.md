@@ -54,6 +54,24 @@ Named exec outputs are sub-lists whose head starts with `:` and come AFTER data/
 - `find_node_types(graph, type_id_filter, context_pins:[])` to get the exact `type_id`.
 - `get_node_type_pins(graph, type_id)` for exact pin names (and the derived `_underscore` output vars).
 
+## 🔴 Tres trampas del parser (pagadas 2026-08-11 construyendo el esqueleto)
+
+### 1. UN SOLO nodo multi-exec, y va AL FINAL. Todo lo que le siga es "unreachable"
+`if`, `switch`, `CastTo*` e `IsValid` **terminan la lista de statements**. Poner cualquier cosa después da:
+```
+Unreachable code after branch/return: [...]
+```
+No importa que en Blueprint el pin falso del `if` pueda seguir: el parser no lo permite. **Dos consecuencias prácticas:**
+- Si necesitás un `IsValid` en el medio, **extraelo a una función aparte** (`add_function_graph` → `write_graph_dsl`) y llamala con `(CallFunction|MiFn :Arg v)`, que **no** es una rama y por lo tanto no corta la lista. Es el mismo consejo de la §4 de arriba, pero acá es obligatorio, no cosmético.
+- Si el multi-exec es solo para cachear una referencia (el caso típico del `CastTo`), **movelo al final** y poné antes todos los `Set` que no dependen de él.
+
+### 2. El Construction Script se escribe `(fn ConstructionScript ...)`
+Aunque el grafo se llame `:UserConstructionScript`, escribir `(fn UserConstructionScript ...)` falla con *"AddEvent|UserConstructionScript does not exist"*. **El nombre del `fn` es `ConstructionScript`** (lo confirma un `read_graph_dsl` de cualquier BP nuevo, que devuelve `(fn ConstructionScript ())`).
+
+### 3. Un `type_id` puede estar DUPLICADO y el DSL elige el que no querés
+`find_node_types` puede devolver el **mismo string dos veces** cuando hay dos funciones homónimas en clases distintas. Medido con `Rendering|Material|SetScalarParameterValue`, que existe para `MaterialInstanceDynamic` **y** para `MaterialParameterCollection`; el DSL toma la segunda y falla con *"Could not connect pin MIDFloor to **Collection**"*. **El nombre del pin en el mensaje de error te dice qué overload agarró.**
+→ Salida limpia para materiales: usar las variantes sobre el componente, **`Rendering|Material|Set{Scalar,Vector}ParameterValueonMaterials`** (`self` = MeshComponent, `ParameterName`, `ParameterValue`). Crean y reusan el MID internamente, así que **eliminan la variable MID, el `CreateDynamicMaterialInstance` y el `IsValid`** — menos nodos y ninguna ambigüedad. Si de verdad necesitás el overload exacto, hay que ir por `create_node` con `declaring_class`.
+
 ## 🔴 Escribir DSL COMPACTO — reglas para no inflar el grafo (aprendidas a la mala)
 El conteo de nodos explota por DOS causas: (1) **escombros de reescritura**, (2) **subexpresiones repetidas**. Las dos se controlan.
 

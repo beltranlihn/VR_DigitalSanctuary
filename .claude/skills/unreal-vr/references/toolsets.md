@@ -56,10 +56,12 @@ AddUserVariables(system, [{"name":"User.Beam_Start","description":"...",
 - **read_graph_dsl**(graph) / **write_graph_dsl**(graph, code) / **get_graph_dsl_docs**() — see dsl.md. write DUPLICATES existing events → only for new/empty graphs.
 
 **Variables**
-- **add_variable**(blueprint, name, type_name, graph?, container_type?) — prims + Vector/Rotator/Transform/Vector2D/LinearColor.
-- **add_object_variable**(blueprint, name, object_class, graph?, container_type?) / **add_struct_variable**(blueprint, name, struct_type, graph?, container_type?).
+- **add_variable**(blueprint, name, type_name, graph?, container_type?) — prims + Vector/Rotator/Transform/Vector2D/LinearColor. ✅ **`Text` también funciona.**
+- **add_object_variable**(blueprint, name, object_class, graph?, container_type?) / **add_struct_variable**(blueprint, name, struct_type, graph?, container_type?). Para una clase de BP el `object_class` es el **`_C`**: `/Game/.../BP_X.BP_X_C`.
 - **list_variables**(blueprint) / **remove_variable**(blueprint, name).
-- **set_variable_instance_editable**(…) / **set/get_variable_category** / **set/get_variable_replication**.
+- **set_variable_instance_editable**(blueprint, **`variable_name`**, instance_editable) — 🔴 el parámetro es **`variable_name`**, NO `name` (a diferencia de `add_variable`/`remove_variable`, que sí usan `name`). / **set/get_variable_category** / **set/get_variable_replication**.
+
+🔴 **Después de `add_variable` hay que `compile_blueprint` ANTES de poder escribir su default en el CDO.** Si no, `set_properties` sobre el `Default__X_C` falla con *"the following properties could not be set"* — el CDO todavía no tiene el campo. Orden correcto: `add_variable` → `compile_blueprint` → `set_properties` sobre el CDO → `get_properties` para verificar → `compile_blueprint`.
 
 **Functions / events / dispatchers**
 - **add_function_graph**(blueprint, graph_name) / **remove_function_graph**(blueprint, graph_name).
@@ -131,12 +133,21 @@ Add StaticMeshComponent primitives to an actor — pass the BP's **CDO** (get_de
 - **set/is_nanite_enabled**(mesh[, enabled]) / **remove_collisions** / **generate_convex_collisions**(mesh, hull_count?, max_hull_verts?, hull_precision?).
 
 ## MaterialTools (`editor_toolset.toolsets.material.MaterialTools`)
+🔴 **Los nombres de parámetro van COMPLETOS — este archivo los tuvo abreviados y cada uno costó un round-trip** (corregido 2026-08-11): es **`material_or_function`** (NO `mat_or_fn`), **`from_expression`/`to_expression`** (NO `from_expr`/`to_expr`), **`expression`**, **`material`**. El error que devuelve es claro (`input param "X" is required ... but is missing`), así que se detecta rápido, pero no hay razón para pagarlo.
 - **create_material**(folder_path, asset_name) / **create_function**(…) / **create_parameter_collection**(…).
-- **add_expression**(mat_or_fn, expression_class: ref, x?, y?) / **delete_expression** / **get_expressions** / **list_expression_classes**(…, search).
-- **connect_expressions**(from_expr, from_output_name, to_expr, to_input_name) / **disconnect_expressions**(to_expr, to_input_name).
-- **connect_to_output**(expr, output_name, material_property: enum e.g. MP_BaseColor) / **disconnect_from_output**(mat, material_property).
-- **get_expression_input_names/output_names**(expr) / **get_expression_inputs** / **get_property_input**(mat, property).
-- **list/rename/delete_parameter_group** / **layout_expressions** / **delete_unused_expressions** / **recompile**(mat_or_fn) (once when done).
+- **add_expression**(**material_or_function**, expression_class: ref, x?, y?) / **delete_expression**(**material_or_function**, expression) / **get_expressions** / **list_expression_classes**(**material_or_function**, search).
+- **connect_expressions**(**from_expression**, from_output_name, **to_expression**, to_input_name) / **disconnect_expressions**(to_expression, to_input_name).
+- **connect_to_output**(expression, output_name, material_property: enum e.g. MP_BaseColor) / **disconnect_from_output**(mat, material_property).
+- **get_expression_input_names/output_names**(expression) / **get_expression_inputs** / **get_property_input**(**material**, material_property).
+- **list/rename/delete_parameter_group** / **layout_expressions** / **delete_unused_expressions** / **recompile**(**material_or_function**) (once when done).
+
+⛔ **NO corras `ObjectTools.list_properties` sobre un Material: son ~10k chars.** Los flags que se usan de verdad son `shadingModel` (`MSM_Unlit`), `blendMode` (`BLEND_Opaque`/`BLEND_Translucent`), `twoSided`, `bFullyRough`, `bDisableDepthTest`, `bUsedWithStaticLighting`. Verificá con `get_properties` pidiendo solo esos.
+
+✅ **Cómo verificar un material de una sola llamada:** `MaterialInstanceTools.list_parameters(<el MATERIAL, no una instancia>)` devuelve los parámetros que el material **compilado** expone, con tipo y nombre. Si el nombre que esperabas está ahí, quedó bien puesto Y el material compiló. Cerrá con `get_property_input` para confirmar qué expresión alimenta el output.
+
+⚠ **`MaterialExpressionWorldPosition` ya trae salidas `XYZ` / `XY` / `Z`** — no hace falta un `ComponentMask` para sacar el plano o la altura.
+⚠ Nombres de propiedades de expresiones (para `set_properties`): Scalar/VectorParameter = `parameterName` + `defaultValue`; `MaterialExpressionConstant` = `r`; `Constant3Vector` = `constant`; `ComponentMask` = `r`/`g`/`b`/`a`.
+⚠ **El material de un COMPONENTE no se setea con `StaticMeshTools.set_material`** (esa tool exige un asset StaticMesh) → va por `ObjectTools.set_properties` con `{"overrideMaterials":[{"refPath":"..."}]}`.
 
 ## MaterialInstanceTools (`editor_toolset.toolsets.material_instance.MaterialInstanceTools`)
 - **create**(folder_path, asset_name, parent) / **set_parent**(instance, parent) / **list_parameters**(material).
