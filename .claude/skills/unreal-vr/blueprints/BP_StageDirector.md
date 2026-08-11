@@ -67,10 +67,31 @@ El loop cierra en `ShowAndEnter`, así que con el placeholder recorre las 3 etap
 - ✅ **`OptionalLevelNameOverride` en cada `LoadLevelInstance`** (`Room_0`, `Room_1`, …). Sin eso cada llamada crea un paquete nuevo y **filtra niveles**. Verificado en el log de PIE: las instancias se cargan como `Room_N`.
 - ✅ **Precarga invisible**: el nodo BP de `LoadLevelInstance` **no expone `bInitiallyVisible`** y su default en el struct es `true`, así que se llama `SetShouldBeVisible(false)` inmediatamente después. Es la única forma de conseguir el "Make Visible After Load = false" del §9.2 por Blueprint.
 - ✅ El swap sólo **cambia visibilidad**, que es lo instantáneo; la carga ya ocurrió segundos antes, durante el revelado de la puerta.
-- ⚠ **Pendiente:** disparar por el delegate **`OnLevelShown`** en vez de por `BlackHold`. El nodo existe y está verificado (`EventDispatchers|AssignOnLevelShown`); no se usó todavía para no depender del nombre del evento autogenerado. Hoy `BlackHold` = 0.5 s alcanza porque el nivel ya está cargado, pero **es una suposición temporal y el doc pide eventos de completado**.
+- 🔴🔴 **BUG ACTIVO — `BlackHold` es una CARRERA, no una espera.** Es el bug #0 y hay que arreglarlo antes de seguir. Ver abajo.
 
 ## 🐛 Bugs conocidos
-1. 🔴 **`OnPawnPassed` de la puerta nueva dispara espurio en el swap.** Visto en el log: dos `OnPawnPassed` seguidos, uno legítimo y otro 0,7 s después, justo tras el swap. Causa: al momento del swap el pawn está en X≈500 (fin del tramo de salida) y la puerta de la sala nueva está en X=460, así que `dot(pawn−door, forward) > 0` es verdadero **antes** de que el tramo de entrada lo reposicione a −500. Como `bPassed` se pone una sola vez, el cruce real de esa puerta después **ya no dispara**.
+
+### 0. 🔴🔴 `BlackHold` es una CARRERA contra `AddToWorld` — el bug prioritario
+**Detectado por log el 2026-08-11, y es el caso de libro de lo que `streaming-arch.md` prohíbe.** El log decía:
+```
+DIR: swap hecho bajo negro
+DIR: la sala visible no tiene BP_Room
+DIR: la sala visible no tiene BP_Door
+```
+`SetShouldBeVisible(true)` arranca un **`AddToWorld` incremental**; los actores del sublevel no están en el mundo hasta que termina. `EnterRoom` corría `BlackHold` después del swap y buscaba `BP_Room`/`BP_Door` con `GetActorOfClass` → **null**, los casts fallaban, y como `SetRoomRef` sólo se llama en la rama de éxito, **`RoomRef` se quedaba apuntando a la sala VIEJA, que acababa de ocultarse** → la luz se rampeaba en una sala invisible.
+
+⚠ **Y lo agravamos nosotros:** bajar `s.LevelStreamingActorsUpdateTimeLimit` de 5.0 a 1.5 ms (correcto para el presupuesto de frame de Quest) hace `AddToWorld` **más lento**, así que la ventana de la carrera es más ancha justamente en el target.
+
+🔴 **Insidioso:** con `BlackHold = 0.5` la carrera se gana a veces. La primera corrida completa pareció andar perfecta; la falla apareció recién en la segunda. **Una corrida verde no prueba nada acá.**
+
+**Mitigación aplicada (NO es el fix):** `BlackHold` 0.5 → **2.0 s**. Verificado por log: con 2.0 los mensajes de cast fallido desaparecen. Es barato y además el negro largo está **narrativamente motivado** (§9.2: "entre sala y sala hay vacío"). Pero sigue siendo una suposición temporal y **en device, con carga más lenta, puede volver**.
+
+**El fix real, en orden de preferencia:**
+1. **Esperar la condición que de verdad importa: que el actor exista.** Un evento `TryEnter` que llame `CacheRoom` y, si `RoomRef` no es válido, se re-agende a sí mismo cada 0.1 s hasta que lo sea. Es más robusto que `OnLevelShown` para este uso, porque lo que el director necesita no es "el nivel es visible" sino "los actores están".
+2. **`OnLevelShown`**, que es lo que pide el doc. Nodo verificado: **`EventDispatchers|AssignOnLevelShown`** (auto-genera el custom event tipado, patrón de `AssignOnOscMessageReceived` en `nodes.md`). ⚠ El binding tiene que vivir en el **EventGraph** (los eventos no existen en grafos de función), y el EventGraph ya está escrito → hay que hacerlo por **cirugía de nodos**, no reescribiendo.
+3. En cualquiera de los dos casos, **limpiar `RoomRef`/`DoorRef` antes de re-cachear**, para que un fallo no pueda quedar manejando la sala anterior en silencio.
+
+### 1. 🔴 **`OnPawnPassed` de la puerta nueva dispara espurio en el swap.** Visto en el log: dos `OnPawnPassed` seguidos, uno legítimo y otro 0,7 s después, justo tras el swap. Causa: al momento del swap el pawn está en X≈500 (fin del tramo de salida) y la puerta de la sala nueva está en X=460, así que `dot(pawn−door, forward) > 0` es verdadero **antes** de que el tramo de entrada lo reposicione a −500. Como `bPassed` se pone una sola vez, el cruce real de esa puerta después **ya no dispara**.
    **Fix propuesto:** gatear `CheckPassed` a que la puerta esté revelada (`RevealProgress > 0.5`). Es semánticamente correcto además: una puerta que todavía no existe (§9.8) no se puede cruzar. Requiere borrar y recrear el grafo `CheckPassed` (reescribirlo duplicaría el cuerpo).
    **Impacto hoy: ninguno** — nadie consume el dispatcher todavía. Pero hay que arreglarlo **antes** de que el director lo use.
 2. ⚠ **La puerta abre antes del negro, no después.** El §9.2 literal dice `negro completo -> swap -> la puerta abre`. Acá abre durante la aproximación, así que se camina a través de una puerta abierta hacia el negro. Se hizo así porque con todas las salas en el mismo origen, la puerta que "abre revelando la sala nueva" quedaría **detrás** del pawn tras el swap. **Es una decisión autoral pendiente de Beltrán**, no un descuido.
