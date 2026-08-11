@@ -84,7 +84,24 @@ Si algún día se quiere un camino curvo dibujado a mano, hay que **sacar esta l
 ## Session log
 - **2026-08-11** — creado. Defaults verificados efectivos en el CDO con `get_properties`. Rediseñado a mitad de camino para tomar rango explícito (`FromDist`/`ToDist`/flags) al notar que una caminata de un solo tramo da solo ~2,9 s, la mitad del beat que pide el doc.
 
+## 🔴 Falta la caminata de la INTRO, que es OTRA caminata (§3, aclarado 2026-08-11)
+El mapa de distancias de arriba describe la caminata **entre salas**. Pero §3 tiene otra, antes de todo: al apretar **Start** en el menú, el pawn avanza por la oscuridad hasta la puerta del Center. Y no se parece:
+
+| | Entre salas | **Intro** |
+|---|---|---|
+| Duración | ~5,7 s (dos tramos de 5 m) | **~45 s**, con **30–40 s de avance estable** |
+| Largo | 10 m | **52–70 m** a 175 cm/s |
+| Forma | centro → umbral, negro, umbral → centro | **un solo avance continuo** hacia la puerta |
+| Entorno | dentro de una sala iluminada | **oscuridad**, sin sala cargada |
+
+🔴 **Por qué los 30–40 s no son negociables:** §3 dice que *"la caminata de la intro tiene dos trabajos: instala el mood **y es donde se toma el baseline**"* (§5). Si se acorta, la medición no tiene de dónde promediar. **Es un requisito de la instrumentación, no de ritmo.**
+
+**Consecuencia práctica:** `PathHalfLength` (500 cm) sirve para las transiciones y **no** para la intro. Opciones: una segunda instancia de `BP_Walker` con su propio `PathHalfLength` largo, o hacer el camino un parámetro por llamada. Decidir cuando se construya la intro; **no forzar el mismo spline para las dos cosas.**
+
+⚠ Y hay que verificar que el bob y la viñeta **aguanten 40 s seguidos** sin cansar. Todo lo probado hasta ahora son tramos de ~6 s; 40 s de oscilación continua es un régimen distinto y puede necesitar amplitudes más bajas que las de las transiciones.
+
 ## TODO
+- [ ] 🔴 **La caminata de la intro** (arriba): camino largo propio + validar 40 s continuos en visor.
 - [ ] 🔴 **Test en visor, y con gente ajena al equipo** (§9.2 lo pide explícitamente). El orden de ajuste sugerido: primero `AccelTime`, después `VignetteMax`, y recién al final las amplitudes del bob.
 - [ ] Probar el caso `BobHeight = BobRollDeg = VignetteMax = 0` — tiene que quedar una traslación lisa y usable, es el modo accesible.
 - [ ] Medir el costo de la viñeta en device (es translúcida y llena pantalla; ver el TODO de `BP_Vignette`).

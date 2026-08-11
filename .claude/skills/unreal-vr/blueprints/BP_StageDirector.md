@@ -15,6 +15,25 @@ la puerta abre -> la nueva sala sube de luz
 ## Status
 🟡 **Ciclo completo funcionando y loopeando, verificado por log en PIE (2026-08-11).** Falta el test en visor y quedan 2 bugs conocidos (abajo).
 
+## 🔴🔴 LA OBRA NO EMPIEZA ACÁ — hay una INTRO antes (§3), y cambia supuestos
+Aclarado por Beltrán el 2026-08-11 y confirmado contra §3 del documento maestro. **La experiencia arranca en negro con logos, título y menú principal (Start / About); recién al apretar Start el pawn empieza a avanzar, y avanza hasta la puerta del Hall.** La escena completa:
+
+| # | Escena | Duración |
+|---|---|---|
+| 0 | **Intro** — logos, título, Start / About | — |
+| 1 | **Oscuridad** — voz femenina espacializada | ~45 s |
+| 2 | **La caminata** — desde el botón Start. Pasos, silueta de puerta, *Soul Charger Center*. **Timbre: apoyás la mano y te escanea** | ~45 s |
+| 3 | **Hall** — Alma recibe, explica las etapas, calibración, elegís tu Proto Soul | ~90 s |
+| 4–8 | Las cinco etapas | 5 × ~2 min |
+| 9 | **Sala final** — la arquitectura se transforma, **NO hay compuerta** | ~2 min |
+
+**Lo que esto corrige de lo ya construido:**
+1. ✅ **El director NO es dueño del arranque** — arreglado. `BeginPlay` ya no dispara la experiencia: llama `MaybeAutoStart()`, que sólo arranca si **`bAutoStart`** (true hoy, para poder probar). **El punto de entrada público es `StartExperience()`**, que es lo que va a llamar el botón Start del menú. Que el director **quede en negro esperando** ya es el comportamiento correcto (§3 escena 0). La precarga de la primera sala sigue en `BeginPlay`, y eso es **deseable**: la intro y el menú dan de sobra para cargar sin hitch.
+2. 🔴 **La caminata de la intro NO es un beat de 5–7 s: son ~45 s**, y §3 pide **30–40 s de avance estable** porque *"la caminata de la intro tiene dos trabajos: instala el mood y es donde se toma el baseline"* (§5). A 175 cm/s eso son **52–70 m** de spline, contra los 10 m de `PathHalfLength` actual. **La intro necesita su propio camino largo, no el spline de transición entre salas.** Ver el TODO de [[BP_Walker]].
+3. ⚠ **Son 7 salas, no 5**: Hall + 5 etapas + sala final. `StageNames`/`StageColors` hoy tienen 3 entradas placeholder y confunden "sala" con "etapa". Cuando entre `BP_StageBase` hay que separar los dos conceptos.
+4. ⚠ **La sala final no lleva puerta** ("no hay compuerta"): el ciclo de transición **no aplica** al último tramo. El director necesita un caso terminal, no `WrapIndex` en loop.
+5. 💡 **El timbre del Center es el tutorial del gesto del sensor** (§3): apoyar la mano para que te escanee es la misma gramática que tomar el sensor. El timbre y los sensores **deben parecerse visualmente**. Es un requisito de diseño para cuando se construya la puerta del Hall, no un detalle.
+
 ## Cómo está encadenado
 🔴 **Los saltos entre tramos van por `SetTimerByFunctionName`, no por `Delay`.** Un `Delay` no es válido dentro de una función, y el ciclo necesita esperas entre pasos; los timers por nombre funcionan sobre **custom events** igual que sobre funciones, así que cada tramo es un evento aparte y el anterior lo agenda. Ventaja lateral: cada tramo es un punto de entrada nombrado, así que `BP_DebugDirector` va a poder saltar a cualquiera.
 
