@@ -36,9 +36,23 @@ Como la esfera está attacheada con `SnapToTarget`, su **+X local es el frente d
 
 | Parámetro | Default | Qué ajusta |
 |---|---|---|
-| `InnerCos` | 0.80 | Dónde **empieza** a oscurecer. Más alto = agujero central más chico. |
-| `OuterCos` | 0.35 | Dónde llega a negro pleno. La distancia entre los dos define lo suave del borde. |
+| `InnerCos` | **0.92** | Dónde **empieza** a oscurecer. Es un **coseno**: 0.92 → empieza a 23° de la mirada. Más alto = agujero central más chico. |
+| `OuterCos` | **0.55** | Dónde llega a negro pleno. 0.55 → 57°, justo en el borde del display. La distancia entre los dos define lo suave del degradado. |
 | `Amount` | 0.0 | Opacidad global. Lo maneja `BP_Walker`. **Arranca en 0.** |
+
+### 🔴🔴 Los dos parámetros son COSENOS, y calibrarlos "a ojo" da una viñeta invisible
+**Pasó el 2026-08-11: la primera versión no se sentía en visor y todo el plumbing estaba bien.** Los valores originales eran `InnerCos = 0.80` / `OuterCos = 0.35`, que suenan razonables y son **geométricamente inútiles en un HMD**:
+
+| | Ángulo | Qué pasaba |
+|---|---|---|
+| `InnerCos` 0.80 | θ = 37° | opacidad **exactamente 0** en los 74° centrales de la visión |
+| `OuterCos` 0.35 | θ = 70° | el negro pleno cae **detrás del borde de la pantalla** |
+
+El Quest 3 muestra ~**±55°**. En la esquina extrema del display la opacidad efectiva era `(1 − smoothstep(0.35, 0.80, cos 55°)) × 0.55 ≈ 0.28`: un velo del 28% en el rincón y nada en el resto. **Imperceptible.**
+
+🔴 **La regla:** los dos parámetros hay que elegirlos desde el **FOV real del visor**, no desde números que "se vean bien" en un material preview de escritorio. Referencia rápida: `cos 20° = 0.94` · `cos 30° = 0.87` · `cos 40° = 0.77` · `cos 50° = 0.64` · `cos 55° = 0.57`. **`InnerCos` tiene que estar bien por encima de `cos(FOV/2)`** o el degradado entero queda fuera de la pantalla.
+
+⚠ **Cómo se diagnosticó, porque el método importa más que el número:** se verificaron una por una las tres declaraciones sin confirmar (`twoSided`/`blendMode` del material, el material asignado al componente, el `MP_Opacity` conectado) y las tres estaban **bien**. Con el plumbing descartado por lectura y no por fe, el único candidato que quedaba era la geometría del mask — y ahí la cuenta cerró sola. Si me hubiera puesto a "probar cosas" en el material, habría tardado horas.
 
 ## TODO
 - [ ] 🔴 **Medir en device con OVR Metrics.** Es una superficie translúcida que cubre buena parte de la pantalla, y Meta mide que el translúcido cuesta **~80 % más de GPU por frame que el masked** (`references/materials-vr.md`). El proyecto es **fill-rate bound**.
