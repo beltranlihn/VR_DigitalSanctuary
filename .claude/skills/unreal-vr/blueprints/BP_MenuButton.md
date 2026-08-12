@@ -88,3 +88,29 @@ El DSL **no puede crear eventos de input**. Van con `create_node` + `connect_pin
 
 ## Relacionados
 - [[BP_IntroSequence]] (quien los arma y los consume) · [[BP_Sensor]] (la receta de proximidad por mano) · `BP_SaveButton` (hover + hold + la trampa de la escala) · `references/assets-existentes.md` (por qué `IA_Shoot_*`)
+
+---
+
+## 🔴🔴 REGLA DE ARQUITECTURA (Beltrán, 2026-08-12): spawnear, matar, y ubicar con TargetPoints
+*"Ojalá tooodo hagamos que se spawnee y después que se elimine. Siempre usando target points para que sean fáciles de ubicar. Por lo menos todo lo que se pueda y valga la pena. VR se trata de optimizar."*
+
+**Aplica a TODO el proyecto, no sólo a los botones.** Tres partes:
+1. **Nada existe antes de su momento.** Si el usuario todavía no lo tiene que ver, **no está spawneado**.
+2. **Nada sobrevive a su momento.** Lo que ya no se va a usar se **destruye**, no se esconde. Cero residuos.
+3. **La posición se autora con `TargetPoint` + tag**, nunca con coordenadas en Blueprint. Así se mueve en el viewport sin tocar código, y quedan simétricos por construcción.
+
+💡 **El patrón ya está probado dos veces en el proyecto**: `BP_AttractDirector` con el tag `BubbleSpawn`, y [[BP_SoulChoice]] con `SoulSpawn`. Su tracker lo dice: *"para cambiar cuántas/dónde flotan se agregan o mueven TargetPoints, no se toca ningún Blueprint"*.
+
+### Estado: a medio camino (2026-08-12)
+Lo reportado en visor fue: *"los botones existen antes de aparecer al frente, los veo abajo lejos"* y *"hay uno más arriba y otro más abajo"*.
+
+**Paliativo aplicado** (para que se pueda seguir probando): el botón **nace oculto** (`SetActorHiddenInGame(true)` al final de su `BeginPlay`), `Arm()` lo muestra y `Fire()` lo vuelve a ocultar. Eso mata el síntoma de verlos antes, pero **sigue siendo esconder, no spawnear**.
+⚠ **Trampa mordida al hacerlo:** insertar el nodo "al principio del grafo" buscando el nodo de entrada **agarró el `Tick` en vez del `BeginPlay`** (un EventGraph tiene varios eventos), y quedó un `SetActorHiddenInGame(true)` **por frame** — o sea el botón invisible para siempre. **Al insertar en un EventGraph hay que elegir el evento por su `type_id`, no "el primero que aparezca", y releer el grafo después.**
+
+### 🔴 El refactor que corresponde, y es el próximo paso
+1. **Sacar las dos instancias pre-colocadas** de `L_Persistent`.
+2. **Dos `TargetPoint` con tag `MenuSpawn`**, colocados a mano donde queden cómodos sentado (~45 cm al frente, simétricos, a la altura del pecho). **Ahí se resuelve el "uno más arriba que otro"**: si los dos salen del mismo par de puntos autorados, no hay asimetría posible.
+3. La intro, al mostrar el título: `GetAllActorsOfClassWithTag(TargetPoint, "MenuSpawn")` → **spawnea** un `BP_MenuButton` por punto → asigna el `LabelText` **por índice** (0 = START, 1 = ABOUT US) → `Arm()`.
+4. Al apretar cualquiera: **`DestroyActor` de los dos**.
+5. Se pueden borrar entonces `CacheButtons`, `SortButton`, `PlaceButtons` y `PlaceOne` — el spawn en el punto reemplaza toda la ubicación por código.
+6. Aserciones en [[BP_SelfTest]]: **0 botones antes del título** y **2 después**, con textos distintos. Eso verifica el spawn Y el kill sin visor.
