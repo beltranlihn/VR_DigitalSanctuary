@@ -40,6 +40,13 @@ Sacado de su tracker, que documenta 5 cosas que ya costaron tiempo:
 | `bTaken` | false | Ya está en la mano; apaga el chequeo. |
 | `HandRef` | — | El `MotionControllerComponent` **de su propia mano**, cacheado del pawn. |
 
+## 🆕 Modo CUALQUIER MANO — la mano hábil del §7 (2026-08-12, pedido de Beltrán)
+*"La persona lo agarra con su mano hábil. Al tomarlo se pone en esa mano, y en la otra aparece el otro sensor automáticamente."*
+- **`bAnyHand`** (instance-editable, false): en true, el sensor responde a **las dos manos**. `TickTake` ahora es un dispatcher: `bAnyHand → TickTakeAny` (cachea ambas manos vía `CacheBoth` + `CheckTakeHand(H, IsRightHand)` por mano) · si no → `TickTakeOwn` (el comportamiento clásico por `bIsRight`).
+- Al tomar en modo any-hand: `HandRef = la mano que tocó`, **`bTookRight`** registra cuál fue, `bIsRight` se alinea, y `Take()` attachea. Log: `SENSOR: tomado con la DERECHA/IZQUIERDA - mano habil registrada`.
+- El flujo completo vive en [[BP_Stage_Hall]]: spawn de UNO en `TP_Sensor` (tag `SensorSpawn`) → poll `bTaken` → al tomarlo, **el segundo se spawnea y se attachea a la otra mano** (`SetIsRight(!TookRight)` → `CacheHand()` → `Take()`, "cerrado y dormido") y **`bRightHanded` se persiste en el GameInstance** (`BP_SoulState`).
+- ⚠ Guion §7 pendiente: *"si nadie toma nada en N segundos, se asigna la derecha y se sigue"* — hoy el sensor no tomado simplemente **se destruye** al cerrar el Hall (cero residuos). El auto-asignar va con las etapas reales.
+
 ## Estructura de grafos
 - **`BeginPlay`** — `CacheHand()` · `SetMode(Mode)` (aplica el modo autoral de entrada).
 - **`Tick`** — si `bTakeEnabled` **y** no `bTaken` → `TickTake()`.
