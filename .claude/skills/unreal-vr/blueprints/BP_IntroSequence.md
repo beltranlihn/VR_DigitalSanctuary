@@ -43,6 +43,31 @@ El material de fábrica `DefaultTextMaterialOpaque` es **`MSM_DefaultLit`**. La 
 `M_IntroLogo` es **unlit, opaco y TwoSided**: `Emissive = LogoTex.rgb × Brightness × Op`. Con `Op = 0` el plano queda **negro**, y contra el fondo negro de la obra **eso ya es invisible**. Lo mismo con los textos: `SetTextRenderColor(MakeColor(Op,Op,Op,1))` va de negro a blanco.
 👉 **Cero translucidez**, que en Quest cuesta ~80 % más de GPU por frame, y cero problemas de orden de dibujado. Es la misma idea que hace funcionar el "sin techo" de `BP_Room`: en un mundo negro, apagar es desaparecer.
 
+## 🔴🔴 La intro NO pasa dentro del fade sphere — y el vacío es un actor propio
+**Reportado en visor el 2026-08-12: *"el título recién lo pude ver dentro de la sala"*.** O sea: los logos y el título **nunca se vieron** durante el negro. Causa: el director pone el fade sphere **opaco** en `BeginPlay` y no lo saca hasta `EnterRoom`; el panel está a 200 cm y la esfera a 30 cm de la cámara, así que **toda la intro pasaba detrás del negro**. Cuando la sala aparecía y el fade se abría, el título —que además nunca se apagaba— quedaba flotando adentro de la sala.
+
+**Dos arreglos:**
+1. **`ClearFade()` al arrancar el primer logo** (t = `BlackTime`): la intro cachea el director y le llama su `Fade(0, ClearFadeTime)`. Los 2 s de negro los sigue dando el fade sphere; de ahí en adelante la intro pasa **en el mundo**.
+2. **`HideTitleAndGo()`**: baja `TitleOpTarget` y `LogoOpTarget` a 0 y **después** —a `TitleFadeOut` (1 s)— llama `StartWalk`. Eso es lo que va a hacer el botón Start; hoy lo dispara `MaybeStart` por timer.
+
+🔴 **Regla del proyecto (dada por Beltrán): el fade sphere es SÓLO para fades.** No es el fondo de nada. Cualquier cosa que tenga que verse durante un fundido va **fuera** de él, y el negro de ambiente lo da el vacío.
+
+### 🌌 `BP_Void` + `M_Void` — el vacío negro azulado infinito (Core/UI/)
+Pedido: *"un espacio negro amplio donde luego pondré partículas y que se sienta amplitud infinita… un fondo negro medio azulado infinito"*.
+
+**Por qué NO `BP_Sky_Sphere`:** es el cielo del template, construido alrededor de una **luz direccional** (lee la dirección del sol para el resplandor del horizonte y el disco solar) y por un camino **lit**. Esta obra **no tiene ni una luz** y corre con `r.MobileHDR=False`: sin sol no se ve como nada, y cuesta más instrucciones por píxel de las que hacen falta.
+
+**Por qué NO Exponential Height Fog:** la niebla **necesita algo a qué atenuar**. En un vacío sin geometría sólo se ve su propio inscattering, que es exactamente lo que da un degradado plano por una fracción del costo. La niebla se gana el lugar cuando **hay salas** (difumina el muro lejano), no acá. Y la volumétrica está descartada en Quest (`lighting-quest.md`).
+
+**Lo que sí:** una esfera de **200 m de radio**, `M_Void` **unlit, opaco, TwoSided**, sin sombra, sin colisión y sin occluder:
+```
+Emissive = lerp(ColorBottom, ColorTop, saturate(WorldPosition.Z / Height))
+```
+Un draw call, sin texturas, ~3 instrucciones. Tres parámetros para regular en el editor: **`ColorBottom`** (0.0012, 0.0016, 0.0045) · **`ColorTop`** (0.005, 0.007, 0.019) · **`Height`** (20000).
+💡 **El degradado vertical es lo que lo hace leer como AMPLITUD y no como vacío**; un negro plano no tiene escala.
+🔴 **Pero la sensación de profundidad infinita la van a dar las PARTÍCULAS, no el fondo** — lo que vende escala es el **paralaje**. Un campo disperso de puntos emisivos chicos a distintas distancias hace más que cualquier degradado.
+⚠ **A medir en device:** una esfera opaca a pantalla completa es **fill**, y Quest es fill-rate bound. Es el shader más barato posible, pero conviene verificarlo con el profiler.
+
 ### ⚠ El panel va FUERA del fade sphere
 `BP_FadeSphere` es una esfera de **60 cm de diámetro** pegada a la cámara (escala 0.6 sobre la esfera del motor): nada cabe adentro. Por eso el panel se coloca a `PanelDistance` (200 cm) y **el negro de los 2 s iniciales lo da el mundo vacío**, no el fade. Funciona porque en ese momento no hay ninguna sala visible todavía.
 
