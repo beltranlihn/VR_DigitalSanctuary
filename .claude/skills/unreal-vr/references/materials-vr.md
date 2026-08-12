@@ -248,3 +248,25 @@ Esa fecha **ya pasó hace 4 meses**. El "target 32" viene del mandato Android 12
 7. **APK real en el casco.** Es el único nivel que ninguna doc desmiente: Epic desmiente el previewer, Meta desmiente Link, y el XR Simulator emula **la API, no la pantalla**.
 8. **Si ahora se ve sobresaturado** → mirar color space (Meta XR Plugin → Color Space; el default es **P3** y los paneles cubren **sRGB**). Preferir regradear antes que apagar la curva recién recuperada.
 9. **Autorar contra el panel, no contra el monitor** (piso de 13/255).
+
+---
+
+## 🔴🔴 Texto 3D: el material de fábrica es LIT → en esta obra el texto es INVISIBLE
+Diagnosticado el 2026-08-12 con el texto de la intro, y afectaba **a todos** los `TextRenderComponent` del proyecto (el cartel de `BP_Door` incluido, que nunca se había visto).
+
+`/Engine/EngineMaterials/DefaultTextMaterialOpaque` es **`MSM_DefaultLit`**. Soul Charger **no tiene luces** (todo unlit + emisivo), así que el texto sale **negro sobre negro**.
+
+👉 **Usar `Core/UI/Materials/M_TextUnlit`** en el `textMaterial` de cualquier `TextRenderComponent`. Su receta (copiada del material del motor, no adivinada):
+```
+shadingModel        MSM_Unlit
+blendMode           BLEND_Masked          ; el atlas del glifo necesita mascara
+twoSided            true
+opacityMaskClipValue 0.5                  ; 🔴 ver abajo
+Emissive       <-  VertexColor            ; TextRender pasa TextRenderColor como color de vertice
+OpacityMask    <-  FontSampleParameter, salida R
+```
+🔴 **La cobertura del glifo está en `R`, no en el alpha.** Con `A` el texto queda **invisible**.
+🔴 **`opacityMaskClipValue` = 0.5, no 0.333.** La fuente por defecto es `RobotoDistanceField`: su `R` es un **distance field** con el borde del glifo en 0.5; por debajo de eso sobrevive el "afuera" y el texto sale como **bloques rellenos**.
+💡 **`Emissive ← VertexColor` conserva el fade por `SetTextRenderColor`** — no hace falta ningún parámetro extra para animar la opacidad.
+
+⚠ **Negro opaco es invisible pero sigue ocluyendo.** Un plano opaco con emisivo 0 no se ve, pero **escribe profundidad** y tapa lo que esté detrás (cortó la mitad del título de la intro). Si algo tiene que desaparecer de verdad, `SetVisibility(false)`, no sólo apagarle el brillo.

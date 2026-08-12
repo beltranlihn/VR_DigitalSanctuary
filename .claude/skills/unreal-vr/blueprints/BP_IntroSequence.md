@@ -18,6 +18,27 @@ El "widget" es un **plano con material unlit** + `TextRenderComponent`, no un Wi
 | `TitleText` | `Soul Charger` (worldSize 24) |
 | `SubText` | `An interactive VR Biofeedback Experience` (worldSize 8) |
 
+### 🔴🔴 `M_TextUnlit` — sin esto, TODO el texto de la obra es invisible
+**Reportado en visor el 2026-08-12: *"les falta luz o emissive a los textos… se veía todo negro"*. Tenía razón, y era peor de lo que parecía: afectaba a *cualquier* `TextRenderComponent` del proyecto, incluido el cartel de [[BP_Door]], que nunca se había visto.**
+
+El material de fábrica `DefaultTextMaterialOpaque` es **`MSM_DefaultLit`**. La obra **no tiene ni una luz** (todo es unlit + emisivo), así que el texto renderiza **negro sobre negro**.
+
+`Core/UI/Materials/M_TextUnlit` es el reemplazo, y su receta salió de **abrir el material del motor y copiarla**, no de adivinar:
+| | |
+|---|---|
+| `shadingModel` | **`MSM_Unlit`** |
+| `blendMode` | **`BLEND_Masked`** (el atlas del glifo necesita máscara; opaco pinta el rectángulo entero) |
+| `twoSided` | true |
+| **`opacityMaskClipValue`** | 🔴 **0.5** |
+| Emissive | ← **`VertexColor`** |
+| OpacityMask | ← **`FontSampleParameter`**, salida **`R`** |
+
+🔴 **Dos detalles que costaron una captura cada uno:**
+1. **La cobertura del glifo está en el canal `R`, NO en el alpha.** Conectando `A` el texto queda **completamente invisible** (el material del motor usa `R`, vía un `LinearInterpolate`).
+2. **Con `opacityMaskClipValue` en 0.333 el texto sale como bloques rellenos.** La fuente por defecto es `RobotoDistanceField`: su `R` es un **distance field** donde el borde del glifo está en **0.5**. Con el clip por debajo sobrevive el "afuera" y se llena el cuadro.
+
+💡 **`Emissive ← VertexColor` es lo que mantiene vivo el fade**: `TextRenderComponent` pasa su `TextRenderColor` como **color de vértice**, así que `SetTextRenderColor(MakeColor(Op,Op,Op,1))` sigue funcionando igual y no hace falta ningún parámetro extra.
+
 ### 🔴 El fade es por EMISIVO, no por transparencia
 `M_IntroLogo` es **unlit, opaco y TwoSided**: `Emissive = LogoTex.rgb × Brightness × Op`. Con `Op = 0` el plano queda **negro**, y contra el fondo negro de la obra **eso ya es invisible**. Lo mismo con los textos: `SetTextRenderColor(MakeColor(Op,Op,Op,1))` va de negro a blanco.
 👉 **Cero translucidez**, que en Quest cuesta ~80 % más de GPU por frame, y cero problemas de orden de dibujado. Es la misma idea que hace funcionar el "sin techo" de `BP_Room`: en un mundo negro, apagar es desaparecer.
@@ -75,6 +96,24 @@ Cero errores. Y **`bAutoStart` del director quedó en `false`**: ahora el arranq
 - [ ] La tipografía de la obra (`Core/Font/Quicksand`) en los `TextRender` — hoy usan la del motor.
 - [ ] `M_IntroLogo` quedó con **5 expresiones huérfanas** de un script que falló a mitad (ver abajo). No afectan el material compilado; conviene limpiarlas a mano.
 - [ ] Test en visor: tamaño del título y distancia del panel sentado.
+
+## 🔴🔴 Y el bug de verdad: el material se lo puse a la CLASE, no a la instancia
+Con `M_TextUnlit` ya asignado en el CDO, el texto **seguía invisible**. La lectura de la instancia colocada lo delató:
+```
+CDO      TitleText.textMaterial = M_TextUnlit          ✅
+INSTANCIA TitleText.textMaterial = DefaultTextMaterialOpaque   ❌ (lit)
+```
+**Un actor colocado guarda las propiedades de sus componentes tal como estaban al colocarlo.** Cambiar el CDO después **no lo alcanza**. Es la **cuarta** vez esta semana que muerde el mismo patrón (el bob del walker, `bIsHUD`, las duraciones del director, y esto).
+👉 **Al cambiar cualquier propiedad de un componente en el CDO, setearla TAMBIÉN en las instancias colocadas y verificarla ahí.** Lo mismo hubo que hacer con el `Sign` de la puerta en `L_Room_Placeholder`.
+
+### 💡 Cómo se verificó sin visor: mirar, no suponer
+`EditorAppToolset.CaptureViewport` + `AssetTools.write_file` del base64 → decodificar con python → **leer el PNG**. Fue lo único que cerró el caso.
+🔴 **Y el control positivo fue clave**: con el texto invisible, poner el material en **opaco sin máscara** para ver si aparecían rectángulos blancos. No aparecieron → eso descartó el material y mandó a mirar la instancia. (Es la lección de `debugging-instrumento-sin-validar`: validar el instrumento antes de creerle a la medición.)
+⚠ `write_file` sólo escribe dentro de `VR_Test/Content` o `VR_Test/Saved`, y el parámetro es **`content`**.
+
+### ⚠ Negro opaco es invisible… pero sigue tapando
+En la primera captura legible, la mitad de abajo del título estaba **cortada en línea recta**: el `LogoPlane` (opaco, emisivo 0) está a la misma altura y **escribe profundidad**. Invisible al ojo, oclusor perfecto.
+→ El plano ahora nace **`bVisible = false`** (en el CDO **y** en la instancia); sólo se enciende cuando hay textura para ese logo.
 
 ## ⚠ Trampas mordidas al construirlo (2026-08-12)
 - 🔴🔴 **Un `execute_tool_script` que falla ROLLBACKEA lo que hizo… pero NO todo.** `add_variable`, `set_properties` y `write_graph_dsl` se revierten; **`add_expression` de materiales y `add_component` NO**. Dos intentos fallidos dejaron **5 expresiones huérfanas** en `M_IntroLogo` y **4 componentes basura** en el BP (que sí se borraron con `remove_component`). 👉 Después de un script que falló, **verificar qué quedó** en vez de asumir que no pasó nada.
