@@ -54,6 +54,9 @@ EditorAppToolset.StopPIE()
 | 2 | 🔴 **`LoadLevelInstance` devolvía `nullptr`** porque el nombre de la instancia se repetía al cerrar el loop de etapas → la obra se quedaría **en negro para siempre** | El **barrido de errores** del log, no una aserción. Ver el bug #2 de [[BP_StageDirector]]. |
 | 3 | Los sublevels viejos **se acumulaban** | La aserción nueva `no se acumulan salas`, corriendo la batería a los 42 s (3 ciclos). |
 | 4 | En **Simulate** `GetPlayerPawn(0)` devuelve un pawn que **no es el VR pawn** (no tiene `CameraComponent`) | Un `TEST FAIL` que era del arnés, no del código. Ver abajo. |
+| 5 | 🔴 **`HallDuration` y `FinalDuration` quedaron en 0 en la instancia** del director aunque el CDO tuviera 10 y 12 → `SetTimerByFunctionName` con tiempo 0 **no dispara nunca** y la obra se quedaba clavada en el Hall | El log: una sola sala y después silencio. **Ahora hay una aserción para esto** (`director: las 3 duraciones de sala son mayores a 0`). |
+
+🔴 **El patrón #5 es el que más se repite en este proyecto** (tres veces en una semana: el bob del walker, `bIsHUD` de la ameba, y estas duraciones). **Una variable instance-editable nueva NACE con el valor que tenía la instancia al momento de crearse, no con el default del CDO.** Cuando se agrega una, hay que setearla **también en el actor colocado** — y lo barato es agregarle una aserción, porque un cero silencioso no se ve en ningún lado.
 
 🔴 **El #2 es el argumento entero de este Blueprint**: es un bug fatal, silencioso, que aparece recién a la cuarta transición, y ninguna cantidad de mirar la pantalla lo habría encontrado.
 
@@ -67,6 +70,8 @@ Al gatear la aserción del sensor por `bHasPawn` seguía fallando en Simulate: *
 **Ameba:** el pulso avanza · pitch negativo (bajo el horizonte) · zona muerta en rango.
 **Sensores** (🆕 2026-08-11): hay **exactamente 2** · **exactamente 1 es derecho** · los 2 cachearon su mano del pawn (**SKIP en Simulate**, va por `SensorHandAsserts`).
 **Salas** (🆕 2026-08-11): **no se acumulan** (2 o menos en el mundo) · hay al menos 1.
+**Director** (🆕 2026-08-12): las 3 listas de salas (`StageNames`/`StageColors`/`RoomKinds`) **tienen el mismo largo** · hay al menos 2 salas · **las 3 duraciones son mayores a 0**.
+💡 Las de "mismo largo" reemplazan a un guard en runtime: `ConfigureRoom` y `DurationByKind` indexan las tres listas con el mismo índice, así que un largo distinto es un error de **autoría**. Mejor cazarlo en la batería que meter un `IsValidIndex` en cada lectura.
 
 **Resultado hoy:** **20 pass / 0 fail** en PIE normal · **19 pass / 0 fail / 1 skip** en Simulate.
 

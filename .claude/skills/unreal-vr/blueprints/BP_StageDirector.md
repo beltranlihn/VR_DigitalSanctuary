@@ -34,6 +34,36 @@ Aclarado por Beltrán el 2026-08-11 y confirmado contra §3 del documento maestr
 4. ⚠ **La sala final no lleva puerta** ("no hay compuerta"): el ciclo de transición **no aplica** al último tramo. El director necesita un caso terminal, no `WrapIndex` en loop.
 5. 💡 **El timbre del Center es el tutorial del gesto del sensor** (§3): apoyar la mano para que te escanee es la misma gramática que tomar el sensor. El timbre y los sensores **deben parecerse visualmente**. Es un requisito de diseño para cuando se construya la puerta del Hall, no un detalle.
 
+## 🆕 2026-08-12 — la obra son 7 SALAS, y 5 de ellas son etapas
+Hasta ahora el director confundía "sala" con "etapa" y loopeaba sobre 3 placeholders. Ahora lleva la **lista real**, sacada del documento maestro (§3 y la tabla de etapas):
+
+| # | `StageNames` | `RoomKinds` | Color | Qué es |
+|---|---|---|---|---|
+| 0 | `HALL` | 0 | blanco cálido | Alma recibe, explica, calibración, **elección del Proto Soul** |
+| 1 | `ENTERING` | 1 | azul | respiración con el mando en el estómago |
+| 2 | `RECOGNIZING` | 1 | rojo | mando en el pecho, latido · 🔴 **la única que sube** |
+| 3 | `LOVING` | 1 | morado | contemplativa, **sin sensor**, 3 preguntas |
+| 4 | `ATTRACTING` | 1 | naranja | burbujas sonoras con el puntero |
+| 5 | `SURROUNDING` | 1 | verde | dibujo 3D, mandala radial |
+| 6 | `FINAL` | 2 | blanco frío | la arquitectura se transforma · **sin compuerta** |
+
+⚠ **`FINAL` es un nombre placeholder** y sale en el cartel de la última puerta (la de `SURROUNDING`). Decisión autoral pendiente.
+💡 **El cartel y el resplandor son de la sala que VIENE**, no de la actual (§ "La luz que se cuela y el cartel son de la sala que viene… ya es rojo si vas a Recognizing"). Eso ya funcionaba por accidente —`CloseRoom` incrementa el índice **antes** de revelar la puerta— y **hay que no romperlo**: si alguna vez se mueve el incremento, el cartel empieza a mentir.
+
+### La duración sale del tipo de sala
+`RefreshDuration` (+ `DurationByKind` / `DurationFinal`, partidas en tres porque el parser sólo admite **un** multi-exec al final) elige entre `HallDuration`, `StageDuration` y `FinalDuration`, y deja el resultado en `CurDuration`, que es lo que usa el timer de `EnterRoom`.
+⚠ **Los tres valores son placeholders de test** (10 / 8 / 12 s). Los reales son **~90 s el Hall, ~2 min cada etapa y ~2 min la final** (§3). Con los reales una vuelta completa son 14–15 min, así que para probar el ciclo se dejan cortos a propósito.
+
+### El caso terminal: la última sala no tiene salida
+```
+EndStage → DimAndReveal → RefreshLastRoom → CloseOrFinish
+                                             ├─ CloseRoom()   (avanza, precarga, revela la puerta, agenda WalkOut)
+                                             └─ FinishObra()  (no hay puerta, no hay salida: la obra termina)
+```
+🔴 **`RefreshLastRoom` corre ANTES de incrementar** y pregunta por `StageIndex + 1 >= largo`, o sea *"¿hay una sala siguiente?"*. Preguntarlo después del incremento sería preguntar otra cosa.
+- **`bLoopRooms`** (instance-editable, **false**): en `true` vuelve al comportamiento viejo de loopear para siempre — es lo que sirve para el modo **soak** de `BP_DebugDirector`. En `false`, `WrapIndex` queda inalcanzable por construcción.
+- `FinishObra` hoy sólo loguea. Le falta el cierre real: §3 pide gráfico de datos, la pregunta de Alma, la constelación y la despedida.
+
 ## Cómo está encadenado
 🔴 **Los saltos entre tramos van por `SetTimerByFunctionName`, no por `Delay`.** Un `Delay` no es válido dentro de una función, y el ciclo necesita esperas entre pasos; los timers por nombre funcionan sobre **custom events** igual que sobre funciones, así que cada tramo es un evento aparte y el anterior lo agenda. Ventaja lateral: cada tramo es un punto de entrada nombrado, así que `BP_DebugDirector` va a poder saltar a cualquiera.
 
@@ -42,7 +72,7 @@ Aclarado por Beltrán el 2026-08-11 y confirmado contra §3 del documento maestr
 | `BeginPlay` | Cachea fade y walker · **negro instantáneo** · `PreloadNext(0)` | `ShowAndEnter` a 1.5 s |
 | `ShowAndEnter` | `SwapRooms()` = oculta la vieja · **`UnloadOldRoom()`** · muestra la nueva | `TryEnter` a `BlackHold` |
 | `EnterRoom` | Cachea room y door de la sala nueva · `ConfigureRoom()` · fade **from** black · `Walk(0→500)` = entra desde el umbral al centro | `EndStage` a `StageDuration` |
-| `EndStage` | `StageIndex++` · `WrapIndex()` · `PreloadNext(i)` · `DimAndReveal()` (sólo atenúa) · `RevealDoor()` (**agenda** el revelado) | `WalkOut` a `RevealHold` |
+| `EndStage` | `DimAndReveal()` (sólo atenúa) · `RefreshLastRoom()` · `CloseOrFinish()` → o **`CloseRoom`** (`StageIndex++` · `WrapIndex` · `PreloadNext(i)` · `RevealDoor()`, que **agenda** el revelado) o **`FinishObra`** | `WalkOut` a `RevealHold`, **desde `CloseRoom`** |
 | `WalkOut` | `Walk(500→1000)` = del centro al umbral · `OpenDoor()` | `GoBlack` a `FadeOutDelay` |
 | `GoBlack` | fade **to** black | `ShowAndEnter` a `LegTime` |
 
@@ -64,9 +94,10 @@ El loop cierra en `ShowAndEnter`, así que con el placeholder recorre las 3 etap
 | Variable | Default | Rol |
 |---|---|---|
 | `RoomMap` | `/Game/.../L_Room_Placeholder` | El mapa que se instancia. Placeholder: siempre el mismo, cambia sólo el nombre de la instancia. |
-| `StageNames` | ENTERING / RECOGNIZING / SURROUNDING | Placeholder de 3 etapas. **Su largo define cuántas hay** (`WrapIndex` cierra el loop). |
-| `StageColors` | azul / rojo / verde | El acento de cada sala y de su puerta. Es lo que hace que las transiciones se **vean** distintas siendo el mismo asset. |
-| `StageIndex` | 0 | Etapa actual. |
+| `StageNames` | **las 7 salas** (ver abajo) | 🔴 **Es la lista de SALAS, no de etapas** — el nombre quedó del diseño viejo y la API no puede renombrar variables. **Su largo define cuántas salas tiene la obra.** |
+| `StageColors` | 7 colores | El acento de cada sala y de su puerta. Es lo que hace que las transiciones se **vean** distintas siendo el mismo asset. |
+| `RoomKinds` | `[0,1,1,1,1,1,2]` | 🆕 **Qué ES cada sala:** `0` = Hall · `1` = etapa · `2` = sala final. De acá sale la duración, y va a salir qué mecánica corre cuando exista `BP_StageBase`. |
+| `StageIndex` | 0 | **Sala** actual. |
 | `RoomSerial` | 0 | 🆕 Contador **monótono** que nombra la instancia de nivel. **No es el índice de etapa** — ver bug #2. |
 | `CurLevel` / `NextLevel` | — | Los `LevelStreamingDynamic` que devuelve `LoadLevelInstance`. |
 | `PrevRoom` | — | La sala de la que ya se entró. Es la mitad no obvia del fix del bug #0. |
@@ -176,11 +207,20 @@ returning nullptr. LevelPackageName:/Game/SoulCharger/Maps/Rooms/UEDPIE_0_Room_0
 
 ### 3. ⚠ **La puerta abre antes del negro, no después.** El §9.2 literal dice `negro completo -> swap -> la puerta abre`. Acá abre durante la aproximación, así que se camina a través de una puerta abierta hacia el negro. Se hizo así porque con todas las salas en el mismo origen, la puerta que "abre revelando la sala nueva" quedaría **detrás** del pawn tras el swap. **Es una decisión autoral pendiente de Beltrán**, no un descuido.
 
+## Verificado por log (2026-08-12): el recorrido COMPLETO
+Una corrida entera con las 7 salas: `Room_0 … Room_6`, **7 precargas sin colisión de nombre**, 7 entradas, y al cerrar la última:
+```
+DIR: fin de sala - baja la luz
+DIR: ultima sala - la obra termina aca, sin compuerta ni salida
+```
+y **se detiene**: no agenda `WalkOut`, no revela puerta, no loopea. Batería: **24 pass / 0 fail** en PIE · 23/0/1 skip en Simulate.
+
 ## TODO
 - [ ] 🔴 Test en visor.
 - [ ] La decisión autoral del bug #3 (¿la puerta abre antes o después del negro?).
-- [ ] **Separar "sala" de "etapa"**: son 7 salas y 5 etapas (§3). Hoy `StageNames` mezcla los dos conceptos.
-- [ ] **Caso terminal**: la sala final **no lleva puerta**, así que el último tramo no puede pasar por el ciclo ni por `WrapIndex`.
+- [x] ~~Separar "sala" de "etapa"~~ · ~~caso terminal~~ (2026-08-12).
+- [ ] Las **duraciones reales** (90 / 120 / 120 s) cuando se pruebe la obra de punta a punta; hoy son 10 / 8 / 12 para poder testear.
+- [ ] Renombrar `StageNames`/`StageColors`/`StageIndex` a `Room*`. ⚠ **La API no puede renombrar variables**: es a mano en el editor, y hay que recompilar todo lo que las lea.
 - [ ] Llamar `SetMode` de [[BP_Sensor]] al entrar a cada etapa, y `Release` al cerrarla.
 - [ ] `StageDuration` sale cuando exista `BP_StageBase`: el cierre lo va a pedir la etapa, no un timer.
 - [ ] Medir el hitch de la descarga **en device**. El GC que fuerza (`s.ForceGCAfterLevelStreamedOut` viene en 1) queda bajo negro, que es lo correcto, pero eso no prueba que no se sienta en Quest.
