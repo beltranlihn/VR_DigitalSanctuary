@@ -342,3 +342,21 @@ Static hornea directa+indirecta **juntas** en un lightmap → **por eso no tiene
 10. **Banding: destildar `Compress Lightmaps` por nivel + dithering en material. NO subir resolución.**
 11. **Importance Volume ajustado** — [SRC] `Lights.cpp:409` su extensión **dimensiona los shadow depth maps**: uno grande **degrada** la resolución de sombras.
 12. **Verificar en dispositivo.** El editor renderiza HQ en una GPU de escritorio: todo el riesgo real es invisible ahí.
+
+---
+
+## 🔴🔴 REGLA DE LA OBRA: cero luces. Todo es unlit + emisivo
+Decisión autoral de Beltrán (2026-08-12): *"no me gustaría trabajar esta experiencia con directional light. Me gustaría trabajarlo con texturas y materiales que tengan un poco de emissive, o con puntos de luces específicos."*
+
+**Y ya es el estado real del proyecto.** `L_Persistent` no tiene **ninguna** luz — verificado listando sus actores: no hay `DirectionalLight`, `SkyLight`, `SkyAtmosphere` ni fog. Las salas (`BP_Room`), la ameba, el vacío y los carteles son todos **unlit + emisivo**. Encaja además con Turrell (luz de color en el aire, no objetos iluminados) y es lo más barato en el renderer móvil.
+
+### 🔴 La consecuencia que ya costó una sesión: un material LIT acá renderiza NEGRO
+Sin luces, cualquier material con `MSM_DefaultLit` sale **negro sobre negro**. Fue exactamente lo que pasó con **todos** los `TextRenderComponent` del proyecto, que traen de fábrica el material `DefaultTextMaterialOpaque`, que es lit (ver la receta de `M_TextUnlit` en `materials-vr.md`).
+
+👉 **Al traer cualquier asset nuevo —del template, del marketplace, del motor— lo primero es mirar su `shadingModel`.** Si es lit, o se cambia a `MSM_Unlit` con el color en Emissive, o no se va a ver.
+
+### Si algún día hace falta un punto de luz concreto
+Es una **excepción deliberada y local**, no el modo de trabajo:
+- En Quest standalone las luces van **horneadas** (`Static`), y un móvil forward admite muy pocas dinámicas por objeto.
+- Antes de agregar una, preguntarse si el efecto se logra con **emisivo + un material** (casi siempre sí, y sale gratis).
+- Nunca meter una luz "para que se vea el texto": eso se arregla con el material unlit.
