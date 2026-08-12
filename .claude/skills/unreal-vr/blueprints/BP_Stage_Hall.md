@@ -9,18 +9,24 @@
 ## 🔴 El override de RunStage — cómo se hace por MCP
 `add_function_graph("RunStage")` **falla**: *"inherited event-shape function; must be placed as an event node"*. La receta: **`add_event(blueprint, "RunStage")`** crea el nodo de evento override en el EventGraph, y su cuerpo va en una función (`HallRunBody`) conectada por cirugía (1 `connect_pins`). El timer `"RunStage"` de `BeginStage` (por nombre) **resuelve al override del hijo** — polimorfismo por `SetTimerByFunctionName` verificado.
 
-## Ciclo de vida
+## Ciclo de vida (v2, 2026-08-12 — LA NARRATIVA DEL GUION, pedida por Beltrán)
+*"Al entrar al hall nos recibe Alma, nos explica con voiceover, nos escanea, y nos invita a elegir. Aparecen 5 protosouls alrededor; la que toquemos nos sigue en el HUD."*
 ```
 RunStage (override) → HallRunBody:
-    print "Alma te recibe" · SpawnHallActors · timer CheckChoice 0.3s LOOP
-SpawnHallActors → SpawnHudSoul (BP_ProtoSoul + SetIsHUD=true post-spawn: bIsHUD solo gatea el Tick, llega a tiempo)
-               → SpawnSensorAt("SensorSpawnL", false) · SpawnSensorAt("SensorSpawnR", true)   ← TargetPoints TP_SensorL/R en (60, ∓25, 95)
-               → SpawnChoice (BP_SoulChoice en el origen; su BeginPlay cachea el HUD recién nacido y spawnea las 3 candidatas)
-CheckChoice (poll) → si ChoiceRef.bChosen → ChoiceDone: ClearTimer · CleanupChoice · StageDone() (heredado: carga → ForceComplete → autodestrucción)
-EventDestroyed → CleanupChoice   ← cubre el CORTAFUEGOS del director (timeout sin elección): destruye la elección y sus candidatas
-CleanupChoice → IsValid(ChoiceRef) → KillCandidates (ForEach GetCandidates → DestroyOne) · DestroyActor(choice)
+    "entras al hall - Alma te recibe" · SpawnAlma (BP_Alma en TP_Alma, tag AlmaSpawn, (170,0,130))
+    "ALMA: bienvenida + explica la experiencia (VO placeholder)" · timer HallScan a WelcomeTime (4 s)
+HallScan:   "ALMA: te escanea (placeholder)" · nacen los 2 sensores (TP_SensorL/R) · timer HallInvite a ScanTime (4 s)
+HallInvite: "ALMA: elige tu Proto Soul" · SpawnChoice → 5 candidatas en ARCO (TP_Soul1..5, radio 65 cm, ±70°) · poll CheckChoice
+CheckChoice → bChosen → ChoiceDone: ClearTimer · "nace tu HUD" · SpawnHudSoul (el HUD nace RECIÉN al elegir y adopta
+             la identidad desde el GameInstance vía AdoptFromState en su BeginPlay) · CleanupChoice · StageDone()
+EventDestroyed → CleanupChoice   ← el CORTAFUEGOS (timeout): destruye elección + candidatas + Alma
+CleanupChoice → CleanupAlma (incondicional) · IsValid(choice) → KillCandidates · DestroyActor(choice)
 ```
-🔴 **El HUD y los 2 sensores NO se destruyen**: son los persistentes de §9.3 — nacen acá y acompañan el resto de la obra.
+- `WelcomeTime`/`ScanTime` instance-editable (4 s placeholder de VO; el tempo real llega con la grabación).
+- `HallDuration` del director subió a **30 s** (cortafuegos a 36 s) para dar tiempo de elegir en visor.
+- Las **5 variantes** son datos en el CDO de `BP_SoulChoice`: colores teal/ámbar/violeta/rosa/cian, meshes y materiales nulos (llegan con el arte).
+- 🔴 **El HUD y los 2 sensores NO se destruyen**: persistentes de §9.3. El HUD ya no existe antes de elegir — nace CON la elección.
+- **BP_Alma** (Core/Amoeba/): placeholder — esfera unlit cálida de 35 cm (M_ProtoSoul, SoulColor (1, .82, .55)), sin colisión. La entidad real llega con arte + VO.
 
 ## Verificado por log (2026-08-12, run 16:24)
 Entrada al Hall → HUD nacido + 3× `candidata configurada` **en el mismo segundo** → sin elección (PIE sin manos) → cortafuegos a los 16 s (`CurDuration 10 + TimeoutMargin 6`) → `eleccion y candidatas destruidas - cero residuos` → la obra siguió las 5 etapas hasta la disolución. Cero `Accessed None`.

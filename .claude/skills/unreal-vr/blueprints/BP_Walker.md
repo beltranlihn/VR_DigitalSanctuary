@@ -66,6 +66,10 @@ Si algún día se quiere un camino curvo dibujado a mano, hay que **sacar esta l
 **`StartWalk(FromDist, NewToDist, RampIn, RampOut)`** — cachea pawn y `BaseRot`, fija el rango y los flags, `Elapsed = 0`, `bWalking = true`, y **al final** busca el `BP_Vignette`.
 ⚠ La búsqueda del vignette va **última** porque el `CastTo` es multi-exec y el parser del DSL no deja poner statements después de una rama.
 
+### 🐛 ✅ ARREGLADO (2026-08-12, reportado en visor): el pawn "seguía avanzando lentísimo" al llegar al timbre
+**El `RampOut` era ASINTÓTICO**: `tDown = (ToDist − Dist)/(Speed·AccelTime)` decae proporcional a lo que falta → la velocidad tiende a cero y **`Dist` nunca alcanza `ToDist`** → `bWalking` nunca se apaga y el pawn se arrastra milímetros por frame para siempre. En las salas el swap lo interrumpía antes de notarse; parado frente al timbre era visible.
+**Fix:** un **`Max(tDown, 0.25)`** entre el clamp del tDown y su Select — piso de rampa: frena suave pero llega (velocidad mínima ≈ 27 cm/s en el tramo final, cola de ~1 s), el `min(Dist, ToDist)` clampea, la llegada dispara y `OnWalkFinished` sale. Nodo: `Max_Float` insertado por cirugía en `UpdateWalk`.
+
 **`UpdateWalk(DeltaSeconds)`** — el corazón. Orden del pipeline:
 1. **Rampa.** `tUp = RampIn ? clamp(Elapsed / AccelTime) : 1`; `tDown = RampOut ? clamp((ToDist − Dist) / (Speed·AccelTime)) : 1`; `t = min(tUp, tDown)`.
 2. **Suavizado.** `ramp = t²·(3 − 2t)` — smoothstep, no lineal. Da aceleración continua (sin tirón de derivada) en los dos extremos.
