@@ -160,6 +160,8 @@ Transformation|AttachActorToComponent(self, cam, "None", "SnapToTarget", "SnapTo
 - 💡 **Truco reusable:** los dos exponen `Brightness` con **el mismo nombre**, así una sola llamada modula toda la sala. Y como el gradiente del muro llega a negro en `WallHeight`, **la tapa del cilindro se vuelve invisible** — se consigue "sin techo" sin recortar geometría.
 - `Stages/Touch/Materials/M_TouchUnlit` — base **Unlit + Emissive** con parámetros `EmissiveColor` y `Brightness`; instancias `MI_Laser`, `MI_Bubble`, `MI_Slot`. Patrón correcto para Quest (ver `materials-vr.md`).
 - `Stages/Movement/Materials/M_Brush_Light` — unlit + Fresnel, aditivo con borde suave (validado en visor dibujando).
+- `Core/Amoeba/Materials/M_ProtoSoul` — unlit opaco con Fresnel + pulso temporal. Parámetros: `SoulColor` (vector), `Brightness` (default 1), `Agitation` (0.25), `AgitationSpeed` (3). Lo usan las amebas Y Alma.
+- `Core/Sensor/MI_Sensor` (2026-08-13) — instancia de M_ProtoSoul para `BP_Sensor`: blanco tibio (0.85/0.82/0.72), Brightness 0.55, Agitation 0.06. 🔴 **Existe para que el sensor NO parezca una Proto Soul** — antes compartían look exacto y Beltrán los confundió dos veces. Si se cambia el look del sensor, mantener la distinción.
 
 ## 🕹️ Pawn — accesores que ya existen (`BP_VRPawn_SC`)
 `Class|BPVRPawnSC|GetMotionController{Left,Right}{Grip,Aim}` → devuelve el `MotionControllerComponent`. **Grip** = dónde está la mano · **Aim** = el rayo para punteros.

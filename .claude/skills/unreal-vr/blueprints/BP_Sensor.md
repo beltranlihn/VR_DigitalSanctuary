@@ -31,6 +31,9 @@ Sacado de su tracker, que documenta 5 cosas que ya costaron tiempo:
 
 ⚠ **`Mode` es un `int`, y §9.3 pide un ENUM.** No hay tool del MCP para crear un `UserDefinedEnum` (igual que con los structs), así que queda como int hasta que se cree el enum a mano en el editor. **Valores previstos:** 0 = libre/neutro, y después uno por etapa. Cuando exista el enum, cambiar el tipo y los arrays siguen sirviendo igual.
 
+## 🎨 Distinción visual (2026-08-13): el sensor YA NO parece una Proto Soul
+El sensor usaba la **misma esfera + `M_ProtoSoul`** que las amebas (escala 0.12 vs 0.14) → Beltrán confundió sensores con protosouls DOS veces ("protosoul en el suelo", "ameba fijada al hud" = el 2º sensor en su mano). Ahora el `Mesh` usa **`MI_Sensor`** (`Core/Sensor/MI_Sensor`, instancia de M_ProtoSoul: SoulColor blanco tibio 0.85/0.82/0.72, Brightness 0.55, Agitation 0.06) → esferita de luz blanca calma ≠ amebas de colores vivos pulsantes.
+
 ## Registro de variables (resto)
 | Variable | Default | Rol |
 |---|---|---|

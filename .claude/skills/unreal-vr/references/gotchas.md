@@ -437,3 +437,17 @@ La regla "connecting to an already-connected input REPLACES it" vale para pines 
 1. Al reordenar una cadena exec por cirugía: **`break_pins` explícito de cada cable exec viejo**, no confiar en el reemplazo.
 2. Después: `get_node_infos` y verificar que **cada pin `execute` tenga UNA sola entrada** (`connected_pins` de largo 1). Es la única verificación que ve el fan-in; el `read_graph_dsl` NO lo muestra.
 3. Un cuelgue de minutos con un core al 100% y memoria subiendo que DESPUÉS se recupera = sospechar **runaway loop de Blueprint** (el detector corta a 1M iteraciones por llamada), no shaders. Grep `Runaway` en el log.
+
+## 🔴🔴 Cirugía de FIRMAS (params de función): termina en compile explícito o el BP queda muerto en silencio (2026-08-13)
+**El caso:** la cirugía de capas de `BP_SoulChoice` (2026-08-12) declaró los params `H` como `MotionControllerComponent` mientras las variables `HandR/HandL` eran `SceneComponent`. **El BP quedó SIN COMPILAR toda la jornada** — y nadie lo vio: el run automático no ejercita el camino de las manos, PIE corre igual con el bytecode que sí compiló, y los logs se veían perfectos. En visor, la elección por toque estuvo muerta en TODOS los tests de Beltrán ("tampoco pude elegir" era literal).
+**Reglas:**
+1. **Toda cirugía que toque tipos o params termina con `compile_blueprint` explícito del BP.** "El run anda" no prueba nada: el run usa el último bytecode bueno.
+2. `remove_function_param` + `add_object_function_param` con el mismo nombre → **el nombre viejo queda reservado para siempre** y el param nuevo nace con sufijo (`H` → `H1`). No pelearlo: el nombre del param es cosmético, lo que importa es el cableado.
+3. **Los nodos de LLAMADA no se reconstruyen al cambiar la firma de la función**: conservan el pin viejo (con su tipo y sus conexiones) y los errores de compile persisten aunque la función ya esté bien. El fix real: `delete_node` de cada nodo de llamada + `create_node "CallFunction|<Fn>"` + recablear (exec, self implícito, params).
+4. Los ids DSL de getters/setters de una variable `bAlgo` estripan la `b`: `add_variable "bHandsNear"` → `Variables|Default|Get/SetHandsNear`.
+
+## 🔴🔴 `write_graph_dsl`: el `(if cond A B)` de 3 argumentos puede salir ENCADENADO, y el read te lo devuelve BIEN (2026-08-13)
+**El caso:** se escribió `(if (GetbHandsNear) (SetTimer... 0.3) (CallFunction|ArmPick))` esperando then/else. El writer produjo **`then → SetTimer → ArmPick` y `else → NADA`** (las dos ramas en secuencia sobre el then, else colgado). Y lo peor: **`read_graph_dsl` devolvía el `(if ... A B)` de dos ramas tal como se había escrito** — el read RECONSTRUYE la forma bonita y no refleja el cableado real. Síntoma en runtime: rama false = dead-end silencioso (ni print, ni error, ni reintento).
+**Reglas:**
+1. Tras escribir un `(if cond A B)` con DSL, **verificar el Branch con `get_node_infos`**: `then` debe ir a A, **`else` debe ir a B** — no confiar en el read.
+2. Un camino que muere sin log ni error en un punto exacto = sospechar **pin exec sin conectar** (dead-end legal en Blueprint). El diagnóstico barato: un PrintString quirúrgico al inicio de la función que sí corre, y seguir el exec nodo a nodo con `get_node_infos`.
