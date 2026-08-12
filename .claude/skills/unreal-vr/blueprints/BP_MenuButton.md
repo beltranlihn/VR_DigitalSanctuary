@@ -59,8 +59,27 @@ El DSL **no puede crear eventos de input**. Van con `create_node` + `connect_pin
 - 🔴 **`bArmed` genera `GetArmed`/`SetArmed`, sin la `b`.** Ídem `bHovered`, `bTrigHeld`, `bDone`.
 - ⚠ Llamar una función propia con parámetros desde el DSL: el primer pin posicional es **`self`** → usar keyword (`:H`, `:Delta`).
 
+## 🔴🔴 BLOQUEADO: colocar actores por MCP no está quedando en el nivel
+**Estado al cierre del 2026-08-12.** Toda la lógica está construida, compilada y guardada — **lo que falla es que los actores no quedan en el nivel.** Síntomas, en orden de descubrimiento:
+
+1. `BP_IntroSequence_C_0` desapareció del nivel después del crash del Material Editor. Se repuso como `_C_1`, **corrió bien** (log completo a las 11:59 y 12:02) y **volvió a desaparecer** sin ningún crash en el medio.
+2. 🔴 **`SceneTools.find_actors` MIENTE**: no lista actores que sí existen. `find_actors(name:'IntroSequence')` devolvió vacío mientras `get_properties` sobre `…PersistentLevel.BP_IntroSequence_C_1` **leía sus propiedades sin problema**. No usarlo como prueba de existencia.
+3. Pero la prueba que vale es **desde el juego**: `BP_SelfTest` hace `GetActorOfClass(BP_IntroSequence_C)` y da **`TEST SKIP: no hay BP_IntroSequence en el nivel`**. O sea que en el mundo de PIE el actor **no está**, aunque su ruta resuelva en el editor.
+4. `save_assets(['/Game/SoulCharger/Maps/L_Persistent'])` **sí escribe el `.umap`** (verificado por `git status` y por la fecha del archivo), así que el guardado del mapa no es el problema evidente.
+
+**👉 Lo más rápido para desbloquear: colocar los tres actores A MANO** desde el Content Browser (arrastrar al viewport) y setear los valores de abajo. Son dos minutos y esquiva lo que sea que esté pasando con la colocación por MCP.
+
+| Actor | Posición | Valores a setear **en la instancia** |
+|---|---|---|
+| `BP_IntroSequence` | origen | `bAutoStartAfterTitle` **false** · `ClearFadeTime` 0.6 · `TitleFadeOut` 1.0 · `BlackTime` 2 · `LogoTime` 1 · `FadeRate` 3 · `PanelDistance` 200 · `ButtonDistance` 45 · `ButtonSpread` 17 · `ButtonDrop` 28 |
+| `BP_MenuButton` #1 | cualquiera (la intro lo reubica) | `LabelText` **START** · `HoverRadius` 18 · `HoldTime` 0 · `HoverScale` 1.18 |
+| `BP_MenuButton` #2 | cualquiera | `LabelText` **ABOUT US** · ídem |
+
+🔴🔴 **Y el patrón de siempre, que ya va SEIS veces: toda variable instance-editable nueva nace en 0 / false en la instancia.** `ButtonDistance` apareció en **0** recién colocado. **Setear todos los valores de la tabla a mano y verificarlos**, no confiar en el default de la clase. El arnés ya tiene aserciones para los tiempos de la intro; faltan para las de los botones.
+
 ## TODO
-- [ ] 🔴 **Colocar las dos instancias y ubicarlas al alcance del brazo.** Van **a ~45 cm**, no en el panel del título (que está a 200 cm): sentado, el brazo llega a 50-60 cm. Lo más limpio es que la intro las reposicione en runtime con la misma receta de `PlaceStep` (cámara + forward por yaw), a ±15 cm del centro.
+- [x] ~~Colocar las dos instancias~~ → **bloqueado, ver arriba: hacerlo a mano.**
+- [ ] 🔴 **Ubicarlas al alcance del brazo.** Van **a ~45 cm**, no en el panel del título (que está a 200 cm): sentado, el brazo llega a 50-60 cm. Lo más limpio es que la intro las reposicione en runtime con la misma receta de `PlaceStep` (cámara + forward por yaw), a ±15 cm del centro.
 - [ ] 🔴 **Que la intro las arme al mostrar el título** (`Arm()`) y se suscriba a `OnPressed`: START → `HideTitleAndGo()` (que ya existe y hace el fundido); ABOUT US → el panel de texto.
 - [ ] **Desarmar el que no se apretó** cuando se elige uno.
 - [ ] Aserciones en [[BP_SelfTest]]: que haya exactamente 2, con textos distintos, y que **nazcan desarmados**.
