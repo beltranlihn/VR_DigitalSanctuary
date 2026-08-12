@@ -388,7 +388,34 @@ Diagnosticado el 2026-08-12, con evidencia 1:1 en 8 sesiones de log.
 
 **La causa:** el editor arrancó con una versión del runtime de Oculus y **Meta Quest Link se actualizó con el editor abierto**. `XR_ERROR_INSTANCE_LOST` es literalmente "la instancia de OpenXR que tenías ya no existe". Los logs lo muestran sin ambigüedad: todas las sesiones con **1.205.0** funcionaron, incluida una **el mismo día**, y las dos primeras con **1.206.0** crashearon.
 
-**El arreglo:** **cerrar Unreal del todo y reabrirlo** (y reiniciar Quest Link / el servicio de Oculus). No hay nada que tocar en el proyecto. ⚠ Cerrar Unreal **mata el MCP** → después hay que reiniciar Claude con Unreal ya abierto.
+**El primer arreglo intentado:** cerrar Unreal y reabrirlo (+ reiniciar Link). ⚠ **Eso NO lo arregla: consigue una sesión buena.** El crash volvió a las 13:00 del mismo día, ya arrancando en 1.206.0, sin ninguna actualización en el medio. Dicho de otra forma: **es intermitente en 1.206.0** — 4 sesiones, 3 crashearon y 1 anduvo.
+⚠ Cerrar Unreal **mata el MCP** → después hay que reiniciar Claude con Unreal ya abierto.
+
+### Lo que se descartó (y cómo), para no volver a pagarlo
+| Sospechoso | Veredicto |
+|---|---|
+| **SteamVR** (instalado el mismo día) | ❌ **Descartado.** Ni una línea de `steamvr`/`api layer`/`openvr` en ningún log de Unreal, y `tasklist` sin `vrserver`/`vrmonitor` corriendo. El log dice `Initialized OpenXR on Oculus runtime version…`, o sea que el runtime activo es el de Meta. |
+| **Canal público de prueba (PTC) de Link** | ❌ **Descartado.** Está apagado: 1.206.0 es el **canal estable**, no un beta. |
+| **GPU híbrida / adaptador equivocado** | ❌ **Sin palanca.** Es un laptop con RTX 4060 + Intel UHD, y el banner rojo de Link dice *"el hardware del sistema no es compatible"* — pero **el panel de NVIDIA no expone "Procesador de gráficos preferido"**, o sea que la máquina está en modo dGPU fijo y no hay adaptador que elegir. |
+
+### 🔴 La hipótesis que sí es NUESTRA y se puede accionar: pedirle foveación a Meta por Link
+El log, justo antes de morir, dice:
+```
+Warning: Requesting 10 bit swapchain, but not supported: fall back to 8bpc
+Warning: Resizing VR buffer to 4368 by 2400      <- primera asignacion (125%)
+Warning: Resizing VR buffer to 3488 by 1920      <- SEGUNDA asignacion
+Warning: No layer resource or HMD swapchain available for stereo debug layer
+[crash dentro de LibOVRRTImpl64_1, RHI submission thread, EndDrawingViewport]
+```
+**`XR_FB_foveation` es una extensión de META, implementada dentro de `LibOVRRTImpl64_1.dll`** — la misma DLL donde crashea. Y el proyecto la tenía habilitada en **`DefaultEngine.ini`**, o sea en la config **compartida**, así que la sesión de PC por Link también la pedía. Ídem el `125%`, que provoca la **doble asignación del swapchain** que se ve arriba.
+
+✅ **Acción tomada (2026-08-12): mover los cvars de device a `Config/Android/AndroidEngine.ini`** — `bIsFBFoveationEnabled`, `xr.SecondaryScreenPercentage.HMDRenderTarget`, `xr.OpenXRFBFoveationLevel/Dynamic`, `r.VRS.Enable`. En el visor todo queda igual; por Link ya no se entra a ese camino.
+⚠ **Los cambios de `.ini` requieren reiniciar el editor.** Y ojo: `VR_Test/Config/` es config **compartida** (regla §7 del `CLAUDE.md`).
+💡 **Lección general, más allá del crash: los cvars de tuning del Quest no van en `DefaultEngine.ini`.** Si están ahí, el VR Preview de PC finge ser un Quest y arrastra los caminos de código del runtime del visor.
+
+### Ajustes del panel de NVIDIA que estaban mal para VR (aunque no fueran el crash)
+- 🔴 `Antialiasing - Modo: Anular cualquier configuración de la aplicación` con `2x` → **le pisa el MSAA 4x al proyecto**: lo que se ve por Link no es lo que se ve en el visor. Va en **Controlado por la aplicación**.
+- 🔴 `Velocidad máxima de fotogramas: 60 FPS` (global y de aplicación) → el Quest corre a **72 Hz**; con techo de 60 se juzga comodidad y ritmo sobre judder que en el device no existe. Va en **Desactivado**.
 
 ### 🔴 Cómo distinguir "es el proyecto" de "es el runtime XR" en dos minutos
 ```
