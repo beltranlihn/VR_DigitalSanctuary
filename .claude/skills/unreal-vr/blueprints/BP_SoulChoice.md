@@ -52,6 +52,14 @@ La frase de arriba decía *"conectar a un input ya conectado lo reemplaza, así 
 
 🔴 **La lección general, que es más grande que este bug:** `(bind _x (Variables|Default|GetAlgo))` **no saca una foto** — nombra el nodo, y el valor se lee cuando cada consumidor lo pide. Si la variable cambia en el medio de la función, los consumidores de después ven el valor **nuevo**. Para un contador, o se incrementa al final, o se copia a una variable local.
 
+## 🐛🐛 ✅ Los 3 errores "pending kill" del test en visor (2026-08-12, tarde)
+Beltrán eligió una candidata y saltaron errores + "solo vi una sola proto ameba" (eligió SIN QUERER al instante del spawn — la mano con el sensor quedó dentro del `PickRadius` de una candidata → las 5 nacieron y murieron en el mismo frame, y solo se vio el HUD naciendo). Tres causas, tres fixes:
+1. **`CheckHand` leía la posición de candidatas YA DESTRUIDAS** (el barrido sigue tras el DoChoose de mitad de sweep). Fix: guard en **capas de ramas** — `CheckHand` (¿bChosen? corta) → `CheckHandDist` (IsValid C) → `CheckHandHit` (distancia → Choose). ⚠ Un `AND` NO servía: **el AND de Blueprint no cortocircuita**, la lectura ocurría igual.
+2. **`DoChoose` leía `GetVariantId(C)` DESPUÉS de `DestroyCandidates`** (el PrintString final). Fix: el print se movió ANTES del destroy.
+3. **Elección accidental al spawn**: fix **`bPickArmed`** — `SpawnCandidates` arma la elección recién a los **1.2 s** (`ArmPick`), `TryPick` gatea. Log: `eleccion armada - ya se puede tocar`.
+(El 4º error del screenshot era de `BP_StageBase.FinishStage`: se destruía a sí misma cuando `KillStage` ya la había destruido — el `DestroyActor(self)` se quitó, la destrucción es del director.)
+🔴 **Lección de barrido:** los errores "pending kill or garbage" NO los atrapa el grep `"Accessed None"` — el patrón de barrido correcto es **`"not valid"`** (cubre ambas familias... no: cubre pending-kill; correr LOS DOS patrones).
+
 ## TODO
 - [x] ~~El off-by-one~~ · ~~higiene de nodos~~ · ~~`CacheSoul` de `BP_SelfTest` agarrando una candidata en vez del HUD~~ (2026-08-12: ahora filtra por `bIsHUD`, igual que `CacheHud`).
 - [ ] Aserciones en [[BP_SelfTest]]: 3 candidatas con `VariantId` distintos. ⚠ Van con `Skip` si `bSpawnOnBeginPlay` está apagado.

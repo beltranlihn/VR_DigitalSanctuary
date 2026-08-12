@@ -12,7 +12,7 @@ DIRECTOR EnterRoom → SpawnStage:
 BeginStage → cachea el director · print "instrucciones placeholder" · timer RunStage a InstructionsTime
 RunStage   → print "ejercicio placeholder" · timer StageDone a StageSeconds
 StageDone  → print "carga del anillo placeholder" · timer FinishStage a ChargeTime
-FinishStage→ print "completa" · DirectorRef.ForceComplete() · DestroyActor(self)
+FinishStage→ print "completa" · DirectorRef.ForceComplete()   ← 🔴 SIN DestroyActor(self): ForceComplete→EndStage→KillStage nos destruye SINCRÓNICAMENTE; el self-destroy posterior era un "pending kill" por etapa (visto en visor 2026-08-12). La destrucción es SIEMPRE del director.
 DIRECTOR EndStage → KillStage (DestroyIfValid StageRef — cubre el caso del cortafuegos, donde la etapa sigue viva)
 ```
 `StageSeconds = max(TotalSeconds − InstructionsTime − ChargeTime, 1)` — el total que manda el director se reparte entre las tres fases.
