@@ -43,7 +43,12 @@ Hoy hay 3 en `L_Persistent` en `(45, ±30, 100)`, puestos a ojo **para que las m
 ## 🐛 ✅ ARREGLADO (2026-08-12) — off-by-one en `SpawnOne`
 `SpawnIndex` se incrementaba **antes** de usarse. Y como el getter es un **nodo puro que se evalúa en el momento de cada consumidor**, `ConfigureSpawned` recibe **1, 2, 3** en vez de 0, 1, 2 → la tercera candidata no se configura (`IsValidIndex` de un array de 3 falla en el 3) y **queda sin color**.
 **Síntoma en el log:** 3 `SOUL: ameba lista` pero sólo **2** `SOULCHOICE: candidata configurada`.
-**Arreglo aplicado (2 `connect_pins`):** `Entry.then → SpawnActor.execute` y `ConfigureSpawned.then → SetSpawnIndex.execute` — el incremento quedó **al final**. Conectar a un input ya conectado lo **reemplaza**, así que eso solo desarmó la cadena vieja.
+**Arreglo aplicado (2 `connect_pins`):** `Entry.then → SpawnActor.execute` y `ConfigureSpawned.then → SetSpawnIndex.execute` — el incremento quedó **al final**.
+
+### 🐛🔴🔴 ✅ ARREGLADO (2026-08-12) — ese "arreglo" dejó un CICLO que congeló el editor 5 minutos
+La frase de arriba decía *"conectar a un input ya conectado lo reemplaza, así que eso solo desarmó la cadena vieja"*. **FALSO para pines EXEC**: el reemplazo vale para pines de **datos**; los **inputs exec aceptan FAN-IN** (varias entradas), así que el cable viejo `SetSpawnIndex.then → SpawnActor.execute` **quedó vivo** y formó el bucle `Spawn → Cast → Configure → SetIndex → Spawn…`.
+**El daño, medido:** al primer run real del Hall spawneó **~300.000 BP_ProtoSoul en un solo frame** (instancias `_C_307xxx`), congeló el editor ~4,5 min con un core clavado y ~12 GB, y disparó 4 `Runaway loop detected` (1M iteraciones). No explotó antes porque este BP salió del nivel (congelado en paso 3) y no volvió a correr hasta el Hall del paso 4.
+**Fix:** un `break_pins` de ese cable + verificación por `get_node_infos` (el `execute` del SpawnActor quedó con UNA sola entrada). **Regla nueva en `gotchas.md`: después de cirugía sobre exec, verificar que cada `execute` tenga UNA entrada.**
 
 🔴 **La lección general, que es más grande que este bug:** `(bind _x (Variables|Default|GetAlgo))` **no saca una foto** — nombra el nodo, y el valor se lee cuando cada consumidor lo pide. Si la variable cambia en el medio de la función, los consumidores de después ven el valor **nuevo**. Para un contador, o se incrementa al final, o se copia a una variable local.
 

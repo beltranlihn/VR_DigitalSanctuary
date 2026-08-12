@@ -429,3 +429,11 @@ Warning: No layer resource or HMD swapchain available for stereo debug layer
 ```
 💡 **El paso 3 es el que cierra el caso.** Un crash dentro de una DLL de terceros no prueba de quién es la culpa; **el cambio de versión correlacionado con el cambio de comportamiento, sí.**
 ⚠ Y no confundir dos crashes distintos del mismo día: acá el de las 11:38 era `XR_ERROR_INSTANCE_LOST` en `xrCreateSession` (todavía en 1.205) y los de las 11:39 eran el access violation en 1.206. Leer el `ErrorMessage` de **cada** carpeta antes de meterlos en la misma bolsa.
+
+## 🔴🔴 Cirugía de EXEC: conectar a un input ya conectado NO reemplaza — los exec aceptan FAN-IN (2026-08-12)
+La regla "connecting to an already-connected input REPLACES it" vale para pines de **DATOS**. Los **inputs exec** aceptan **varias entradas** (fan-in legal en Blueprint), así que reordenar una cadena solo con `connect_pins` deja los cables viejos VIVOS y puede formar un **ciclo**.
+**El caso que lo probó:** el fix del off-by-one de `BP_SoulChoice.SpawnOne` dejó `SetSpawnIndex.then → SpawnActor.execute` colgado → bucle `Spawn → … → SetIndex → Spawn` → **~300.000 actores spawneados en UN frame**, editor congelado ~5 min (un core clavado, 12 GB), 4× `Runaway loop detected (over 1 000 000 iterations)`. Compiló limpio y el `read_graph_dsl` se veía PERFECTO (el read linealiza y no muestra el segundo cable).
+**Reglas:**
+1. Al reordenar una cadena exec por cirugía: **`break_pins` explícito de cada cable exec viejo**, no confiar en el reemplazo.
+2. Después: `get_node_infos` y verificar que **cada pin `execute` tenga UNA sola entrada** (`connected_pins` de largo 1). Es la única verificación que ve el fan-in; el `read_graph_dsl` NO lo muestra.
+3. Un cuelgue de minutos con un core al 100% y memoria subiendo que DESPUÉS se recupera = sospechar **runaway loop de Blueprint** (el detector corta a 1M iteraciones por llamada), no shaders. Grep `Runaway` en el log.
