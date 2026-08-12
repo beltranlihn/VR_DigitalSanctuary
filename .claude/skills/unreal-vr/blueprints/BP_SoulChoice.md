@@ -20,6 +20,7 @@ Hoy hay 3 en `L_Persistent` en `(45, ±30, 100)`, puestos a ojo **para que las m
 | `VariantMaterials` | 3 nulos | Ídem con el material. |
 | `VariantColors` | teal / ámbar / violeta | 🔴 **Es el array que manda:** `IsValidIndex` sobre **este** decide si la candidata se configura. Hoy las 3 se distinguen **sólo por color**. |
 | `PickRadius` | 18 cm | Qué tan cerca hay que poner la mano. Menor que la separación entre candidatas (30 cm) **a propósito**, o las zonas se pisan. |
+| `bSpawnOnBeginPlay` | true (CDO) · **false en la instancia** | 🆕 Gate para **apagar la elección mientras se prueba la caminata**. Las candidatas viven en el nivel persistente y todas las salas están en el origen, así que aparecen en **todas** las salas y ensucian el test del paso 1. Prenderlo en el actor de `L_Persistent` para probar la elección. |
 
 ⚠ **Los 3 arrays tienen que tener el mismo largo.** `ConfigureFrom` indexa los tres con el mismo índice y sólo chequea el de colores; si `VariantMeshes` queda más corto, el `Get` se va de rango (log de error + null).
 
@@ -39,19 +40,17 @@ Hoy hay 3 en `L_Persistent` en `(45, ±30, 100)`, puestos a ojo **para que las m
 - **`SaveChoice` / `SaveStep`** → castea el GameInstance a [[BP_SoulState]] y le pasa el `VariantId`, el mesh, el material y el color de la elegida.
 - **`TellHud`** → `AdoptFromState` sobre la ameba HUD. 💡 **La elegida no se convierte en el HUD: el HUD ADOPTA su identidad** y las 3 candidatas se destruyen. Así hay **un solo** actor de HUD en toda la obra (el del lazy-follow), y la elección sobrevive a los cambios de nivel por el GameInstance.
 
-## 🐛 Bug conocido — off-by-one en `SpawnOne` (NO arreglado en disco)
-`SpawnIndex` se incrementa **antes** de usarse. Y como el getter es un **nodo puro que se evalúa en el momento de cada consumidor**, `ConfigureSpawned` recibe **1, 2, 3** en vez de 0, 1, 2 → la tercera candidata no se configura (`IsValidIndex` de un array de 3 falla en el 3) y **queda sin color**.
+## 🐛 ✅ ARREGLADO (2026-08-12) — off-by-one en `SpawnOne`
+`SpawnIndex` se incrementaba **antes** de usarse. Y como el getter es un **nodo puro que se evalúa en el momento de cada consumidor**, `ConfigureSpawned` recibe **1, 2, 3** en vez de 0, 1, 2 → la tercera candidata no se configura (`IsValidIndex` de un array de 3 falla en el 3) y **queda sin color**.
 **Síntoma en el log:** 3 `SOUL: ameba lista` pero sólo **2** `SOULCHOICE: candidata configurada`.
-**Arreglo (2 `connect_pins`):** `Entry.then → SpawnActor.execute` y `ConfigureSpawned.then → SetSpawnIndex.execute`. Conectar a un input ya conectado lo **reemplaza**, así que eso solo desarma la cadena vieja.
+**Arreglo aplicado (2 `connect_pins`):** `Entry.then → SpawnActor.execute` y `ConfigureSpawned.then → SetSpawnIndex.execute` — el incremento quedó **al final**. Conectar a un input ya conectado lo **reemplaza**, así que eso solo desarmó la cadena vieja.
 
 🔴 **La lección general, que es más grande que este bug:** `(bind _x (Variables|Default|GetAlgo))` **no saca una foto** — nombra el nodo, y el valor se lee cuando cada consumidor lo pide. Si la variable cambia en el medio de la función, los consumidores de después ven el valor **nuevo**. Para un contador, o se incrementa al final, o se copia a una variable local.
 
 ## TODO
-- [ ] 🔴 El off-by-one de arriba.
-- [ ] Higiene: `clean_orphans.py` + `auto_layout.py` (los nodos están encimados en el origen).
-- [ ] Aserciones en [[BP_SelfTest]]: 3 candidatas con `VariantId` distintos.
-- [ ] 🔴 **Arreglar `CacheSoul` de [[BP_SelfTest]]**, que usa `GetActorOfClass(BP_ProtoSoul)` y ahora puede agarrar una candidata en vez del HUD → sus 3 aserciones de la ameba medirían el objeto equivocado.
-- [ ] Test en visor: acercar la mano a menos de 18 cm de una de las tres.
+- [x] ~~El off-by-one~~ · ~~higiene de nodos~~ · ~~`CacheSoul` de `BP_SelfTest` agarrando una candidata en vez del HUD~~ (2026-08-12: ahora filtra por `bIsHUD`, igual que `CacheHud`).
+- [ ] Aserciones en [[BP_SelfTest]]: 3 candidatas con `VariantId` distintos. ⚠ Van con `Skip` si `bSpawnOnBeginPlay` está apagado.
+- [ ] Test en visor: prender `bSpawnOnBeginPlay` y acercar la mano a menos de 18 cm de una de las tres.
 - [ ] Mover los TargetPoints al Hall cuando exista.
 - [ ] Los meshes y materiales reales por variante (hoy sólo cambia el color).
 - [ ] Que la elección tenga **retorno sensorial** (§3): hoy la candidata desaparece y listo.

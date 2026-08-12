@@ -18,6 +18,14 @@
 
 ⚠ **`SoulColorOverride` era dato muerto hasta hoy**: existía la variable y el parámetro del material, pero nada las conectaba. Es el caso típico de "declarado ≠ aplicado".
 
+## 🐛 2026-08-12 — dos bugs que sólo aparecieron con el visor puesto
+Beltrán probó y reportó: *"hay una esfera enorme pulsando al frente, y hay otra enorme pulsando al medio de cada sala"*. Eran **dos causas distintas** que se veían como una:
+
+1. **`BaseScale` estaba en 1.0** → esferas de **1 metro**. Ver la tabla de variables. Ahora 0.15.
+2. 🔴🔴 **`bIsHUD` estaba en `false` en la INSTANCIA de `L_Persistent`** (el CDO decía `true`). Como el Tick está gateado por ese bool, **la ameba HUD no seguía la mirada**: se quedaba clavada en el origen, o sea en el centro de la sala. Es el mismo caso de siempre — **las variables instance-editable se serializan como override y no heredan el default del CDO** — y acá fue especialmente insidioso porque el bool se agregó *después* de colocar el actor, así que quedó fijado en false.
+   💡 **Cómo se verificó el arreglo sin visor:** con PIE corriendo, `find_actors` + `get_actor_transform` sobre la ameba. Antes daba `(0,0,0)` (clavada); ahora da `(80, 0, −23)`, o sea 92 cm delante de la cámara y 23 cm debajo de su altura → `ApplyPlacement` **corre**. Medirlo es mejor que mirarlo.
+3. Lo que se veía "al medio de cada sala" eran **las 3 candidatas de [[BP_SoulChoice]]**, de 1 m cada una y separadas 30 cm → superpuestas parecen **una sola** esfera enorme. Y como viven en el nivel **persistente** y todas las salas están en el origen, aparecían en **todas** las salas. Se apagaron con el gate `bSpawnOnBeginPlay`.
+
 ## 🔴 Dos roles en el mismo Blueprint: HUD y variante elegible
 Aclarado por Beltrán el 2026-08-11: **las Proto Souls aparecen en TargetPoints frente al usuario, y la que elige el usuario es la que queda** (§3, escena 3 del Hall). Así que el mismo BP tiene que servir para dos cosas:
 
@@ -42,6 +50,7 @@ Por eso el mesh y el material **no están hardcodeados**:
 ## Registro de variables (comportamiento)
 | Variable | Default | Rol |
 |---|---|---|
+| `BaseScale` | **0.15** | 🔴 **El tamaño real de la ameba, y NO se autora en el componente.** `ApplyReadout` hace `SetRelativeScale3D(Body, BaseScale·(1+PulseAmp·sin))` **cada frame**, así que la escala que se ponga a mano en el componente se pisa. La esfera básica del motor mide **100 cm**, por lo tanto `BaseScale` es directamente el diámetro en metros: 0.15 = **15 cm**. Estaba en **1.0** = una pelota de 1 m a 95 cm de la cara (reportado en visor el 2026-08-12 como *"una esfera enorme pulsando al frente"*). |
 | `DeadzoneDeg` | 10° | Zona muerta del lazy-follow. §5 pide ~10°. |
 | `RecoverTime` | 1.0 s | Recuperación. §5 pide ~1 s. |
 | `PitchDeg` | **−14°** | 🔴 **Negativo a propósito:** §5 dice *"ligeramente por debajo del horizonte (la mirada en reposo cae abajo; mirar arriba cansa)"*. |
