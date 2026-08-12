@@ -4,7 +4,7 @@
 Los botones del menú de la intro (**START** / **ABOUT US**) y, más adelante, el **timbre** del Center. Se acercan con la mano y se confirman con el gatillo.
 
 ## Status
-🟡 **Construido y compilando** (2026-08-12), con la cadena de input verificada nodo por nodo. ⬜ **Falta colocarlo, armarlo desde la intro y suscribirse a `OnPressed`** (ver TODO).
+🟢 **Funcionando end-to-end en PIE** (2026-08-12): se spawnean en sus TargetPoints con su etiqueta, se arman, y al apretar START se destruyen los dos. ⬜ Falta el test en visor (si 45 cm y 18 de radio son cómodos sentado) y el panel de About.
 
 ## 🔴 Por qué por CONTACTO y no por beam — decisión de Beltrán
 Se lo consultó explícitamente y la respuesta fue **tocando + trigger**, y la razón es el **arco de gestos de la obra**:
@@ -18,8 +18,8 @@ El menú es la **primera** interacción. Si arrancara con beam, se enseñaría e
 ## Componentes
 | Componente | Qué es |
 |---|---|
-| `Plate` | Cubo escalado a **3 × 28 × 10 cm**, material `M_IntroLogo` (unlit emisivo). Es lo que crece con el hover. |
-| `Label` | `TextRenderComponent`, `yaw 180`, worldSize 6. 🔴 Con **`M_TextUnlit`** desde el día uno: el material de fábrica es *lit* y en esta obra **no hay luces**, así que se vería negro (ver `materials-vr.md`). |
+| `Plate` | Cubo escalado a **3 × 28 × 10 cm**, material **`M_Plate`** (unlit, con `PlateColor` y `Brightness`). Es lo que crece con el hover. ⚠ Antes usaba `M_IntroLogo`, cuyo parámetro `Op` **nace en 0** → el plato era negro sobre negro y no se veía. |
+| `Label` | `TextRenderComponent`, worldSize 6. ⚠ Su `yaw 180` obligó a que la intro rote el botón a **yaw del panel + 180**; si no, el texto mira para el lado contrario al usuario. 🔴 Con **`M_TextUnlit`** desde el día uno: el material de fábrica es *lit* y en esta obra **no hay luces**, así que se vería negro (ver `materials-vr.md`). |
 
 ## Registro de variables
 | Variable | Default | Rol |
@@ -59,37 +59,35 @@ El DSL **no puede crear eventos de input**. Van con `create_node` + `connect_pin
 - 🔴 **`bArmed` genera `GetArmed`/`SetArmed`, sin la `b`.** Ídem `bHovered`, `bTrigHeld`, `bDone`.
 - ⚠ Llamar una función propia con parámetros desde el DSL: el primer pin posicional es **`self`** → usar keyword (`:H`, `:Delta`).
 
-## 🔴🔴 BLOQUEADO: colocar actores por MCP no está quedando en el nivel
-**Estado al cierre del 2026-08-12.** Toda la lógica está construida, compilada y guardada — **lo que falla es que los actores no quedan en el nivel.** Síntomas, en orden de descubrimiento:
+## ✅ RESUELTO: spawn por TargetPoint y kill al terminar (2026-08-12)
+Los botones **ya no se colocan a mano en el nivel**. El flujo es:
 
-1. `BP_IntroSequence_C_0` desapareció del nivel después del crash del Material Editor. Se repuso como `_C_1`, **corrió bien** (log completo a las 11:59 y 12:02) y **volvió a desaparecer** sin ningún crash en el medio.
-2. 🔴 **`SceneTools.find_actors` MIENTE**: no lista actores que sí existen. `find_actors(name:'IntroSequence')` devolvió vacío mientras `get_properties` sobre `…PersistentLevel.BP_IntroSequence_C_1` **leía sus propiedades sin problema**. No usarlo como prueba de existencia.
-3. Pero la prueba que vale es **desde el juego**: `BP_SelfTest` hace `GetActorOfClass(BP_IntroSequence_C)` y da **`TEST SKIP: no hay BP_IntroSequence en el nivel`**. O sea que en el mundo de PIE el actor **no está**, aunque su ruta resuelva en el editor.
-4. `save_assets(['/Game/SoulCharger/Maps/L_Persistent'])` **sí escribe el `.umap`** (verificado por `git status` y por la fecha del archivo), así que el guardado del mapa no es el problema evidente.
+```
+TitleStep → ShowMenu → SpawnMenu
+     GetAllActorsOfClassWithTag(TargetPoint, "MenuSpawn")
+     → uno por punto: SpawnActor → SetButtonLabel(MenuLabels[i]) → Arm() → StoreButton(i)
+START apretado → KillMenu → DestroyActor de los dos → HideTitleAndGo
+```
 
-**👉 Lo más rápido para desbloquear: colocar los tres actores A MANO** desde el Content Browser (arrastrar al viewport) y setear los valores de abajo. Son dos minutos y esquiva lo que sea que esté pasando con la colocación por MCP.
+**Qué se ganó:**
+- **No existen antes de su momento** (antes se veían abajo, lejos, esperando).
+- **No sobreviven a su momento**: se destruyen, no se esconden. Cero residuos.
+- 🔴 **El "uno más arriba que otro" se volvió imposible**: los dos salen de `TargetPoint` autorados. Si están parejos en el viewport, están parejos en la obra.
+- Desaparecieron **cuatro funciones**: `CacheButtons`, `SortButton`, `PlaceButtons` y `PlaceOne`. El punto de spawn reemplazó toda la ubicación por código.
 
-| Actor | Posición | Valores a setear **en la instancia** |
-|---|---|---|
-| `BP_IntroSequence` | origen | `bAutoStartAfterTitle` **false** · `ClearFadeTime` 0.6 · `TitleFadeOut` 1.0 · `BlackTime` 2 · `LogoTime` 1 · `FadeRate` 3 · `PanelDistance` 200 · `ButtonDistance` 45 · `ButtonSpread` 17 · `ButtonDrop` 28 |
-| `BP_MenuButton` #1 | cualquiera (la intro lo reubica) | `LabelText` **START** · `HoverRadius` 18 · `HoldTime` 0 · `HoverScale` 1.18 |
-| `BP_MenuButton` #2 | cualquiera | `LabelText` **ABOUT US** · ídem |
+**Cómo se autora:** mover los dos `TargetPoint` con tag **`MenuSpawn`** en el viewport. Hoy están en `(45, ±17, 112)`. Para agregar un tercer botón: un punto más y una entrada más en `MenuLabels`. **Sin tocar Blueprints.**
 
-🔴🔴 **Y el patrón de siempre, que ya va SEIS veces: toda variable instance-editable nueva nace en 0 / false en la instancia.** `ButtonDistance` apareció en **0** recién colocado. **Setear todos los valores de la tabla a mano y verificarlos**, no confiar en el default de la clase. El arnés ya tiene aserciones para los tiempos de la intro; faltan para las de los botones.
+⚠ **El label va por un setter con nombre ÚNICO (`SetButtonLabel`), no por `SetLabelText`.** `Class|BPMenuButton|SetLabelText` **colisiona con un nodo de Niagara** (`Niagara|Preview|SetLabelText`) y el DSL agarra el equivocado, invirtiendo los argumentos. Se detecta releyendo el grafo.
 
-## TODO
-- [x] ~~Colocar las dos instancias~~ → **bloqueado, ver arriba: hacerlo a mano.**
-- [ ] 🔴 **Ubicarlas al alcance del brazo.** Van **a ~45 cm**, no en el panel del título (que está a 200 cm): sentado, el brazo llega a 50-60 cm. Lo más limpio es que la intro las reposicione en runtime con la misma receta de `PlaceStep` (cámara + forward por yaw), a ±15 cm del centro.
-- [ ] 🔴 **Que la intro las arme al mostrar el título** (`Arm()`) y se suscriba a `OnPressed`: START → `HideTitleAndGo()` (que ya existe y hace el fundido); ABOUT US → el panel de texto.
-- [ ] **Desarmar el que no se apretó** cuando se elige uno.
-- [ ] Aserciones en [[BP_SelfTest]]: que haya exactamente 2, con textos distintos, y que **nazcan desarmados**.
-- [ ] Material propio con acento de color (hoy usa `M_IntroLogo`, que es el del logo).
-- [ ] Test en visor: si 18 cm es cómodo o si conviene más grande, y si el crecimiento se lee.
-
-## Relacionados
-- [[BP_IntroSequence]] (quien los arma y los consume) · [[BP_Sensor]] (la receta de proximidad por mano) · `BP_SaveButton` (hover + hold + la trampa de la escala) · `references/assets-existentes.md` (por qué `IA_Shoot_*`)
-
----
+### Verificado por log (2026-08-12)
+```
+INTRO: menu spawneado en sus TargetPoints
+BOTON armado: START
+BOTON armado: ABOUT US
+TEST PASS: menu: la lista de etiquetas no quedo vacia en la instancia
+TEST PASS: menu: hay exactamente 2 botones spawneados
+```
+🔴 **Y séptima vez del mismo patrón:** `MenuLabels` nació **vacío** en la instancia aunque el CDO tuviera `["START","ABOUT US"]` → los dos botones spawnearon **sin texto**. Por eso ahora hay una aserción que verifica el largo del array **en la instancia**, no en la clase.
 
 ## 🔴🔴 REGLA DE ARQUITECTURA (Beltrán, 2026-08-12): spawnear, matar, y ubicar con TargetPoints
 *"Ojalá tooodo hagamos que se spawnee y después que se elimine. Siempre usando target points para que sean fáciles de ubicar. Por lo menos todo lo que se pueda y valga la pena. VR se trata de optimizar."*
