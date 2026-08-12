@@ -52,7 +52,20 @@ El material de fábrica `DefaultTextMaterialOpaque` es **`MSM_DefaultLit`**. La 
 
 🔴 **Regla del proyecto (dada por Beltrán): el fade sphere es SÓLO para fades.** No es el fondo de nada. Cualquier cosa que tenga que verse durante un fundido va **fuera** de él, y el negro de ambiente lo da el vacío.
 
-### 🌌 `BP_Void` + `M_Void` — el vacío negro azulado infinito (Core/UI/)
+### 🌌 `BP_Void` + `M_Void` — **el EXTERIOR de la obra** (Core/UI/)
+🔴🔴 **No es el fondo de la intro: es el afuera, y aparece DOS veces.** Estructura dada por Beltrán (2026-08-12): *"vamos a estar en un exterior y vamos a entrar a un centro, vamos a recorrer todo el centro con la experiencia, y al final, para la constelación, vamos a volver a estar en el exterior."*
+
+```
+EXTERIOR  →  entrás al Center  →  Hall + las 5 etapas  →  EXTERIOR (la constelación)
+ (vacío)      (puerta del hall)        (salas)              (el mismo vacío)
+```
+
+**Tres consecuencias de diseño, y son importantes:**
+1. **El vacío vive en el nivel PERSISTENTE y nunca se descarga.** Ya está así. Las salas son interiores que aparecen *dentro* de él: el cilindro de muro de `BP_Room` (10 m) lo tapa mientras estás adentro, sin que nadie tenga que apagar nada.
+2. **La sala final tiene que ABRIRSE, no sólo atenuarse.** §3 dice *"la arquitectura se transforma"*: para que vuelva a verse el exterior con la constelación, `BP_Room` necesita poder **esconder su muro**, no sólo bajarle la luz. Ver el TODO de [[BP_StageDirector]].
+3. 💡 **Que el cielo del final sea EL MISMO del comienzo es lo que hace legible el regreso.** Las partículas del exterior, entonces, no son decoración de la intro: son la firma visual que cierra el arco. Conviene que sean el mismo sistema en los dos momentos.
+
+### Cómo está hecho
 Pedido: *"un espacio negro amplio donde luego pondré partículas y que se sienta amplitud infinita… un fondo negro medio azulado infinito"*.
 
 **Por qué NO `BP_Sky_Sphere`:** es el cielo del template, construido alrededor de una **luz direccional** (lee la dirección del sol para el resplandor del horizonte y el disco solar) y por un camino **lit**. Esta obra **no tiene ni una luz** y corre con `r.MobileHDR=False`: sin sol no se ve como nada, y cuesta más instrucciones por píxel de las que hacen falta.

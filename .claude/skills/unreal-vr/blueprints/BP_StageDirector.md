@@ -219,6 +219,8 @@ y **se detiene**: no agenda `WalkOut`, no revela puerta, no loopea. Batería: **
 - [ ] 🔴 Test en visor.
 - [ ] La decisión autoral del bug #3 (¿la puerta abre antes o después del negro?).
 - [x] ~~Separar "sala" de "etapa"~~ · ~~caso terminal~~ (2026-08-12).
+- [ ] 🔴 **La sala final tiene que ABRIRSE para devolver el exterior.** La obra va *exterior → Center → exterior* (§3 y la nota de estructura en [[BP_IntroSequence]]): la constelación pasa **afuera**, en el mismo vacío del comienzo. `FinishObra` hoy sólo loguea; le falta esconder el muro de `BP_Room` (no sólo atenuarlo) para que se vea `BP_Void` de nuevo. `BP_Room` necesita un `OpenWalls(Alpha)` o equivalente.
+- [ ] **El tramo de la intro**: caminar por el vacío hasta la puerta del hall, **sin sala visible**. `BP_Walker.BuildPath(HalfLen)` ya existe para eso (45 s a 175 cm/s ≈ 78 m, contra los 10 m del tramo entre salas). Falta el `BP_Door` en el persistente al final del corredor y el estado nuevo en el director.
 - [ ] Las **duraciones reales** (90 / 120 / 120 s) cuando se pruebe la obra de punta a punta; hoy son 10 / 8 / 12 para poder testear.
 - [ ] Renombrar `StageNames`/`StageColors`/`StageIndex` a `Room*`. ⚠ **La API no puede renombrar variables**: es a mano en el editor, y hay que recompilar todo lo que las lea.
 - [ ] Llamar `SetMode` de [[BP_Sensor]] al entrar a cada etapa, y `Release` al cerrarla.
