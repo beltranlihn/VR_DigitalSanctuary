@@ -44,9 +44,15 @@ El sistema de debug del §9.9. Suelto en el nivel persistente: **se borra y list
 3. ⚠ **El `read_graph_dsl` los muestra VACÍOS** (`(event EnhancedInputActionIA_Shoot_Left (...))` sin cuerpo) aunque estén bien cableados — es el gotcha "DSL read oculta pines". **Verificar con `get_node_infos`**, que sí muestra `connected_pins` en `Triggered` y `Completed`. Confirmado así acá.
 4. ⚠ `Triggered` dispara **cada frame** mientras se sostiene → el handler tiene que ser idempotente. `LeftOn` sólo setea un bool, así que lo es.
 
+## 🆕 HUD de debug (2026-08-12) — HECHO, sin UMG
+Un `TextRenderComponent` **`HudText`** (material `M_TextUnlit`, worldSize 3, verde, en (55, −16, −14) relativo con yaw 180) y el ACTOR entero **attacheado a la cámara** con la receta de `BP_FadeSphere`. Muestra: `SALA <nombre>  t=<seg>s  EEG OK/--  calm <v>  hr <v>`.
+- Cadena: `BeginPlay → StartHud` (si `bShowHud`: timer loop `UpdateHud` 0.25 s; si no: esconde el texto) → `UpdateHud` = `MaybeAttachHud` (cachea BioHub + attach a cámara, una vez) + `RefreshHudText` → `HudLine` (sala + tiempo, del `DirectorRef` ya cacheado) → `HudBioLine` (solo si hay BioHub: conexión/calma/ritmo).
+- **`bShowHud`** (instance-editable, true en CDO e instancia): la palanca. Para el build se apaga junto con `bDebugEnabled` (pendiente de migrar los dos al GameInstance).
+- Verificado en PIE: `DBG: HUD activo` + `DBG: HUD attacheado a la camara`, cero Accessed None. **La posición/tamaño del texto se juzga en visor** (mover `HudText` en el componente si molesta).
+
 ## TODO
-- [ ] 🔴 **Probar el combo en visor.** Es lo único sin verificar. Si no responde, el orden de diagnóstico está en `assets-existentes.md` §INPUT: la config del `AddMappingContext` importa más que el asset (`Priority=1000`, `bIgnoreAllPressedKeysUntilRelease=False`, `bForceImmediately=True`), y hoy este BP sólo hace `EnableInput` — que es lo que le alcanza a `BP_BrushTool` como actor suelto del nivel, pero **no está confirmado para este caso**.
-- [ ] **HUD de debug** (etapa actual, tiempo, conexión del sensor, calma y ritmo). §9.9 dice que es *"lo que más tiempo ahorra de todo esto"*, así que vale la pena. No se hizo porque necesita un widget world-space y `widgets-vr.md` tiene trampas reales (el `TickMode` de fábrica NO es `Automatic`).
+- [ ] 🔴 **Probar el combo en visor.** Es lo único sin verificar. Si no responde, el orden de diagnóstico está en `assets-existentes.md` §INPUT: la config del `AddMappingContext` importa más que el asset (`Priority=1000`, `bIgnoreAllPressedKeysUntilRelease=False`, `bForceImmediately=True`), y hoy este BP sólo hace `EnableInput` — que es lo que le alcanza a `BP_BrushTool` como actor suelto del nivel, pero **no está confirmado para este caso**. ⚠ Ahora `BP_MenuButton` tiene la receta completa (`EnsureInput`); si el combo no dispara, copiarla de ahí.
+- [ ] Ver el HUD en visor (posición/tamaño/legibilidad del `HudText`).
 - [ ] `bDebugEnabled` tiene que pasar a un bool del **GameInstance** cuando exista `GI_SoulCharger`, para poder apagarlo en el build de una sola vez.
 - [ ] `ForceComplete(bFastCharge)` — el parámetro del §9.9 (acelerar la animación de carga) no existe todavía porque no hay animación de carga.
 - [ ] `JumpToResults` con datos sintéticos — cuando exista el panel de resultados.
