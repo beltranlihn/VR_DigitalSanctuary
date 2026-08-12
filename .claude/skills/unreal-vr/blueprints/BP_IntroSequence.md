@@ -6,7 +6,13 @@
 Pedido de Beltrán (2026-08-12): *"Negro 2 segundos, widget con imagen al centro un segundo, luego otra, luego otra… Made with Unreal, logo Alma Digital, logo Johns Hopkins. Luego, título de la obra."*
 
 ## Status
-🟡 **La secuencia corre y está medida por log** (2026-08-12). ⬜ Faltan los **botones** (Start / About Us) y las **imágenes** de los logos.
+🟡 **La secuencia + menú + About corren y están medidos por log** (2026-08-12 tarde). ⬜ Faltan las **imágenes** de los logos y el test en visor.
+
+## 🆕 2026-08-12 (tarde) — MenuRoot, About US y autodestrucción (sesión de la maqueta)
+1. **Todo el menú se ancla a UN `TargetPoint` con tag `MenuRoot`** (`TP_MenuRoot`, junto al PlayerStart en (−500,0,130)): `PlaceAtRoot` coloca el actor a `PanelDistance` sobre el forward del root; `SpawnMenuAtRoot` → `SpawnBtnAt(BtnPos,BtnRot,LabelIdx)` spawnea los botones con `ButtonDistance`/±`ButtonSpread`/−`ButtonDrop`. **Eliminados:** `PlacePanel`, `PlaceStep`, `SpawnMenu`, `SpawnMenuOne`, `MenuIndex`, y los 2 TargetPoints `MenuSpawn`. El recentrado que lo sostiene ya existía en el pawn. 3 aserciones espaciales nuevas en `BP_SelfTest` (PASS).
+2. **ABOUT US funciona**: `OnAboutPressed` alterna por `bAboutUp` → `ShowAbout` (mata el menú, re-titula los TextRender del panel — `SetText` exige `ToText(String)`, un literal directo al pin FText falla — y spawnea **BACK** vía `SpawnBackBtn`, `MenuLabels[2]`) / `BackToMenu` (restaura títulos y re-spawnea el menú). `PollButtons` gatea por `bAboutUp` para **no leer `bDone` del BtnStart destruido** (habría sido Accessed None por frame). ⚠ Falta probar la interacción en visor (el poll no se puede apretar sin manos).
+3. **La intro se AUTODESTRUYE** 3 s después del START (`SelfDestruct` por timer en `HideTitleAndGo`): cero residuos del panel del título. Verificado por log, sin Accessed None después de morir.
+4. `MaybeStart` (auto-arranque de andamiaje) ahora dispara **`OnStartPressed`**, no `HideTitleAndGo` — el camino auto ejercita el mismo kill del menú que un START real.
 
 ## 🔴 Sin UMG: planos y TextRender
 El "widget" es un **plano con material unlit** + `TextRenderComponent`, no un Widget Blueprint. Mismo criterio que el cartel de [[BP_Door]]: en Quest es mucho más barato (no hay render target ni árbol de Slate) y **esquiva todo `widgets-vr.md`** — world-space obligatorio, `TickMode` que no viene en `Automatic`, `bManuallyRedraw`, etc. Para tres logos y un título, alcanza y sobra.

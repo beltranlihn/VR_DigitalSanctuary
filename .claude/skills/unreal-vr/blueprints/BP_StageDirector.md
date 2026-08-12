@@ -15,6 +15,14 @@ la puerta abre -> la nueva sala sube de luz
 ## Status
 🟡 **Ciclo completo funcionando y loopeando, verificado por log en PIE (2026-08-11).** Falta el test en visor y quedan 2 bugs conocidos (abajo).
 
+## 🔴🔴 2026-08-12 — REVISIÓN CON BELTRÁN: 4 cambios estructurales decididos
+Antes de tocar este BP, leer `docs/PLAN-2026-08-13.md` §0. Estado de aplicación:
+1. ✅ **APLICADO (2026-08-12): son 6 salas, no 7.** `FINAL` salió de `StageNames`/`StageColors`/`RoomKinds` (ahora `[0,1,1,1,1,1]`, 6 entradas en las tres listas, seteadas en el CDO — la instancia NO tiene override de estas listas, hereda del CDO). Tras SURROUNDING (índice 5), `RefreshLastRoom` → `FinishObra`. La tabla de 7 salas de abajo queda obsoleta en la fila FINAL.
+2. ✅ **APLICADO (2026-08-12): `RoomMaps` (array de string, instance-editable) reemplaza a `RoomMap`** (variable eliminada). `PreloadNext(Suffix)` ahora hace `LoadLevelInstance(RoomMaps[Suffix])` — **el parámetro `Suffix` volvió a tener uso: es el ÍNDICE del mapa**, los llamadores le pasan el índice de sala correcto (BeginPlay→0, CloseRoom→StageIndex ya incrementado). Los 6 mapas: `Maps/Rooms/L_Room_{Hall,Entering,Recognizing,Loving,Attracting,Surrounding}` (hoy copias del placeholder; Beltrán los diseña a su ritmo). **Registrados en `MapsToCook`** de `DefaultGame.ini`. Aserción nueva en `BP_SelfTest.DirMapsAsserts`: RoomMaps mismo largo que StageNames.
+3. ✅ **APLICADO (2026-08-12): la puerta queda CERRADA hasta llegar.** `WalkOut` ya NO llama `OpenDoor` directo: agenda un timer a `OpenDoor` con **`DoorOpenDelay`** (nueva instance-editable, **1.6 s** en CDO e instancia, verificada). Timeline desde `WalkOut`: t=0 camina hacia la puerta cerrada (cartel encendido) · t=1.2 arranca el negro (`FadeOutDelay`) · t=1.6 la puerta abre contra el negro cayendo · t≈2.7 negro pleno · t=3.0 swap. ⚠ Restricción nueva: **`DoorOpenDelay` < `FadeOutDelay` + `FadeOutTime`** (abrir después del negro pleno sería invisible). ⚠ El pin `Object` del timer quedó en `0` al crearlo por cirugía — hubo que cablear un nodo `Getareferencetoself`; **revisar ese pin siempre que se cree un `SetTimerbyFunctionName` por cirugía**.
+4. ✅ **APLICADO (2026-08-12): `FinishObra` → `BP_Room.Dissolve(LightFadeTime)`**: rampa a 0 + esconde piso y muro → queda el exterior. Verificado por log (`ROOM: la sala se deshizo`, 2.0 s después del deshacerse). Falta encima: gráfico → pregunta de Alma → constelación (paso 5 del §10).
+⚠ **Trampa pagada acá:** `set_properties`/`reset_properties` sobre la INSTANCIA reportaron error al achicar los arrays, **pero el valor efectivo quedó bien** (la instancia heredaba del CDO, nunca tuvo override de las listas). Verificar siempre con `get_properties` después: el mensaje de error de arrays miente en ambos sentidos.
+
 ## 🔴🔴 LA OBRA NO EMPIEZA ACÁ — hay una INTRO antes (§3), y cambia supuestos
 Aclarado por Beltrán el 2026-08-11 y confirmado contra §3 del documento maestro. **La experiencia arranca en negro con logos, título y menú principal (Start / About); recién al apretar Start el pawn empieza a avanzar, y avanza hasta la puerta del Hall.** La escena completa:
 
@@ -63,6 +71,33 @@ EndStage → DimAndReveal → RefreshLastRoom → CloseOrFinish
 🔴 **`RefreshLastRoom` corre ANTES de incrementar** y pregunta por `StageIndex + 1 >= largo`, o sea *"¿hay una sala siguiente?"*. Preguntarlo después del incremento sería preguntar otra cosa.
 - **`bLoopRooms`** (instance-editable, **false**): en `true` vuelve al comportamiento viejo de loopear para siempre — es lo que sirve para el modo **soak** de `BP_DebugDirector`. En `false`, `WrapIndex` queda inalcanzable por construcción.
 - `FinishObra` hoy sólo loguea. Le falta el cierre real: §3 pide gráfico de datos, la pregunta de Alma, la constelación y la despedida.
+
+## 🆕 2026-08-12 — EL CORREDOR DE LA INTRO + TIMBRE (tarea 6 del plan, construido y verificado por log)
+`StartExperience()` ya NO entra directo a la primera sala: ahora corre la **escena 2 del guion** (la caminata por el vacío hasta la puerta del Center). Cadena completa, toda por funciones + timers:
+
+```
+StartExperience → StartCorridor:
+    BuildPath(500 + CorridorLength)              ← spline largo del corredor
+    StartWalk(L, 2L, RampIn, RampOut)            ← el pawn (en X=−500) camina L cm por el vacío
+    SpawnCenterDoor                              ← BP_Door spawneado en X = L−500+DoorAhead, Configure("SOUL CHARGER CENTER", color del Hall) + Reveal
+       └ SpawnBell(DoorX)                        ← BP_MenuButton en modo timbre (bHoldByHover, "PLACE YOUR HAND"), spawneado junto a la puerta, SIN armar
+    timer CorridorArrive a (L/Speed + 1.5)
+CorridorArrive → Arm(bell) · timer CheckBell 0.2s LOOP · MaybeAutoRing
+CheckBell (poll) → si bell.bDone → BellPressed:
+    ClearTimer(CheckBell) · Open(puerta) · Fade(1.0, FadeOutTime) · timer EnterCenter a FadeOutTime+0.4
+EnterCenter → BuildPath(500) · KillCenterDoor (destruye puerta+timbre, cero residuos) · ShowAndEnter  ← entra al ciclo normal de salas
+```
+
+| Variable nueva | Valor | Rol |
+|---|---|---|
+| `CorridorLength` | **800** (placeholder de test) | Largo del corredor en cm. **El valor real sale de la duración de la voz** (~45 s ≈ 7000-7800). Cambiarlo NO toca código. |
+| `DoorAhead` | 140 | Cuánto más allá del punto de parada está la puerta. |
+| `BellHoldTime` | 1.5 s | Cuánto hay que sostener la mano en el timbre. |
+| `bAutoRing` | false | 🧪 Andamiaje: en true, 1 s después de llegar dispara `RingBell` → `Fire()` del timbre — **simula la mano por el MISMO camino** que un timbre real (filosofía ForceComplete). Para correr la obra completa sin visor. |
+
+**Verificado por log (2026-08-12 14:31):** corredor 6.3 s → llegada → auto-ring → `timbre aceptado - el Center abre` → puerta+timbre destruidos → swap → Hall → ciclo normal. El walker reconstruye el spline **1300 → 500** en los momentos correctos.
+⚠ **El hold real del timbre (mano 1.5 s) es territorio del visor** — el auto-ring lo saltea por diseño.
+⚠ **Trampa nueva pagada acá:** un literal NUMÉRICO posicional a una función propia también se pierde (`(CallFunction|Fade 1.0 X)` quedó como `Fade(Alpha←X, Duration=0)`). No es solo con strings: **releer TODO llamado a función propia con literales** después de un write.
 
 ## Cómo está encadenado
 🔴 **Los saltos entre tramos van por `SetTimerByFunctionName`, no por `Delay`.** Un `Delay` no es válido dentro de una función, y el ciclo necesita esperas entre pasos; los timers por nombre funcionan sobre **custom events** igual que sobre funciones, así que cada tramo es un evento aparte y el anterior lo agenda. Ventaja lateral: cada tramo es un punto de entrada nombrado, así que `BP_DebugDirector` va a poder saltar a cualquiera.

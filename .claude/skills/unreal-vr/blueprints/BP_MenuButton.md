@@ -1,7 +1,11 @@
 # BP_MenuButton — botón por CONTACTO + trigger (Core/UI/)
 
 ## Purpose
-Los botones del menú de la intro (**START** / **ABOUT US**) y, más adelante, el **timbre** del Center. Se acercan con la mano y se confirman con el gatillo.
+Los botones del menú de la intro (**START** / **ABOUT US**) y el **timbre** del Center. Se acercan con la mano y se confirman con el gatillo — o, en modo timbre, **solo con sostener la mano cerca**.
+
+## 🆕 Modo TIMBRE (2026-08-12): `bHoldByHover`
+Nueva bool instance-editable. En `true`, `UpdateHold` acumula con `(bTrigHeld OR bHoldByHover)` — como `UpdateHold` solo corre cuando hay hover, el resultado es **"apoyar la mano y esperar `HoldTime`"** sin gatillo, que es exactamente lo que Beltrán definió para el timbre. El timbre lo spawnea `BP_StageDirector.SpawnBell` al final del corredor de la intro (label "PLACE YOUR HAND", `HoldTime = BellHoldTime` 1.5 s, destruido tras usarse).
+⚠ Detalle conocido: si la mano se aleja a mitad del hold, `HoldT` queda congelado (no se resetea, porque `UpdateHold` deja de correr) y al volver retoma desde ahí. Para un timbre es tolerable; si molesta en visor, el reset va en el else de `TickStep`.
 
 ## Status
 🟢 **Funcionando end-to-end en PIE** (2026-08-12): se spawnean en sus TargetPoints con su etiqueta, se arman, y al apretar START se destruyen los dos. ⬜ Falta el test en visor (si 45 cm y 18 de radio son cómodos sentado) y el panel de About.
@@ -47,10 +51,18 @@ El menú es la **primera** interacción. Si arrancara con beam, se enseñaría e
 - **`UpdateVisual`** — move-toward de `HoverT` y `escala = BaseScale × (1 + HoverT×(HoverScale−1))`.
 - **`Arm` / `Disarm`** — la API que usa la intro.
 
+### 🔴🔴 FIX (2026-08-12 visor): el gatillo NO llegaba — faltaba LA RECETA DE INPUT completa
+Reportado por Beltrán: *"aparecen los botones pero solo funciona el hover, no el trigger"*. Causa: este BP tenía los **eventos** `IA_Shoot_*` pero **nadie hacía `EnableInput` + `AddMappingContext` EN ESTE actor** — el punto 1 y 2 de la receta de `assets-existentes.md` §INPUT. Sin eso, los eventos existen y jamás disparan, sin error ni warning.
+**Aplicado (copiado EXACTO de `BP_Instructions.InitRefs` de Breath, el que anda en visor):**
+- `IMCRef` (var objeto, default **`Core/UI/Input/IMC_MenuTrigger`** — duplicado de `IMC_Continue` con sus 4 mapeos de trigger).
+- `EnsureInput()`: `GetPlayerController(0)` → `EnableInput(self, pc)` → `AddMappingContext(subsys, IMCRef, 1000, bIgnoreAllPressedKeysUntilRelease=False, bForceImmediately=True)` → `bInputReady = HasMappingContext(...)` → log `BTN: input listo - IMC activo`.
+- `MaybeInput()` llamada **desde el Tick** (antes del gate de `bArmed`), reintenta hasta que `bInputReady`. En BeginPlay el PC puede no existir y falla en silencio.
+**Verificado en PIE:** los 2 botones spawneados loguean `BTN: input listo - IMC activo`. La confirmación del gatillo real es del visor.
+
 ### El input, por cirugía
 El DSL **no puede crear eventos de input**. Van con `create_node` + `connect_pins`:
 - type_id **`Input|EnhancedActionEvents|IA_Shoot_{Right,Left}`** (⚠ **no** `AddEvent|Input|EnhancedInputAction|…`, que no existe).
-- **`Triggered` = pin 0 → `bTrigHeld = true`** · **`Completed` = pin 4 → false**.
+- 🆕 **2026-08-12 (fix visor): `Started` = pin 1 → `bTrigHeld = true`** · **`Completed` = pin 4 → false**. ANTES era `Triggered` (pin 0) → `true`, y eso causaba el bug de *"si mantengo apretado cambia constantemente"*: `Triggered` dispara **cada frame** mientras se sostiene, así que un botón recién spawneado (el BACK tras apretar ABOUT, el menú tras el BACK) veía el gatillo ya apretado y se re-disparaba en cadena. Con `Started`, el apretón cuenta **una vez**: un botón nuevo no dispara hasta soltar y volver a apretar. (Mismo patrón Started/Completed que el far-grab de Touch.)
 - `IA_Shoot_L/R` del XRFramework es **la única acción de trigger que se entrega de verdad** en este proyecto, y **un actor suelto del nivel la recibe** (validado en visor con el pincel de Movement).
 - ⚠ El `read_graph_dsl` muestra estos eventos **vacíos** aunque estén bien cableados. Verificado con `get_node_infos`: los 4 cables están.
 
@@ -75,11 +87,29 @@ START apretado → KillMenu → DestroyActor de los dos → HideTitleAndGo
 - 🔴 **El "uno más arriba que otro" se volvió imposible**: los dos salen de `TargetPoint` autorados. Si están parejos en el viewport, están parejos en la obra.
 - Desaparecieron **cuatro funciones**: `CacheButtons`, `SortButton`, `PlaceButtons` y `PlaceOne`. El punto de spawn reemplazó toda la ubicación por código.
 
-**Cómo se autora:** mover los dos `TargetPoint` con tag **`MenuSpawn`** en el viewport. Hoy están en `(45, ±17, 112)`. Para agregar un tercer botón: un punto más y una entrada más en `MenuLabels`. **Sin tocar Blueprints.**
+**Cómo se autora (versión FINAL, pedida por Beltrán 2026-08-12 tarde): un TargetPoint POR botón, con tag propio.**
+| TargetPoint | Tag | Spawnea | Posición inicial |
+|---|---|---|---|
+| `TP_MenuStart` | `MenuSpawnStart` | START (`MenuLabels[0]`) | (−455, −17, 102), yaw 180 |
+| `TP_MenuAbout` | `MenuSpawnAbout` | ABOUT US (`MenuLabels[1]`) | (−455, +17, 102), yaw 180 |
+| `TP_MenuBack` | `MenuSpawnBack` | BACK (`MenuLabels[2]`, en el panel About) | (−455, 0, 102), yaw 180 |
+| `TP_Bell` | `BellSpawn` | el timbre del Center | (405, 25, 100), yaw 180 |
+- El botón toma **posición Y rotación** del punto (con yaw 180 el texto mira al usuario). Se mueve cada punto en el viewport, sin tocar código.
+- `BP_IntroSequence.SpawnBtnFromTag(PointTag, LabelIdx)` es el helper (con guard: si falta el punto, loguea `FALTA` y no spawnea). El timbre va por `BP_StageDirector.SpawnBell → SpawnBellAt(Pt)`.
+- ⚠ **`TP_Bell` está en coordenadas de mundo**: si se cambia `CorridorLength` (hoy 800 de test → ~7000 con la voz real), la puerta del Center se corre y **hay que mover `TP_Bell` a mano** junto a ella (X de la puerta = `CorridorLength − 500 + DoorAhead`).
+- Los offsets `ButtonDistance`/`ButtonSpread`/`ButtonDrop` quedaron **sin uso** para los botones (los puntos mandan); `PanelDistance` sigue viva para el panel del título vía `MenuRoot`.
 
 ⚠ **El label va por un setter con nombre ÚNICO (`SetButtonLabel`), no por `SetLabelText`.** `Class|BPMenuButton|SetLabelText` **colisiona con un nodo de Niagara** (`Niagara|Preview|SetLabelText`) y el DSL agarra el equivocado, invirtiendo los argumentos. Se detecta releyendo el grafo.
 
-### 🐛 ABIERTO: los botones aparecen a 5,45 m — dos sistemas de referencia mezclados
+### ✅ RESUELTO (2026-08-12 tarde): un solo `MenuRoot`, todo relativo a él
+El bug de los 5,45 m se cerró con la decisión de la revisión (plan §0 #1):
+- **Un único `TargetPoint` con tag `MenuRoot`** (`TP_MenuRoot`, en (−500, 0, 130) junto al `PlayerStart`, yaw 0). Los dos `MenuSpawn` viejos **se eliminaron** del nivel.
+- `BP_IntroSequence` ahora coloca **panel Y botones relativos a ese punto**: `PlaceAtRoot` (el actor a `PanelDistance` sobre el forward del root) y `SpawnMenuAtRoot`→`SpawnBtnAt(BtnPos, BtnRot, LabelIdx)` (botones a `ButtonDistance`/±`ButtonSpread`/−`ButtonDrop`). `PlacePanel`/`PlaceStep`/`SpawnMenu`/`SpawnMenuOne` y `MenuIndex` **fueron eliminados**.
+- El recentrado que lo hace válido **ya existía** en `BP_VRPawn_SC` (Delay 0.5 → `ResetOrientationAndPosition`), verificado con `get_node_infos`.
+- **Se autora moviendo UN punto.** Verificado por 3 aserciones espaciales nuevas en `BP_SelfTest.MenuSpatialAsserts`: ambos botones a <120 cm del root y separación 20-60 cm — **PASS en PIE**.
+- 💡 El modo auto del andamiaje (`MaybeStart`) ahora dispara **`OnStartPressed`** (no `HideTitleAndGo` directo), así el camino auto ejercita el mismo kill que un START real. `INTRO: menu destruido, cero residuos` **verificado por log**.
+
+### 🐛 CERRADO (histórico): los botones aparecen a 5,45 m — dos sistemas de referencia mezclados
 Reportado en visor y **diagnosticado por Beltrán**: *"no sé si porque el player start es distinto al inicio del spline"*. Los números lo confirman:
 
 | Cosa | Posición |

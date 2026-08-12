@@ -53,6 +53,13 @@ SetScalarParameterValueOnMaterials(Wall,  "Brightness", b)
 
 **`Configure(NewRoomName, NewAccent)`** — setea las dos variables y llama `InitRoom`. Es la puerta de entrada del director: §9.8 quiere que el look salga de un DataAsset de la etapa, no de editar el BP.
 
+**`Dissolve(WaitTime)`** 🆕 (2026-08-12) — **el caso terminal de la obra** (plan §0 #7): al completarse la última carga no hay avance ni puerta — la arquitectura se deshace en el lugar y queda el exterior (`BP_Void`). Placeholder de la animación "transformer" futura:
+```
+RampLight(0, WaitTime)                      ← la sala se apaga (en un mundo sin luces, apagar es desaparecer)
+timer "FinishDissolve" a max(WaitTime,0.01)
+```
+**`FinishDissolve()`** — `SetVisibility(false)` en `Floor` y `Wall` + log `ROOM: la sala se deshizo - queda el exterior`. 🔴 **Esconder los meshes es obligatorio, no cosmético:** un muro opaco en negro sigue siendo un **oclusor** — taparía el degradado del vacío y las partículas de la constelación (misma lección que el LogoPlane invisible de la intro). Lo llama `BP_StageDirector.FinishObra` con `LightFadeTime`.
+
 **`EventGraph`** — solo `BeginPlay -> InitRoom()`.
 ⚠ `BeginPlay` de un actor de sublevel corre **durante `AddToWorld`**, es decir **antes** de que el nivel quede visible y antes de que dispare `OnLevelShown`. Por eso alcanza para que la sala nazca negra sin que se vea un flash. El fade sphere está igual por encima como red.
 

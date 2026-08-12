@@ -75,6 +75,7 @@ AddMappingContext(IMC, Priority = 1000,
 | `XRFramework/VFX/NS_TeleportTrace` / `NS_TeleportRing` | Arco y anillo de teleport | — |
 | `XRFramework/VFX/NS_PlayAreaBounds` | Límites del área | — |
 | `Stages/Breath/NS_BreathParticles` | Partículas de respiración | — |
+| 🆕 `Core/VFX/NS_VoidDust` | **Las partículas del EXTERIOR** (2026-08-12): emitter `HangingParticulates` del plugin Niagara, Box Size **(10000, 10000, 600)**, SpawnRate **80** (default 50). Colocado como `FX_VoidDust` en `L_Persistent` en (0,0,250). **Placeholder a la espera de la pasada de arte de Beltrán** — es la firma visual que cierra el arco (mismo cielo al inicio y al final, §6.b). ⚠ Sprite renderer CPU; verificar en APK que la Scalability del emitter no lo apague (`fx.Niagara.QualityLevel` clampeado en Android, ver `niagara-quest.md`). | 🟡 colocado, falta visor/device |
 
 ⚠ **El pointer NO trae cursor de impacto.** `BP_Menu` lo resuelve con un `StaticMeshComponent` aparte (esfera + `XRFramework/Materials/M_VRCursor`). Si querés punta, va como componente.
 

@@ -105,7 +105,7 @@ El mapa de distancias de arriba describe la caminata **entre salas**. Pero §3 t
 - [ ] 🔴 **Test en visor, y con gente ajena al equipo** (§9.2 lo pide explícitamente). El orden de ajuste sugerido: primero `AccelTime`, después `VignetteMax`, y recién al final las amplitudes del bob.
 - [ ] Probar el caso `BobHeight = BobRollDeg = VignetteMax = 0` — tiene que quedar una traslación lisa y usable, es el modo accesible.
 - [ ] Medir el costo de la viñeta en device (es translúcida y llena pantalla; ver el TODO de `BP_Vignette`).
-- [ ] `Recognizing` necesita **otra** personalidad de movimiento: subida continua y lisa, sin bob ni pasos, y con referencia vertical fija (§9.2). Casi seguro es un BP hermano, no un flag de este.
+- [x] ~~`Recognizing` necesita otra personalidad de movimiento~~ → ✅ **DECIDIDO 2026-08-12: en Recognizing el pawn NO se mueve — el entorno desciende** (la columna/anillos bajan alrededor; ilusión de ascenso). No es un walker hermano ni un flag de este BP: es un BP propio de esa sala, se construye con la etapa.
 
 ## Open questions
 - ¿1,8 pisadas/s es la cadencia correcta para 175 cm/s? Físicamente una marcha a 1,75 m/s va más cerca de 2 Hz. Si el bob se siente "lento para lo rápido que avanzo", subir `StepsPerSecond` antes que tocar la amplitud.

@@ -95,7 +95,7 @@ La medición se muestra, se explica y se enmarca como relación, no como diagnó
 | 2 | **La caminata** — desde el botón Start el pawn ya avanza por spline. Pasos, silueta de puerta, *Soul Charger Center*. Timbre: apoyas la mano y te escanea | ~45 s |
 | 3 | **Hall** — Alma te recibe, explica las 5 etapas, calibración, eliges tu Proto Soul | ~90 s |
 | 4–8 | **Las cinco etapas** | 5 × ~2 min |
-| 9 | **Sala final** — la arquitectura se transforma (no hay compuerta) y **se vuelve a estar en el exterior**: gráfico de datos, **la pregunta de Alma y la elección**, constelación, despedida | ~2 min |
+| 9 | **El final** — 🔴 **sin última puerta y sin avance** (aclarado 2026-08-12): al completarse la carga de *Surrounding*, el pawn se queda en su punto y **la arquitectura se deshace en el lugar** (animación tipo *transformer*) → **se vuelve a estar en el exterior**: gráfico de datos, **la pregunta de Alma y la elección**, constelación, despedida. **El final no es una sala**: la obra tiene 6 salas (Hall + 5 etapas) | ~2 min |
 | | **Total** | **≈ 14–15 min** |
 
 > ⚠ **El presupuesto es real: la obra da ~15 min, no 10–12.** Para festival es una duración normal, pero hay que asumirlo. **Si hay que recortar, se recorta intro y final, no las etapas** — ahí están los ~3,5 min más pasivos.
@@ -103,6 +103,10 @@ La medición se muestra, se explica y se enmarca como relación, no como diagnó
 > ⚠ *Attracting* y *Surrounding* son abiertas y se pasarán de 2 min casi siempre. Cierran con **invitación suave** (el pad crece, la luz se entibia, Alma habla), nunca con corte seco.
 
 > 🔴 **La caminata de la intro tiene dos trabajos:** instala el mood **y es donde se toma el baseline** (§5). Conviene que sean **30–40 s de avance estable**, para que la medición tenga de dónde promediar.
+>
+> 🔴 **Decidido 2026-08-12: las escenas 1 y 2 ocurren JUNTAS** — la voz femenina suena **mientras** se camina, en un solo bloque de ~45–50 s (ahí mismo se toma el baseline). Para testear se usa un **placeholder corto**; cuando exista la grabación real se ajusta el tempo — por eso todos los tiempos del corredor son variables, nunca hardcodeados.
+>
+> ✅ **About Us** (decidido 2026-08-12): panel de **texto + botón BACK** que vuelve al menú, mismo lenguaje visual del título. Texto en inglés, placeholder hasta tener el contenido.
 
 ### El giro final: la pregunta de Alma
 
@@ -162,6 +166,7 @@ La voz **no cuenta las respiraciones en voz alta** (convierte el ejercicio en ta
 
 ### Recognizing
 🔴 **La subida es autoral: siempre subes, siempre llegas.** El latido modula los anillos y el háptico, no el avance.
+🔴 **Decidido 2026-08-12: la subida es una ILUSIÓN — el pawn no se mueve; el entorno desciende** (la columna de luz y los anillos de referencia bajan alrededor). Cero riesgo vestibular extra, la sala no necesita altura real, y "llegar arriba" es simplemente que el entorno se detiene. Es un BP de esa sala, no un modo del walker.
 **Continua y monótona, sin rebotes.** Los "saltos de trampolín" del guión original son exactamente lo que marea: cada aceleración es un evento vestibular. Y hay que dar una **referencia vertical fija** (columna de luz, anillos que pasan) para que el cerebro tenga un riel.
 Si no se detecta pulso, el fallback **no es un ritmo inventado**: se maneja con la respiración, que sí controlamos.
 
@@ -309,6 +314,8 @@ No se puede caminar por un spline hacia una pantalla de carga, y el sensor, la a
 
 **Nivel persistente** con el pawn y todo lo que perdura + **salas como streaming sublevels** que cargan y descargan alrededor del jugador. Con eso: caminata continua, solo dos salas en memoria a la vez, y nada se destruye.
 
+🔴 **Decidido 2026-08-12: cada sala es SU PROPIO `.umap`** — seis mapas (Hall + 5 etapas; el final no es una sala, ver §3), cada uno con sus meshes y materiales diseñados a mano por Beltrán. El director los indexa con un array (`RoomMaps`); el placeholder único que cambiaba de color fue solo la fase de esqueleto. Todos se construyen en el mismo origen (§9.2).
+
 ⚠ **Los niveles de test NO se tiran.** Se siguen usando para iterar cada mecánica aislada; el nivel persistente es de **ensamblaje**.
 
 ### 9.1.b 🔴 Spawnear, matar, y ubicar con TargetPoints (regla de Beltrán, 2026-08-12)
@@ -323,6 +330,10 @@ Tags en uso: `MenuSpawn` (los botones del menú) · `SoulSpawn` (las Proto Souls
 💡 **Beneficio no obvio:** el bug de "un botón más arriba que el otro" **desaparece** cuando los dos salen de puntos autorados. Y agregar un tercero es un punto más, no código.
 
 ### 9.2 Movimiento y transiciones
+
+🔴 **Decidido 2026-08-12: la vista se RECENTRA en BeginPlay** (`ResetOrientationAndPosition`). Todo lo espacial se ancla al **mundo** y se autora con TargetPoints — sin lógica de colocación relativa a cámara en runtime. Es lo estándar en obra sentada.
+
+🔴 **Decidido 2026-08-12: la puerta permanece CERRADA hasta llegar.** Se camina hacia la puerta cerrada (cartel encendido, resplandor de la sala siguiente por la rendija) y **abre recién al llegar**, con el negro cayendo. Repite literalmente el gesto de la entrada al Center. (Cierra la decisión pendiente del "bug #3" del director.)
 
 **El efecto de caminata — validado en visor (2026-08-06).** Traslación vertical + giro suave de cámara de lado a lado + viñeta. Probado y cómodo.
 - Vertical **1,5–2 cm**, angular **1–2 grados**.
@@ -367,6 +378,8 @@ Y aunque la luz de la sala haga el trabajo narrativo, **mantener un fundido a ne
 | **`BP_NarrationDirector`** | Cola de VO: disparo por evento, por entrar a estado y por inactividad. Con variantes y **sin bloquear**. |
 
 🔴 **El BioHub no sabe nada de etapas y las etapas no saben nada de OSC.** Si se cambia de dispositivo, se toca un solo Blueprint.
+
+🔴 **Alma y el Proto Soul son DOS actores distintos** (confirmado 2026-08-12): Alma es la **guía** (aparece en el Hall y en el final; futuro `BP_Alma`, se construye con el Hall en el paso 4); el Proto Soul es el **HUD personal** del usuario. Pueden compartir material/deformación, nunca instancia.
 
 ### 9.4 `BP_StageBase`
 ```
