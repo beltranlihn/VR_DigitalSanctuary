@@ -113,6 +113,10 @@ EnterCenter → BuildPath(500) · KillCenterDoor (destruye puerta+timbre, cero r
 
 El loop cierra en `ShowAndEnter`, así que con el placeholder recorre las 3 etapas de prueba y vuelve a empezar indefinidamente.
 
+🆕 **2026-08-13 — el paso a etapas reales:**
+- **`SpawnStage`** ramifica por índice vía `SpawnEnteringOrBase`: 0 → `SpawnHallStage` · 1 → **`SpawnEnteringStage`** ([[BP_Stage_Entering]], la primera etapa con mecánica real) · resto → `SpawnBaseStage`. Agregar una etapa nueva = otra rama en `SpawnEnteringOrBase` + su `SpawnXStage`.
+- **`ExtendTimeout(Seconds)`** — API para las etapas reales: re-agenda el timer por nombre `"EndStage"` (los timers por nombre se resetean al re-setear con el mismo nombre), así el cortafuegos de inactividad no mata una mecánica que tarda minutos. La llama el `RunStage` de la etapa (Entering usa 240 s). Log: `DIR: cortafuegos extendido por la etapa real`.
+
 🔴 **El reposicionamiento del pawn NO es un teleport aparte**: lo hace `Walk(0, 500, ...)` de `EnterRoom`, porque `StartWalk` fija `Dist = FromDist` y el primer tick coloca al pawn en `spline(0)` = X −500. Un solo mecanismo para mover y para reposicionar, y ocurre bajo negro.
 
 ## Registro de variables

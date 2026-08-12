@@ -153,6 +153,9 @@ Transformation|AttachActorToComponent(self, cam, "None", "SnapToTarget", "SnapTo
 ⚠ Solo desde el **nivel persistente**. Un actor de sublevel attacheado al pawn se desattachea solo al guardar (`streaming-arch.md` §7).
 ⚠ Si le pones una malla alrededor de la cabeza, **apagale la colisión** o bloquea todos los line traces de los punteros.
 
+## 🌬️ La cadena de Breath, ya integrada a la obra (2026-08-13)
+`BP_Stage_Entering` (Core/Stages/) spawnea la cadena PROBADA EN VISOR de `Stages/Breath/` como la mecánica de la sala 1: `BP_Instructions` (widget 5 páginas, autónomo, spawnea el resto) → `BP_BreathSensor_V2` (tag `SensorSpawn`) → `Box_Breath` (tag `BoxSpawn`, el objeto que reacciona a la respiración). Reusable para futuros stages: el patrón "etapa spawnea el orquestador probado + poll de su bool de completitud + `ExtendTimeout` del director". ⚠ `BP_BreathStageManager` NO se usa en la obra (su cierre reinicia el nivel — es solo del test aislado).
+
 ## 🎨 Materiales reusables
 - `XRFramework/Materials/M_VRCursor` — cursor del puntero.
 - `Core/Rooms/Materials/M_RoomFloor` — unlit con **grilla por posición de mundo** (no por UV, así la escala del mesh no la estira). Parámetros `GridSize`/`LineWidth`/`LineColor`/`BaseTone`/`Brightness`.

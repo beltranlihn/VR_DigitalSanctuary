@@ -2,7 +2,10 @@
 
 Índice de alto nivel de dónde está cada stage. **Detalle fino de cada Blueprint → su tracker en `.claude/skills/unreal-vr/blueprints/<BP>.md`.** Actualizá este archivo al terminar de trabajar un stage.
 
-> Última actualización: **2026-08-03**.
+> Última actualización: **2026-08-13**.
+
+## 🦴 EL ESQUELETO DE LA OBRA (rama `core/esqueleto`) — la maqueta corre de punta a punta
+Intro → menú → corredor con timbre → **Hall narrativo** (Alma recibe → scanner → sensor de mano hábil con **auto-asignado a los 12 s** si nadie lo toma → elección entre 5 Proto Souls con armado de manos despejadas → HUD nace al elegir) → **ENTERING = LA PRIMERA ETAPA REAL** (la cadena de Breath integrada al ciclo: instrucciones de 5 páginas → sensor de respiración → 5 respiraciones sostenidas → `Box_Breath` reactivo → cierre por el camino real) → 4 etapas placeholder → disolución final al exterior. Plan vivo: `docs/PLAN-2026-08-13.md` · mapa de BPs: `blueprints/_INDEX.md`.
 
 Stages (carpetas en `VR_Test/Content/SoulCharger/Stages/`): **Breath · Heart · Mind · Movement · Touch · Inicio · Centro · Salida**. Además hay una herramienta de investigación en `Content/SoulCharger/Calibration/` (no es un stage de la obra).
 
@@ -22,7 +25,9 @@ El flujo entero corre en el visor sin errores. **Es el patrón arquitectónico a
 
 **Patrón arquitectónico que deja:** sensor / consumidor visual / manager de cierre **separados** (cada uno un BP, pawn liviano); widget de instrucciones world-space event-driven; cierre por manager + fade + transición.
 
-**Pendientes menores (no bloquean):** borrar prints de diagnóstico `IB:`; verificar en APK real que la calibración acotada (`SafeTol=9`) discrimina abdomen vs muslo; integrar al flujo maestro (hoy corre aislado en `Maps/Tests/L_Test_Breath`).
+**Pendientes menores (no bloquean):** borrar prints de diagnóstico `IB:`; verificar en APK real que la calibración acotada (`SafeTol=9`) discrimina abdomen vs muslo.
+
+🆕 **2026-08-13 — INTEGRADO AL FLUJO MAESTRO**: la cadena completa (BP_Instructions → BP_BreathSensor_V2 → Box_Breath) ahora la spawnea **`BP_Stage_Entering`** (Core/Stages/) en la sala 1 de la obra; el cierre va por `bStageComplete` → `ForceComplete` del director (el `BP_BreathStageManager` con su reinicio de nivel queda solo para el test aislado en `L_Test_Breath`). ⚠ Al integrar se corrigieron dos minas del CDO del sensor: `MaxBreathCount` 999→5 y `bCalibLog` true→false. Tracker: `blueprints/BP_Stage_Entering.md`.
 
 ## 🟡 HEART — en progreso
 Segundo stage temático (latido). Recibe el ritmo cardíaco por **OSC** (desde un sensor externo / Empatica-style) y lo visualiza.
