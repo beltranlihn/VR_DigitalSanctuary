@@ -79,6 +79,19 @@ START apretado → KillMenu → DestroyActor de los dos → HideTitleAndGo
 
 ⚠ **El label va por un setter con nombre ÚNICO (`SetButtonLabel`), no por `SetLabelText`.** `Class|BPMenuButton|SetLabelText` **colisiona con un nodo de Niagara** (`Niagara|Preview|SetLabelText`) y el DSL agarra el equivocado, invirtiendo los argumentos. Se detecta releyendo el grafo.
 
+### 🐛 ABIERTO: los botones aparecen a 5,45 m — dos sistemas de referencia mezclados
+Reportado en visor y **diagnosticado por Beltrán**: *"no sé si porque el player start es distinto al inicio del spline"*. Los números lo confirman:
+
+| Cosa | Posición |
+|---|---|
+| **`PlayerStart_0`** | **(−500, 0, 0)** ← el pawn arranca acá |
+| `BP_Walker_C_0` + `PathHalfLength` 500 | el spline va de **−500 a +500**, así que el `PlayerStart` **es el inicio del spline** |
+| Los `TargetPoint` de `MenuSpawn` | **(45, ±17, 112)** ← los puse en coordenadas de mundo, como si el usuario estuviera en el origen |
+
+🔴 **El problema de fondo no es el número: es que el menú usa DOS sistemas de referencia.** El panel del título se coloca **relativo a la cámara** en runtime (`PlaceStep`), y los botones en **puntos de mundo**. Mientras no coincidan, el menú va a estar siempre partido.
+👉 **La propuesta (§0 de [`docs/PLAN-2026-08-13.md`](../../../../docs/PLAN-2026-08-13.md)):** un solo `TargetPoint` con tag **`MenuRoot`** junto al `PlayerStart`, y panel + botones **relativos a él** con los offsets que ya son variables. Se autora moviendo un punto. Requiere decidir si se **recentra la vista** en `BeginPlay`.
+💡 **Atajo para probar ya:** mover los dos puntos a `x ≈ −455`.
+
 ### Verificado por log (2026-08-12)
 ```
 INTRO: menu spawneado en sus TargetPoints

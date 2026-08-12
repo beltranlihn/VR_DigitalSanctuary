@@ -32,6 +32,18 @@ Si respiras con la obra, el anillo florece entero. Si no, se mueve igual pero pe
 
 Esto no es un parche: es lo que hace que un EEG desconectado, una respiración no detectada o un usuario que no entendió **degraden con elegancia en toda la obra**, con una sola arquitectura en vez de cinco soluciones ad hoc.
 
+### 🔴 Tiempo autoral vs tiempo del usuario (dicho por Beltrán, 2026-08-12)
+*"Hay tiempos que van a ser más rápidos o cortos dependiendo del usuario: tocar el timbre, seleccionar la proto ameba, avanzar por los menús de instrucciones."*
+
+| Va por **timer** (tiempo autoral) | Va por **evento** (tiempo del usuario) |
+|---|---|
+| el negro inicial, los logos, los fundidos | el menú Start / About |
+| la caminata entre salas | el timbre del Center |
+| el cierre de una etapa por su mecánica | elegir el Proto Soul |
+| | pasar las páginas de instrucciones |
+
+🔴 **Nada que el usuario tenga que hacer se cierra con un timer.** Si se hace, o se le corta algo a mitad o se lo deja mirando algo que ya terminó. Y al revés: lo autoral **no** espera al usuario, porque entonces la obra pierde su pulso.
+
 ### 2.2 Nunca hay callejón sin salida
 Ninguna etapa puede quedarse esperando. Cada momento de espera tiene: **tres variantes de línea de voz** que invitan sin repetirse y, pasadas esas, **el sistema baja la exigencia o avanza solo**. El anillo de carga aparece igual. *Nadie debería quedar fuera de su propia alma por respirar distinto.*
 
@@ -45,6 +57,20 @@ El orden de las etapas es un arco del gesto y hay que **nombrarlo**, no solo eje
 | **Hacia afuera** | Attracting, Surrounding | el mando apunta y crea |
 
 Alma lo articula: *primero vas a escucharte, después vas a soltar, después vas a alcanzar.*
+
+### 🔴 El arco empieza ANTES de las etapas, en el menú (decidido 2026-08-12)
+El arco del gesto arranca en la primera interacción de la obra y **el puntero llega tarde a propósito**:
+
+| Momento | Gesto | Confirmación |
+|---|---|---|
+| **Menú** (Start / About) | **tocar** con la mano | **hover + gatillo** |
+| **Timbre** del Center | **apoyar** la mano | **esperar** (sostener) |
+| **Sensor**, y las 4 primeras etapas | **tomar** con la mano | contacto |
+| **Attracting** | **apuntar** | el beam, que aparece **recién acá** |
+
+**Por qué el menú no usa beam:** si la primera interacción fuera con puntero, se enseñaría una herramienta para abandonarla durante cuatro etapas y recuperarla al final. Tocando, el menú **rima con el timbre que viene tres segundos después** y con tomar el sensor, y el beam queda como **capacidad nueva** que se gana en *Attracting*. Además, tocar enseña *tus manos son reales acá*, que es la tesis de la obra.
+
+💡 **El timbre es el único que se confirma esperando**, y por eso es el que enseña la paciencia del resto de la obra.
 
 ### 2.4 El ritual se repite, la intensidad crece
 La estructura *instrucciones → ejercicio → carga* se repite cinco veces a propósito — el ritual **es** la meditación. Lo que **no** puede repetirse idéntico es la carga:
@@ -64,12 +90,12 @@ La medición se muestra, se explica y se enmarca como relación, no como diagnó
 
 | # | Escena | Duración aprox. |
 |---|---|---|
-| 0 | **Intro** — logos, título, Start / About | — |
+| 0 | **Intro** — negro 2 s, tres logos de 1 s (*Made with Unreal*, Alma Digital, Johns Hopkins), luego el título **Soul Charger** con *An interactive VR Biofeedback Experience*, y dos botones: **Start** y **About Us**. Todo esto pasa **en el exterior** (ver 6.b) | ~10 s + lo que tarde el usuario |
 | 1 | **Oscuridad** — voz femenina espacializada, preguntas que instalan el mood | ~45 s |
 | 2 | **La caminata** — desde el botón Start el pawn ya avanza por spline. Pasos, silueta de puerta, *Soul Charger Center*. Timbre: apoyas la mano y te escanea | ~45 s |
 | 3 | **Hall** — Alma te recibe, explica las 5 etapas, calibración, eliges tu Proto Soul | ~90 s |
 | 4–8 | **Las cinco etapas** | 5 × ~2 min |
-| 9 | **Sala final** — la arquitectura se transforma (no hay compuerta), gráfico de datos, **la pregunta de Alma y la elección**, constelación, despedida | ~2 min |
+| 9 | **Sala final** — la arquitectura se transforma (no hay compuerta) y **se vuelve a estar en el exterior**: gráfico de datos, **la pregunta de Alma y la elección**, constelación, despedida | ~2 min |
 | | **Total** | **≈ 14–15 min** |
 
 > ⚠ **El presupuesto es real: la obra da ~15 min, no 10–12.** Para festival es una duración normal, pero hay que asumirlo. **Si hay que recortar, se recorta intro y final, no las etapas** — ahí están los ~3,5 min más pasivos.
@@ -216,6 +242,21 @@ Lo bueno: en Quest 3 eso es también **lo más barato de renderizar**. Cuando la
 
 **Entering: estático, y respira la sala entera** — muros, luz, volumen del ambiente, no solo un anillo. Nada de túnel tipo Flowborne: si avanzas, el usuario lee su respiración como propulsión; si te quedas quieto y el espacio se expande, la lee como **aquello que crea el mundo**. Lo segundo es la tesis de la obra.
 
+### 6.b El exterior, y que la obra vuelve a él
+La obra **empieza y termina afuera**: se arranca en un exterior, se entra al Center, se recorre entero, y al final —para la constelación— **se vuelve a estar en el exterior**. Los interiores (Hall y etapas) son salas que aparecen *dentro* de ese afuera.
+
+- El exterior es un **vacío negro azulado infinito**, con un degradado vertical suave: el degradado es lo que lo hace leer como **amplitud** y no como vacío plano.
+- 🔴 **La profundidad la van a dar las PARTÍCULAS, no el fondo.** Lo que vende escala es el **paralaje**: un campo disperso de puntos a distintas distancias hace más que cualquier gradiente.
+- 🔴 **Que el cielo del final sea EL MISMO del comienzo es lo que hace legible el regreso.** Conviene que sea el mismo sistema de partículas en los dos momentos: es la firma que cierra el arco.
+- **Consecuencia para la sala final:** para devolver el exterior, la sala final tiene que **abrirse** —esconder su muro—, no sólo bajar la luz. Es la única metamorfosis de la obra, y ahora se sabe *hacia qué* se transforma.
+
+### 6.c 🔴 Cero luces: todo es unlit + emisivo (decidido 2026-08-12)
+La obra **no tiene ninguna luz**: ni direccional, ni sky, ni atmósfera, ni niebla. Todo el color sale de **materiales emisivos**. Si algún día hace falta un punto de luz concreto, es una **excepción deliberada y local**, no el modo de trabajo.
+
+Encaja por tres lados a la vez: es Turrell (luz en el aire, no objetos iluminados), es lo más barato en el renderer móvil, y evita depender de horneado.
+
+⚠ **La consecuencia práctica, que ya costó una sesión:** sin luces, **cualquier material *lit* renderiza negro sobre negro**. Al traer un asset nuevo —del template, del motor, de donde sea— lo primero es mirarle el *shading model*.
+
 **Transiciones:** salas y compuertas, no arquitectura que se transforma — la metamorfosis es espectáculo y compite con la contemplación; la puerta dice *estás entrando a un lugar*, y da el título de cada sala. **La única transformación se guarda para la sala final**, donde ya no hay compuerta.
 
 ---
@@ -269,6 +310,17 @@ No se puede caminar por un spline hacia una pantalla de carga, y el sensor, la a
 **Nivel persistente** con el pawn y todo lo que perdura + **salas como streaming sublevels** que cargan y descargan alrededor del jugador. Con eso: caminata continua, solo dos salas en memoria a la vez, y nada se destruye.
 
 ⚠ **Los niveles de test NO se tiran.** Se siguen usando para iterar cada mecánica aislada; el nivel persistente es de **ensamblaje**.
+
+### 9.1.b 🔴 Spawnear, matar, y ubicar con TargetPoints (regla de Beltrán, 2026-08-12)
+*"Ojalá tooodo hagamos que se spawnee y después que se elimine. Siempre usando target points para que sean fáciles de ubicar. Por lo menos todo lo que se pueda y valga la pena. VR se trata de optimizar."*
+
+1. **Nada existe antes de su momento.** Si el usuario todavía no lo tiene que ver, **no está spawneado** (no "escondido").
+2. **Nada sobrevive a su momento.** Lo que ya no se usa se **destruye**. Cero residuos.
+3. **La posición se autora con `TargetPoint` + tag**, nunca con coordenadas en Blueprint. Se mueve en el viewport, sin tocar código, y las cosas quedan **simétricas por construcción**.
+
+Tags en uso: `MenuSpawn` (los botones del menú) · `SoulSpawn` (las Proto Souls elegibles) · `BubbleSpawn` (las burbujas de *Attracting*).
+
+💡 **Beneficio no obvio:** el bug de "un botón más arriba que el otro" **desaparece** cuando los dos salen de puntos autorados. Y agregar un tercero es un punto más, no código.
 
 ### 9.2 Movimiento y transiciones
 
