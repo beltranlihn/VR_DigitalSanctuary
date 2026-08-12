@@ -373,3 +373,32 @@ r.VRS.Enable=1                      ; el FFR por hardware necesita Support(ya=1)
 ```
 
 **Y lo que NO existe / no sirve en mobile forward** (no perder tiempo): TAA, TSR, TAAU y FXAA no están soportados en Forward (solo MSAA); `r.Tonemapper.Sharpen` no es de móvil y además con `r.MobileHDR=False` no hay tonemapper; MSAA >4x lo desaconseja Meta (mejor gastar en resolución). 🔴 **MSAA no actúa sobre objetos transparentes** → el aliasing de UI/iconos alpha-blend de un WidgetComponent (vive DENTRO de un render target) no lo arregla ningún MSAA; ahí las palancas son resolución de render, ajustes de textura, y sobre todo **Stereo Layers** (el panel va al compositor y no sufre el resampleo del eye buffer).
+
+---
+
+## 🔴 Crashea al dar Play en VR y NO es el proyecto: el runtime de Meta se actualizó abajo del editor
+Diagnosticado el 2026-08-12, con evidencia 1:1 en 8 sesiones de log.
+
+**Los síntomas, en este orden:**
+1. Primer intento → **no** crashea el render, falla la creación de la sesión:
+   ```
+   XR call xrCreateSession(...) failed with result: XR_ERROR_INSTANCE_LOST
+   ```
+2. Todos los intentos siguientes → **crash duro** con `EXCEPTION_ACCESS_VIOLATION` dentro de **`LibOVRRTImpl64_1`** (la DLL de Meta), llamada desde `UnrealEditor_OpenXRHMD` → `D3D12RHI`, en el **RHI submission thread**, con el breadcrumb `EndDrawingViewport` del **primer frame** enviado al visor.
+
+**La causa:** el editor arrancó con una versión del runtime de Oculus y **Meta Quest Link se actualizó con el editor abierto**. `XR_ERROR_INSTANCE_LOST` es literalmente "la instancia de OpenXR que tenías ya no existe". Los logs lo muestran sin ambigüedad: todas las sesiones con **1.205.0** funcionaron, incluida una **el mismo día**, y las dos primeras con **1.206.0** crashearon.
+
+**El arreglo:** **cerrar Unreal del todo y reabrirlo** (y reiniciar Quest Link / el servicio de Oculus). No hay nada que tocar en el proyecto. ⚠ Cerrar Unreal **mata el MCP** → después hay que reiniciar Claude con Unreal ya abierto.
+
+### 🔴 Cómo distinguir "es el proyecto" de "es el runtime XR" en dos minutos
+```
+1. StartPIE({bSimulate:false, playMode:"PlayMode_InViewPort"})   ← PIE NO-VR por MCP
+   Si la bateria de BP_SelfTest da verde, el contenido esta sano y el problema es la sesion XR.
+2. En VR_Test/Saved/Crashes/, el CrashContext.runtime-xml de la carpeta mas reciente:
+   <ErrorMessage> y <CallStack>. Si el tope del stack es LibOVRRTImpl64_1, es la DLL de Meta.
+3. Comparar el runtime entre sesiones que andaban y la que no:
+   grep "Initialized OpenXR on Oculus runtime version" en VR_Test/Saved/Logs/*.log
+   (el titulo de la ventana tambien lo trae: "OpenXR Oculus (1.205.0)")
+```
+💡 **El paso 3 es el que cierra el caso.** Un crash dentro de una DLL de terceros no prueba de quién es la culpa; **el cambio de versión correlacionado con el cambio de comportamiento, sí.**
+⚠ Y no confundir dos crashes distintos del mismo día: acá el de las 11:38 era `XR_ERROR_INSTANCE_LOST` en `xrCreateSession` (todavía en 1.205) y los de las 11:39 eran el access violation en 1.206. Leer el `ErrorMessage` de **cada** carpeta antes de meterlos en la misma bolsa.
