@@ -32,7 +32,7 @@ DIRECTOR KillStage → EventDestroyed → CleanupEntering (instrucciones + senso
 
 ## Datos que gobiernan la mecánica (viven en OTROS assets)
 - **`BP_BreathSensor_V2` CDO**: `MaxBreathCount` = **5** (🔴 estaba en **999** por las sesiones de captura de datos — la etapa jamás habría completado; corregido 2026-08-13). `ContinuousInhaleTime` = 4 s. `bCalibLog` = **false** (estaba true: spameaba una línea CSV por frame).
-- **TargetPoints en `L_Persistent`**: `TP_BreathWidget` (150,0,130 yaw180, tag `WidgetSpawn`) · `TP_Sensor` (60,0,95, tag `SensorSpawn` — compartido con el sensor de mano del Hall, mismo lugar físico a propósito) · `TP_BreathBox` (100,0,120, tag `BoxSpawn`).
+- **TargetPoints en `L_Persistent`**: `TP_BreathWidget` (**1350**,0,130 yaw180, tag `WidgetSpawn`) · `TP_BreathBox` (**1300**,0,120, tag `BoxSpawn`) — 🔴 **corregidos el 2026-08-13**: estaban en X=150/100 (coordenadas del modelo viejo con las salas apiladas en el origen) y la sala Entering vive en la parada X=1200 → **el widget nacía 10 m detrás del pawn y por eso Beltrán nunca lo vio en visor**. Ahora están 1.5 m / 1 m delante del centro de la sala. ⚠ Son anchors en mundo: si se arrastra la parada de Entering, moverlos con ella. · `TP_Sensor` (45,0,155, tag `SensorSpawn`) quedó en el Hall — es el sensor de mano del Hall; el de respiración ya no usa TargetPoint (se attachea a la mano, ver [[BP_BreathSensor_V2]] `ForceAttachToHand`).
 - **Director**: `ExtendTimeout(Seconds)` = resetea el timer por nombre `"EndStage"` (los timers por nombre se RESETEAN al re-agendar con el mismo nombre). `SpawnStage` ramifica por índice vía `SpawnEnteringOrBase` (0=Hall, 1=Entering, resto=Base).
 
 ## Verificado por log (2026-08-13, run automático completo)

@@ -99,6 +99,25 @@ EnterCenter → BuildPath(500) · KillCenterDoor (destruye puerta+timbre, cero r
 ⚠ **El hold real del timbre (mano 1.5 s) es territorio del visor** — el auto-ring lo saltea por diseño.
 ⚠ **Trampa nueva pagada acá:** un literal NUMÉRICO posicional a una función propia también se pierde (`(CallFunction|Fade 1.0 X)` quedó como `Fade(Alpha←X, Duration=0)`). No es solo con strings: **releer TODO llamado a función propia con literales** después de un write.
 
+## 🆕 2026-08-13 (noche) — 4 correcciones del primer test en visor de Beltrán
+Feedback textual: llegada "pegada a la nariz" de la puerta · entrar al Hall "se siente como aparecer de una en el centro" · "estoy entrando a la sala y todavía no está cargada" · partículas del vacío deben apagarse al llegar al Center. **Todo verificado por log en una corrida completa (14:32-14:34), cero `Accessed None`:**
+
+1. **Llegada más atrás**: parada 1 → **−650** y `DoorAhead` → **150** (la puerta sigue en −500; ahora paras a 1,5 m). Timbre movido con el punto y **subido 30 cm**: `BellSpawn` = (−615, 25, 130).
+2. **Se entra al Hall CAMINANDO**: `BellPressed` ya no hace `Fade` + teleport — abre la puerta, `GetLegTime(1)` (impuro, en la cadena) → **`WalkLeg(1)`** y agenda `EnterCenter` a `LegTime(1)+0.4`. `LegTimes[1]` = **5 s** (era el tramo-fantasma de 1 s). `EnterCenter` conserva `PlaceAtStop(2)` como snap idempotente. **Sin negro en la entrada al Hall**: caminas hacia la sala ya visible y `EnterRoom` sube la luz al llegar.
+3. **La sala siguiente aparece JUNTO con la compuerta** (`ShowNextRoom` → `PlaceNextTry` → `PlaceNextRoom`):
+   - `DoRevealDoor` (transiciones) y `CorridorArrive` (Hall) llaman `ShowNextRoom`: `ShowLevel(NextLevel)` + poll `PlaceNextTry` cada 0.1-0.15 s.
+   - `PlaceNextTry`: `GetAllActorsOfClass(BP_Room)` y elige **la que NO es `RoomRef`** (con 1 sola sala y RoomRef null — corredor — toma esa). Reintenta hasta que el `AddToWorld` la entregue.
+   - `PlaceNextRoom`: `Configure` (nombre/acento desde `StageNames`/`StageColors` con `StageIndex` ya incrementado) + **`SetLight 0.35`** (el resplandor de la sala que viene, §3) + log con la posición.
+4. 🔴🔴 **DECISIÓN DE ARQUITECTURA (Beltrán, en esta misma sesión): EL MAPA ES LA AUTORIDAD DE POSICIÓN.** Cada `L_Room_*` guarda su `BP_Room` **en su posición mundial real** (0 · 1200 · 2400 · 3600 · 4800 · 6000) y su `BP_Door` en +460. **El director NO mueve nada**: la sala aparece de una en su lugar al mostrarse el sublevel. Esto reemplaza el mover-en-runtime de la tarde (era un parche para mapas copiados del placeholder en el origen):
+   - `PlaceRoomAtStop` quedó **solo como verificación por log** (`sala en su lugar (autoridad: su mapa)`); `PlaceDoorAtStop` y `NextDoorRef` **se eliminaron**.
+   - 🔴 **Contrato**: la parada *n+2* del [[BP_Journey]] debe coincidir con la posición de la sala en su mapa. **Si se mueve una sala en su mapa, mover su parada (y viceversa).** Los previews del persistente también.
+   - Cuando Beltrán diseñe cada sala, diseña **en su mapa, en sus coordenadas reales** — lo que se ve en el mapa es la obra.
+5. **Partículas del vacío**: `VoidParticlesOff` en `CorridorArrive` (Deactivate → mueren con su lifetime, fade natural) y `VoidParticlesOn` en `FinishObra` (Activate reset). Actor: el único `NiagaraActor` del persistente, componente por `GetComponentbyClass`.
+
+**Verificado por log (corrida completa 14:43-14:46, cero `Accessed None`):** cada "sala siguiente lista en su lugar X=..." sale ya en su posición de mapa ~2 s antes de "camina el tramo", sin ningún move; el post-swap confirma la misma X; partículas off al llegar al Center y on en el final.
+
+6. 🆕 **Fix del "se volvió a cargar al llegar al centro" (2º visor de Beltrán):** `ConfigureRoom` hacía `SetLight` con el **default del pin Alpha = 0.0** antes del `RampLight` a 1 — un apagón instantáneo que el negro de las transiciones siempre había tapado, pero que con la entrada CAMINANDO al Hall quedó a la vista (la sala a 0.35 caía a 0 y volvía a subir = sensación de recarga). **Se eliminó el `SetLight`**: `RampLight` sube **desde la luz actual** (0.35 del pre-show) hasta 1 — crecimiento continuo. Vale para todas las salas: la rampa 0.35→1 reemplaza a la 0→1 en todas las entradas.
+
 ## Cómo está encadenado
 🔴 **Los saltos entre tramos van por `SetTimerByFunctionName`, no por `Delay`.** Un `Delay` no es válido dentro de una función, y el ciclo necesita esperas entre pasos; los timers por nombre funcionan sobre **custom events** igual que sobre funciones, así que cada tramo es un evento aparte y el anterior lo agenda. Ventaja lateral: cada tramo es un punto de entrada nombrado, así que `BP_DebugDirector` va a poder saltar a cualquiera.
 
@@ -277,6 +296,8 @@ Antes: las 6 salas se cargaban **todas en el origen** y el pawn caminaba un segm
 - **`EnterRoom` ya no reposiciona** (se quitó el `Walk(0→500)`): el pawn llega caminando el tramo.
 - **`WalkOut` → `StartLegWalk`**: `WalkLeg(StageIndex)` + agenda `GoBlack` a **`LegTime − FadeOutTime`**, así el negro termina de caer justo al llegar. Todo se deriva del tiempo del tramo → **cambiar `LegTimes` en el Journey no descuadra la transición**.
 - **`EnterCenter`** (fin del corredor de la intro) hace `PlaceAtStop(1)` bajo negro: es el puente entre el corredor viejo (que sigue con su `BuildPath` propio) y el recorrido.
+- 🆕 **2026-08-13 (tarde): `PlaceRoomAtStop` también mueve LA PUERTA de la sala** — al final de su cadena llama **`PlaceDoorAtStop`** (función nueva, escrita por DSL): `GetActorOfClass(BP_Door)` → si válido → `SetActorLocation(parada + (460,0,0))` + log `DIR: puerta de la sala movida a ...`. Sin esto, las puertas de los 6 mapas (guardadas en X=460 en cada copia del placeholder) quedaban TODAS cerca del origen mientras su sala vivía en 1200..6000 — se caminaba hacia una puerta que estaba atrás. **Verificado por log:** Hall→460, Entering→1660. Nota: durante el corredor no corre (la puerta del Center vive en el persistente y ya fue destruida cuando `PlaceRoomAtStop` corre por primera vez).
+- ⚠ Con los tramos de 8 s, el pawn cruza la puerta de salida (X sala+460) a ~3.4 s del `WalkOut` → **`DoorOpenDelay` pasó de 1.6 a 2.6 s** (CDO + instancia): abre un beat antes de llegar a ella. Si se cambian `LegTimes`, revisar esta relación (la restricción vieja `DoorOpenDelay < FadeOutDelay + FadeOutTime` quedó obsoleta; la vigente es `DoorOpenDelay < LegTime − FadeOutTime` y "antes de que el pawn la cruce").
 
 **Medido en PIE:** tramo 1 en 7.98 s contra 8.0 pedidos · sala nueva encendiendo 0.72 s después de la llegada · sala 2 en su parada exacta.
 
@@ -286,10 +307,10 @@ Antes: las 6 salas se cargaban **todas en el origen** y el pawn caminaba un segm
 - El **corredor de la intro** sigue con el mecanismo viejo (`BuildPath` + `StartWalk` sobre el spline propio del walker). Migrarlo a ser el tramo 0 del recorrido es el paso natural siguiente.
 
 ## 🆕 2026-08-13 (tarde) — el corredor entró al recorrido y el mapeo pasó a +2
-- **8 paradas** en [[BP_Journey]]: `0` menú (−500) · **`1` puerta del Center (−80)** · `2` Hall (0) · `3..7` las 5 etapas (1200…6000). **Mapeo nuevo: StageIndex n → parada n+2.**
+- **8 paradas** en [[BP_Journey]]: `0` menú/aparición (**−2300** desde la revisión de narrativa del 2026-08-13: "aparece en el vacío, lejos de la entrada") · **`1` llegada frente a la puerta del Center (−560; la puerta en −500)** · `2` Hall (0) · `3..7` las 5 etapas (1200…6000). **Mapeo: StageIndex n → parada n+2.**
 - **`StartCorridor` ya NO usa `BuildPath`/`StartWalk`**: llama **`WalkLeg(0)`** y agenda `CorridorArrive` con **`GetLegTime(0)`**. O sea, **el corredor de la intro es el tramo 0 y su duración se edita como cualquier otra** (hoy 5 s). Medido: llegada a la parada 1 en 4.99 s.
 - `StartLegWalk` → `WalkLeg(StageIndex+1)`; `PreloadNext` → parada `Suffix+2`; `PlaceRoomAtStop` → parada `StageIndex+2`; `EnterCenter` → `PlaceAtStop(2)`.
 - El **tramo 1** (puerta → Hall, 80 cm) no se camina: `EnterCenter` teletransporta bajo negro, igual que antes. Su entrada en `LegTimes` existe sólo para no desalinear los índices.
 - ✅ **`CacheRoom` ya no corre dos veces**: `TryEnter` lo llamaba y `EnterRoom` lo repetía; se quitó del evento (TryEnter ya lo hace y gatea por validez).
 - ℹ️ **"La primera sala que aparezca" NO es un bug**: `EnterIfFresh` compara contra `PrevRoom` y reintenta cada 0,1 s hasta que la sala sea genuinamente nueva, así que nunca entra con la vieja. Es indirecto pero correcto — **no quitar ese reintento** pensando que sobra.
-- ⚠ **`CorridorLength` (340) ya no controla la caminata** (eso es `LegTimes[0]`): hoy sólo posiciona la puerta del Center, con `doorX = CorridorLength − 500 + DoorAhead` = −20. **TODO: derivar la puerta de la parada 1** para que siga al punto cuando Beltrán lo arrastre, y renombrar la variable.
+- ✅ **2026-08-13 (revisión de narrativa): la puerta del Center se deriva de la PARADA 1** — `SpawnCenterDoor` ahora hace `X = GetStopLocation(JourneyRef, 1).X + DoorAhead` (cirugía: GetStopLocation + BreakVector insertados en el exec, borrados el literal 500, la resta y el getter de CorridorLength). **`CorridorLength` quedó SIN USO** (borrarla cuando se pueda). `DoorAhead` pasó de 140 a **60** (CDO + instancia): puerta 60 cm más allá del punto de llegada. Con las paradas nuevas: llegada en −560, puerta en **−500** (el borde del disco del Hall). Arrastrar la parada 1 mueve puerta y llegada juntas; **el anchor `BellSpawn` hay que moverlo a mano** (está en −525, 25, 100 — a la mano desde la llegada).

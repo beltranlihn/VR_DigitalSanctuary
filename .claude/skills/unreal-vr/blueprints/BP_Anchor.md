@@ -17,9 +17,19 @@ Un `TargetPoint` que además **se ve**: esfera fantasma + el nombre de su tag fl
 
 **`UserConstructionScript`**: si el actor tiene tags, escribe **`Tags[0]` en el TextRender**. O sea, el anchor **se rotula solo** con su propio tag en el viewport — no hay que mantener nombres a mano (y de hecho **no se puede**: no existe tool MCP para el label del outliner, `ActorLabel` no es seteable por `set_properties`).
 
-## Los 14 anchors de `L_Persistent` (2026-08-13)
-Reemplazaron uno a uno a los TargetPoints, con la misma posición, rotación y tag:
-`MenuRoot` · `MenuSpawnStart` · `MenuSpawnAbout` · `MenuSpawnBack` · `BellSpawn` · `SensorSpawn` · **`SoulSpawn` ×5** · `AlmaSpawn` · `WidgetSpawn` · `BoxSpawn`.
+## Los 14 anchors de `L_Persistent` (2026-08-13, posiciones tras la revisión de narrativa de la tarde)
+Reemplazaron uno a uno a los TargetPoints. Reglas de agrupación: los del menú viven en la **parada 0** (−2300), el timbre junto a la **puerta del Center** (parada 1), los del Hall alrededor de **X=0** y los de Breath alrededor de la **parada de Entering** (X=1200).
+| Anchor | Tag | Posición | Zona |
+|---|---|---|---|
+| `MenuRoot` | `MenuRoot` | (−2300, 0, 130) | parada 0 (= `PlayerStart`) |
+| menú ×3 | `MenuSpawnStart/About/Back` | (−2255, ∓17/0, 102) yaw180 | parada 0 |
+| timbre | `BellSpawn` | (−615, 25, 130) yaw180 | junto a la llegada (parada 1 = −650), puerta en −500 |
+| sensor de mano | `SensorSpawn` | (45, 0, 155) | Hall |
+| candidatas ×5 | `SoulSpawn` | arco r≈70-80, ±44°, z172 | Hall |
+| Alma | `AlmaSpawn` | (170, 0, 130) | Hall |
+| widget Breath | `WidgetSpawn` | (1350, 0, 130) yaw180 | Entering (parada 1200) |
+| caja Breath | `BoxSpawn` | (1300, 0, 120) | Entering |
+⚠ **Los anchors son coordenadas de MUNDO**: si se arrastra una parada del [[BP_Journey]], mover con ella sus anchors asociados (la sala y su puerta siguen solas a la parada; los anchors no).
 
 ## ⚠ Trampa pagada: los componentes nuevos NO llegan a las instancias ya colocadas
 Los 14 anchors se crearon **antes** de que el BP tuviera el `TagLabel`. Al agregarlo, las instancias recibieron el componente **con los defaults de Unreal** (`bHiddenInGame=false`, `WorldSize=26`), **no** con los valores del CDO — o sea, los rótulos se habrían visto EN JUEGO. Es la familia de [[instance-editable-nace-en-cero]] aplicada a componentes.

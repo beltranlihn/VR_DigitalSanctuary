@@ -90,13 +90,13 @@ START apretado → KillMenu → DestroyActor de los dos → HideTitleAndGo
 **Cómo se autora (versión FINAL, pedida por Beltrán 2026-08-12 tarde): un TargetPoint POR botón, con tag propio.**
 | TargetPoint | Tag | Spawnea | Posición inicial |
 |---|---|---|---|
-| `TP_MenuStart` | `MenuSpawnStart` | START (`MenuLabels[0]`) | (−455, −17, 102), yaw 180 |
-| `TP_MenuAbout` | `MenuSpawnAbout` | ABOUT US (`MenuLabels[1]`) | (−455, +17, 102), yaw 180 |
-| `TP_MenuBack` | `MenuSpawnBack` | BACK (`MenuLabels[2]`, en el panel About) | (−455, 0, 102), yaw 180 |
-| `TP_Bell` | `BellSpawn` | el timbre del Center | (405, 25, 100), yaw 180 |
+| `TP_MenuStart` | `MenuSpawnStart` | START (`MenuLabels[0]`) | (−2255, −17, 102), yaw 180 |
+| `TP_MenuAbout` | `MenuSpawnAbout` | ABOUT US (`MenuLabels[1]`) | (−2255, +17, 102), yaw 180 |
+| `TP_MenuBack` | `MenuSpawnBack` | BACK (`MenuLabels[2]`, en el panel About) | (−2255, 0, 102), yaw 180 |
+| `TP_Bell` | `BellSpawn` | el timbre del Center | (−615, 25, 130), yaw 180 (2026-08-13 noche: 30 cm más alto y junto a la llegada nueva en −650, pedido en visor) |
 - El botón toma **posición Y rotación** del punto (con yaw 180 el texto mira al usuario). Se mueve cada punto en el viewport, sin tocar código.
 - `BP_IntroSequence.SpawnBtnFromTag(PointTag, LabelIdx)` es el helper (con guard: si falta el punto, loguea `FALTA` y no spawnea). El timbre va por `BP_StageDirector.SpawnBell → SpawnBellAt(Pt)`.
-- ⚠ **`TP_Bell` está en coordenadas de mundo**: si se cambia `CorridorLength` (hoy 800 de test → ~7000 con la voz real), la puerta del Center se corre y **hay que mover `TP_Bell` a mano** junto a ella (X de la puerta = `CorridorLength − 500 + DoorAhead`).
+- 🆕 2026-08-13: todo el bloque del menú se movió a la **parada 0 nueva** (−2300, "aparece lejos en el vacío"); los offsets relativos al `MenuRoot` no cambiaron. La puerta del Center **ya no depende de `CorridorLength`**: se deriva de la parada 1 (−560) + `DoorAhead` (60) = −500. ⚠ **El timbre sigue siendo un anchor en mundo**: si se arrastra la parada 1, mover `TP_Bell` a mano junto a la puerta (regla: ~35 cm delante del punto de llegada, +25 en Y, Z 100 — proporciones probadas en visor del timbre viejo).
 - Los offsets `ButtonDistance`/`ButtonSpread`/`ButtonDrop` quedaron **sin uso** para los botones (los puntos mandan); `PanelDistance` sigue viva para el panel del título vía `MenuRoot`.
 
 ⚠ **El label va por un setter con nombre ÚNICO (`SetButtonLabel`), no por `SetLabelText`.** `Class|BPMenuButton|SetLabelText` **colisiona con un nodo de Niagara** (`Niagara|Preview|SetLabelText`) y el DSL agarra el equivocado, invirtiendo los argumentos. Se detecta releyendo el grafo.

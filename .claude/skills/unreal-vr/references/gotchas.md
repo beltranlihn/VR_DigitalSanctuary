@@ -485,6 +485,12 @@ Assertion failed: Rotation.Points.Num() == NumPoints && Scale.Points.Num() == Nu
 2. Si el spline hay que rearmarlo por código de forma recurrente, **no se escribe la propiedad**: se hace desde el **Construction Script** con `ClearSplinePoints` + `AddSplinePoint` desde un array editable. Es el único camino que no deja la ventana inconsistente.
 3. Tras un crash así: el disco conserva lo último **guardado**. Commitear seguido es lo que convierte un crash en 2 minutos perdidos en vez de una tarde.
 
+### 🆕 Y sobre una instancia con puntos ARRASTRADOS: no crashea, pero NO APLICA (2026-08-13 tarde)
+Con la instancia ya editada en el viewport (override propio), `set_properties(SplineCurves)` con el struct completo y **la misma cantidad de puntos** devuelve `true` y **no cambia nada**: el *component instance data* del spline restaura las curvas del arrastre tras el PostEditChange. Es "declarado ≠ aplicado" en su forma más silenciosa — verificar SIEMPRE releyendo.
+**La receta que sí funcionó** para re-escribir paradas por MCP:
+1. `set_properties(SplineCurves)` sobre el **template del CDO** (`<BP>_C:Route_GEN_VARIABLE`, vía `get_default_object` + `get_components`) — con el mismo conteo alcanza UNA llamada (el two-step es sólo para redimensionar). Verificar y compilar.
+2. **`remove_from_scene` + `add_to_scene_from_asset`**: la instancia nueva hereda del CDO. Se pierden los overrides de instancia (re-setear `LegTimes` y verificar sobre la instancia).
+
 ## 🔴 `bIsEditorOnlyActor` NO impide que un `LevelInstance` cargue en PIE (2026-08-13)
 Para ver las 6 salas en el editor se probó poner **actores `ALevelInstance`** apuntando a cada `L_Room_*.umap`, marcados con `bIsEditorOnlyActor = true`. **Igual cargan su nivel en PIE**: el contador `GetAllActorsOfClass(BP_Room)` dio **2** en un momento donde sólo debía haber **1** (una sola precarga hecha). O sea, salas duplicadas en juego.
 **Lo que sí funciona** para "visible en el editor, inexistente en juego": una **instancia del actor real con un flag `bEditorPreview`** que en `BeginPlay` haga `DestroyActor(self)`. Determinista, verificable y sin depender de semántica de cook. Implementado en [[BP_Room]]; verificado con el contador dando **1**.
