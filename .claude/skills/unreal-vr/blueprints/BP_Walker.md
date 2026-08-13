@@ -117,3 +117,14 @@ El mapa de distancias de arriba describe la caminata **entre salas**. Pero §3 t
 
 ## Relacionados
 - [[BP_Vignette]] · [[BP_Room]] · `BP_StageDirector` (todavía sin construir)
+
+## 🆕 Caminata por TRAMOS del recorrido largo (2026-08-13) — `WalkLeg`
+Convive con el `StartWalk`/`UpdateWalk` viejo (que el director todavía usa); son dos caminos independientes en el Tick.
+- **`WalkLeg(Index)`** — camina del punto `Index` al `Index+1` de [[BP_Journey]] en `GetLegTime(Index)` segundos.
+- **`UpdateLeg(DT)`** — 🔴 **tiempo normalizado + smoothstep, NO `FInterpTo`**: `t = elapsed/duration`, `s = t²(3−2t)`, y la posición sale de `Journey.GetLocAtKey(LegIndex + s)`. **Llega EXACTO en el tiempo pedido** — `FInterpTo` es asintótico y fue justo el bug del arrastre en el timbre (`RampOut`), además de volver aproximado el "que tarde 5 s y no 8".
+  El bob de cabeza y la viñeta se modulan con **`v = 4t(1−t)`**, que es la velocidad normalizada del smoothstep (0 en los extremos, 1 en el medio): arranca y frena suave, sin tirones.
+- **`FinishLeg`** — apaga la caminata, **hace snap a la parada exacta**, apaga la viñeta, dispara `OnWalkFinished` y, si `bJourneyTest`, encadena el tramo siguiente.
+- **`PlaceAtStop(Index)`** / **`CacheJourney`** (en BeginPlay, con aviso si falta el actor).
+- **`bJourneyTest`** (instance-editable, false) — 🧪 andamiaje: recorre las 7 paradas solo, 1,5 s de pausa entre tramos. Sirve de preview del recorrido completo sin jugar la obra.
+
+**Verificado en PIE (2026-08-13):** 6 tramos, tiempos medidos **5.997 / 7.998 / 7.987 / 7.988 / 7.985 / 7.989 s** contra `[6,8,8,8,8,8]` pedidos, y la cámara recorrió X=−500 → 6000 terminando clavada en 6000.000.
