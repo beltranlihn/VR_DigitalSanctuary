@@ -284,3 +284,12 @@ Antes: las 6 salas se cargaban **todas en el origen** y el pawn caminaba un segm
 - `CacheRoom` se ejecuta **dos veces por entrada** (dos bloques idénticos en el mismo ms). Es idempotente, pero hay una llamada de más que conviene rastrear.
 - `CacheRoom` usa `GetActorOfClass(BP_Room)` = "la primera que aparezca". Hoy sólo hay una sala viva a la vez y funciona, pero es el mismo patrón frágil que el `CacheHud` de [[BP_SoulChoice]]: si alguna vez conviven dos salas, agarra la equivocada.
 - El **corredor de la intro** sigue con el mecanismo viejo (`BuildPath` + `StartWalk` sobre el spline propio del walker). Migrarlo a ser el tramo 0 del recorrido es el paso natural siguiente.
+
+## 🆕 2026-08-13 (tarde) — el corredor entró al recorrido y el mapeo pasó a +2
+- **8 paradas** en [[BP_Journey]]: `0` menú (−500) · **`1` puerta del Center (−80)** · `2` Hall (0) · `3..7` las 5 etapas (1200…6000). **Mapeo nuevo: StageIndex n → parada n+2.**
+- **`StartCorridor` ya NO usa `BuildPath`/`StartWalk`**: llama **`WalkLeg(0)`** y agenda `CorridorArrive` con **`GetLegTime(0)`**. O sea, **el corredor de la intro es el tramo 0 y su duración se edita como cualquier otra** (hoy 5 s). Medido: llegada a la parada 1 en 4.99 s.
+- `StartLegWalk` → `WalkLeg(StageIndex+1)`; `PreloadNext` → parada `Suffix+2`; `PlaceRoomAtStop` → parada `StageIndex+2`; `EnterCenter` → `PlaceAtStop(2)`.
+- El **tramo 1** (puerta → Hall, 80 cm) no se camina: `EnterCenter` teletransporta bajo negro, igual que antes. Su entrada en `LegTimes` existe sólo para no desalinear los índices.
+- ✅ **`CacheRoom` ya no corre dos veces**: `TryEnter` lo llamaba y `EnterRoom` lo repetía; se quitó del evento (TryEnter ya lo hace y gatea por validez).
+- ℹ️ **"La primera sala que aparezca" NO es un bug**: `EnterIfFresh` compara contra `PrevRoom` y reintenta cada 0,1 s hasta que la sala sea genuinamente nueva, así que nunca entra con la vieja. Es indirecto pero correcto — **no quitar ese reintento** pensando que sobra.
+- ⚠ **`CorridorLength` (340) ya no controla la caminata** (eso es `LegTimes[0]`): hoy sólo posiciona la puerta del Center, con `doorX = CorridorLength − 500 + DoorAhead` = −20. **TODO: derivar la puerta de la parada 1** para que siga al punto cuando Beltrán lo arrastre, y renombrar la variable.
