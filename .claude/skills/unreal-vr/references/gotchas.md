@@ -464,3 +464,11 @@ La regla "connecting to an already-connected input REPLACES it" vale para pines 
 `BP_DebugDirector` está attacheado al `CameraComponent` con **KeepWorld**, así que conserva el offset que tenía al momento del attach: su `GetActorLocation` = cámara + ese offset. Para medir la cabeza de verdad hay que leer el componente:
 `GetPlayerPawn(0) → Actor|GetComponentByClass("/Script/Engine.CameraComponent") → Transformation|GetWorldLocation`.
 (En este proyecto el offset resultó ~0, pero por casualidad; la lectura correcta no depende de la suerte.)
+
+## 🔴 Agregar un componente a un BP NO lo configura en las instancias ya colocadas (2026-08-13)
+Se agregó un `TextRenderComponent` a `BP_Anchor` **después** de colocar 14 instancias. Las instancias recibieron el componente **con los defaults de UNREAL**, no con los valores del CDO: `bHiddenInGame=false` (los rótulos de debug se habrían visto EN JUEGO) y `WorldSize=26` en vez de 8. Es la familia de [[instance-editable-nace-en-cero]], pero para componentes.
+**Regla:** tras agregar un componente a un BP con instancias en el nivel, **setear sus propiedades en CADA instancia y verificar el valor efectivo** (un `ProgrammaticToolset` con un bucle lo hace en una llamada).
+⚠ Y un detalle que muerde: **`WorldSize` (y floats en general) sólo tomó `8.0`**; con `8` entero, `set_properties` devolvió `true` y el valor siguió en 26. **Escribir los floats con decimal, y releer.**
+
+## 💡 Para enriquecer un actor "marcador" ya cableado por clase: HEREDÁ de esa clase (2026-08-13)
+`BP_Anchor` (marcador visible con mesh + rótulo) se hizo **hijo de `TargetPoint`**, así que los ~8 buscadores existentes `GetAllActorsOfClassWithTag(TargetPoint, tag)` lo encuentran sin cambiar una línea (el filtro de clase es por `IsA`). Alternativa descartada: cambiar la clase en cada buscador — más trabajo y más superficie de error.
