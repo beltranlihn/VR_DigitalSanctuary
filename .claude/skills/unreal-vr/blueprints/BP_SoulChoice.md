@@ -5,6 +5,17 @@
 
 Pedido textual de Beltrán (2026-08-11): *"Los proto soul aparecen con target point frente al usuario, y la que elija el usuario es la que queda. Así que tienen que quedar armados para poder visualizarlos con distinto mesh y material."*
 
+## 🔴🔴🔴 LA CAUSA RAÍZ DE TODO (2026-08-13, encontrada con un VIDEO del visor): `bIsHUD` nacía en TRUE
+**Tres reportes de Beltrán en tres días** — *"solo vi una sola proto ameba"*, *"tomé el sensor y automáticamente se puso la proto ameba en mi hud"*, *"nunca vi 5 y tampoco pude elegir"* — eran **el mismo bug**, y mis tres diagnósticos (elección accidental al spawn, arco fuera del FOV, gatillo del agarre) fueron **todos equivocados**.
+
+**El bug:** el CDO de [[BP_ProtoSoul]] tenía **`bIsHUD = true`**. Su `TickStep` hace `if bIsHUD → HudStep → ApplyPlacement`, que **teletransporta el actor a la posición del HUD relativa a la cámara** (95 cm al frente, pitch −14°, lazy-follow) **cada frame**. Entonces las 5 candidatas, un frame después de nacer en sus 5 TargetPoints, **volaban todas al mismo punto pegado a la cara del usuario y se apilaban**. Lo que Beltrán veía era literalmente correcto: UNA ameba asociada a su cabeza, y ninguna alrededor para elegir. Tampoco podía elegir: estaban todas fuera de sus TargetPoints, encimadas dentro de su cara.
+**Fix:** `bIsHUD = false` en el CDO. El único que lo pone en true es `SpawnHudSoul` del Hall, al elegir.
+
+### 🔴 La lección de método (más importante que el bug)
+**Verifiqué la posición del SPAWN, no la posición ESTABLE.** El log decía "candidata en X=..., Y=..." con 5 posiciones distintas y yo lo canté como prueba — pero ese print corre en el frame del spawn, y el Tick las movía al frame siguiente. Un dato correcto en el instante equivocado.
+👉 **Regla nueva: cuando algo tiene que QUEDARSE en un lugar, la aserción va SEGUNDOS DESPUÉS, no al crearlo.** Implementado como guardia permanente: **`LateAudit`** (timer a 3 s desde `SpawnCandidates`) loguea `AUDIT: candidata sigue en ...` por cada candidata + `AUDIT: camara en ...`. Si alguna vez vuelven a migrar, el log lo grita solo.
+👉 Y la otra: **el arnés por log no ve lo que el usuario ve.** Tres rondas de "verificado" contra un PIE sin manos ni HMD. Lo que destrabó el caso fue **el video del visor** — pedirlo antes habría ahorrado dos días. Ante un reporte que contradice al log, **el log está midiendo la cosa equivocada**.
+
 ## Status
 🟡 **Reconstruida la cadena de elección (2026-08-13)** — ver el post-mortem de abajo: la cadena `CheckHand` NUNCA COMPILÓ desde la cirugía de capas del 2026-08-12, así que **la elección por toque jamás corrió en visor**. Arreglada + armado con manos despejadas + candidatas 1.6×. ⬜ Falta el test en visor del toque deliberado.
 

@@ -451,3 +451,16 @@ La regla "connecting to an already-connected input REPLACES it" vale para pines 
 **Reglas:**
 1. Tras escribir un `(if cond A B)` con DSL, **verificar el Branch con `get_node_infos`**: `then` debe ir a A, **`else` debe ir a B** — no confiar en el read.
 2. Un camino que muere sin log ni error en un punto exacto = sospechar **pin exec sin conectar** (dead-end legal en Blueprint). El diagnóstico barato: un PrintString quirúrgico al inicio de la función que sí corre, y seguir el exec nodo a nodo con `get_node_infos`.
+
+## 🔴🔴🔴 Verificar la posición del SPAWN no es verificar la posición ESTABLE (2026-08-13)
+**El caso que costó TRES días y tres diagnósticos equivocados:** las 5 candidatas de `BP_SoulChoice` nacían en 5 TargetPoints distintos — el log lo probaba, y lo canté como "verificado" tres veces. Pero `BP_ProtoSoul` tenía **`bIsHUD = true` en el CDO**, y su Tick (`HudStep → ApplyPlacement`) teletransporta el actor a la posición del HUD relativa a la cámara. **Un frame después del spawn, las 5 estaban apiladas dentro de la cara del usuario.** El print del spawn decía la verdad en el instante equivocado.
+**Reglas:**
+1. **Si algo tiene que QUEDARSE en un lugar, la aserción va segundos DESPUÉS de crearlo**, no al crearlo. Patrón: timer a 2-3 s que re-loguea la posición (`LateAudit` en `BP_SoulChoice` es la implementación de referencia). Un actor con Tick puede deshacer en un frame todo lo que el spawn dejó bien.
+2. **Antes de spawnear N copias de un BP, mirá su CDO** — un flag de comportamiento en `true` por default (aquí `bIsHUD`) convierte cada copia en algo que no querés. Hermana de [[instance-editable-nace-en-cero]]: ahí el problema era el 0, acá el true.
+3. 🔴 **El arnés por log NO ve lo que el usuario ve** (PIE sin manos ni HMD no ejercita casi nada de VR). Cuando el reporte del usuario contradice al log, **el log está midiendo la cosa equivocada** — no insistir con más logs del mismo tipo. **Pedir un VIDEO del visor**: acá 16 frames resolvieron en minutos lo que dos días de logs no.
+4. Corolario de honestidad: no decir "verificado" cuando lo verificado es un camino que el usuario no recorre. Decir **qué** se verificó y **qué no**.
+
+## ⚠ Un actor attacheado a la cámara NO sirve para medir la cámara (2026-08-13)
+`BP_DebugDirector` está attacheado al `CameraComponent` con **KeepWorld**, así que conserva el offset que tenía al momento del attach: su `GetActorLocation` = cámara + ese offset. Para medir la cabeza de verdad hay que leer el componente:
+`GetPlayerPawn(0) → Actor|GetComponentByClass("/Script/Engine.CameraComponent") → Transformation|GetWorldLocation`.
+(En este proyecto el offset resultó ~0, pero por casualidad; la lectura correcta no depende de la suerte.)
