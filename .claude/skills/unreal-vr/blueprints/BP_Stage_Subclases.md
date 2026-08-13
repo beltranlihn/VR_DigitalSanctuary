@@ -7,10 +7,17 @@
 - **Variables**: `Questions` (array de Text, CDO: 3 preguntas en inglés) · `QuestionTime` (10 s) · `LovingTimeout` (60 s) · `QuestionIdx` · `PanelRef`.
 - Cumple la "ruptura del patrón" §2.4: sin sensor, sin instrucciones largas.
 
-## BP_Stage_Recognizing (índice 2) — la ilusión de ascenso
-- **Mecánica placeholder**: spawnea **`BP_Descent`** (Core/Rooms/: 4 columnas-cilindro r12×h500 a radio 300, `MI_Ghost`, sin colisión) en el anchor `DescentSpawn`; su Tick baja el actor a `DescendSpeed` (30 cm/s) mientras `bDescending` — **el pawn NO se mueve, el entorno desciende**. Timer `RecogDone` a `RecogSeconds` (25 s) → cleanup + `StageDone`.
-- ⚠ El timer de cierre está cableado con **fan-in** desde ambas ramas del if (la primera escritura lo dejó solo en el else — trampa del DSL: statements después de un if caen en la última rama).
-- **Falta**: la mecánica de latido real (mando al pecho, OSC) — esto es el esqueleto de la ilusión.
+## BP_Stage_Recognizing (índice 2) — la ilusión de ascenso · 🆕 v2 con UMBRAL DE QUIETUD (feedback visor)
+- **v2 (2026-08-13 visor)**: panel de instrucciones (`TextRenderActor` en anchor `HeartInstrSpawn`, texto `HeartText`: "Place your sensor on your heart. Be still...") + **gate por quietud**: poll `CheckStill` (0.25 s) → `CheckOneSensor` sobre los 2 `BP_Sensor` persistentes: dentro de la **zona del pecho** (`pawn + (0,0,ChestHeight 145)`, radio `ZoneRadius` 28) **y quieto** (`StillThreshold` 3 cm/poll) → `ApplyStill`/`StillActive`: las columnas de `BP_Descent` **descienden y pulsan a 60 bpm** (`SetRun(true)` + `PulseStep` en su Tick) y se acumula `InZoneTime`; **fuera del umbral no pasa NADA** (`StillInactive` → `SetRun(false)`). El panel se destruye al primer logro del umbral. Cierre: `InZoneTime ≥ RecogSeconds` (25 s acumulados) → `RecogDone` → `StageDone`. Cortafuegos `RecogTimeout` 120 s.
+- `BP_Descent` ahora nace **detenido** (`bDescending` false en CDO) con API `SetRun(bOn)` y pulso de escala (±4%, 1 Hz) vía `PulseStep`.
+- **Falta**: el latido real por OSC (el pulso hoy es placeholder a 60 bpm) y el look de la zona segura.
+
+## 🆕 Attracting v2 (feedback visor 2026-08-13): instrucciones + mesa visible + beam visible + cierre real
+- **Panel de instrucciones** al entrar (anchor `AttractInstrSpawn`, texto `AttractText` en inglés), se retira a los `InstrTime` (18 s) o al cleanup.
+- **Mesa y slots visibles**: en `L_Room_Attracting` hay ahora un cubo-mesa (MI_Sensor, 150×50×6 en (4855,0,68)) y 5 esferas-marcador (MI_Ghost, escala 0.1) bajo los slots — los `BP_SeqSlot` son solo datos y no se veían.
+- **Beam visible**: `BP_AimBeam` ganó `DrawBeamLine()` (llamada al inicio de su Tick): `DrawDebugLine` celeste `BeamStart→BeamEnd` cuando `bEquipped`. ⚠ Debug line = visible en PIE/Development, NO en Shipping — el visual real sigue pendiente (`BP_HandPointer`/material).
+- **Cierre REAL**: `BindMelody` (timer a 1 s desde `AttractIntro`) bindea el dispatcher **`OnConfirmed` de `BP_SaveButton`** con su nodo Assign → al confirmarse FINISH MELODY → `StageDone`. Primera vez que el cierre R6 existe.
+- **También** (turno del negro): `GoBlack` del director ya NO funde a negro — con la sala siguiente pre-mostrada y en su lugar, el fundido era redundante y se sentía como "recarga" al llegar al centro. El swap ocurre a espaldas del usuario.
 
 ## BP_Stage_Attracting (índice 4) — la mecánica de Touch integrada
 - **El ecosistema vive EN `L_Room_Attracting`** (se carga/descarga con la sala): 5 `BP_SeqSlot` (fila X=4855, Y −60..60, Z 75, `StepIndex` 0-4 verificado por instancia) · `BP_SaveButton` (4855,0,55) · 2 `BP_TouchSensor` (4860,±25,110, `bIsRight` por instancia) · 2 `BP_AimBeam` (4800,±30,100) · **8 anchors `BubbleSpawn`** en arco ±80°, radio 170, alturas 115-175 · anchor `AttractSpawn` (4800,0,50).
