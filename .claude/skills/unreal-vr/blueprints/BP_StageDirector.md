@@ -132,6 +132,10 @@ Feedback textual: llegada "pegada a la nariz" de la puerta · entrar al Hall "se
 
 El loop cierra en `ShowAndEnter`, así que con el placeholder recorre las 3 etapas de prueba y vuelve a empezar indefinidamente.
 
+🆕 **2026-08-13 (noche 3) — ALMA VIAJERA + las 5 etapas reales:**
+- **El director es el dueño de Alma** (decisión: actor persistente que viaja, no spawn/kill por sala). `AlmaRef` + 3 funciones: `MoveAlma` (busca el tag `AlmaSpawn` — cada sala tiene el suyo DENTRO de su mapa; si no hay punto, esconde), `AlmaToPoint(Pt)` (si existe → teleport + unhide; si no → spawn de `BP_Alma` + cast + ref) y `HideAlma`. Hooks: **`EnterRoom` → `MoveAlma`** (al final de su cadena) y **`EndStage` → `HideAlma`**. El Hall ya no la toca (se quitaron `SpawnAlma`/`CleanupAlma` y su `AlmaRef`). Verificado: aparece en el Hall, se desvanece en cada cierre, acompaña en 1370/2570/3770/4970/6170. ⚠ En `FinishObra` queda oculta (el `HideAlma` del último `EndStage`) — la despedida del final (paso 5) deberá re-mostrarla.
+- **`SpawnEnteringOrBase` ramifica los 6 índices**: 0 Hall (vía `SpawnStage`) · 1 Entering · 2 Recognizing · 3 Loving · 4 Attracting · 5 Surrounding (funciones `Spawn<X>Stage`, patrón idéntico a `SpawnEnteringStage`). Detalle de las subclases: [[BP_Stage_Subclases]].
+
 🆕 **2026-08-13 — el paso a etapas reales:**
 - **`SpawnStage`** ramifica por índice vía `SpawnEnteringOrBase`: 0 → `SpawnHallStage` · 1 → **`SpawnEnteringStage`** ([[BP_Stage_Entering]], la primera etapa con mecánica real) · resto → `SpawnBaseStage`. Agregar una etapa nueva = otra rama en `SpawnEnteringOrBase` + su `SpawnXStage`.
 - **`ExtendTimeout(Seconds)`** — API para las etapas reales: re-agenda el timer por nombre `"EndStage"` (los timers por nombre se resetean al re-setear con el mismo nombre), así el cortafuegos de inactividad no mata una mecánica que tarda minutos. La llama el `RunStage` de la etapa (Entering usa 240 s). Log: `DIR: cortafuegos extendido por la etapa real`.

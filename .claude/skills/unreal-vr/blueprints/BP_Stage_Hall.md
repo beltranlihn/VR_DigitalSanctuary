@@ -9,6 +9,9 @@
 ## 🔴 El override de RunStage — cómo se hace por MCP
 `add_function_graph("RunStage")` **falla**: *"inherited event-shape function; must be placed as an event node"*. La receta: **`add_event(blueprint, "RunStage")`** crea el nodo de evento override en el EventGraph, y su cuerpo va en una función (`HallRunBody`) conectada por cirugía (1 `connect_pins`). El timer `"RunStage"` de `BeginStage` (por nombre) **resuelve al override del hijo** — polimorfismo por `SetTimerByFunctionName` verificado.
 
+## 🆕 2026-08-13 (noche): ALMA YA NO ES DEL HALL
+Alma pasó a ser **un actor persistente del DIRECTOR que viaja de sala en sala** (ver [[BP_StageDirector]] "Alma viajera"). De este BP se quitaron `SpawnAlma`, `CleanupAlma` y la variable `AlmaRef`; `CleanupChoice` ya no la destruye (print actualizado a "eleccion y candidatas destruidas"). El diagrama de abajo queda con esa salvedad: la línea "SpawnAlma" ya no existe — Alma llega sola con el `EnterRoom` del director.
+
 ## Ciclo de vida (v2, 2026-08-12 — LA NARRATIVA DEL GUION, pedida por Beltrán)
 *"Al entrar al hall nos recibe Alma, nos explica con voiceover, nos escanea, y nos invita a elegir. Aparecen 5 protosouls alrededor; la que toquemos nos sigue en el HUD."*
 ```
