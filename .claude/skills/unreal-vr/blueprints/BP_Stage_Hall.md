@@ -15,8 +15,11 @@
 RunStage (override) → HallRunBody:
     "entras al hall - Alma te recibe" · SpawnAlma (BP_Alma en TP_Alma, tag AlmaSpawn, (170,0,130))
     "ALMA: bienvenida + explica la experiencia (VO placeholder)" · timer HallScan a WelcomeTime (4 s)
-HallScan:   "ALMA: te escanea (placeholder)" · nacen los 2 sensores (TP_SensorL/R) · timer HallInvite a ScanTime (4 s)
-HallInvite: "ALMA: elige tu Proto Soul" · SpawnChoice → 5 candidatas en ARCO (TP_Soul1..5, radio 65 cm, ±70°) · poll CheckChoice
+HallScan:   "ALMA: te escanea (placeholder)" · nace UN sensor any-hand (TP_Sensor) · poll CheckTaken · timer AutoAssignHand a AutoAssignTime (12 s, guion §7)
+OnSensorTaken: segundo sensor en la otra mano · persiste bRightHanded · 🆕 timer HallInvite a InviteDelay (2.5 s)
+             🔴 (2026-08-13) LA INVITACIÓN YA NO VA POR TIMER PARALELO: nace del sensor tomado — orden del guion, y mata la
+             elección accidental por el gatillo del agarre (Beltrán eligió sin querer 1 s después de tomar el sensor).
+HallInvite: "ALMA: elige tu Proto Soul" · SpawnChoice → 5 candidatas en ARCO (radio 70, ±44°, z=115) · poll CheckChoice
 CheckChoice → bChosen → ChoiceDone: ClearTimer · "nace tu HUD" · SpawnHudSoul (el HUD nace RECIÉN al elegir y adopta
              la identidad desde el GameInstance vía AdoptFromState en su BeginPlay) · CleanupChoice · StageDone()
 EventDestroyed → CleanupChoice   ← el CORTAFUEGOS (timeout): destruye elección + candidatas + Alma
