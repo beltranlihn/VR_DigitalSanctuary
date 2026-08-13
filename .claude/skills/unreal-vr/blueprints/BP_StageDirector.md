@@ -202,7 +202,16 @@ Beltrán reportó dos cosas al probarlo, y las dos eran de secuencia, no de cód
 | `BlackHold` | **0.4 s** | Beat de negro deliberado después del swap. Ya **no** es la tapadera de la carrera con `AddToWorld` (eso lo cubre el retry de `TryEnter`). |
 | `bAutoStart` | true | Hoy arranca solo para poder probar. **Lo apaga el menú** cuando exista: el punto de entrada es `StartExperience()`. |
 
-## Streaming — lo que se respetó de `references/streaming-arch.md`
+## 🔴🔴 2026-08-13 (noche 2) — MIGRADO A LEVEL STREAMING CLÁSICO (pedido de Beltrán)
+Los 6 `L_Room_*` están **registrados como sublevels del persistente** (panel Levels, método **Blueprint** — Beltrán los agregó a mano; el MCP no puede tocar esa lista). Beneficios: los ve siempre en el editor con su ojito, diseña en contexto, y muere toda la maquinaria de instancias dinámicas. Cambios:
+- **`PreloadNext(Suffix)`**: `Game|GetStreamingLevel(RoomMaps[Suffix])` (el DSL insertó solo el `StringToName`) → `SetbShouldBeVisible false` → `SetbShouldBeLoaded true` → `SetNextLevel`. Guard con log `DIR: FALTA el sublevel registrado ...` si el nivel no está en el panel Levels.
+- **`CurLevel`/`NextLevel`** retipadas a **`LevelStreaming`** (base). ⚠ El retipado borró los getters/setters en los grafos que las usaban y dejó los nodos llamadores de `ShowLevel`/`HideLevel` con el pin viejo → se recrearon `SwapRooms`, `ShowNextRoom`, `ShowLevel`, `HideLevel`, `UnloadOldRoom` por DSL.
+- **`UnloadOldRoom`**: `SetbShouldBeLoaded false` sobre `CurLevel` (ya no `SetIsRequestingUnloadAndRemoval`).
+- **Muertos**: `RoomSerial` (el nombre ya es fijo y recargar el mismo nivel registrado no colisiona — se acabó el bug #2 por construcción), el `OptionalLevelNameOverride`, el `Location` del load (la posición es del mapa) y **los 6 `Preview_*`** del persistente (se ven los niveles reales).
+- ⚠ Trampas del retipado pagadas: (1) los **setters de propiedad** (`Class|LevelStreaming|SetShouldbeVisible`) toman **el VALOR como primer posicional y el target segundo** en el DSL — `(Set... true Lvl)`, no `(Set... Lvl true)`; (2) `remove_function_graph` + `add_function_graph` inmediato puede devolver un **nombre fantasma** (`ShowLevel_0`) — receta: borrar el `_0`, compilar (falla, purga), re-crear con el nombre bueno.
+- **Verificado por log (corrida completa 15:45-15:48):** precargas por nombre registrado, cada sala lista en su lugar antes de caminar, disolución final, cero errores de streaming y cero `Accessed None`.
+
+## Streaming — lo que se respetó de `references/streaming-arch.md` (histórico: era la etapa de LoadLevelInstance)
 - ✅ **`OptionalLevelNameOverride` en cada `LoadLevelInstance`** (`Room_0`, `Room_1`, …). Sin eso cada llamada crea un paquete nuevo y **filtra niveles**. Verificado en el log de PIE: las instancias se cargan como `Room_N`.
 - 🔴 **El sufijo sale de `RoomSerial`, un contador MONÓTONO, no de `StageIndex`.** Ver el bug #2 de abajo: con el índice de etapa el nombre **se repite** al cerrar el loop y `LoadLevelInstance` devuelve `nullptr`.
 - ✅ **`UnloadOldRoom()` en el swap** (2026-08-11): descarga la sala que se acaba de ocultar, **bajo negro**, que es donde el GC que fuerza no se siente.
