@@ -33,7 +33,11 @@ Pedido de Beltrán (2026-08-13): *"un spline largo que toma todo el recorrido, d
 
 🔴 **Todo usa `GetLocationAtSplineInputKey`, NUNCA distancia-a-lo-largo-del-spline.** Los puntos se escribieron por `set_properties` sobre `SplineCurves`, y eso **no recalcula el `reparamTable`** (queda con el rango viejo hasta que Beltrán mueva un punto en el editor). Las funciones por *input key* no lo usan; las de distancia darían basura.
 
-## Cómo se escribieron los puntos por MCP (para repetirlo)
+## 🔴🔴 NO repetir la escritura de puntos por propiedad sobre la instancia — tira el editor
+Al intentar pasar de 7 a 8 paradas escribiendo `SplineCurves` sobre **la instancia del nivel**, el editor **crasheó** con `Assertion failed: Rotation.Points.Num() == NumPoints` (SplineComponent.cpp:738). La escritura necesita dos pasos (vaciar → llenar) y en la ventana intermedia las tres curvas quedan descoordinadas; si el engine redibuja el spline ahí, revienta. Detalle completo en `gotchas.md`.
+👉 **Para cambiar las paradas: arrastrarlas en el viewport** (para eso está), o migrar a que el Construction Script arme el spline desde un array `Stops` editable.
+
+## Cómo se escribieron los puntos por MCP la primera vez (sobre el CDO, con el BP recién creado)
 `ObjectTools.set_properties` sobre el componente con la propiedad **`SplineCurves`**, en **DOS pasos**: primero `points: []` en las 3 curvas (position/rotation/scale), después el array completo. Un solo paso falla con *"ArrayAdd: elements changed alongside the size change"* — es la misma trampa de arrays del CDO. Las 3 curvas deben tener **la misma cantidad de puntos**.
 
 ## Relacionados

@@ -472,3 +472,15 @@ Se agregó un `TextRenderComponent` a `BP_Anchor` **después** de colocar 14 ins
 
 ## 💡 Para enriquecer un actor "marcador" ya cableado por clase: HEREDÁ de esa clase (2026-08-13)
 `BP_Anchor` (marcador visible con mesh + rótulo) se hizo **hijo de `TargetPoint`**, así que los ~8 buscadores existentes `GetAllActorsOfClassWithTag(TargetPoint, tag)` lo encuentran sin cambiar una línea (el filtro de clase es por `IsA`). Alternativa descartada: cambiar la clase en cada buscador — más trabajo y más superficie de error.
+
+## 🔴🔴🔴 Escribir `SplineCurves` por propiedad puede MATAR el editor (2026-08-13)
+`ObjectTools.set_properties` sobre `SplineCurves` de un `SplineComponent` **vivo en el viewport** tiró el editor entero:
+```
+Assertion failed: Rotation.Points.Num() == NumPoints && Scale.Points.Num() == NumPoints
+  SplineComponent.cpp:738
+```
+**Por qué es una trampa con gatillo:** UE exige que las curvas `position`, `rotation` y `scale` tengan **siempre la misma cantidad de puntos**. Pero un solo `set_properties` que **agrande** el array falla con *"ArrayAdd: elements changed alongside the size change"*, así que el único camino es de **DOS pasos** (vaciar `[]` → escribir los puntos)… y entre esos dos pasos el spline queda inconsistente. Si el engine lo toca en esa ventana (redibujo del visualizador, el actor seleccionado, un tick del editor), **assert y crash**.
+**Reglas:**
+1. Escribir puntos de spline por propiedad **sólo sobre el CDO de un BP que no esté abierto**, nunca sobre una instancia colocada y menos si está seleccionada. Funcionó así la primera vez (`BP_Journey` recién creado); explotó al repetirlo sobre la instancia del nivel.
+2. Si el spline hay que rearmarlo por código de forma recurrente, **no se escribe la propiedad**: se hace desde el **Construction Script** con `ClearSplinePoints` + `AddSplinePoint` desde un array editable. Es el único camino que no deja la ventana inconsistente.
+3. Tras un crash así: el disco conserva lo último **guardado**. Commitear seguido es lo que convierte un crash en 2 minutos perdidos en vez de una tarde.
