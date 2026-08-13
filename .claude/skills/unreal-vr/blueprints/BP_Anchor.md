@@ -26,10 +26,13 @@ Reemplazaron uno a uno a los TargetPoints. Reglas de agrupación: los del menú 
 | timbre | `BellSpawn` | (−615, 25, 130) yaw180 | junto a la llegada (parada 1 = −650), puerta en −500 |
 | sensor de mano | `SensorSpawn` | (45, 0, 155) | Hall |
 | candidatas ×5 | `SoulSpawn` | arco r≈70-80, ±44°, z172 | Hall |
-| Alma | `AlmaSpawn` | (170, 0, 130) | Hall |
 | widget Breath | `WidgetSpawn` | (1350, 0, 130) yaw180 | Entering (parada 1200) |
 | caja Breath | `BoxSpawn` | (1300, 0, 120) | Entering |
 ⚠ **Los anchors son coordenadas de MUNDO**: si se arrastra una parada del [[BP_Journey]], mover con ella sus anchors asociados (la sala y su puerta siguen solas a la parada; los anchors no).
+
+## 🆕 Anchors DENTRO de los sublevels (2026-08-13, narrativa: Alma acompaña en cada sala)
+**`AlmaSpawn` ya no vive en el persistente: hay UN anchor por sala, dentro de su `L_Room_*`** (en X sala+170, 0, 130 — Beltrán los posiciona a gusto en cada mapa). Funciona porque los actores de un sublevel visible SÍ están en el mundo: la búsqueda `GetAllActorsOfClassWithTag(TargetPoint, "AlmaSpawn")` encuentra **exactamente el de la sala visible** (una sola visible a la vez). 👉 **Regla general**: los spawns/puntos propios de UNA sala se autoran con anchors DENTRO de su mapa (se mueven con la sala); los del recorrido/menú/timbre quedan en el persistente.
+⬜ **Decisión (Beltrán + guía 2026-08-13): Alma es UN actor PERSISTENTE que VIAJA** — el director la spawnea una vez al entrar al Hall y en cada `EnterRoom` la lleva al `AlmaSpawn` de la sala visible con un beat desvanecer→teleport→aparecer. NO se destruye por sala (es la guía: estado/voz futuros viven en ella; existe del Hall al final). Falta implementar el viaje; hoy solo el Hall la spawnea.
 
 ## ⚠ Trampa pagada: los componentes nuevos NO llegan a las instancias ya colocadas
 Los 14 anchors se crearon **antes** de que el BP tuviera el `TagLabel`. Al agregarlo, las instancias recibieron el componente **con los defaults de Unreal** (`bHiddenInGame=false`, `WorldSize=26`), **no** con los valores del CDO — o sea, los rótulos se habrían visto EN JUEGO. Es la familia de [[instance-editable-nace-en-cero]] aplicada a componentes.
