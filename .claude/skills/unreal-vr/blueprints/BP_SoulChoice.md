@@ -11,7 +11,7 @@ Pedido textual de Beltrán (2026-08-11): *"Los proto soul aparecen con target po
 ## 🔴 Composición por TargetPoint: se autora en el viewport, no en Blueprint
 `GetAllActorsOfClassWithTag(TargetPoint, "SoulSpawn")` → una candidata por punto.
 👉 **Para cambiar cuántas hay o dónde flotan se mueven o duplican TargetPoints. No se toca ningún Blueprint.**
-**Arco actual (2026-08-13, movido para entrar en el FOV sentado):** radio **80 cm**, ángulos **0/±22/±44°**, z=105 — antes estaba a ±70° y las puntas quedaban al costado de los hombros, fuera de vista (fue el "no habían 5" del test de Beltrán). TargetPoint_0/_1/_2/_10/_11 en L_Persistent.
+**Arco actual (2026-08-13 tarde):** radio **70 cm**, ángulos **0/±22/±44°**, **z=115** — reposicionado tras el 2º "no las vi" de Beltrán, relativo al marcador **`Ref_CabezaSentado`** (cubo hidden-in-game en (0,0,125), la referencia autoral de dónde queda la cabeza sentado — ⚠ estimación: el número REAL lo da el log `DBG: cabeza en ...` de `BP_DebugDirector.HeadLog` cada 5 s en el próximo run de visor; recalibrar cubo y alturas con eso). TargetPoint_0/_1/_2/_10/_11 en L_Persistent. `TP_Sensor` acercado a (45,0,100) ("el sensor muy adelante").
 
 ## Las variantes son DATOS: 3 arrays paralelos
 | Variable | Default | Rol |
@@ -26,13 +26,13 @@ Pedido textual de Beltrán (2026-08-11): *"Los proto soul aparecen con target po
 
 ⚠ **Los 3 arrays tienen que tener el mismo largo.**
 
-## El ciclo de armado (2026-08-13) — manos despejadas o no se arma
-`SpawnCandidates` → timer **`ArmPickTry`** a 1.2 s →
-- `ArmPickTry`: si `HandR` no es válida (Simulate/auto-run) → `ArmPick` directo; si es válida → `ArmScan`.
-- `ArmScan`: `bHandsNear=false` → `MarkIfNear` por candidata (IsValid → `MarkNearBody`: distancia² de CADA mano contra `(PickRadius²)·2.25` = radio ×1.5) → si alguna mano está adentro, **reintenta `ArmPickTry` a 0.3 s**; si están despejadas → `ArmPick`.
-- `ArmPick`: `bPickArmed=true` + log `eleccion armada - ya se puede tocar`.
-👉 Elimina ESTRUCTURALMENTE la elección accidental: no importa dónde estén los TargetPoints ni la mano, la elección solo se arma con las manos fuera de todas las zonas.
-⚠ Al construirlo mordió el gotcha nuevo del DSL: **`(if cond A B)` salió encadenado** (then→SetTimer→ArmPick, else→nada) **y el read lo mostraba bien** — la rama false era un dead-end silencioso (ArmPickTry corría una vez y moría sin log). Fix por cirugía + regla en `gotchas.md`: verificar todo Branch escrito por DSL con `get_node_infos`. También hay un print de diagnóstico `ArmPickTry corre` que quedó a propósito (barato y delata el ciclo).
+## 🆕 LA MECÁNICA DE ELECCIÓN v3 (2026-08-13, pedida por Beltrán): HOVER + TRIGGER, igual que los botones
+*"La proto ameba no se elige solo tocando. Es con hover más trigger, igual que los botones, agrandándose un poco con cada hover."*
+- **Hover** = proximidad de la MANO (receta de `BP_MenuButton`): `CheckHand→CheckHandDist→CheckHandHit` ahora dist² < `PickRadius`² (22 cm) → **`MarkHover(C)`** (`HoveredRef`+`bAnyHover`), ya NO elige.
+- **Feedback**: `TryPickBody` → `ScanCandidates` (resetea `bAnyHover`, marca) → **`ApplyHovers`** → por candidata `HoverVisualBody`: `SetActorScale3D` con `VInterpTo` hacia `BaseCandScale(1.6)` o `×HoverBoost(1.15)` si es la hovered. Se agranda suave al acercar la mano.
+- **Elección**: receta COMPLETA de input propia (`IMCRef`=IMC_MenuTrigger, `EnsureInput/MaybeInput` desde Tick, log `input listo - hover + gatillo para elegir`) + eventos `IA_Shoot_L/R` **Started** → `ChooseHovered` (capas: bPickArmed → bAnyHover → IsValid HoveredRef → `Choose`).
+- El armado con manos despejadas **se eliminó** (con trigger ya no hay elección accidental): timer simple `ArmPick` a 1.2 s. Los grafos `ArmPickTry/ArmScan/MarkIfNear/MarkNearBody` y `bHandsNear` se borraron.
+- 🆕 `SpawnOne` ahora **loguea la posición mundial de cada candidata** (`SOULCHOICE: candidata en X= Y= Z=`) — evidencia dura de dónde nacen, en cada run.
 
 ## Estructura de grafos (resto)
 - **`BeginPlay`** — `CacheHud` · `CacheHands` · `MaybeSpawn` (el print duplicado de "buscando TargetPoints" se quitó el 2026-08-13).
