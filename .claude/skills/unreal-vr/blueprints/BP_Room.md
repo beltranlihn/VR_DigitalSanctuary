@@ -110,3 +110,14 @@ Las instancias `MI_RoomFloor` / `MI_RoomWall` quedan con `Brightness` visible **
 ## Open questions
 - ¿La grilla de 50 cm es la escala correcta de referencia para caminar a 1,75 m/s, o conviene más grande para que no aliasee en Quest? Se decide en visor.
 - `InitialLight = 0` deja la sala negra si el director no la sube nunca. Es deliberado (falla en oscuro, no en flash), pero conviene que el `BP_DebugDirector` avise cuando una sala lleva N segundos con luz 0.
+
+## 🆕 MODO PREVISUALIZACIÓN — las 6 salas visibles en el editor (2026-08-13)
+Pedido de Beltrán: *"Deja las 6 salas visibles con sus colores respectivos... es importante verlo en el editor porque a partir de eso tengo varias ideas para mejorar."*
+
+- **`bEditorPreview`** (bool, instance-editable, **false en el CDO**): en true, el `BeginPlay` **destruye el actor** en vez de inicializarlo (`InitOrVanish`). O sea: se ve en el editor, no existe en juego.
+- **`ApplyAccent`** movido al **Construction Script**: aplica `AccentColor` a `LineColor` del piso y `WallColor` del muro **en el editor**, sin esperar al BeginPlay. Beneficio lateral: cualquier `BP_Room` muestra su color real en el viewport.
+- En `L_Persistent` hay **6 instancias `Preview_<SALA>`** en las paradas 2..7 (X = 0, 1200, 2400, 3600, 4800, 6000) con los 6 colores de `StageColors` del director.
+
+🔴 **Verificado que NO se duplican** (era el riesgo real): contador `GetAllActorsOfClass(BP_Room)` en dos puntos del recorrido → **"salas vivas = 1"** en ambos, con barrido de errores en cero. Antes del fix el mismo contador daba 2.
+
+⚠ **Los previews son de `BP_Room`, no del contenido completo de cada `L_Room_*.umap`.** Muestran piso + muro + color, que es lo que hay hoy. Cuando Beltrán meta meshes propios dentro de cada mapa, el preview **no** los reflejará: en ese momento conviene revisar si vale migrar a sublevels de verdad (ver el gotcha de LevelInstance).

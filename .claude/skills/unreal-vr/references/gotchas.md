@@ -484,3 +484,8 @@ Assertion failed: Rotation.Points.Num() == NumPoints && Scale.Points.Num() == Nu
 1. Escribir puntos de spline por propiedad **sólo sobre el CDO de un BP que no esté abierto**, nunca sobre una instancia colocada y menos si está seleccionada. Funcionó así la primera vez (`BP_Journey` recién creado); explotó al repetirlo sobre la instancia del nivel.
 2. Si el spline hay que rearmarlo por código de forma recurrente, **no se escribe la propiedad**: se hace desde el **Construction Script** con `ClearSplinePoints` + `AddSplinePoint` desde un array editable. Es el único camino que no deja la ventana inconsistente.
 3. Tras un crash así: el disco conserva lo último **guardado**. Commitear seguido es lo que convierte un crash en 2 minutos perdidos en vez de una tarde.
+
+## 🔴 `bIsEditorOnlyActor` NO impide que un `LevelInstance` cargue en PIE (2026-08-13)
+Para ver las 6 salas en el editor se probó poner **actores `ALevelInstance`** apuntando a cada `L_Room_*.umap`, marcados con `bIsEditorOnlyActor = true`. **Igual cargan su nivel en PIE**: el contador `GetAllActorsOfClass(BP_Room)` dio **2** en un momento donde sólo debía haber **1** (una sola precarga hecha). O sea, salas duplicadas en juego.
+**Lo que sí funciona** para "visible en el editor, inexistente en juego": una **instancia del actor real con un flag `bEditorPreview`** que en `BeginPlay` haga `DestroyActor(self)`. Determinista, verificable y sin depender de semántica de cook. Implementado en [[BP_Room]]; verificado con el contador dando **1**.
+💡 **El test que lo decide** no es mirar el viewport: es **contar los actores en PIE** en un instante donde sabés cuántos debería haber.
