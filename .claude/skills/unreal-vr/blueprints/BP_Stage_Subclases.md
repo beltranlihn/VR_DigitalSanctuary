@@ -22,6 +22,14 @@
 - Spawnea **`BP_BrushTool`** en el anchor `BrushSpawn` de `L_Room_Surrounding` (6060,0,110); el pincel se auto-adjunta por proximidad y **spawnea su propio `BP_DrawCanvas` en identidad** (requisito de coordenadas del ProceduralMesh).
 - **Cierre**: cortafuegos extendido (`SurroundTimeout` 240 s — dibujar necesita visor). `CleanupSurr`: `KillIfValid(BrushRef)` + `KillIfValid(GetActorOfClass BP_DrawCanvas)`.
 
+## 🆕 2026-08-13 (noche 4) — LOS SENSORES PERSISTENTES SON LA HERRAMIENTA (confirmado por Beltrán)
+*"Los sensores existen desde el inicio. Simplemente cambiará su acción: en breath cumplen la función de breath, en heart heart, en attracting activan el beam, en dibujo dibujan."*
+- El director llama **`ConfigureSensors`** en cada `EnterRoom` (después de `MoveAlma`): `SetMode(StageIndex)` + visibilidad desde `SensorShow` (todo true por defecto) sobre los 2 `BP_Sensor`.
+- **Entering**: el `BP_BreathSensor_V2` sigue siendo el motor de detección pero corre **INVISIBLE** (`CheckBreathDone` lo esconde en cada poll) — el objeto visible en la mano es el sensor persistente.
+- **Attracting**: los 2 `BP_TouchSensor` **se eliminaron de `L_Room_Attracting`**; la etapa llama **`EquipBeams`** (Equip sobre los 2 `BP_AimBeam` del mapa) tras spawnear el AttractDirector, y `bGrabEnabled` pasó a **true en el CDO** del beam (el gate del panel de instrucciones de Touch no corre en la obra). ⚠ Esto afecta también al nivel de test `L_Touch`.
+- **Surrounding**: el pincel sigue siendo un grabable aparte (el refactor sensor-como-pincel queda para cuando la mecánica esté en visor).
+- Verificado por log: `SENSOR: modo de etapa aplicado 1..5` en ambos sensores por sala + `beams activados desde la etapa`.
+
 ## Trampas del DSL pagadas en esta tanda
 1. `add_event("Destroyed")` crea un **CustomEvent inútil** — el evento real va por `create_node("AddEvent|EventDestroyed")`.
 2. El pin exec de salida de un nodo de EVENTO es **index 1** (el 0 es el delegate).

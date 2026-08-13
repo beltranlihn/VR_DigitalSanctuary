@@ -75,7 +75,7 @@ TEST PASS: Sensor: los 2 cachearon su mano del pawn
 - [ ] Los **meshes y materiales por modo**. Hoy los arrays están vacíos, así que queda la esfera placeholder en todos los modos — que es el comportamiento correcto, no un bug.
 - [ ] Crear el **`UserDefinedEnum`** a mano y cambiar `Mode` de int a ese tipo.
 - [ ] 🔴 **El timbre del Center tiene que PARECERSE a esto** (§3): apoyar la mano para que te escanee es la misma gramática que tomar el sensor, y la rima solo se lee si se parecen visualmente.
-- [ ] Que `BP_StageDirector` llame `SetMode` al entrar a cada etapa, y `Release` al cerrarla.
+- [x] ✅ **2026-08-13 (noche 4): el director llama `SetMode(StageIndex)` en cada `EnterRoom`** — `ConfigureSensors` → `ConfigOneSensor(A)` sobre los 2 sensores (`GetAllActorsOfClass` + Get 0/1, cast con guard). Además aplica visibilidad por sala desde **`SensorShow`** (array bool instance-editable del director, hoy todo `true` — palanca autoral). Verificado por log: modo 1→5 aplicado a ambos sensores en cada sala. **El modelo confirmado por Beltrán: el sensor persistente ES la herramienta en todas las etapas, solo cambia su acción** — en Breath la detección (`BP_BreathSensor_V2`) corre INVISIBLE pegada a la misma mano; en Attracting la etapa activa los beams directamente (los `BP_TouchSensor` del mapa se eliminaron). Falta: `Release` entre etapas si algún día hace falta soltar, y los meshes/materiales reales por modo.
 
 ## Relacionados
 - `BP_TouchSensor` (de donde sale el refactor, **probado en visor** — leer su tracker antes de tocar esto) · `BP_VRPawn_SC` (los accesores de mano) · [[BP_SelfTest]] · [[BP_StageDirector]]
