@@ -268,3 +268,19 @@ y **se detiene**: no agenda `WalkOut`, no revela puerta, no loopea. Batería: **
 
 ## Relacionados
 - [[BP_Room]] (`Configure`/`SetLight`/`RampLight`) · [[BP_Door]] (`Configure`/`Reveal`/`Open`) · [[BP_Walker]] (`StartWalk`) · `BP_FadeSphere` · `BP_DebugDirector` (sin construir)
+
+## 🆕 EL RECORRIDO REAL (2026-08-13, entrega 2) — las salas viven en el mundo, no apiladas en el origen
+Antes: las 6 salas se cargaban **todas en el origen** y el pawn caminaba un segmento recto de 10 m reconstruido en cada sala. Ahora hay **un solo recorrido** ([[BP_Journey]]) y cada sala ocupa su parada.
+- **`CacheRouteActor`** (BeginPlay, después de `CacheWalker`) cachea el `BP_Journey`. 🔴 **Se llama así y no `CacheJourney` a propósito**: el walker YA tiene una función con ese nombre y el DSL, ante un nombre ambiguo, resuelve a la clase equivocada (mordió en esta sesión: el BeginPlay del director terminó llamando al `CacheJourney` del walker). Nombres únicos entre BPs.
+- **`PreloadNext(Suffix)`** carga el level instance pasándole `Journey.GetStopLocation(Suffix+1)` como Location. Mapeo: **StageIndex n → parada n+1**.
+- 🔴🔴 **PERO el Location de `LoadLevelInstance(byName)` NO movió los actores** (medido: parada esperada X=1200, sala en X=0.000). Por eso `CacheRoom` termina llamando a **`PlaceRoomAtStop`**, que hace `SetActorLocation` sobre el `BP_Room` a su parada — vía directa, bajo nuestro control, y que además **loguea la posición efectiva** (`DIR: sala movida a su parada X=...`). Verificado: sala 2 en X=1200.000.
+- **`EnterRoom` ya no reposiciona** (se quitó el `Walk(0→500)`): el pawn llega caminando el tramo.
+- **`WalkOut` → `StartLegWalk`**: `WalkLeg(StageIndex)` + agenda `GoBlack` a **`LegTime − FadeOutTime`**, así el negro termina de caer justo al llegar. Todo se deriva del tiempo del tramo → **cambiar `LegTimes` en el Journey no descuadra la transición**.
+- **`EnterCenter`** (fin del corredor de la intro) hace `PlaceAtStop(1)` bajo negro: es el puente entre el corredor viejo (que sigue con su `BuildPath` propio) y el recorrido.
+
+**Medido en PIE:** tramo 1 en 7.98 s contra 8.0 pedidos · sala nueva encendiendo 0.72 s después de la llegada · sala 2 en su parada exacta.
+
+### ⚠ Pendientes conocidos de esta entrega
+- `CacheRoom` se ejecuta **dos veces por entrada** (dos bloques idénticos en el mismo ms). Es idempotente, pero hay una llamada de más que conviene rastrear.
+- `CacheRoom` usa `GetActorOfClass(BP_Room)` = "la primera que aparezca". Hoy sólo hay una sala viva a la vez y funciona, pero es el mismo patrón frágil que el `CacheHud` de [[BP_SoulChoice]]: si alguna vez conviven dos salas, agarra la equivocada.
+- El **corredor de la intro** sigue con el mecanismo viejo (`BuildPath` + `StartWalk` sobre el spline propio del walker). Migrarlo a ser el tramo 0 del recorrido es el paso natural siguiente.
