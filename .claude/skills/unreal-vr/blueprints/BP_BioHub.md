@@ -14,6 +14,18 @@
 → Acá el despacho va con **`Utilities|String|EqualExactly(String)`** dentro de un `if/elif`. Es totalmente escribible por DSL, y encima deja las direcciones como **variables** (`AddrCalm`, `AddrHeart`), que es justo lo que §9.3 pide para poder cambiar de dispositivo tocando datos.
 ⚠ El operador `==` del DSL **no sirve para strings**: resuelve a igualdad numérica y falla con *"Could not connect pin Addr to A"*. Hay que nombrar el nodo de string explícitamente.
 
+## 🆕 2026-08-14 — las 3 señales REALES del server de Beltrán + la señal de sensor
+Beltrán tiene su server OSC probado y enviará **3 señales** (él define las direcciones finales; hoy son variables):
+1. **int 0/1** → sensor conectado (dirección `AddrSensorOn`, default `/sensor`) → **`bSensorOn`**.
+2. **float 0–1 a 60 Hz** → estado de calma **EEG** (dirección `AddrCalm`) → `Calm`/`CalmSmooth`. De esta misma señal salen los promedios del gráfico final.
+3. **float = número de BPM** (70, 70.5, 60…) — NO pulsos (dirección `AddrHeart`) → `Heart`/`HeartSmooth`.
+
+**Camino de enteros nuevo**: `HandleOsc`, si el mensaje no trae float, cae al else → **`HandleOscInt`** (`GetOSCMessageIntegeratIndex`) → **`IngestInt(Addr,V)`**: si es `AddrSensorOn` resetea watchdog + `bSensorOn = V > 0`. ⚠ Si el server mandara `/sensor` como float, hoy NO se procesa (la rama float no conoce esa dirección) — el contrato es int.
+
+**El fake también emite la señal de conexión**: `FakeTick` cierra con `IngestInt(AddrSensorOn, 1)` — ejercita el camino real. `bFakeSignal` está **true en la instancia** del persistente (la simulación LFO que pidió Beltrán: calma = seno 0.1–0.9 a `FakeHz` 0.08 ≈ ciclo de 12,5 s; BPM = 68±9). **Cuando llegue el server real: `bFakeSignal = false` en la instancia y listo.**
+
+Consumidor nuevo: [[BP_SoulHUD]] (lee `CalmSmooth`, `HeartSmooth`, `bConnected AND bSensorOn`).
+
 ## Registro de variables
 
 ### Config — cambiar de dispositivo se hace acá

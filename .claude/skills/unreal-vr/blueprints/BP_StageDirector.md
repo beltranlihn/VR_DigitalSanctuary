@@ -118,6 +118,58 @@ Feedback textual: llegada "pegada a la nariz" de la puerta · entrar al Hall "se
 
 6. 🆕 **Fix del "se volvió a cargar al llegar al centro" (2º visor de Beltrán):** `ConfigureRoom` hacía `SetLight` con el **default del pin Alpha = 0.0** antes del `RampLight` a 1 — un apagón instantáneo que el negro de las transiciones siempre había tapado, pero que con la entrada CAMINANDO al Hall quedó a la vista (la sala a 0.35 caía a 0 y volvía a subir = sensación de recarga). **Se eliminó el `SetLight`**: `RampLight` sube **desde la luz actual** (0.35 del pre-show) hasta 1 — crecimiento continuo. Vale para todas las salas: la rampa 0.35→1 reemplaza a la 0→1 en todas las entradas.
 
+## 🧪 2026-08-14 — `DebugStartStage`: la palanca de iteración para el fine-tuning (CONSTRUIDA Y VERIFICADA POR LOG)
+**La decisión del plan (2026-08-13): probar una etapa sin vivir la obra entera, SIEMPRE por el flujo real** — nunca con niveles de prueba paralelos. Es un **int instance-editable** en el actor del persistente:
+
+| Valor | Comportamiento |
+|---|---|
+| **−1** (default, CDO **y** instancia) | Obra completa normal: intro → menú → corredor → Hall → etapas. |
+| **0..5** | Al dar play: **salto directo a esa etapa** con TODO el contexto real. Sin intro, sin corredor. En ~2,6 s medidos estás dentro. |
+
+**Cómo usarla (Beltrán):** seleccionar `BP_StageDirector` en `L_Persistent` → Details → `Debug Start Stage` → poner el índice (0 Hall · 1 Entering · 2 Recognizing · 3 Loving · 4 Attracting · 5 Surrounding) → Play. **Volver a −1 al terminar** (y así está commiteado siempre).
+
+**La cadena** (`BeginPlay` ramifica después de los 3 caches: `DebugStartStage >= 0` → `DebugStart`, si no → cadena normal con `SpawnIntro`):
+```
+DebugStart:  print · Fade(1.0, 0.01) negro · StageIndex = DebugStartStage · PreloadNext(DebugStartStage) · timer DebugBoot a 1.0 s
+DebugBoot:   VoidParticlesOff · SeedHallResult · PlaceAtStop(walker, DebugStartStage+2) · ShowNextRoom (pre-show real:
+             muestra + Configure + luz 0.35) · timer ShowAndEnter a 1.5 s   ← de ahí en más ES el flujo normal
+             (TryEnter → EnterIfFresh → EnterRoom: RampLight, SpawnStage, MoveAlma, ConfigureSensors, fade in)
+SeedHallResult:  si DebugStartStage > 0 → SeedFirstSensor; si 0 → nada (el Hall spawnea sus propios sensores)
+SeedFirstSensor: spawn BP_Sensor → ForceTakeRight() (mismo camino del guion §7) → SeedSecondSensor
+SeedSecondSensor: spawn BP_Sensor → SetIsRight(false) → CacheHand → Take → SeedHandedness
+SeedHandedness:  CastToBP_SoulState(GameInstance) → bRightHanded = true (mano hábil por defecto: derecha)
+SeedHud (🆕 2026-08-14, tras SeedFirstSensor): spawn de [[BP_SoulHUD]] + SetCharge(0.2·DebugStartStage)
+                 — el HUD llega con la carga acumulada de las etapas "ya vividas"
+```
+- 🧪 **`bDebugHudAlways`** (instance-editable, **true** hoy en CDO e instancia): andamiaje pedido por Beltrán — `BeginPlay` → `MaybeSpawnHud` (entre `CacheRouteActor` y el branch de debug): si el flag está en true **y `DebugStartStage < 0`** (los saltos ya siembran el suyo — el guard evita HUD doble), spawnea el HUD desde el arranque con carga 0. **Se apaga cuando la calibración del Hall sea quien lo haga nacer.** Verificado por log 2026-08-14: un solo HUD, carga 0.0, cero errores.
+- 🔴 **Todo lo sembrado es el MISMO resultado que deja el Hall real**: 2 sensores tomados (derecho forzado por `ForceTakeRight`, izquierdo por `SetIsRight`+`CacheHand`+`Take`, calcado de `SpawnSecondSensor` del Hall) + `bRightHanded` en el GameInstance. Lo que NO se siembra: el HUD ProtoSoul (nace al elegir en el Hall; las etapas no lo requieren).
+- **Verificado por log (2026-08-14, salto a etapa 2):** sin intro, `L_Room_Recognizing` precargado, sensores en ambas manos, mano hábil persistida, pawn en X=2400 exacto, `EnterRoom` real (Alma + `SetMode(2)` ×2 + cortafuegos extendido + `BP_HeartSensor` "ya en tu mano hábil"), **cero `Accessed None`**. Y con −1 el flujo normal corre idéntico (intro en MenuRoot, precarga del Hall, espera del Start), también verificado.
+- ⚠ Trampas pagadas al construirlo: el literal de `(CallFunction|Fade 1.0 0.01)` se perdió otra vez (quedó `Alpha=0.01, Duration=0`; arreglado por `set_pin_value`, la trampa #4 de `dsl.md`) · `Game|SpawnActorBPSensor` NO es escribible — el type_id real es **`Game|SpawnActorfromClass`** con la clase como primer arg (el read renderiza el nombre con la clase ya puesta) · `(CallFunction|PreloadNext (expr))` posicional intentó conectar al pin `self` — con **`:Suffix`** anduvo.
+- ⚠ El arte de una sala se edita en su sublevel (panel Levels); esta palanca es para probar la **interacción** por el flujo real.
+
+## 🆕 2026-08-14 (tarde) — LA CEREMONIA DE CARGA se mete en `EndStage`
+`EndStage` ya no va derecho al atenuado: entre **matar la etapa** y **bajar la luz** entra la ceremonia (§1.b del guión), que es donde el guión la pide — *"antes de la puerta"*, con la sala todavía encendida y Alma todavía presente.
+```
+EndStage → KillStage → MaybeCeremony
+                        ├─ RoomKinds[StageIndex]==1 (es etapa) → OpenCeremony   ← pide y ESPERA
+                        └─ Hall / sala final                    → AfterCeremony  ← cierre directo
+AfterCeremony (custom event NUEVO) → DimAndReveal → RefreshLastRoom → CloseOrFinish   ← la cadena vieja, intacta
+```
+🔴🔴 **El director NO conoce `BP_Ceremony`, y es a propósito.** El registro de nodos del MCP no ve las funciones de una clase de BP creada en la misma sesión, así que la dependencia se **invirtió**: el director publica el pedido en su propia variable y la ceremonia (un actor colocado en `L_Persistent`) lo escucha. Beneficio real, no sólo workaround: **si mañana se borra la ceremonia, el cierre de etapa sigue funcionando** (lo cierra el cortafuegos).
+
+| Variable nueva | Valor | Rol |
+|---|---|---|
+| `CeremonyRequest` | **−1** (CDO; la instancia hereda) | El buzón. `>= 1` = "corré la ceremonia de esta etapa". `OpenCeremony` lo escribe, `DoCloseCeremony` lo devuelve a −1. |
+| `bCeremonyOpen` | false | El candado de "una sola vez": `CloseCeremonyOnce` sólo dispara `AfterCeremony` si sigue en true. Sin él, ceremonia + cortafuegos cerrarían dos veces. |
+| `CeremonyMaxWait` | **25 s** | Cortafuegos. 🔴 **NO instance-editable a propósito**: si lo fuera, nacería en 0 en el actor ya colocado (la trampa de siempre) y el cortafuegos dispararía en el acto. |
+
+- **`CeremonyDone()`** — la API pública que llama la ceremonia al terminar. → `CloseCeremonyOnce` → `DoCloseCeremony` (apaga el candado, limpia el buzón, cancela el cortafuegos, dispara `AfterCeremony`).
+- **`CeremonyGuard()`** — el timer de emergencia; entra por el mismo embudo.
+- 🆕 **`SeedSoulRings(S)`** (llamada al final de `SeedSoul`) — el salto debug siembra `DebugStartStage − 1` anillos en la ameba, para que la etapa saltada arranque con los anillos de las etapas "ya vividas".
+- 🐛 **Arreglado de paso:** `SeedHud` sembraba `0.2 × DebugStartStage` (la carga DESPUÉS de la etapa) mientras los anillos sembraban `DebugStartStage − 1` → barra y anillos se contradecían, y la ceremonia hacía **bajar** la barra al empezar. Ahora va por **`SeedHudCharge(H)`** con `0.2 × (DebugStartStage − 1)`. Verificado: siembra `0.4` y la rampa sube 0.4 → 0.6.
+
+**Verificado por log (2026-08-14, `DebugStartStage=3`, 3 corridas):** `DIR: pedida la ceremonia de carga de la etapa 3` → 8,3 s de ceremonia → `DIR: la ceremonia aviso que termino` → sigue el atenuado y la puerta. Cero `Accessed None`.
+
 ## Cómo está encadenado
 🔴 **Los saltos entre tramos van por `SetTimerByFunctionName`, no por `Delay`.** Un `Delay` no es válido dentro de una función, y el ciclo necesita esperas entre pasos; los timers por nombre funcionan sobre **custom events** igual que sobre funciones, así que cada tramo es un evento aparte y el anterior lo agenda. Ventaja lateral: cada tramo es un punto de entrada nombrado, así que `BP_DebugDirector` va a poder saltar a cualquiera.
 

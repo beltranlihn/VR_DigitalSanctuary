@@ -164,7 +164,18 @@ Transformation|AttachActorToComponent(self, cam, "None", "SnapToTarget", "SnapTo
 - `Stages/Touch/Materials/M_TouchUnlit` — base **Unlit + Emissive** con parámetros `EmissiveColor` y `Brightness`; instancias `MI_Laser`, `MI_Bubble`, `MI_Slot`. Patrón correcto para Quest (ver `materials-vr.md`).
 - `Stages/Movement/Materials/M_Brush_Light` — unlit + Fresnel, aditivo con borde suave (validado en visor dibujando).
 - `Core/Amoeba/Materials/M_ProtoSoul` — unlit opaco con Fresnel + pulso temporal. Parámetros: `SoulColor` (vector), `Brightness` (default 1), `Agitation` (0.25), `AgitationSpeed` (3). Lo usan las amebas Y Alma.
+- `Core/Amoeba/Materials/M_SoulRing` (2026-08-14) — 🔵 **el anillo de carga**: unlit **aditivo**, TwoSided, **anillo procedural sin una sola textura** sobre un `/Engine/BasicShapes/Plane`, con **barrido angular** para que se DIBUJE girando en vez de aparecer. Parámetros: `RingColor` · `Brightness` (3) · `Progress` (0→**1.05**, ver gotcha #21) · `Radius` (0.38) · `Thickness` (0.055). **Reusable para cualquier "carga circular"** (el ring slider del timbre de la decisión #4 del guión sale de acá casi gratis).
 - `Core/Sensor/MI_Sensor` (2026-08-13) — instancia de M_ProtoSoul para `BP_Sensor`: blanco tibio (0.85/0.82/0.72), Brightness 0.55, Agitation 0.06. 🔴 **Existe para que el sensor NO parezca una Proto Soul** — antes compartían look exacto y Beltrán los confundió dos veces. Si se cambia el look del sensor, mantener la distinción.
+
+## 🎖️ La ceremonia de carga (2026-08-14) — reusable entero
+| Asset | Qué es | Estado |
+|---|---|---|
+| `Core/Flow/BP_Ceremony` | **La secuencia de cierre de etapa**: desprender la ameba del HUD → viajar a un punto → dibujar anillo + subir barra → volver. Colocado en `L_Persistent`. | 🟢 verificado por log |
+| `BP_ProtoSoul`: `LeaveHud` / `TravelToPoint(Target,Dur)` / `ReturnToHud(Dur)` | **Movimiento suave con smoothstep** de un actor head-locked, incluyendo el regreso a un destino que se recalcula cada tick. Reusable para cualquier objeto que tenga que "salir de la mano/HUD y volver". | 🟢 verificado |
+| `BP_ProtoSoul`: `DrawRing(i,dur)` / `SeedRings(n)` / `RingColors` | Anillos acumulativos dibujados por barrido. | 🟢 verificado |
+| **Patrón `ChargeSpot`** | Un `BP_Anchor` (hereda `TargetPoint`, oculto en juego) tagueado, **dentro del sublevel de la sala**. `GetAllActorsOfClassWithTag(TargetPoint, tag)` sólo ve el de la sala visible. **Es el patrón para cualquier punto autorable por sala** (ya usado por `AlmaSpawn`, `SensorSpawn`, `BoxSpawn`). | 🟢 probado |
+| **Patrón "pedido por variable"** | Cuando un BP viejo tiene que disparar algo de un BP nuevo y el registro de nodos no lo ve (gotcha #17): el viejo publica un `int` en una variable propia, el nuevo lo poll-ea y devuelve el resultado llamando una función del viejo. **Bonus: el viejo sigue andando si el nuevo no existe.** | 🟢 probado |
+| **Placeholder de audio data-driven** | `VoClips` (array de `SoundBase` por índice) + `ChargeSfx`: entrada vacía = **silencio + `AUDIO: falta clip X`**. Llenar el array = tener audio, cero código (decisión #8 del guión). **Copiar este patrón en el framework de audio 1.d.** | 🟢 probado |
 
 ## 🕹️ Pawn — accesores que ya existen (`BP_VRPawn_SC`)
 `Class|BPVRPawnSC|GetMotionController{Left,Right}{Grip,Aim}` → devuelve el `MotionControllerComponent`. **Grip** = dónde está la mano · **Aim** = el rayo para punteros.

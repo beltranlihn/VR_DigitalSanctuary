@@ -6,7 +6,54 @@
 🔴 **No es un HUD pegado al casco ni un reloj.** §5 descarta las dos: pegado al casco es incómodo y borroso en los bordes y rompe el lugar; reloj compite con el sensor que llevás en la mano.
 
 ## Status
-🟡 **Lazy-follow, pulso y agitación construidos y verificados en PIE** (2026-08-11). 🆕 **Variantes configurables en runtime y adopción desde el GameInstance.** ⬜ Faltan los **anillos de carga** y el test en visor.
+🟡 Pulso y agitación verificados en PIE. 🆕 **2026-08-14: el rol HUD ya NO es lazy-follow — la ameba se ANCLA al slot del HUD** (decisión de Beltrán, guión). 🆕 **2026-08-14 (tarde): los ANILLOS y el VIAJE de la ceremonia construidos y verificados por log.** ⬜ Falta el test en visor y el arte de los anillos.
+
+## 🆕 2026-08-14 (tarde) — LOS ANILLOS Y EL VIAJE (la ceremonia de carga vive acá)
+La ameba es dueña de **su movimiento** y de **sus anillos**; quién y cuándo lo pide es de [[BP_Ceremony]].
+
+### Los 5 anillos — componentes, no spawns
+`Ring0..Ring4`: `StaticMeshComponent` con `/Engine/BasicShapes/Plane` + **`M_SoulRing`**, tag `SoulRing`, `bVisible=false`, sin sombra, `NoCollision`, `relativeRotation` **pitch 90** (el plano mira al usuario cuando la ameba está anclada con rotación cero a la cámara).
+🔴 **Cuelgan de `Body`, NO del root**: así heredan `BaseScale` **y el pulso** — los anillos laten con la ameba y escalan con ella sin una sola línea extra. Su escala relativa se aplica en `ApplyRing` como `RingBaseScale + Index × RingScaleStep` (**2.0 / 0.35** → 30…51 cm de plano ≈ 23…39 cm de anillo dibujado, con la ameba en 15 cm).
+- **`CollectRings`** (al final de `BeginPlay`) llena `RingComps` con los 5 getters de componente **explícitos** — a propósito, en vez de `GetComponentsByTag`, que pierde sus args en silencio (gotcha #2 de la cosecha 08-14). Verificado: `SOUL: anillos registrados = 5`.
+- **`ShowRingAt(Index, Progress)`** — guard de rango contra AMBOS arrays (`RingComps` y `RingColors`) → `ApplyRing`.
+- **`DrawRing(Index, Duration)`** — arranca el dibujado animado; `RingAdvance`→`RingStep`→`RingApply` avanzan `Progress` **0 → 1.05** en `RingDur` y `RingFinish` deja `RingsShown = Index+1`.
+  ⚠ **El 1.05 no es un error**: con `Progress` exactamente 1.0 el último gajo del barrido angular nunca se enciende (el `saturate(Progress − angle01)` da 0 en la costura). El 5 % de más cierra el anillo.
+- **`SeedRings(Count)`** — muestra los primeros `Count` anillos ya completos. La llama el salto debug del director (`SeedSoulRings`, con `DebugStartStage − 1`) para que una etapa saltada tenga los anillos de las etapas "ya vividas". Verificado: `SOUL: anillos sembrados = 2` al saltar a la etapa 3.
+- **`HideAllRings`** — los apaga todos y pone `RingsShown = 0`.
+
+### El viaje — la ameba se mueve sola, la ceremonia sólo la manda
+- **`LeaveHud()`** — `DetachFromActor` con **los TRES rules en `KeepWorld`** (sin eso la ameba salta al desprenderse). ⚠ El tercero (`ScaleRule`) hubo que ponerlo por `set_pin_value`: el DSL se comió el 3er posicional.
+- **`TravelToPoint(Target, Duration)`** / **`ReturnToHud(Duration)`** — cachean `TravelFrom` = posición actual y arrancan `bTraveling`. La vuelta pone `bReturnMode`.
+- **`TravelGate(Δ)` → `TravelAdvance` → `TravelApply(A)` → `TravelFinish`** (colgados de `HudStep`, o sea del Tick gateado por `bIsHUD`):
+  - suavizado **smoothstep** `A²(3−2A)` — arranca y frena suave, que es lo que pide "viaje suave".
+  - **en modo vuelta el destino se RECALCULA cada tick** (`RefreshSlotTarget` → `SetSlotTarget`: `CamTransform.TransformLocation(AmebaOffset)`), así la ameba persigue el slot aunque el usuario mueva la cabeza durante el regreso.
+  - al terminar, si es vuelta → **`BecomeHud()`**, que re-attachea. La aserción `VerifySoulPose` vuelve a dar **32,76 cm** — el ciclo cierra en el mismo punto donde empezó.
+- 🔴🔴 **BUG PAGADO (y cazado por la aserción espacial): `TravelAdvance` sin gate corría desde `BeginPlay`** y hacía `SetActorLocation(Lerp(0,0,0 → 0,0,0))` cada frame → la ameba clavada en el origen del mundo. **`SOUL POSE: distancia a la camara cm = 3600.0`** (= la X exacta de la sala Loving) lo delató; el log de flujo decía "anclada al slot" y era verdad… por un frame. **De ahí sale `TravelGate`.** Es exactamente la trampa #13/#14 de la cosecha 08-14 otra vez: el attach informa éxito y otra cosa lo pisa.
+
+### Variables nuevas
+| Variable | Default | Rol |
+|---|---|---|
+| `RingComps` | [] | Los 5 componentes, en orden Ring0..4. |
+| `RingColors` | 5 colores | 🎨 **azul (0.10,0.35,1) · rojo (1,0.12,0.12) · morado (0.55,0.15,1) · naranja (1,0.42,0.06) · verde (0.15,1,0.45)** — la lámina del guión. El anillo n usa `RingColors[n]`. **Cambiar el color de una etapa = tocar este array.** |
+| `RingBaseScale` / `RingScaleStep` | 2.0 / 0.35 | Radio del primer anillo y cuánto crece cada uno (en espacio local de `Body`). |
+| `RingIdx` / `RingElapsed` / `RingDur` / `bRingDrawing` | — | Estado del anillo que se está dibujando. |
+| `RingsShown` | 0 | Cuántos anillos hay encendidos. Es la carga leída en la ameba. |
+| `bTraveling` / `bReturnMode` | false | Si se está moviendo, y hacia dónde (punto fijo vs slot vivo). |
+| `TravelFrom` / `TravelTarget` / `TravelDur` / `TravelElapsed` | — | Estado del viaje. |
+
+### `M_SoulRing` (Core/Amoeba/Materials/)
+Unlit · **Additive** · TwoSided · sin una sola textura. Anillo procedural sobre el plano:
+`mask = saturate(1 − |dist(UV, centro) − Radius| / Thickness)` (caída triangular = borde blando gratis) × `sweep = saturate((Progress − angle01) × 40)` con `angle01 = atan2(dy,dx)/2π + 0.5`.
+`Emissive = RingColor × Brightness`, `Opacity = mask × sweep` → **el anillo se DIBUJA girando**, no aparece de golpe.
+Parámetros: `Radius` (0.38) · `Thickness` (0.055) · `Progress` (1.0) · `RingColor` · `Brightness` (3.0). Se escriben por componente con `SetColorParameterValueOnMaterials` / `SetScalarParameterValueOnMaterials` (crean el MID solos, cero variables MID).
+
+## 🆕 2026-08-14 — ANCLADA AL SLOT DEL HUD (reemplaza el lazy-follow)
+- **API: `BecomeHud()`** — `bIsHUD=true` → `ReadAmebaAnchor` → `AttachHudMode` (attach **DIRECTO al CameraComponent del pawn** — nunca a padres escalados, gotcha #13 — con `AmebaOffset` + rotación cero). La llaman `SpawnHudSoul` del Hall y `SeedSoul` del salto debug.
+- **El offset se autora con `TP_AmebaAnchor`** (tag `AmebaAnchor`, en el persistente junto al cubo, hoy (−2205, 13, 162) = cubo + (30, 13, 2) ≈ el círculo del slot del WBP). Arrastrarlo mueve dónde vive la ameba en el HUD.
+- 🔴 **`AmebaOffset` = TP − `HeadRefLoc` DEL BP_SoulHUD (valor cacheado), NUNCA el cubo vivo**: cuando la ameba lee, el cubo ya está pegado a la cámara (gotcha #14 — así salió a 184 cm). Fallback sin HUD: (0,0,185).
+- **`HudStep` quedó VACÍO** (el attach reemplaza a `UpdateFollow`+`ApplyPlacement`, que quedaron como funciones muertas — borrarlas cuando se confirme en visor). `UpdateReadout` (pulso/agitación) sigue corriendo para todas.
+- **Aserción espacial permanente: `VerifySoulPose`** (1 s tras el attach) — verificado **32,76 cm = |(30,13,2)| exacto**.
+- ✅ **La ceremonia de carga ya existe** (2026-08-14 tarde): TargetPoints `ChargeSpot` dentro de cada `L_Room_*` y la secuencia detach → viaje → anillo+carga → `BecomeHud()`. La orquesta [[BP_Ceremony]]; la ameba pone `LeaveHud`/`TravelToPoint`/`ReturnToHud`/`DrawRing`/`SeedRings`.
 
 ## 🆕 Lo que se agregó el 2026-08-11 (para la elección del Hall)
 | Función | Rol |
@@ -86,7 +133,7 @@ Parámetros: `SoulColor` · `Brightness` · `Agitation` · `AgitationSpeed`.
 
 ## TODO
 - [ ] 🔴 **Test en visor.** El lazy-follow es de esas cosas que solo se juzgan con la cabeza puesta: la zona muerta y la recuperación se sienten, no se calculan.
-- [ ] **Los anillos de carga** (§5: *"sus anillos son la carga"*). Uno por etapa completada, 5 en total. Va con `ChargeAnimation(índiceAnillo, intensidad)` del `BP_StageBase` (§9.4).
+- [x] ~~**Los anillos de carga**~~ (§5: *"sus anillos son la carga"*) → construidos 2026-08-14: `Ring0..4` + `M_SoulRing` + `DrawRing`/`SeedRings`. Falta el **arte** (hoy es un anillo procedural liso) y verlos en visor.
 - [x] ~~**El flujo de elección**~~ → construido en [[BP_SoulChoice]] + [[BP_SoulState]] (2026-08-11). Falta cerrar su bug y probarlo en visor.
 - [ ] Higiene de nodos de los 6 grafos nuevos: **están encimados en el origen**, nunca se les corrió `auto_layout.py`.
 - [ ] La **agitación** hoy es un seno de brillo. §5 pide *"agitación de su superficie"*, o sea deformación real. Cuando haya mesh definitivo, evaluar World Position Offset (barato en vértices) antes que Niagara.
