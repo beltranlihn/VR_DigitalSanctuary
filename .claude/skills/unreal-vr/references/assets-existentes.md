@@ -78,6 +78,10 @@ AddMappingContext(IMC, Priority = 1000,
 2. En el pawn, un evento **`IA_Continue`** engancha a la cadena de grab **que ya existe**: `Started` → `GetGrabComponentNearMotionController` → `TryGrab` · `Completed` → `TryRelease`. Son cables sobre nodos existentes, no lógica nueva.
 3. El objeto agarrable lleva un **`BP_GrabComponent`** y el object type del trace (`ObjectTypeQuery4`). Nada más — el cubo del template no tiene ni una línea propia.
 
+🔴 **DÓNDE VA EL LISTENER: en el actor de la etapa, NO en el pawn.** Principio que fijó Beltrán (2026-08-15): *"como estamos haciendo kill de los elementos de las etapas que ya pasamos, no debería pelear. Esa es la gracia de que estemos spawneando y después haciendo kill: nuestras interacciones quedan libres para lo que venga."* — el **spawn/kill es el árbitro del input**, y por eso no hace falta ningún bool de gateo entre etapas.
+⚠ El corolario que importa: **una binding puesta en el PAWN nunca se mata** y quedaría viva toda la obra, rompiendo justamente esa propiedad. Por eso el grab del final **no** va en el pawn.
+✅ Y se puede: **los actores de etapa reciben Enhanced Input directamente**. Comprobado en `BP_Instructions` (Breath, **probado en visor**), que tiene sus propios eventos `EnhancedInputActionIA_Shoot_{Left,Right}` en su EventGraph. Alternativa sin input propio: **pollear un bool que otro ya mantiene** — `BP_TouchInstrPanel.AnyTriggerHeld` lee `bTriggerHeld` de los `BP_AimBeam`, y `BP_BrushTool` guarda la presión del gatillo con `SetTrigPressure`. Tres caminos probados, ninguno toca un IMC.
+
 **Para un stage nuevo:** duplicar `IA_Continue`/`IMC_Continue` a `Stages/<Stage>/Input/` (así se hizo `IA_Attract_{Left,Right}` + `IMC_Touch`), y **copiar la config de arriba**.
 
 ## 🔊 Audio
