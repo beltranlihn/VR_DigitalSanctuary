@@ -45,6 +45,30 @@ Ventaja lateral: si el `TargetPoint` falta y el pacer nunca nace, la etapa **igu
 | `VoClip` | vacío | 🔊 **VO 9** (la instrucción del ritmo). Vacío = silencio + `AUDIO: falta clip VO 9`. |
 | `CountSfx` | vacío | 🔊 **SCountBreath**, al cerrar cada ciclo. Vacío = silencio + log. |
 
+## 🔴 CORRECCIÓN 2026-08-14 (noche): el anillo NO se construye, se REUSA el de Calibration
+**Feedback de Beltrán en visor:** *"Fíjate en el widget de la calibración, ahí ya habíamos creado un anillo que tiene marcado los distintos pasos de la respiración y que iba avanzando en infinito. **No crees cosas desde cero si ya existen**, y ya te había comentado que ahí estaba."* Tenía razón, y **no fue un descuido**: el plan decía "el radial slider ya existe en el widget de Calibration → reusar", se leyó, y se construyó uno nuevo igual.
+
+**Lo que se reusa** (era todo un sistema ya hecho, no un widget suelto):
+| Pieza | De dónde |
+|---|---|
+| `BreathRing` — `RadialSlider` full 360°, locked, sin handle | `WBP_CalibInstructions` |
+| `RingTicks` + **`M_RingTicks`** — divisores polares (`atan2` + `Distance`), params `TickCount`/`TickWidth`/`TickLength`/`Radius`/`Color` | idem |
+| **`ShowCountdownScreen(true)`** — la pantalla de respiración guiada **ya armada**: colapsa lo de calibración y muestra título + contador + anillo + divisores | idem |
+| `SetBreathRing(V)` · `SetCountdown(N)` | idem |
+
+- **Copiado a `Stages/Breath/Widget/`** como `WBP_BreathPacer` + su propio `M_RingTicks` (**dependencias cortadas**, misma regla que `BP_TouchInstrPanel`: lo del stage vive en el stage). Verificado que el brush apunta a la copia de Breath.
+- **`TickCount` bajado de 4 → 3** en la copia, porque el guión pide **3 fases** (4 inhala / 4 aguanta / 4 exhala) y el anillo de Calibration implementaba **4** (aguanta/inhala/aguanta/exhala, un cuarto cada una). ⚠ **Decisión abierta para Beltrán**: si el ciclo real es de 4 fases (box breathing, como el que él construyó), se vuelve a 4 y `PacerApply` divide por 4 en vez de 3.
+- **El mapeo es una línea**: `SetBreathRing((Phase + A) / 3)` — cada fase ocupa un tercio exacto, así el puntero **cambia de velocidad** con la duración real de cada tramo y siempre cae en la marca al cambiar de fase (la propiedad que hace bueno al diseño original).
+- **Se fueron el `Ring` (StaticMesh) y el `Label` (TextRender)** que había construido: el anillo lo dibuja el widget y **el texto de fase se eliminó a propósito** — el anillo con sus divisores ya dice en qué tramo estás, y menos palabras es más fiel a la obra. El contador del centro muestra **los ciclos que faltan**.
+- 💡 **El bloqueo del registro NO existía**: `find_node_types` no lista las funciones de un widget, pero **`create_node` con el id construido a mano SÍ las crea** (el gotcha ya estaba documentado en `BP_BreathSensor_V2.md`). No hizo falta reiniciar el editor.
+- ⚠ El `BreathTitle` del widget viene con el texto de Calibration (español). **Textos in-headset van en inglés** → pendiente.
+
+### 🔴 HILO ABIERTO — el anillo NO está verificado (2026-08-14, cierre)
+La corrida de PIE mostró el pacer completo (5 ciclos × 11,96 s, cierre y ceremonia OK), **pero NINGUNA de las dos líneas de `CachePacerWidget` apareció en el log** — ni `PACER: widget del anillo guiado cacheado` ni `PACER: sin widget`. Ambas ramas del cast imprimen, así que una tenía que salir.
+**Lo verificado hasta ahora** (para no repetirlo): el nodo `CachePacerWidget` está en la cadena del BeginPlay entre `CachePacerStage` y `StartPacer` (`get_node_infos` lo confirma), y **el `FunctionEntry` de la función SÍ conecta al cast** — o sea NO es la isla desconectada del gotcha #1. El barrido de huérfanos tampoco encontró nada en ese grafo.
+**Sospechas a chequear, en orden:** (1) que `GetUserWidgetObject(Panel)` devuelva null en BeginPlay y el cast no imprima por alguna razón de orden; (2) que el `WidgetComponent` no esté inicializando el widget (¿`widgetClass` efectivo? verificar con `get_properties` en la instancia viva, no en el CDO); (3) que las líneas estén en el log y el `GetLogEntries` las esté filtrando mal.
+🔴 **No dar por bueno el anillo hasta ver una de esas dos líneas.** El resto del pacer (ritmo, ciclos, cierre) sí está medido.
+
 ## Componentes
 - **`Ring`** — Plane + **`M_SoulRing`** (el mismo material del anillo de carga de la ceremonia), `relativeRotation` pitch 90 para que mire al usuario, escala 0.6 ≈ **45 cm de anillo**, sin sombra, sin colisión.
   💡 **Se reusó `M_SoulRing` en vez del radial de Calibration** (`M_RingTicks`, que vive dentro de un widget UMG): el de la ceremonia ya es world-space, unlit aditivo y con **barrido angular**, que es exactamente lo que un marcapasos necesita — y esquiva todo el costo/las trampas de un `WidgetComponent` en Quest. ⚠ Si Beltrán prefiere el look con ticks del de Calibration, el cambio es de material, no de lógica.
