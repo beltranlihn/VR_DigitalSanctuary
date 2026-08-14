@@ -7,7 +7,52 @@
 - **Variables**: `Questions` (array de Text, CDO: 3 preguntas en inglés) · `QuestionTime` (10 s) · `LovingTimeout` (60 s) · `QuestionIdx` · `PanelRef`.
 - Cumple la "ruptura del patrón" §2.4: sin sensor, sin instrucciones largas.
 
-## 🆕 Recognizing v3 (2026-08-13, pedido de Beltrán): LA MECÁNICA REAL DE HEART, con el sensor persistente ya en mano
+## 🆕🆕 Recognizing v4 (2026-08-14) — LA SUBIDA POR 10 PULSOS (rework del Acto 5 del guión)
+Lo que pedía el guión: *"10 saltos de igual extensión con curva trampolín (rápido→lento); anillo Niagara desde el corazón por pulso; **fuera del umbral el avance sigue lento (no se detiene)**; reentrar re-activa. El recorrido total es fijo: 10 saltos"* — reemplaza `MaxBeatCount` y el descenso continuo.
+
+### El recorrido es UN valor: `Progress` 0→1 en [[BP_Descent]]
+| Camino | Cómo avanza | Cuánto tarda |
+|---|---|---|
+| **En umbral (sensor al pecho)** | cada latido a **½ del BPM** dispara un **salto** de 1/10 con **ease-out** (`1−(1−a)²` = arranca rápido, frena — la "curva trampolín") sobre `JumpTime` 1,1 s | ~10 pulsos ≈ **16 s** a 75 BPM |
+| **Fuera del umbral** | **drift lento y continuo** (`DriftRate` 0,012/s) — *no se detiene* | ~**83 s** solo con drift |
+🔴 **Los dos caminos LLEGAN.** Esa es la diferencia con v3, donde fuera de zona no pasaba nada: acá quien no logra el umbral igual sube, sólo que mucho más lento. Es la regla de "cero callejones sin salida" hecha mecánica, no cortafuegos.
+
+### Quién habla con quién
+```
+BP_Stage_Recognizing.RecogRunBody → spawnea BP_Descent en TP DescentSpawn → ArmRise() (captura BaseZ, resetea)
+CheckHeart (poll 0,25 s):
+   esconde el sensor (igual que antes)
+   DriveDescent(bWasInZone)  →  SetDriftMode(descent, NOT enZona)     ← drift sólo fuera de zona
+   PumpBeats(sensor)         →  si BeatCount subió → FireJump → descent.PulseJump()
+   CheckRiseDone             →  si descent.bRiseDone → RecogDone → StageDone
+```
+- **`LastBeat`** (nueva en la etapa) es el flanco: compara contra `BeatCount` del sensor, que ya viene **a ½ del BPM** (`UpdateHeartbeat` divide /2 desde antes). No hubo que tocar el ritmo.
+- **El BPM sigue saliendo de `BP_OSCReceiver.HeartRate`** (valor de referencia fijo). 🔴 **OSC se integra al final, con la mecánica ya lista** (decisión de Beltrán 2026-08-14) — no se tocó nada de esa cadena.
+- **`BP_Descent` API nueva**: `StartRise` · `PulseJump` (ignora pulsos después del salto 10) · `SetDriftMode(bOn)` · `bRiseDone`. Su Tick pasó de `AddActorWorldOffset` continuo a **`RiseStep`** con posición **absoluta** desde `BaseZ` (idempotente: no acumula error). El pulso de escala de las columnas (`PulseStep`) sigue corriendo.
+- **El auto-cierre del sensor quedó APAGADO**: `UpdateHeartbeat` llamaba `FinishAfterDelay()` (que **recargaba el nivel**, herencia del test aislado) al llegar a `MaxBeatCount`; ahora pasa por **`MaybeFinishHeart` + `bAutoFinish=false`**. 🔴 Esto era urgente: con el cierre ahora más largo, la etapa ya **no le ganaba la carrera** a esos 2 s del sensor.
+
+### Valores (CDO de `BP_Descent`)
+`TotalRise` **320 cm** · `Jumps` **10** · `JumpTime` **1,1 s** · `DriftRate` **0,012 /s**.
+
+### ✅ Verificado por log (2026-08-14, `DebugStartStage=2`)
+```
+18:22:45  DESCENT: ascenso armado - saltos = 10
+   … sin casco el sensor nunca entra en zona → drift puro …
+18:24:08  DESCENT: recorrido completo - el ascenso llego arriba      (83 s = 1/0,012 exacto)
+18:24:08  RECOGNIZING: el ascenso termina - la etapa cierra por el camino real
+18:24:10  DIR: pedida la ceremonia de carga de la etapa 2
+18:24:13  CEREMONIA POSE: distancia ameba-ChargeSpot cm = 0.0        (X=2510, el de Recognizing)
+18:24:19  CEREMONIA: terminada - carga = 0.4                          (40 %, anillo 1 = rojo)
+```
+Cero `Accessed None`. Medición en vivo a mitad de camino: `Progress 0.958 · bDrift true · bJumping false`.
+⚠ **Sólo se verificó el camino del DRIFT**, que es justamente el que garantiza que no haya callejón sin salida. **Los 10 saltos por latido necesitan el casco** (el sensor tiene que entrar en la zona del pecho) — es lo primero a mirar en visor.
+
+### ⬜ Lo que falta de este beat
+- **El anillo Niagara desde el corazón por pulso** — no construido. Es capa de VFX (va con `niagara-quest.md` y el pase de arte); el `PulseJump` es el hook donde engancharlo.
+- **`SPulse`** (el sonido del pulso) — hoy suena `AudioHeartBeat` del sensor, que ya existía; falta el clip real y el placeholder data-driven.
+- **`BP_HeartInstructions` no tiene el cortafuegos de página de 20 s** que sí se le puso a `BP_Instructions` (Breath). Mismo patrón, pendiente.
+
+## 🆕 Recognizing v3 (2026-08-13, pedido de Beltrán): LA MECÁNICA REAL DE HEART, con el sensor persistente ya en mano (SUPERSEDIDA por v4 en el cierre; el resto sigue vigente)
 Reemplaza al gate ciego de v2 ("no sucedió nada"). Trae la cadena PROBADA de `Stages/Heart/` con el patrón de Breath/Entering:
 - **`BP_HeartSensor` ganó `ForceAttachToHand(bRight)`** (copiado de `BP_BreathSensor_V2`) y **`BP_HeartInstructions` ganó `SpawnSensorInHand`**: la página 0 spawnea el sensor de latido y lo engancha a la mano hábil (GameInstance) — **no hay que tomarlo**; la página de "toma el sensor" (su `SpawnSensor` del case 1) se eliminó. El detector corre **INVISIBLE** (el `CheckHeart` de la etapa lo esconde por poll) — el objeto visible es el sensor persistente del Hall.
 - **Flujo**: widget 5 páginas (tag `WidgetSpawn` de la sala) → calibración (quietud) → **zona segura head-relative** (esfera debug verde/rojo activa, `bDebugSafeZone`) → en zona: háptico + late a BPM del OSC (test fijo 75.5, sin dispositivo) → `CheckHeart` (0.25 s) hace `DriveDescent(bWasInZone)`: **las columnas descienden+pulsan SOLO en zona** → a `MaxBeatCount` (4 test / 15 real) → `bStageComplete|bFinishing` → `RecogDone` → `StageDone` (el poll le gana a los 2 s del cierre-de-nivel viejo del sensor, y el cleanup lo destruye antes).
