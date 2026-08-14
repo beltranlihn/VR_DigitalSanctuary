@@ -16,6 +16,7 @@ Pedido de Beltrán (2026-08-15): *"me interesa mañana poder hacer una prueba de
 `SG_Constellation` es un **SaveGame con 6 arrays paralelos**, uno por campo, con **una entrada por usuario**: `Variants` (int) · `Colors` (LinearColor) · `Rings` (int) · `CalmAvg` (float) · `HeartAvg` (float) · `Melodies` (string).
 
 🔴 **Por qué arrays paralelos y no un struct**: `F_SoulPortrait` existe pero está **vacío** (sólo un miembro placeholder `tBD`), y **el MCP no puede agregar miembros a un UserDefinedStruct** — no hay toolset de structs. La melodía va como **string** (CSV de IDs de clip), que es el mismo criterio que ya usa el proyecto para la firma sonora (*"se persiste como DATOS, no como asset"*, `audio-quest.md`).
+📌 **Deuda de diseño consciente, anotada con Beltrán (2026-08-15)**: si él **llena `F_SoulPortrait` a mano en el editor** (variante int · color LinearColor · anillos int · calma float · ritmo float · melodía string), **hay que migrar** a un solo array de ese struct — más elegante y sin riesgo de desalineado. Está agendado en el §4 del plan como insumo suyo; no bloquea nada.
 ⚠ El precio de los arrays paralelos es que se pueden desalinear. Mitigación: **`AppendMe` escribe los 6 en la misma función**, y `ReportArchive` loguea las tres longitudes principales para que un desalineado se vea al instante.
 
 ## API
@@ -57,7 +58,10 @@ Colocado en `L_Persistent` en el último tramo (X≈6000). Al llamar **`BuildCon
 
 ## TODO — lo que falta para el end-to-end
 - [ ] 🔴 **`BP_Finale`**: carga final al 100 % + disolución del HUD → la ameba se desprende, crece y se aleja → exterior. Es el tramo que hoy no existe: la obra termina en `FinishObra` (disuelve la sala y enciende las partículas del exterior) y ahí se corta.
-- [ ] 🔴 **La decisión del corazón** (VO 28): llevarla al pecho → `SProtoHeart` + explosión Niagara → `AppendMe` → **mi ameba viaja como estrella fugaz a su TargetPoint** (`TravelToPoint` de [[BP_ProtoSoul]] ya existe y está probado). Reusar la detección de zona del pecho de `BP_HeartSensor`, no inventar otra.
+- [ ] 🔴 **La decisión del corazón** (VO 28). 🆕 **Beltrán definió el gesto (2026-08-15)**: *"nuestra protoameba tiene que estar **frente a nosotros al alcance de la mano**, y tenemos que **tomarla con hover + trigger**, y ahí podemos moverla hasta nuestro corazón"*.
+  - **Hover = proximidad de la mano, no láser** (está a distancia de brazo). Reusar el **attach por cercanía de `BP_BrushTool`**, que está **probado en visor** (*"acercar cualquiera de las dos manos → se pega"*), como detector de hover.
+  - **Trigger**: usar la config que SÍ funciona (`IA_Continue` + `IMC_Continue`, `Priority=1000` + `bIgnoreAllPressedKeysUntilRelease=False` + `bForceImmediately=True`). ⚠ `IA_Grab_*` del XRFramework **existen pero están sin mapear**, y `C_GrabComponent` es un patrón de `Recursos/` **no integrado** — no asumir que andan.
+  - Al soltar en el pecho: detección de zona reusando la de `BP_HeartSensor` → `SProtoHeart` + explosión Niagara → `AppendMe` → **viaje como estrella fugaz** a su TargetPoint (`TravelToPoint` de [[BP_ProtoSoul]] ya existe y está probado).
 - [ ] Los promedios reales: `CalmA`/`HeartA` tienen que salir del registro por bins de [[BP_BioHub]] (`GetCalmBinAvg`), no de números fijos.
 - [ ] La melodía: serializar los IDs de `SG_Melody` al string `Melodies[i]`.
 - [ ] Exploración con beam: hover sobre una ameba = suena SU melodía (el beam ya existe en Attracting).
