@@ -32,7 +32,11 @@ CheckHeart (poll 0,25 s):
 - **El auto-cierre del sensor quedó APAGADO**: `UpdateHeartbeat` llamaba `FinishAfterDelay()` (que **recargaba el nivel**, herencia del test aislado) al llegar a `MaxBeatCount`; ahora pasa por **`MaybeFinishHeart` + `bAutoFinish=false`**. 🔴 Esto era urgente: con el cierre ahora más largo, la etapa ya **no le ganaba la carrera** a esos 2 s del sensor.
 
 ### Valores (CDO de `BP_Descent`)
-`TotalRise` **320 cm** · `Jumps` **10** · `JumpTime` **1,1 s** · `DriftRate` **0,012 /s**.
+`TotalRise` **320 cm** · `Jumps` **10** · `JumpTime` **1,1 s** · `DriftRate` **0,1 /s**.
+
+🧪 **`DriftRate = 0,1` es un VALOR DE TEST** (pedido de Beltrán 2026-08-14: *"el recorrido completo de heart a 10 segundos, para que no sea tan largo mientras creamos"*). Con 0,1 el recorrido entero por drift dura **10 s**; el valor de obra era **0,012 ≈ 83 s**.
+🔴 **Subir de vuelta antes de probar el ritmo real de la etapa en visor**: con 0,1 el drift es **más rápido que los propios saltos** (10 saltos a ½ de 75 BPM ≈ 16 s), así que la mecánica se invierte — conviene más quedarse fuera del umbral que dentro, que es exactamente lo contrario de lo que pide el guión. Es un valor para iterar rápido, no para juzgar la mecánica.
+💡 La relación que hay que respetar en la obra: **drift claramente MÁS LENTO que los saltos** (era ~5× más lento). Si se cambia `Jumps` o el BPM, recalcular.
 
 ### ✅ Verificado por log (2026-08-14, `DebugStartStage=2`)
 ```
