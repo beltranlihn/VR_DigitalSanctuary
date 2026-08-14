@@ -164,7 +164,13 @@ Leyenda: ✅ construido (ajuste fino) · 🔧 rework de lo existente · 🆕 nue
   - **Timing autorable**: `BeatTimes` [12, 12, 14] s y `FieldFade` 3 s, instance-editable — es la palanca para calzar con VO 16/17/18. VO y SMind son placeholders data-driven (vacío = silencio + log), como en la ceremonia.
   - Verificado por log (`DebugStartStage=3`): 3 campos, beats a 0/12/24 s, apagado a los 38 s, cierre a los 41,5 s y **ceremonia encadenada con anillo morado y carga 0.6**. Cero `Accessed None`. ⬜ Falta visor y el arte.
 - 🔜 **PRÓXIMO PASO — Acto 7, la CODA de Attracting**: al cerrar la melodía, desaparecen beams/slots/no-elegidos, **los elegidos se alinean al frente y suenan 2-3 vueltas** + VO 22, y recién ahí la ceremonia (anillo naranja, 80 %).
-  ⚠ Pendientes que NO están en el orden de obra y hay que agendar: **el framework de audio + haptics (1.d)** — hoy cada pieza trae su propio placeholder data-driven, que funciona pero no comparte catálogo — y **la carga final** (etapa 5 = 100 % + disolución animada del HUD), que hoy corre la ceremonia normal.
+  ⚠ Pendiente que NO está en el orden de obra: **la carga final** (etapa 5 = 100 % + disolución animada del HUD), que hoy corre la ceremonia normal.
+- ✅ **1.d — FRAMEWORK DE AUDIO + HAPTICS (2026-08-15)**: el punto que se había saltado del orden de construcción.
+  - **`BP_AudioHub`** (`Core/Audio/`, colocado en `L_Persistent`): **el catálogo único**. `SfxMap` (Map String→SoundBase, para STitle/SBubble/SCharger/SMind…), `AmbientMap` (los 8 ambients) y `VoClips` (los 30 VOs por índice del guión). `PlaySfx`/`PlaySfxAt`/`PlayAmbient` (**crossfade real** alternando dos AudioComponents) y 🔴 **`PlayVo(i)` que DEVUELVE LA DURACIÓN del clip** (−1 si falta) — así se cumple la regla del guión de que *los tiempos cuelgan del clip, nunca hardcodeados*. Catálogo vacío = la obra corre igual y cada falta se loguea.
+  - **`BP_HapticHub`**: los 3 patrones reusables sin ningún asset — `HapticHover` (suave), `HapticSelect` (fuerte), `HapticHold` (continuo, el del umbral), con `bEnabled` para apagar todo.
+  - **Retrofiteados ya**: Loving (pide `SMind1-3` + VO 15/16/17, y **espera la duración del VO** si existe, si no `BeatTimes`) y la ceremonia (`VoIndexByStage` etapa→VO global + `SCharger` por nombre). Sus arrays locales se borraron. ⬜ Faltan Breath, Heart, Attracting, Intro y Hall — la migración es mecánica.
+  - ⬜ 🔴 **Los haptics todavía no los llama nadie.** El primer candidato es el pulso de Heart (punto 3 del memo de visor: *"tampoco sentí el pulso haptic"*).
+  - Verificado por log (`DebugStartStage=3`): el hub reporta el catálogo, Loving pide sus 3 SFX y sus 3 VOs, la ceremonia pide el VO 18 y `SCharger`. Cero `Accessed None`. Detalle: `blueprints/BP_AudioHub.md`.
 
 ## 2.c 🔴 FEEDBACK DE VISOR DE BELTRÁN (2026-08-14, noche) — pendientes abiertos
 
