@@ -56,7 +56,7 @@ Los **3 patrones reusables** que pide el plan, sin ningún asset: todo con `Game
 | [[BP_Stage_Subclases]] §Loving | ✅ **Retrofiteado**: `BeatAudio(i)` pide `PlaySfx(MindSfx[i])` y `PlayVo(VoIndex[i])`, y `ShowBeat` **espera la duración del VO** si existe, o `BeatTimes[i]` si no. Sus arrays propios `VoClips`/`MindClips` se borraron. |
 | [[BP_Ceremony]] | ✅ **Retrofiteado**: `CeremonyVo(Index)` mapea etapa→VO global con `VoIndexByStage` ([-1,10,13,18,22,25]) y `PlayCharger` pide `PlaySfxAt("SCharger", SpotLoc)`. Sus `VoClips`/`ChargeSfx` se borraron, y de paso murió el homónimo `PlayVo`/`PlayVoAt` que colisionaba con el hub. |
 | Breath · Heart · Attracting · Intro · Hall | ⬜ Siguen con sus clips locales. Migrarlos es mecánico: cachear el hub y cambiar la llamada. |
-| Haptics | ⬜ **Nadie lo llama todavía.** El primer candidato es el pulso de Heart (Beltrán reportó en visor que *"tampoco sentí el pulso haptic"*): `PulseJump` de Recognizing debería llamar `HapticSelect`. |
+| Haptics | 🟡 **Cableado el primero (2026-08-15)**: `BP_Stage_Recognizing.FireJump` → **`BeatFeedback`** → `HapticSelect` + `PlaySfx("SPulse")`. Ataca el punto 3 del memo de visor (*"tampoco sentí el pulso haptic"*). 🔴 **No verificable en PIE**: el latido sólo dispara con el sensor en la zona del pecho, y sin visor no hay manos. ⬜ Faltan: hover del menú, hover de la elección del Hall, hold del umbral. |
 
 ## 🐛🐛 El bug que cazó la lectura del grafo: `(return (CallFunction|Impure …))` NO ejecuta la llamada
 Escrito así, el DSL conecta el valor al `FunctionResult` **pero deja el nodo FUERA de la cadena de exec**:
