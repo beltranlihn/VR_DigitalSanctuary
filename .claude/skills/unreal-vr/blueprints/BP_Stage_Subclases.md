@@ -6,17 +6,19 @@
 ### 🆕 v2 (2026-08-15) — el rework del Acto 6: mueren las 3 preguntas en TextRender
 Lo que pedía el guión: *"3 Niagaras aditivos timeados: VO16+SMind1→N1 · VO17+SMind2→N2 (N1 sigue) · VO18+SMind3→N3 · al terminar VO18 desaparecen todos. **Intensidad modulada por la calma EEG**"*. Sin sensores de mano, sin widget de instrucciones.
 ```
-LovingRunBody → ExtendTimeout(90 s) · CacheLovingBio · CollectFields · timer PumpCalm 0,1 s LOOP · ShowBeat
+LovingRunBody → ExtendTimeout(90 s) · CacheLovingBio · CollectFields · ShowBeat
+EventTick      → Parent:Tick · PumpCalm      ← 🔴 60 Hz: la calma va POR FRAME, no por timer
 ShowBeat  → PlayBeatVo(i) + PlayBeatMind(i) (placeholders data-driven) + AppearField(i)
             + timer NextBeat a BeatTimes[i]
 AppearField(i) → recorre Fields y llama FieldAppear al que tenga FieldIndex == i   ← los anteriores SIGUEN encendidos
 NextBeat  → i++ ; si quedan beats → ShowBeat ; si no → VanishAllFields + timer LovingDone a FieldFade+0,5
 LovingDone → CleanupLoving + StageDone()   (cierre por el camino real)
-PumpCalm  → BioHub.CalmSmooth (0,5 si no hay BioHub) → SetFieldCalm en los 3 campos
+PumpCalm  → BioHub.Calm o .CalmSmooth segun bUseRawCalm (0,5 si no hay BioHub) → SetFieldCalm en los 3 campos
 ```
+🔴 **`PumpCalm` cuelga del TICK, no de un timer** (decisión de Beltrán 2026-08-15): el OSC va a llegar a **60 Hz** y él quiere mapear esa señal a curl noise y otros efectos dentro del Niagara, donde a 10 o 30 Hz se nota escalonado. En el target un frame **es** 1/60 s, así que el Tick da el ritmo exacto del OSC sin desfasarse contra el frame. Detalle y verificación en [[BP_LovingField]].
 - **Los campos son [[BP_LovingField]] COLOCADOS EN LA SALA**, no spawneados: `CollectFields` hace `GetAllActorsOfClass`. Así Beltrán mueve/escala/colorea cada uno en el editor, y **agregar un 4º campo es arrastrar un actor + sumar un beat a `BeatTimes`** — cero código.
 - **`FieldIndex` es el único vínculo** etapa↔campo. No hay orden de array del que depender (el `GetAllActorsOfClass` no garantiza orden).
-- **Variables nuevas**: `Fields` (array de BP_LovingField) · `BioRef` · `BeatTimes` (**[12, 12, 14] s**, instance-editable — es la palanca para calzar con los VO) · `FieldFade` (3 s) · `BeatIdx` · `VoClips`/`MindClips` (arrays de SoundBase, **vacío = silencio + log**, el patrón de [[BP_Ceremony]]). `LovingTimeout` subió 60 → **90 s** (los 3 beats suman 38 s + fade).
+- **Variables nuevas**: `Fields` (array de BP_LovingField) · `BioRef` · **`bUseRawCalm`** (instance-editable, default false: `CalmSmooth`; en true manda la señal cruda a 60 Hz, que puede convenir con el EEG real porque el suavizado lo hace el propio efecto) · `BeatTimes` (**[12, 12, 14] s**, instance-editable — es la palanca para calzar con los VO) · `FieldFade` (3 s) · `BeatIdx` · `VoClips`/`MindClips` (arrays de SoundBase, **vacío = silencio + log**, el patrón de [[BP_Ceremony]]). `LovingTimeout` subió 60 → **90 s** (los 3 beats suman 38 s + fade).
 - **Borradas**: `Questions`, `QuestionTime`, `QuestionIdx`, `PanelRef` y las funciones `ShowQuestion`/`NextQuestion`. ⚠ El `LovingRunBody` viejo **spawneaba DOS `TextRenderActor`** (uno sólo para leerle el componente, que quedaba huérfano en la sala) — se fue con el rework.
 - ⚠ `VanishAllFields` corre hasta 3 veces al cerrar (NextBeat → CleanupLoving → EventDestroyed). Es idempotente y barato; se deja así porque cada camino tiene que limpiar por su cuenta.
 - **Verificado por log (2026-08-15, `DebugStartStage=3`)**: `campos encontrados = 3`, beats a 0/12/24 s, apagado a los 38 s, cierre a los 41,5 s, ceremonia encadenada (anillo morado, **carga 0.6**), cero `Accessed None`.

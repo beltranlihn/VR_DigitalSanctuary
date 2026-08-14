@@ -23,7 +23,7 @@ Colocados: `LovingField0` (3750,−120,130) rosa · `LovingField1` (3750,+120,13
 |---|---|
 | **`FieldAppear(Duration)`** | `Activate` del componente + fade de `Intensity` hacia **1** en `Duration`. |
 | **`FieldVanish(Duration)`** | Fade de `Intensity` hacia **0**; al llegar, `Deactivate` (lo hace `FadeFinish`). |
-| **`SetFieldCalm(C)`** | Guarda la calma 0-1 clampeada. La etapa la bombea a 10 Hz. |
+| **`SetFieldCalm(C)`** | Guarda la calma 0-1 clampeada. 🔴 **La etapa la bombea desde su TICK, o sea una vez por frame** — ver abajo. |
 | `ApplyField` / `FieldStep` / `FadeGate` / `FadeAdvance` / `FadeApply` / `FadeFinish` | Interno. |
 | `ProbeParams` | 🔬 Ver abajo — corre en `BeginPlay`. |
 
@@ -33,6 +33,16 @@ efectivo = Intensity × (MinFactor + (1 − MinFactor) × Calm)
 escala   = BaseScale × (0.25 + 0.75 × efectivo)
 ```
 `MinFactor` 0.35 es el piso: con calma 0 el campo **no desaparece**, sólo baja al 35 %. Es la regla de "un módulo ausente nunca se ve como error" — con el EEG desconectado el campo sigue vivo.
+
+## 🔴 60 Hz: la calma va POR FRAME, no por timer (decisión de Beltrán, 2026-08-15)
+> *"yo trabajaría con el OSC que nos va a estar llegando a sesenta hertz, porque si después yo quiero mapear esa data al curl noise o a distintos efectos dentro del Niagara, es mucho más notorio y suave cuando es a sesenta hertz que cuando es a diez o a treinta. Así que dejémoslo a sesenta, que es el tiempo en el que nos va a llegar."*
+
+La v1 bombeaba con un **timer de 0,1 s (10 Hz)**. Ahora `PumpCalm` cuelga del **`EventTick` de [[BP_Stage_Loving]]** (cirugía de nodo, enganchado después de `Parent:Tick`), y `ApplyField` ya corría por frame en el Tick del campo. La cadena entera quedó a **una actualización por frame**.
+- **Por qué Tick y no un timer de 1/60**: en el target (Quest 3, 60 fps de render) un frame **es** 1/60 s, así que el Tick da exactamente el ritmo del OSC — y nunca queda desfasado contra el frame, que es lo que produce el escalonado que se nota en el shader. Un timer de 0,0167 s se alinea mal con el frame y puede disparar dos veces en uno.
+- **Contrapartida honesta**: si baja el frame rate, baja el muestreo con él. Es correcto — no se puede pintar más rápido de lo que se dibuja.
+- **`CalmParam` (default `"Calm"`)** es el hook para el mapeo de Beltrán: se escribe la **calma cruda 0-1 sin la curva de intensidad**, para poder colgarle curl noise o lo que sea dentro del Niagara. `IntensityParam` sigue llevando el valor ya modulado.
+- **`bUseRawCalm`** en la etapa (instance-editable, default `false`) elige entre `BioHub.CalmSmooth` (EMA, suave pero con retardo) y `BioHub.Calm` (crudo a 60 Hz). Con el EEG real puede convenir el crudo, porque el suavizado que importa lo va a hacer el propio efecto.
+- **Verificado (2026-08-15)**: con PIE corriendo, 18 lecturas seguidas de `Calm` sobre los 3 campos dieron una **rampa continua sin mesetas** (0,3400 → 0,3760), o sea que el valor cambia entre lectura y lectura. A 10 Hz habrían salido bloques de valores repetidos.
 
 ## 🔬 `ProbeParams` — el patrón que hay que copiar para cualquier Niagara data-driven
 El sistema Niagara **es un dato** (`FX.Asset`), y los nombres de sus parámetros también (`IntensityParam` = "Intensity", `ColorParam` = "FieldColor", los dos instance-editable). En `BeginPlay` el actor **pregunta** si esos parámetros existen, con el pin `bIsValid` de `GetNiagaraVariable`, y guarda `bHasIntensity`/`bHasColor`. `WriteIntensity`/`WriteColor` escriben **sólo si existen**.
@@ -51,13 +61,13 @@ LOVING FX: parametro de color valido = false
 |---|---|---|
 | `FieldIndex` | 0 | En qué beat aparece este campo. **Es el único vínculo con la etapa.** |
 | `FieldColor` | morado | Color que se escribe en `ColorParam` si el sistema lo expone. |
-| `IntensityParam` / `ColorParam` | "Intensity" / "FieldColor" | Los nombres a buscar en el sistema. |
+| `IntensityParam` / `ColorParam` / `CalmParam` | "Intensity" / "FieldColor" / **"Calm"** | Los nombres a buscar en el sistema. `CalmParam` recibe la **calma cruda** por frame — es el hook para mapear curl noise y demás dentro del Niagara. |
 | `BaseScale` | (1,1,1) | Escala base del componente. La escala **del actor** se multiplica encima — eso es lo que se autora en el nivel. |
 | `MinFactor` | 0.35 | Piso de intensidad con calma 0. |
 | `Intensity` / `Calm` / `bFieldOn` / `bFading` / `Fade*` | — | Estado interno. |
 
 ## TODO
-- [ ] 🔴 **Arte real**: un Niagara aditivo por campo, que exponga `Intensity` (float) y `FieldColor` (LinearColor). En cuanto exista, `ProbeParams` lo detecta solo.
+- [ ] 🔴 **Arte real**: un Niagara aditivo por campo, que exponga **`Intensity` (float), `FieldColor` (LinearColor) y `Calm` (float)**. En cuanto existan, `ProbeParams` los detecta solos y empiezan a escribirse por frame. `Calm` es el que Beltrán quiere mapear a curl noise.
 - [ ] ⚠ `niagara-quest.md`: verificar en APK que la **Scalability** del emitter no lo apague (`fx.Niagara.QualityLevel` está clampeado en Android) y que el aditivo no dispare el overdraw.
 - [ ] Visor: los tres campos son dust boxes de 10×10 m escalados a 0.1 — hay que ver cómo leen desde la silla.
 
