@@ -189,11 +189,11 @@ Transformation|AttachActorToComponent(self, cam, "None", "SnapToTarget", "SnapTo
 | `BP_Ceremony.SetSpotFromPoint` | destino de la ameba | ⬜ usa sólo Location — **falta escala/rotación del `ChargeSpot`** (sería la palanca para agrandar la ameba en la ceremonia) |
 | `BP_Stage_Entering.SpawnInstructionsAt` | widget de instrucciones de Breath | ✅ ya usaba `GetActorTransform` |
 | `BP_Stage_Recognizing.SpawnHeartWidget` | widget de instrucciones de Heart | ✅ corregido 2026-08-14 (tenía location+rotation, **le faltaba la escala**) |
-| `BP_Instructions.SpawnSensor` / `SpawnBox` | sensor + caja de Breath | ⬜ auditar |
-| `BP_Stage_Attracting.SpawnOneSlot` | los 5 `BP_SeqSlot` | ⬜ auditar |
-| `BP_AttractDirector` (burbujas) | los 20 objetos flotantes | ⬜ auditar |
-| `BP_SoulChoice` | las candidatas del Hall | ⬜ auditar |
-| `BP_Stage_Surrounding` | `BP_BrushTool` | ⬜ auditar |
+| `BP_Instructions.SpawnBox` | la caja de Breath | ✅ ya usaba `GetActorTransform` |
+| `BP_Stage_Attracting.SpawnOneSlot` | los 5 `BP_SeqSlot` | ✅ corregido 2026-08-14 |
+| `BP_Stage_Attracting` → spawn del `BP_AttractDirector` | el ecosistema de burbujas | ✅ corregido 2026-08-14 |
+| `BP_SoulChoice.SpawnOne` | las candidatas del Hall | ✅ corregido 2026-08-14. 🔴 **Ya usaba `GetActorTransform`, pero después PISABA la escala con un `SetActorScale3D(1.6)` hardcodeado** — el caso más traicionero de esta regla: el transform entra y una línea después se descarta. Se borró el nodo y **el 1.6 se mudó a la escala de los 5 anchors `SoulSpawn`**, así escalar el gizmo cambia el tamaño de esa candidata. |
+| `BP_Stage_Surrounding.SurrRunBody` | `BP_BrushTool` | ✅ corregido 2026-08-14 |
 | `BP_Stage_Hall` | sensores | ⬜ auditar |
 | `BP_SoulHUD` / `BP_ProtoSoul` | anchors `TP_HudAnchor` / `TP_AmebaAnchor` | ⬜ hoy es sólo offset de posición — evaluar escala/rotación |
 
