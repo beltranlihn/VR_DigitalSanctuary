@@ -63,11 +63,11 @@ Ventaja lateral: si el `TargetPoint` falta y el pacer nunca nace, la etapa **igu
 - 💡 **El bloqueo del registro NO existía**: `find_node_types` no lista las funciones de un widget, pero **`create_node` con el id construido a mano SÍ las crea** (el gotcha ya estaba documentado en `BP_BreathSensor_V2.md`). No hizo falta reiniciar el editor.
 - ⚠ El `BreathTitle` del widget viene con el texto de Calibration (español). **Textos in-headset van en inglés** → pendiente.
 
-### 🔴 HILO ABIERTO — el anillo NO está verificado (2026-08-14, cierre)
-La corrida de PIE mostró el pacer completo (5 ciclos × 11,96 s, cierre y ceremonia OK), **pero NINGUNA de las dos líneas de `CachePacerWidget` apareció en el log** — ni `PACER: widget del anillo guiado cacheado` ni `PACER: sin widget`. Ambas ramas del cast imprimen, así que una tenía que salir.
-**Lo verificado hasta ahora** (para no repetirlo): el nodo `CachePacerWidget` está en la cadena del BeginPlay entre `CachePacerStage` y `StartPacer` (`get_node_infos` lo confirma), y **el `FunctionEntry` de la función SÍ conecta al cast** — o sea NO es la isla desconectada del gotcha #1. El barrido de huérfanos tampoco encontró nada en ese grafo.
-**Sospechas a chequear, en orden:** (1) que `GetUserWidgetObject(Panel)` devuelva null en BeginPlay y el cast no imprima por alguna razón de orden; (2) que el `WidgetComponent` no esté inicializando el widget (¿`widgetClass` efectivo? verificar con `get_properties` en la instancia viva, no en el CDO); (3) que las líneas estén en el log y el `GetLogEntries` las esté filtrando mal.
-🔴 **No dar por bueno el anillo hasta ver una de esas dos líneas.** El resto del pacer (ritmo, ciclos, cierre) sí está medido.
+### ✅ HILO CERRADO — el widget SÍ se cachea (2026-08-14, cierre)
+El log dio **`PACER: widget del anillo guiado cacheado`**: `GetUserWidgetObject(Panel)` devuelve el widget en BeginPlay y el cast a `WBP_BreathPacer` pasa, así que **`SetBreathRing` tiene un target válido**. Cero `Accessed None`.
+🔴 **Por qué antes no aparecía la línea: la corrida de PIE estaba usando una compilación VIEJA del Blueprint.** El síntoma engañaba porque el resto del pacer (que no había cambiado) sí corría y logueaba normal. **Lección de método: cuando una línea de log nueva no aparece pero el resto del grafo sí corre, sospechar del binario stale ANTES que de la lógica** — `StopPIE` → `compile` → `save` → `StartPIE`, en ese orden, y confirmar que el texto del log es el de la versión nueva (por eso conviene que cada versión de un mensaje sea distinguible).
+**Endurecido de todas formas** (patrón de `BP_SoulHUD.CacheWidget`): `CachePacerWidget` ahora **cuenta intentos y reintenta cada 0,2 s** vía `RetryPacerWidget`, con tope de 25 (5 s), y el bind quedó extraído a `BindPacerWidget(W)`, que además deja el widget en modo respiración (`ShowCountdownScreen(true)`). Así el cacheo no depende de que el `WidgetComponent` haya creado su widget justo en ese frame.
+⬜ **Lo que sigue sin verificar es lo VISUAL**: que el anillo se vea y que el barrido de fases se lea. Eso es territorio del visor.
 
 ## Componentes
 - **`Ring`** — Plane + **`M_SoulRing`** (el mismo material del anillo de carga de la ceremonia), `relativeRotation` pitch 90 para que mire al usuario, escala 0.6 ≈ **45 cm de anillo**, sin sombra, sin colisión.
