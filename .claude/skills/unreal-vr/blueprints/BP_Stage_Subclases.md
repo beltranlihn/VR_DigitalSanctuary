@@ -117,3 +117,9 @@ Reemplaza al gate ciego de v2 ("no sucedió nada"). Trae la cadena PROBADA de `S
 3. `elif` se ANIDA dentro del cuerpo del if/elif anterior, como última forma — no son hermanos.
 4. Statements después de un `(if)` caen dentro de la última rama — cablear fan-in por cirugía si deben correr en ambas.
 5. Un `(Utilities|IsValid ...)` que no sea la última forma hace el resto "unreachable" para el parser — ponerlo al final o extraer a función (`KillIfValid`).
+
+## 🆕 2026-08-15 — Recognizing: el latido ahora se SIENTE y se OYE
+`FireJump` (el flanco de latido que dispara el salto) ahora llama **`BeatFeedback`** antes de `PulseJump`: **`HapticSelect`** del [[BP_AudioHub|BP_HapticHub]] + **`PlaySfx("SPulse")`** del catálogo. Ataca el punto 3 del memo de visor de Beltrán (*"tampoco sentí el pulso haptic"*).
+- `CacheRecogFeedback` cachea los dos hubs al arrancar la etapa (insertado por **cirugía** al principio de `RecogRunBody`, para no reescribir un grafo ya verificado).
+- Variables nuevas: `HapticRef` · `AudioRef` · `bHandRight` (qué mano vibra) · `PulseSfxName` (`SPulse`, instance-editable).
+- 🔴 **No verificable en PIE**: el latido sólo dispara con el sensor dentro de la zona del pecho, y sin visor no hay manos. Queda para el casco.
