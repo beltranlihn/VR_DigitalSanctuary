@@ -154,6 +154,20 @@ Leyenda: ✅ construido (ajuste fino) · 🔧 rework de lo existente · 🆕 nue
 - 🔜 **PRÓXIMO PASO — Acto 6, LOVING**: los **3 Niagaras aditivos** timeados por VO 16/17/18 + SMind 1-3, con la intensidad modulada por la señal de calma. Reemplaza las 3 preguntas en TextRender. Sin sensores de mano.
   ⚠ Pendientes que NO están en el orden de obra y hay que agendar: **el framework de audio + haptics (1.d)** — hoy cada pieza trae su propio placeholder data-driven, que funciona pero no comparte catálogo — y **la carga final** (etapa 5 = 100 % + disolución animada del HUD), que hoy corre la ceremonia normal.
 
+## 2.c 🔴 FEEDBACK DE VISOR DE BELTRÁN (2026-08-14, noche) — pendientes abiertos
+
+Probó el recorrido con `DebugStartStage`. **Lo que reportó, textual y sin interpretar:**
+
+| # | Qué | Estado |
+|---|---|---|
+| 1 | **La animación de explicación de las etapas del Hall**: los nombres de cada etapa, lo que va a suceder, y una proto ameba con sus anillos. *"En algún minuto tenemos que hacerla."* | ⬜ Ya estaba en el plan (Acto 3, `SExplicación` + lámina p.2). **Confirmado como pendiente vivo.** |
+| 2 | 🔴 **El anillo de respiración: YA EXISTÍA.** *"Fíjate en el widget de la calibración, ahí ya habíamos creado un anillo que tiene marcado los distintos pasos de la respiración y que iba avanzando en infinito. No crees cosas desde cero si ya existen, y ya te había comentado que ahí estaba."* | 🔴 **Error de proceso, no descuido**: el plan decía "el radial slider ya existe en el widget de Calibration → reusar" y se construyó uno nuevo igual. **Reemplazar por el de Calibration.** |
+| 3 | 🔴 **Heart avanzó solo**: *"esa experiencia avanza y los objetos empiezan a mover cuando estamos DENTRO del umbral… ahora avanzó completamente solo y no esperó a que yo estuviera en el umbral con el sensor en mi corazón."* Y **no sintió el pulso háptico**. | 🔴 Causa directa: el `DriftRate` de test (0,1 = 10 s) terminaba la etapa **antes** de que diera tiempo a calibrar (4,5 s) y entrar en zona. Es la inversión que estaba anotada. |
+| 4 | **Attracting sin beam ni secuenciador**: aparecieron los objetos, pero **no apareció el beam** para interactuar y **no pulsaban los slots**. | ⬜ Por investigar. |
+| 5 | **Las instrucciones de Attracting son un TextRender pelado.** *"Tenemos que utilizar el mismo widget que hemos usado en los otros stages."* | ⬜ Reusar `BP_TouchInstrPanel` (que ya existe, es la copia limpia de Calibration). |
+
+> 🔴🔴 **La regla que sale de acá, en sus palabras: *"replicar, replicar, replicar — ya tenemos mucho construido, tenemos que utilizarlo bien."*** El protocolo de arranque de la skill ya lo dice; lo que falló fue **no obedecerlo cuando el plan Y Beltrán ya habían señalado el asset**. Ante la duda entre "reuso lo que hay" y "construyo algo mejor": **se reusa**, y si el existente no alcanza, se propone el cambio antes de construir.
+
 ## 3. Orden de construcción propuesto
 
 1. **`BP_SoulHUD` + señales OSC (EEG/BPM) + registro de promedios** (1.a + 1.c) — el HUD atraviesa todo; sin él no hay ceremonia ni Loving ni final.

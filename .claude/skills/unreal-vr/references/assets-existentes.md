@@ -167,6 +167,36 @@ Transformation|AttachActorToComponent(self, cam, "None", "SnapToTarget", "SnapTo
 - `Core/Amoeba/Materials/M_SoulRing` (2026-08-14) — 🔵 **el anillo de carga**: unlit **aditivo**, TwoSided, **anillo procedural sin una sola textura** sobre un `/Engine/BasicShapes/Plane`, con **barrido angular** para que se DIBUJE girando en vez de aparecer. Parámetros: `RingColor` · `Brightness` (3) · `Progress` (0→**1.05**, ver gotcha #21) · `Radius` (0.38) · `Thickness` (0.055). **Reusable para cualquier "carga circular"** (el ring slider del timbre de la decisión #4 del guión sale de acá casi gratis).
 - `Core/Sensor/MI_Sensor` (2026-08-13) — instancia de M_ProtoSoul para `BP_Sensor`: blanco tibio (0.85/0.82/0.72), Brightness 0.55, Agitation 0.06. 🔴 **Existe para que el sensor NO parezca una Proto Soul** — antes compartían look exacto y Beltrán los confundió dos veces. Si se cambia el look del sensor, mantener la distinción.
 
+## 🔴🔴 REGLA (Beltrán, 2026-08-14): un TargetPoint aporta su TRANSFORM ENTERO, no sólo su Location
+
+*"Los TargetPoints que definen la ubicación de las cosas: debiéramos estar usando el **transform** del TargetPoint para definir dónde se ubica cada elemento. Así, si quiero agrandar o achicar algo, lo puedo hacer directamente agrandando o achicando el TargetPoint, o rotarlo hacia donde yo quiera. **No usemos sólo location**, porque nos queda corto cuando quiera modificar cosas a nivel técnico."*
+*"Hay que aplicarlo a **todo**: los objetos y los slots de Attracting, el HUD, donde ponemos el widget con los sensores, **todos** los lugares donde ponemos instrucciones, **todos** los objetos que aparecen en el mundo."*
+
+**Qué significa en código:**
+```
+❌ (Game|SpawnActorfromClass Clase (Math|Transform|MakeTransform (Transformation|GetActorLocation TP)) …)
+✅ (Game|SpawnActorfromClass Clase (Transformation|GetActorTransform TP) …)
+```
+- Con `TransformScaleMethod = MultiplyWithRoot` (el default que ya usamos), **la escala del TargetPoint multiplica la del actor** → agrandar el TP agranda el objeto. Y su **rotación** orienta el objeto, que es lo que hace falta para paneles e instrucciones que tienen que mirar al usuario.
+- Para lo que NO se spawnea sino que se mueve (la ameba al `ChargeSpot`, el pawn a una parada): además de la posición, **leer escala y rotación del punto** y aplicarlas.
+- 💡 El beneficio real: **el ajuste fino de la obra pasa a ser arrastrar/escalar/rotar gizmos en el viewport**, sin tocar un solo Blueprint. Es la misma filosofía que ya rige las posiciones de sala (`el mapa es la autoridad`) y los `LegTimes` del Journey.
+
+### 📋 Auditoría de call-sites (2026-08-14) — estado del barrido
+| Dónde | Qué coloca | Estado |
+|---|---|---|
+| `BP_Stage_Entering.SpawnPacerAt` | el ritmo guiado | ✅ ya usaba `GetActorTransform` |
+| `BP_Stage_Recognizing.RecogRunBody` | `BP_Descent` (columnas) | ✅ corregido 2026-08-14 |
+| `BP_Ceremony.SetSpotFromPoint` | destino de la ameba | ⬜ usa sólo Location — **falta escala/rotación del `ChargeSpot`** (sería la palanca para agrandar la ameba en la ceremonia) |
+| `BP_Stage_Entering.SpawnInstructionsAt` | widget de instrucciones de Breath | ✅ ya usaba `GetActorTransform` |
+| `BP_Stage_Recognizing.SpawnHeartWidget` | widget de instrucciones de Heart | ✅ corregido 2026-08-14 (tenía location+rotation, **le faltaba la escala**) |
+| `BP_Instructions.SpawnSensor` / `SpawnBox` | sensor + caja de Breath | ⬜ auditar |
+| `BP_Stage_Attracting.SpawnOneSlot` | los 5 `BP_SeqSlot` | ⬜ auditar |
+| `BP_AttractDirector` (burbujas) | los 20 objetos flotantes | ⬜ auditar |
+| `BP_SoulChoice` | las candidatas del Hall | ⬜ auditar |
+| `BP_Stage_Surrounding` | `BP_BrushTool` | ⬜ auditar |
+| `BP_Stage_Hall` | sensores | ⬜ auditar |
+| `BP_SoulHUD` / `BP_ProtoSoul` | anchors `TP_HudAnchor` / `TP_AmebaAnchor` | ⬜ hoy es sólo offset de posición — evaluar escala/rotación |
+
 ## 🎖️ La ceremonia de carga (2026-08-14) — reusable entero
 | Asset | Qué es | Estado |
 |---|---|---|
