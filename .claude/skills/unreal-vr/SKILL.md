@@ -22,6 +22,18 @@ We drive Unreal from the native UE 5.8 **ModelContextProtocol** plugin, register
 >
 > **2. ¿Está PROBADO o solo existe?** Distinguir "compila" de "anda en visor". Si está probado → **copiarlo con su CONFIGURACIÓN**, no solo el asset. Los defaults suelen ser justamente lo que no funciona (caso `AddMappingContext`).
 >
+> 🔴🔴 **2.b — AL ESCRIBIR UNA NOTA DE ESTADO, DECIR QUÉ PARTE FALTA. Cuatro estados, no dos.** (Aprendido 2026-08-15, y es la causa raíz de los rebuilds que Beltrán viene reclamando.)
+>
+> | Estado | Qué significa | Qué hacer |
+> |---|---|---|
+> | **No existe** | No hay asset ni lógica | Construir |
+> | **Existe la lógica, falta el DATO** | El grafo está hecho; falta un mapeo, un asset asignado, una entrada de catálogo | **Llenar el dato** — cambio barato, cero riesgo |
+> | **Cableado pero sin probar** | Compila y corre en PIE | Verificar por log / visor |
+> | **Probado en visor** | Anda de verdad | Copiar **con su configuración** |
+>
+> **El caso que lo enseñó:** esta nota decía *"`IA_Grab_*` existen pero no están mapeadas → no asumas que funcionan"*. Es **cierta**, pero se recuerda como *"no hay grab"*, y con eso casi se reconstruye desde cero un sistema **que ya estaba entero en nuestro pawn** (los 4 eventos, el sphere trace, `TryGrab`/`TryRelease`, el `BP_GrabComponent`, los cubos de ejemplo). Lo único que faltaba era **una línea de mapeo**. Fue **Beltrán** quien dijo *"el VR pawn ya tiene un sistema de grab que funciona, sólo que está con el otro botón"* — y tenía razón.
+> 👉 **Dos corolarios:** (a) una nota en negativo tiene que nombrar **la pieza exacta que falta**, nunca declarar muerto el sistema entero; (b) **la memoria de Beltrán sobre su propio proyecto le gana a mis notas** — ante una contradicción, ir a mirar el asset, no defender la nota.
+>
 > **3. ¿Ya nos mordió?** → [`gotchas.md`](references/gotchas.md), empezando por **"declarado ≠ aplicado"**.
 >
 > **4. ¿Voy a tocar un BP existente?** → leer su tracker en `blueprints/<BP>.md` **antes**.
