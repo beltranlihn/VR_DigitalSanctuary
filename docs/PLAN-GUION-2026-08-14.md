@@ -196,6 +196,22 @@ Probó el recorrido con `DebugStartStage`. **Lo que reportó, textual y sin inte
 
 > 🔴🔴 **La regla que sale de acá, en sus palabras: *"replicar, replicar, replicar — ya tenemos mucho construido, tenemos que utilizarlo bien."*** El protocolo de arranque de la skill ya lo dice; lo que falló fue **no obedecerlo cuando el plan Y Beltrán ya habían señalado el asset**. Ante la duda entre "reuso lo que hay" y "construyo algo mejor": **se reusa**, y si el existente no alcanza, se propone el cambio antes de construir.
 
+## 2.d 🔁 BUCLE DE TRABAJO AUTÓNOMO (2026-08-15 noche) — leer esto primero tras un reset de contexto
+
+Beltrán dio permiso para avanzar toda la noche sin esperar confirmación: *"contúna etapa por etapa de la forma en que ya lo estás haciendo, testeando, confirmando, continuando, pero nunca esperes de mi confirmación personal para seguir"*. Y pidió apoyarse en las **skills ya construidas**, que existen justamente para no repetir errores.
+
+**El ciclo, una tarea a la vez:**
+1. **Protocolo de arranque de la skill `unreal-vr`** (no es opcional): `references/assets-existentes.md` → `blueprints/_INDEX.md` → `references/gotchas.md` → el **tracker del BP** que voy a tocar. Buscar por FUNCIÓN, no por nombre. **Si algo no anda a los 2 intentos, parar y buscar si ya existe una versión probada.**
+2. **Construir** con el mínimo de nodos (`bp-lean-construction`), reusando lo que ya está probado en visor.
+3. **Leer el grafo después de CADA write** (`read_graph_dsl`) y confirmar lo sospechoso con `get_node_infos` — el read miente por colisión de nombres y no muestra la cadena de exec.
+4. **Barrer huérfanos** con `scripts/clean_orphans.py` **copiado tal cual**, exigiendo `identical: true`. ⚠ Borrar a mano los `FunctionResult` sobrantes de funciones con retorno: el barrido los toma como entrada y deja viva la isla muerta.
+5. **Verificar por log**: `save_assets` → `StopPIE` → `compile` → `StartPIE` → `GetLogEntries` del patrón propio **y de `Accessed None`** → `StopPIE`. Nunca compilar con PIE corriendo.
+6. **Restaurar el estado de prueba** (`DebugStartStage` vuelve a −1, flags de debug en `false`, slots de SaveGame de prueba borrados).
+7. **Documentar**: tracker del BP + fila en `_INDEX.md` + cosecha en `gotchas.md` si apareció una trampa nueva + este plan.
+8. **Commitear el hito** y pasar a la siguiente.
+
+🔴 **Reglas que no se negocian, ya pagadas:** no se tocan los **IMC** (decisión de Beltrán) · lo que va al **pawn no se mata nunca**, así que los listeners van en los actores de etapa · los **nombres de función son únicos en TODO el proyecto** · **que compile no prueba nada**: se verifica el valor efectivo, no la declaración.
+
 ## 3. Orden de construcción propuesto
 
 1. **`BP_SoulHUD` + señales OSC (EEG/BPM) + registro de promedios** (1.a + 1.c) — el HUD atraviesa todo; sin él no hay ceremonia ni Loving ni final.
