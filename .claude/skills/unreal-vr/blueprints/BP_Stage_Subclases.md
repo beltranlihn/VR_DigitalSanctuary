@@ -2,9 +2,24 @@
 
 > Hermanas de [[BP_Stage_Entering]] y [[BP_Stage_Hall]]. Todas siguen el MISMO patrón: hija de [[BP_StageBase]], override de `RunStage` vía `add_event` (evento `EventRunStage` → función `<X>RunBody`), `EventDestroyed` → `Cleanup<X>` (cortafuegos con limpieza total), y `ExtendTimeout(DirectorRef, <X>Timeout)` como primera línea del body. El director las spawnea por índice en `SpawnEnteringOrBase` (cadena de `elif` anidados — así se anida el elif en el DSL). Verificadas por log en corrida completa 16:20-16:23, cero `Accessed None`, cero residuos.
 
-## BP_Stage_Loving (índice 3) — contemplativa, 3 preguntas
-- **Mecánica**: spawnea un `TextRenderActor` en el anchor `QuestionSpawn` de `L_Room_Loving` (M_TextUnlit, WorldSize 10, centrado), muestra `Questions[i]` y avanza por timer. Al agotar las preguntas → `CleanupLoving` + `StageDone()` (cierre por camino real, ÚNICA de las 4 que cierra sola).
-- **Variables**: `Questions` (array de Text, CDO: 3 preguntas en inglés) · `QuestionTime` (10 s) · `LovingTimeout` (60 s) · `QuestionIdx` · `PanelRef`.
+## BP_Stage_Loving (índice 3) — contemplativa, 3 CAMPOS DE LUZ
+### 🆕 v2 (2026-08-15) — el rework del Acto 6: mueren las 3 preguntas en TextRender
+Lo que pedía el guión: *"3 Niagaras aditivos timeados: VO16+SMind1→N1 · VO17+SMind2→N2 (N1 sigue) · VO18+SMind3→N3 · al terminar VO18 desaparecen todos. **Intensidad modulada por la calma EEG**"*. Sin sensores de mano, sin widget de instrucciones.
+```
+LovingRunBody → ExtendTimeout(90 s) · CacheLovingBio · CollectFields · timer PumpCalm 0,1 s LOOP · ShowBeat
+ShowBeat  → PlayBeatVo(i) + PlayBeatMind(i) (placeholders data-driven) + AppearField(i)
+            + timer NextBeat a BeatTimes[i]
+AppearField(i) → recorre Fields y llama FieldAppear al que tenga FieldIndex == i   ← los anteriores SIGUEN encendidos
+NextBeat  → i++ ; si quedan beats → ShowBeat ; si no → VanishAllFields + timer LovingDone a FieldFade+0,5
+LovingDone → CleanupLoving + StageDone()   (cierre por el camino real)
+PumpCalm  → BioHub.CalmSmooth (0,5 si no hay BioHub) → SetFieldCalm en los 3 campos
+```
+- **Los campos son [[BP_LovingField]] COLOCADOS EN LA SALA**, no spawneados: `CollectFields` hace `GetAllActorsOfClass`. Así Beltrán mueve/escala/colorea cada uno en el editor, y **agregar un 4º campo es arrastrar un actor + sumar un beat a `BeatTimes`** — cero código.
+- **`FieldIndex` es el único vínculo** etapa↔campo. No hay orden de array del que depender (el `GetAllActorsOfClass` no garantiza orden).
+- **Variables nuevas**: `Fields` (array de BP_LovingField) · `BioRef` · `BeatTimes` (**[12, 12, 14] s**, instance-editable — es la palanca para calzar con los VO) · `FieldFade` (3 s) · `BeatIdx` · `VoClips`/`MindClips` (arrays de SoundBase, **vacío = silencio + log**, el patrón de [[BP_Ceremony]]). `LovingTimeout` subió 60 → **90 s** (los 3 beats suman 38 s + fade).
+- **Borradas**: `Questions`, `QuestionTime`, `QuestionIdx`, `PanelRef` y las funciones `ShowQuestion`/`NextQuestion`. ⚠ El `LovingRunBody` viejo **spawneaba DOS `TextRenderActor`** (uno sólo para leerle el componente, que quedaba huérfano en la sala) — se fue con el rework.
+- ⚠ `VanishAllFields` corre hasta 3 veces al cerrar (NextBeat → CleanupLoving → EventDestroyed). Es idempotente y barato; se deja así porque cada camino tiene que limpiar por su cuenta.
+- **Verificado por log (2026-08-15, `DebugStartStage=3`)**: `campos encontrados = 3`, beats a 0/12/24 s, apagado a los 38 s, cierre a los 41,5 s, ceremonia encadenada (anillo morado, **carga 0.6**), cero `Accessed None`.
 - Cumple la "ruptura del patrón" §2.4: sin sensor, sin instrucciones largas.
 
 ## 🆕🆕 Recognizing v4 (2026-08-14) — LA SUBIDA POR 10 PULSOS (rework del Acto 5 del guión)
