@@ -50,7 +50,33 @@ AddMappingContext(IMC, Priority = 1000,
 ```
 ⚠ **Con los DEFAULTS no funciona**: `bIgnoreAllPressedKeysUntilRelease` viene en **True** y suprime el input hasta soltar y volver a apretar; `bForceImmediately` viene en False. Costó horas en Touch el 2026-08-03.
 
-⚠ **`IMC_Default` e `IMC_Weapon_*` (XRFramework) tienen la lista de mapeos VACÍA** en este proyecto. `IA_Shoot_*`, `IA_Grab_*` etc. existen como assets pero **no están mapeadas a ninguna tecla**. No asumas que funcionan por venir del framework.
+⚠ **`IMC_Default`, `IMC_Hands`, `IMC_Menu` e `IMC_Weapon_*` (XRFramework) tienen la lista de mapeos VACÍA** en este proyecto. `IA_Shoot_*`, `IA_Grab_*` etc. existen como assets pero **no están mapeadas a ninguna tecla**. No asumas que funcionan por venir del framework.
+
+### 🤚 EL GRAB DEL TEMPLATE **YA ESTÁ CONSTRUIDO** — lo único que falta es el mapeo (auditado 2026-08-15)
+🔴 **Corrección importante:** la línea de arriba hacía pensar que "no hay grab". **Falso.** Lo que falta es *data*, no lógica. Auditado en vivo:
+
+| Pieza | Dónde | Estado real |
+|---|---|---|
+| **La cadena de grab en el pawn** | `BP_VRPawn_SC` **y** `BP_XRPawn` | ✅ **Completa**: los 4 eventos `IA_Grab_{Left,Right}_{Pressed,Released}` → `GetGrabComponentNearMotionController` → `TryGrab` / `TryRelease`. Está en NUESTRO pawn, no hay que migrar nada. |
+| **`GetGrabComponentNearMotionController`** | función del pawn | ✅ Sphere trace de **`ObjectTypeQuery4`** alrededor del grip, radio `GrabRadiusfromGripPosition`, y elige el `BP_GrabComponent` **más cercano**. Ese radio **es la distancia de hover**. |
+| **`BP_GrabComponent`** | `XRFramework/Blueprints/` | ✅ `TryGrab`/`TryRelease`, dispatchers `OnGrabbed`/`OnDropped`, `GrabType` (Free/Snap/**Custom** = sólo dispara eventos, sin attach), `OnGrabHapticEffect` y `bSimulateOnDrop`. `TryGrab` = `AttachParentToMotionController` + `bIsHeld` + háptica + evento. |
+| **`BP_Grabbable_SmallCube`** | `XRFramework/Blueprints/` | ✅ Los "cubos" del template. 💡 **Sus grafos están VACÍOS y no tiene variables**: ser grabbable = **agregarle el `BP_GrabComponent` y nada más**. Ese es el patrón a copiar. |
+| **El mapeo a teclas** | `IMC_Hands` / `IMC_Default` / `IMC_Weapon_*` / `IMC_Menu` | ❌ **TODOS vacíos** → por eso el sistema está inerte. En el template de fábrica va al **grip**; acá quedó sin mapear. |
+
+👉 **Para usarlo con el gatillo** (decisión de Beltrán 2026-08-15: *"utilicemos el grab que ya nos funcione … con el IA enhanced que ya existe con el trigger que hemos ajustado"*): **mapear `IA_Grab_*` a las teclas de trigger en un IMC propio**, con la configuración de `AddMappingContext` que SÍ funciona (`Priority=1000` + `bIgnoreAllPressedKeysUntilRelease=False` + `bForceImmediately=True`) — los defaults suprimen el input. **Es un cambio de datos, cero riesgo de grafo.**
+⚠ Dos cuidados: (1) el objeto agarrable necesita el **object type del trace** (`ObjectTypeQuery4`); (2) el trigger ya lo consumen `IA_Continue` (`IMC_Continue`, `IMC_MenuTrigger`) e `IA_Attract_*` (`IMC_Touch`) — hay que cuidar qué contextos están activos a la vez.
+
+💡 **Y la lectura de Beltrán es la correcta**: *"quizás simplemente es hacer attach a la mano, y es más simple de lo que pensamos"*. Eso es literalmente lo que hace `TryGrab`. No hay que inventar ninguna mecánica nueva.
+
+### 🔴🔴 NO TOCAR LOS IMC — decisión de Beltrán (2026-08-15)
+> *"Ya intentamos una vez cambiar los IMC y todas esas cosas, y era supercomplicado, y no sé cómo terminamos haciendo funcionar el trigger que usamos ahora. Así que tratemos de hacerlo funcionar con el trigger que ya tenemos creado, que estamos usando para los botones y para las demás cosas."*
+
+⚠️ **Esto invalida la ruta "mapear `IA_Grab_*` al trigger en un IMC nuevo".** El mapeo de input de este proyecto es frágil y **nadie sabe reconstruir por qué anda** el que anda — tocarlo es riesgo puro. La regla queda: **no se crean ni se editan IMC; se reusa `IA_Continue` + `IMC_Continue`**, que es el gatillo que ya mueve los botones y las páginas de instrucciones en toda la obra.
+
+👉 **La receta para el grab con el gatillo actual, sin tocar input:**
+1. Quien necesite el grab **agrega el contexto existente** `IMC_Continue` con la config probada (`Priority=1000` + `bIgnoreAllPressedKeysUntilRelease=False` + `bForceImmediately=True`) — copiarla del sitio que ya funciona, no de los defaults.
+2. En el pawn, un evento **`IA_Continue`** engancha a la cadena de grab **que ya existe**: `Started` → `GetGrabComponentNearMotionController` → `TryGrab` · `Completed` → `TryRelease`. Son cables sobre nodos existentes, no lógica nueva.
+3. El objeto agarrable lleva un **`BP_GrabComponent`** y el object type del trace (`ObjectTypeQuery4`). Nada más — el cubo del template no tiene ni una línea propia.
 
 **Para un stage nuevo:** duplicar `IA_Continue`/`IMC_Continue` a `Stages/<Stage>/Input/` (así se hizo `IA_Attract_{Left,Right}` + `IMC_Touch`), y **copiar la config de arriba**.
 
