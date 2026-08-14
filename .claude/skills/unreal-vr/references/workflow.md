@@ -43,6 +43,20 @@ Se anunció *"encontré la causa raíz"* sobre esta cadena: `Beam_Starts` no est
 ## Lo que SÍ funcionó (el patrón a repetir)
 Cambio estructural pequeño → **test en visor** → confirmación del usuario → siguiente cambio. Cinco ajustes seguidos, cinco verificaciones, cero retrocesos. **El ciclo corto con oráculo real le gana por goleada al ciclo largo con oráculo dudoso.**
 
+## 🌾 Las 4 reglas nuevas de la jornada 2026-08-13 (el negro que "arreglé" 3 veces)
+
+### 7. 🔴 Un SÍNTOMA puede tener VARIAS fuentes apiladas — enumerarlas TODAS antes de declarar "arreglado"
+"Se va a negro al llegar al centro" tenía **cuatro** fuentes simultáneas: el fade del GoBlack + la viñeta al máximo + el GC de la descarga + un `SetLight(0)` escondido dentro de `Configure`. Se arregló la primera plausible y se declaró éxito **tres veces**. El protocolo correcto: ante un síntoma visual, **listar por escrito todos los sistemas capaces de producirlo** (fades, viñeta, luz de sala, hitches/GC, materiales, streaming) y descartarlos uno a uno — el costo es 10 minutos; cada "arreglado" falso costó una iteración de visor de Beltrán.
+
+### 8. 🔴 Leer el CUERPO de las funciones que la cadena llama — el nombre miente
+`Configure(Nombre, Acento)` también **apagaba la luz** (llamaba `InitRoom` → `SetLight(InitialLight)`). El grafo que se auditó estaba "limpio" porque el apagón vivía un nivel más adentro. Al auditar una cadena, abrir las funciones llamadas (al menos las de los BPs propios) — son una llamada de `read_graph_dsl` cada una.
+
+### 9. 🔴 Pedir VIDEO del visor al SEGUNDO diagnóstico fallido, no al tercero
+Dos segundos de fotogramas (ffmpeg + Read de PNGs) resolvieron lo que tres corridas de log no pudieron: el video mostró QUÉ se oscurecía (la luz de la sala entera) y CUÁNDO (el frame exacto en que aparece Alma = EnterRoom). El log dice qué corrió; el video dice qué se VE. Receta: `ffmpeg -ss A -to B -i video.mp4 -vf "fps=8,scale=640:-1" frames/f_%03d.png` → Read.
+
+### 10. 🔴 Integrar lo probado, no reconstruirlo — la violación se paga el mismo día (2 casos en una jornada)
+(a) Se inventó una mesa-mesh y slots colocados cuando el modelo probado de `L_Touch` era TargetPoints+spawn; (b) se construyó un gate de quietud ciego cuando `BP_HeartSensor` ya tenía calibración+zona+feedback **probados en visor**. Ambos se tiraron y rehicieron. Ante CUALQUIER mecánica de etapa: la fuente es **el nivel de prueba del stage + su tracker** — el trabajo es migrar/integrar (patrón `ForceAttachToHand` + spawn por tags per-sublevel), no re-diseñar. Y toda mecánica corporal necesita **feedback visible desde el día 1** (la esfera de zona de Heart existe exactamente por eso — "no sucedió nada" = mecánica sin feedback, no mecánica rota).
+
 ---
 
 # 🔴 1. LA REGLA #1: NUNCA traer una respuesta MCP gigante al contexto principal

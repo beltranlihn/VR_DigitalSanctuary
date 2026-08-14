@@ -491,6 +491,30 @@ Con la instancia ya editada en el viewport (override propio), `set_properties(Sp
 1. `set_properties(SplineCurves)` sobre el **template del CDO** (`<BP>_C:Route_GEN_VARIABLE`, vía `get_default_object` + `get_components`) — con el mismo conteo alcanza UNA llamada (el two-step es sólo para redimensionar). Verificar y compilar.
 2. **`remove_from_scene` + `add_to_scene_from_asset`**: la instancia nueva hereda del CDO. Se pierden los overrides de instancia (re-setear `LegTimes` y verificar sobre la instancia).
 
+## 🌾 COSECHA 2026-08-13 (la jornada esqueleto→obra) — trampas técnicas nuevas, todas pagadas
+**Del DSL / cirugía:**
+1. **`add_event("Destroyed")` crea un CustomEvent INÚTIL** (nunca dispara). El evento real del motor va por `create_node("AddEvent|EventDestroyed")`.
+2. **El pin exec de salida de un nodo de EVENTO es index 1** (el 0 es el delegate). En nodos normales es 0.
+3. **`elif` se ANIDA**: debe ser la última forma dentro del cuerpo del if/elif anterior, no un hermano.
+4. **Statements después de un `(if)` caen DENTRO de la última rama** — no continúan la cadena. Si algo debe correr en ambos caminos: cablear fan-in por cirugía, o reestructurar con el if al final.
+5. **Un `(Utilities|IsValid ...)` que no sea la última forma** hace el resto "unreachable" para el parser → extraer a función guardia (`KillIfValid(A)`) y encadenar llamadas planas.
+6. **Los property-setters (`Class|X|SetVar`) toman el VALOR como primer posicional y el target segundo** — `(Set... true Lvl)`. Las funciones normales son target-first. El error de pines lo delata.
+7. **Los operadores promotables (`float+float`, `vector+vector`) NO se pueden crear con `create_node`** (no aparecen en `find_node_types`). Solo el `write_graph_dsl` los resuelve → patrón **"función puente"**: escribir la aritmética en una función NUEVA por DSL y llamarla con un solo nodo de cirugía.
+8. **`remove_function_graph` + `add_function_graph` inmediato puede devolver un nombre fantasma** (`X_0`). Receta: borrar el `_0`, compilar (falla — purga el nombre), re-crear con el nombre bueno.
+9. **Retipar una variable (remove+add) BORRA sus getters/setters en los grafos** y deja los nodos llamadores de funciones con el pin del tipo viejo (no se refrescan al compilar) → recrear los grafos afectados por DSL.
+10. **`GetActorOfClass` como bind: su output 0 es el exec `then`; el ReturnValue es index 1.** Conectar el 0 a un pin de datos da "incompatible types".
+11. **Una función propia BlueprintCallable (no pure) como `GetLegTime` va EN la cadena exec** — el DSL la muestra inline como si fuera pure, pero la cirugía necesita cablearle el exec.
+12. **`arrange_nodes` no toma un grafo: toma `nodes` (array de refPaths)** — receta: `find_nodes(title:"")` → pasar todos.
+13. **Un cleanup por timer-loop MUERE con el actor destruido** (los timers de un actor destruido no disparan) → para limpiar N spawneados desde `EventDestroyed`, cadena SÍNCRONA de llamadas (KillOne×N), no un loop re-agendado.
+14. **`execute_tool_script`**: `_StrictDict` sin `.get(default)`; un script fallido rollbackea `create_node` pero NO `remove_from_scene`; `try/except` de Python puro (parsing) SÍ funciona — lo que aborta es el fallo de una tool.
+15. **`shutdown /r` desde el Bash tool falla** (MSYS convierte los flags en rutas) → comandos con flags `/x` van por el tool PowerShell.
+16. **`SetActorHiddenInGame` idempotente por poll** es la forma barata de mantener oculto un actor que otro sistema spawnea (el detector invisible pegado a la mano).
+
+**De la arquitectura (decisiones que ya no se re-discuten):**
+- **El mapa es la autoridad de posición** de cada sala; parada del Journey debe coincidir. El director no mueve actores.
+- **Los puntos/spawns propios de UNA sala viven DENTRO de su sublevel** (la búsqueda por tag queda per-sala por visibilidad). Los del recorrido/menú, en el persistente. Un tag compartido en el persistente contamina TODAS las salas.
+- **Los sensores persistentes son LA herramienta**: las etapas no spawnean objetos de mano visibles — incorporan su detector INVISIBLE a la mano (`ForceAttachToHand` + hide por poll). Patrón probado 2×: Breath y Heart.
+
 ## 🔴 `bIsEditorOnlyActor` NO impide que un `LevelInstance` cargue en PIE (2026-08-13)
 Para ver las 6 salas en el editor se probó poner **actores `ALevelInstance`** apuntando a cada `L_Room_*.umap`, marcados con `bIsEditorOnlyActor = true`. **Igual cargan su nivel en PIE**: el contador `GetAllActorsOfClass(BP_Room)` dio **2** en un momento donde sólo debía haber **1** (una sola precarga hecha). O sea, salas duplicadas en juego.
 **Lo que sí funciona** para "visible en el editor, inexistente en juego": una **instancia del actor real con un flag `bEditorPreview`** que en `BeginPlay` haga `DestroyActor(self)`. Determinista, verificable y sin depender de semántica de cook. Implementado en [[BP_Room]]; verificado con el contador dando **1**.
