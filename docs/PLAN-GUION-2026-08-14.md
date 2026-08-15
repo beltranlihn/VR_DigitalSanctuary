@@ -212,6 +212,102 @@ Beltrán dio permiso para avanzar toda la noche sin esperar confirmación: *"con
 
 🔴 **Reglas que no se negocian, ya pagadas:** no se tocan los **IMC** (decisión de Beltrán) · lo que va al **pawn no se mata nunca**, así que los listeners van en los actores de etapa · los **nombres de función son únicos en TODO el proyecto** · **que compile no prueba nada**: se verifica el valor efectivo, no la declaración.
 
+## 2.e 🔍 AUDITORÍA CONTRA EL GUIÓN COMPLETO (2026-08-15, relectura de las 8 páginas)
+
+Beltrán pidió una vuelta de revisión con dos criterios suyos: **(1) ojo con las micro-interacciones** — dónde se agranda un botón y dónde no, dónde se interactúa de una manera y dónde de otra — y **(2) matar lo de la etapa anterior sin romper el resto**, por optimización.
+
+Leyenda: ✅ hecho · 🟡 hecho a medias · ⬜ falta · 🔴 hallazgo/bug
+
+### Acto 1 — Intro App
+| Beat del guión | Estado |
+|---|---|
+| Fade desde negro a infinito azulado con partículas + Ambient 1 | 🟡 el fade inicial sigue siendo **negro instantáneo**, no fade in |
+| 3 logos → título (STitle) → Start/About · About con descripción y volver | ✅ falta el arte (PNGs) y el texto en inglés |
+| 🎯 **Hover de botón: SBubble + pulso suave + SE AGRANDA — en la ENTRADA y en la SALIDA del hover** | 🟡 `BP_MenuButton` ya agranda; **faltan el sonido y el háptico**, y el guión pide el pulso **también al salir** |
+| 🎯 **Selección = hover + trigger → SSelect + pulso FUERTE** | 🟡 el trigger funciona; falta sonido y háptico |
+
+### Acto 2 — Intro Soul
+| Beat | Estado |
+|---|---|
+| Botones y título se desvanecen · crossfade Ambient 1→2 | 🟡 el kill existe; **el crossfade lo puede hacer `BP_AudioHub.PlayAmbient` pero NADIE lo llama todavía** |
+| Caminata + VO 1 | ✅ |
+| 🎯 **Oscurecimiento GRADUAL mientras avanzamos** (se van partículas y fondo azulado) | ⬜ hoy se apagan **de golpe** al llegar |
+| SPasos acoplado a la cadencia del walker | ⬜ el walker ya tiene la cadencia; falta el clip |
+| 🎯 **El timbre NO lleva trigger**: sólo posar la mano → se agranda + SBubble + pulso al hover/unhover → al mantener, **vibración continua** + SBell → **ring slider 0→100** → STrigger + pulso fuerte | 🟡 el hold funciona. **Faltan: el ring slider visual, los 3 sonidos y los hápticos.** Es la micro-interacción más distinta de todas y la que más fácil se aplana |
+
+### Acto 3 — Recepción (Hall)
+| Beat | Estado |
+|---|---|
+| Alma da la bienvenida (VO 2) | ✅ |
+| **VO 3 + animación de las 5 etapas**: nombres y contenedores **en GRISES**, se colorean 1 a 1, y **cada anillo aparece cuando se nombra la etapa** + SExplicación | ✅ **construido hoy** (`BP_StageIntro`). Falta SExplicación y calzar con el VO |
+| Tomar el sensor → STrigger + SBubble + pulso fuerte | 🟡 el sensor se toma; faltan sonidos y háptico |
+| **Niagara de anillos subiendo y bajando con nosotros en el centro** + SCalibration | ⬜ no existe |
+| 🎯 **Los 5 elementos del HUD aparecen UNO A UNO, animados** | 🟡 el HUD aparece **entero de una**; la aparición animada por elemento no está |
+| Elección de proto ameba: hover → SProtoHover + pulso sutil + **se agranda** · trigger → SProtoselect + pulso fuerte | 🟡 el hover y el agrandado existen. **🔴 Ver el hallazgo de abajo** |
+| Las demás desaparecen · la elegida se posiciona al frente · VO 6 · se ancla al HUD · VO 7 · Alma se achica y desaparece | ✅ |
+
+> 🔴🔴 **HALLAZGO — la selección del Hall probablemente NO dispara.** `BP_SoulChoice` escucha los eventos **`IA_Shoot_Left/Right`**, pero el contexto que agrega (`IMCRef`) es **`IMC_MenuTrigger`, que sólo mapea `IA_Continue`**. Y los `IMC_Weapon_*` (los que mapearían `IA_Shoot`) están **vacíos**. O sea: el hover marca la candidata, pero el gatillo nunca llega. **Arreglo sin tocar IMC: cambiar los dos eventos a `IA_Continue`**, igual que hace `BP_Finale`. Verificar en visor.
+
+### Acto 4 — Entering
+| Beat | Estado |
+|---|---|
+| VO 8 · widget de instrucciones · **cortafuegos de página a los 20 s** | ✅ |
+| Objeto + **radial slider de timing** · sin conteo · el timing avanza solo, el usuario controla el objeto en tiempo real | ✅ (`BP_BreathPacer`, reusando el anillo de Calibration) |
+| SCountBreath + VO 9 **simultáneos** | ⬜ audio |
+| ⚠ *"Son 5 respiraciones… **para testear usaremos 2 simplemente**"* | 🟡 hoy son **5**. Si querés iterar rápido, bajar los ciclos a 2 |
+| Ceremonia: VO 10 + SCharger + anillo **azul** + barra a 20 % · vuelta al HUD · VO 11 | ✅ |
+
+### Acto 5 — Recognizing
+| Beat | Estado |
+|---|---|
+| VO 12 · instrucciones · objetos flotando alrededor | ✅ |
+| Al entrar al umbral: **háptico de pulso fuerte en el corazón** + SPulse | ✅ **cableado hoy** (`FireJump` → `HapticSelect` + `PlaySfx`) |
+| 10 saltos, curva trampolín, ½ del ritmo cardíaco, fuera del umbral sigue lento | ✅ |
+| **Niagara que expulsa un anillo desde nuestro corazón con cada pulso** | ⬜ falta (arte). El hook es `FireJump` |
+| Ceremonia: VO 13 + anillo **rojo** + 40 % · VO 14 | ✅ |
+
+### Acto 6 — Loving
+| Beat | Estado |
+|---|---|
+| VO 15 · **sin widget de instrucciones** | ✅ |
+| 3 Niagaras timeados VO16/17/18 + SMind 1-3, **acumulativos**, modulados por la actividad | ✅ **construido hoy** (`BP_LovingField`, calma a 60 Hz). ⬜ el arte Niagara real |
+| Ceremonia: VO 19 + anillo **morado** + 60 % · VO 20 | ✅ |
+
+### Acto 7 — Attracting
+| Beat | Estado |
+|---|---|
+| **Attracting Base ya sonando al entrar**, sincronizado con el secuenciador · **clip y pack cambian con cada jugador** | ⬜ ni el pool aleatorio ni la sync por Quartz |
+| VO 21 · instrucciones · después aparecen beams, slots, botón y objetos uno a uno | ✅ (instrucciones ya en inglés) |
+| **Coda**: se van beams, no elegidos y slots; **los elegidos se alinean al frente y suenan 2-3 vueltas** + VO 22; luego desaparecen y **el pad sigue** | ✅ **construido hoy**. ⚠ El "el pad sigue" depende del ambient, que aún no suena |
+| Ceremonia: anillo **naranja** + 80 % · VO 23 | ✅ |
+
+### Acto 8 — Surrounding + Final
+| Beat | Estado |
+|---|---|
+| VO 24 · instrucciones | ✅ |
+| 🎯 **La proto ameba se desprende y se posiciona al frente, a distancia y tamaño cómodos para dibujar** (*"un poco más grande que un balón"*) | ⬜ **no está**: hoy se dibuja donde esté el pincel, no alrededor de la ameba |
+| 🎯 **Zona segura / esfera límite; al pasarla la línea se va en punta** | ⬜ no está |
+| SDraw mientras se mantiene el gatillo | ⬜ audio |
+| Cierre por **cantidad de trazo definida** | ✅ **construido hoy** (12 m, editable) |
+| Última carga: VO 25 · la ameba **crece y se aleja** · barra a 100 % · **HUD se disuelve animado** · SChargerFinal | 🟡 **carga, disolución y desprendimiento hechos hoy**; ⬜ falta que **crezca** y los **Niagaras de carga (vortex, partículas)** y los **anillos girando** |
+| 🎯 **La arquitectura se modifica "tipo transformer" y desaparece** revelando el exterior | 🟡 hoy es un `Dissolve` (fade), no una transformación |
+| Ambient 7 fade out → **suena NUESTRA melodía** · gráficos de resultados bajo la ameba · VO 26 | 🟡 la melodía **se guarda** como string; ⬜ reproducirla y ⬜ los gráficos (tarea #9) |
+| VO 28: decidir incorporarla al corazón · **tomarla y atraerla** → SProtoHeart + explosión Niagara · constelación aparece **poco a poco** · melodía→Ambient 8 · la proto viaja como **estrella fugaz** | ✅ el gesto (hover+gatillo), el guardado y el viaje. ⬜ la explosión Niagara y que la constelación aparezca **gradual** (hoy es de una) |
+| VO 29 · **beam para explorar: hover sobre una ameba = suena SU melodía** | ⬜ tarea #9 |
+| Las amebas **desaparecen poco a poco** · negro · VO 30 · SCredits · **créditos frente a nosotros** · reload | 🟡 negro, VO, SFX y **reload verificados hoy**; ⬜ la desaparición gradual y ⬜ la **UI de créditos** |
+
+### 🧹 Sobre el criterio (2) de Beltrán: matar sin romper
+El patrón **está sano**: cada etapa spawnea lo suyo y su `Cleanup<X>` lo destruye, y el director hace `KillStage`. Lo que la auditoría confirma es que **eso mismo es el árbitro del input** — por eso el listener del gatillo del final vive en el actor del final y no en el pawn. ⚠ **Lo único que NO se mata nunca es lo que esté en el pawn o en el persistente**: hoy son los hubs (Bio/Audio/Haptic/Archivo/Constelación), que deben ser permanentes, y está bien. **Regla a sostener: si algo nuevo necesita input, va en un actor de etapa.**
+
+### 📌 Lo que sale de esta auditoría como pendiente REAL
+1. 🔴 **El bug de la selección del Hall** (`IA_Shoot` vs `IA_Continue`) — lo más urgente, rompe un beat central.
+2. **Las micro-interacciones de hover**: sonido + háptico en los botones del menú, el timbre (ring slider + 3 sonidos + vibración continua) y la elección del Hall. Todo el andamiaje ya existe (`BP_HapticHub`, `BP_AudioHub`); es cablearlo.
+3. **El lienzo alrededor de la ameba + la esfera límite** de Surrounding.
+4. **Los ambients**: nadie llama `PlayAmbient` todavía, y el guión pide crossfade en **cada** puerta.
+5. **El arte Niagara**: calibración, anillo por pulso, campos de Loving, carga final, explosión del corazón.
+6. **Aparición/desaparición gradual** de la constelación y del HUD por elemento.
+7. **Pool aleatorio + Quartz** en Attracting.
+
 ## 3. Orden de construcción propuesto
 
 1. **`BP_SoulHUD` + señales OSC (EEG/BPM) + registro de promedios** (1.a + 1.c) — el HUD atraviesa todo; sin él no hay ceremonia ni Loving ni final.
