@@ -4,7 +4,19 @@
 Pedido de Beltrán (2026-08-15): *"un sistema de debug que puedas correr tú en el play editor, donde puedas testear todas las interacciones que haría un usuario"*. La idea es levantar el techo que teníamos hasta ahora — **nada gestual se podía verificar en PIE** —, para poder arreglar cosas solo.
 
 ## Status
-🟡 **El concepto está PROBADO, las rutinas no.** Lo que ya está demostrado en PIE:
+🟢 **Primera etapa completada de punta a punta por un robot** (2026-08-15). Recognizing entera, sin humano y **sin cortafuego**:
+```
+HB: Latido 3/15 … 10/15            ← cada 1,7 s = los 68 bpm simulados
+CEREMONIA: la ameba llego al ChargeSpot · distancia = 0.0
+CEREMONIA: anillo y barra completos · terminada - carga = 0.4
+DIR: la ceremonia aviso que termino · fin de sala - baja la luz
+DIR: precarga invisible de L_Room_Loving · camina el tramo 4
+```
+👉 Esto valida **tres cosas a la vez**: el arreglo de Heart de esa mañana, la ceremonia de carga, y que **el director avanza por la interacción y no por el timeout**.
+
+🔴 **`RobotOn` queda en 0 por defecto.** Si quedara en 1, en una sesión con visor el robot le llevaría las manos al pecho a Beltrán y le arruinaría la corrida. Se enciende para testear y se apaga al terminar — como `DebugStartStage`.
+
+Lo demostrado antes:
 - ✅ **Las manos falsas funcionan.** `SetWorldLocation` sobre el `MotionControllerComponent` del pawn **se queda pegado** en PIE (no lo pisa el tracking, porque no hay tracking). Control positivo:
   ```
   ROBOT: mano=X=2412.000 Y=0.000 Z=-32.000 | pecho=X=2412.000 Y=0.000 Z=-32.000 | dist=0.0
@@ -42,6 +54,23 @@ BP_Robot (actor en L_Persistent)
 PULSE|Heart| latidos=0/15 | enMano=true | derecha=true | umbral=false | calibrado=false | cuenta=true
 ```
 La calibración **no es un paso aparte**: ocurre dentro de `Step`, sola, cuando el sensor pasa `CalHold` = **4,5 s** quieto y en posición. Con `calibrado=false` el umbral no puede abrir, y sin umbral no hay latido. En la corrida real de Beltrán sí se calibró (`UMBRAL IN` en el log), así que **por ahora es un artefacto del atajo de debug, no un bug de la obra** — pero conviene tenerlo escrito: *si un usuario llegara a Heart sin haber calibrado, la etapa es inentrable*.
+
+## 🔴🔴 El techo real de PIE: el detector depende del TRACKING, no de la posición
+Falsear la mano no alcanzaba para que el sensor de latido detectara. La autopsia, leyendo `Step`:
+```
+_rv44 = quietud   AND  _rv43
+_rv43 = (and  GetLinearVelocity.ReturnValue  GetAngularVelocity.ReturnValue)   ← los bValid del tracking
+```
+`MotionControllerUpdate|GetLinearVelocity` devuelve **el vector y un bool de validez**, y el detector exige **los dos válidos**. En PIE no hay runtime XR: ese bool es `false` y **ninguna cantidad de posición falsa lo cambia**. Medido: geometría perfecta (`horiz=12 ≤ 20`, `vdrop=32 ≥ 5`, `vel=0`) y aun así `calT=0.0`, es decir el temporizador de calibración **nunca arrancaba**.
+
+👉 **La frontera del robot queda así:**
+- ✅ Todo lo **posicional** (hover por distancia, agarre por cercanía, dibujo, elección por ángulo) → el robot lo maneja.
+- ❌ Todo lo que sale del **tracking** (`BP_HeartSensor`, `BP_BreathSensor_V2` — el mismo detector) → no corre en PIE.
+
+**La salida, sin tocar el Blueprint frágil:** el robot **saltea sólo el detector** desde afuera, con los setters públicos (§67):
+`SetCalibrated(true)` + `SetBreathing(true)` — y, la pieza clave, **`SetDeactivateDelay(99999)`**.
+Sin ese último, había una **carrera perdida**: yo escribía `bBreathing=true` 20 veces por segundo y `Step` lo apagaba ~60 (y `UpdateHeartbeat` corre justo después de `Step` en el mismo tick, así que leía `false` siempre). Subiendo el retardo de desactivación, `Step` **nunca llega a apagarlo** y una sola escritura alcanza. 💡 Regla general: **para ganarle a una lógica por tick no hay que escribir más rápido, hay que desarmar su condición de apagado.**
+⚠ Con esto **el detector no queda probado** — queda probado todo lo que viene después de él, que es la cadena larga (intervalo, pulso, conteo, háptico, audio, cierre, ceremonia, transición).
 
 ## Cómo se usa (modelo por lotes, no en vivo)
 No se puede llamar a una función de Blueprint desde el MCP con PIE corriendo. El ciclo es:
