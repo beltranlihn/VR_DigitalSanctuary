@@ -80,3 +80,13 @@ La v1 de 21 StaticMeshes se reemplazó por **UMG**: el actor tiene UN componente
 
 ## Relacionados
 - [[BP_BioHub]] (todas las señales) · [[BP_StageDirector]] (`SeedHud` en el salto debug; la ceremonia de carga llamará `SetCharge`) · [[BP_ProtoSoul]] (el ocupante futuro del slot) · `TP_HudAnchor` en `L_Persistent`
+
+## 🆕 El HUD nace pieza por pieza (2026-08-15)
+El guión pide que el HUD **aparezca de a poco**, no de golpe. Está hecho con **opacidad por elemento**, no con un fundido global — así cada pieza tiene su propio momento.
+
+- En `WBP_SoulHUD`: array **`Parts`** con los 5 elementos **en orden de nacimiento**: `GraphPill` → `BarCharge` → `ImgSlot` → `DotConn` → `ImgPulse` (primero el marco, después lo que mide, al final lo que late). `InitParts` los registra, `PartsHide` los pone todos en opacidad 0, **`PartShow(i)`** enciende uno. Todo con `Widget|SetRenderOpacity`, que no toca el layout.
+  ⚠ `GraphPill` **no era variable**; hubo que pasarlo con `ToggleWidgetAsVariable` + `CompileWidgetBlueprint`.
+- En el actor: **`BirthHud()`** apaga todo y arranca un timer que llama a `BirthStep` cada **`BirthGap`** (0,45 s, instance-editable). Lo dispara **`CacheWidget`** apenas el widget existe, así que **nace gradual sin importar quién lo spawnee**.
+- Verificado por log: `HUD: piezas registradas = 5` → `HUD: empieza a nacer, pieza por pieza` → `HUD: nacio entero` **2,3 s después**. Cero `Accessed None`.
+- ⬜ Falta visor: si 0,45 s por pieza acompaña, y si conviene que cada pieza entre con un fundido propio en vez de aparecer de una.
+- 💡 Es el **inverso exacto** de `DissolveHud`, que sigue siendo global: el HUD nace de a partes y se disuelve entero. Es deliberado — el nacimiento se mira, la disolución acompaña la carga final.
