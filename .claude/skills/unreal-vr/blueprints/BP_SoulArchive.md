@@ -69,3 +69,10 @@ Colocado en `L_Persistent` en el último tramo (X≈6000). Al llamar **`BuildCon
 
 ## Relacionados
 - [[BP_ProtoSoul]] (`ConfigureVariant`, `SeedRings`, `TravelToPoint`) · [[BP_BioHub]] (los promedios) · [[BP_AudioHub]] (SProtoHeart, SCredits) · `SG_Melody` (la melodía de Attracting)
+
+## 🆕 La constelación aparece de a una (2026-08-15)
+El guión dice que la constelación aparece **poco a poco**, no de golpe. `BP_Constellation.BuildLoop` ya no spawnea todo en un `for`: calcula cuántas caben (el mínimo entre amebas guardadas y TargetPoints) y llama a **`StartGradual(Total)`**, que arranca un timer.
+`GradualStep` → `GradualOne` (spawnea la del cursor y avanza) hasta `GradualDone`. El ritmo es **`StarGap`** (0,55 s, instance-editable).
+Verificado por log: `CONSTELACION: van a aparecer de a una, cuantas = 3` → `CONSTELACION: aparecieron todas, total = 3`.
+⬜ Falta que cada una **entre** con algo propio (escala, brillo); hoy el escalonado es el único efecto.
+💡 El explorador ([[BP_ConstExplorer]]) lee `Spawned`, así que las amebas se vuelven apuntables **a medida que nacen**, sin cablear nada.
