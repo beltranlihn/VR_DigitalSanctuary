@@ -78,7 +78,8 @@ Compila en verde y devuelve el default del pin. Síntoma en el log: **la funció
 - [ ] Cargar el catálogo real cuando lleguen los archivos (Beltrán). Empezar por `SCharger`, `SMind1-3` y los VO de Loving/ceremonia, que ya están cableados.
 - [ ] Migrar los consumidores que quedan (tabla de arriba).
 - [ ] 🔴 **Cablear los haptics**: pulso de Heart (`PulseJump` → `HapticSelect`), hover del menú y de la elección del Hall, hold del umbral.
-- [ ] Ambients: falta que alguien llame `PlayAmbient` en cada transición de puerta (el hook natural es el `WalkOut`/`EnterRoom` de [[BP_StageDirector]]).
+- [x] ~~Ambients~~ ✅ **cableado 2026-08-15**: el evento **`EnterRoom`** de [[BP_StageDirector]] llama **`AmbientForStage`** → `PlayAmbient(AmbientNames[StageIndex], AmbientFade)`. La cadena quedó `EnterRoom → AmbientForStage → ConfigureRoom → Fade → …`. `AmbientNames` = `[Ambient3, Ambient4, Ambient5, Ambient6, AttractingBase, Ambient7]` (instance-editable, mapea Hall→Surrounding tal como el guión) y `AmbientFade` 3 s. **Verificado por log**: al entrar a Loving pidió `Ambient6`, que es exactamente el clip que manda el guión. ⚠ Faltan los ambients del arranque (1 y 2, que son del `BP_IntroSequence`) y el 8 del exterior.
+  🔴 **Trampa pagada:** `EnterRoom` **NO es una función, es un evento custom del EventGraph**. `list_graphs` muestra un grafo `:EnterRoom` que es sólo el **stub** (`ExecuteUbergraph…`); insertar ahí no hace nada. Hay que buscar el `K2Node_CustomEvent` en el `EventGraph`.
 - [ ] ⚠ `audio-quest.md`: el bloque de audio del `DefaultEngine.ini` está bajo `WindowsTargetSettings` → **el APK no lo lee**. Revisar antes de empaquetar. Fuentes espacializadas = **mono**.
 
 ## Relacionados
