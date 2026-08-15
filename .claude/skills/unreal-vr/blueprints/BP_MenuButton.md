@@ -155,3 +155,13 @@ Lo reportado en visor fue: *"los botones existen antes de aparecer al frente, lo
 4. Al apretar cualquiera: **`DestroyActor` de los dos**.
 5. Se pueden borrar entonces `CacheButtons`, `SortButton`, `PlaceButtons` y `PlaceOne` — el spawn en el punto reemplaza toda la ubicación por código.
 6. Aserciones en [[BP_SelfTest]]: **0 botones antes del título** y **2 después**, con textos distintos. Eso verifica el spawn Y el kill sin visor.
+
+## 🆕 El anillo de carga del sostenido (2026-08-15)
+El guión pide que el timbre muestre **un anillo que se llena 0→100** mientras se sostiene. Está hecho **sin material nuevo**: se reusa **`M_SoulRing`**, el mismo de los anillos de la proto ameba, que ya expone un parámetro escalar **`Progress`** (verificado con `MaterialInstanceTools.list_parameters`: `Radius` · `Thickness` · `Progress` · `Brightness` · `RingColor`).
+
+- Componente nuevo **`Ring`**: `/Engine/BasicShapes/Plane` con `M_SoulRing`, pitch 90, escala 0.34, 1 cm detrás del `Plate`, sin sombra.
+- **`RingProgress()`** escribe `Progress = HoldT / HoldTime` (clampeado 0..1) con `SetScalarParameterValueOnMaterials` — **sin variable MID**, que es el mismo criterio que usó [[BP_ProtoSoul]].
+- Se llama **por frame desde el final de `UpdateVisual`**. 🔴 Se enganchó por **cirugía de nodos**, no reescribiendo la función: `UpdateVisual` contiene `(|GetbHovered)` y `vector*vector`, que el DSL **lee pero no escribe**. La receta quedó en `gotchas.md` §66.
+- El vaciado sale gratis: `UpdateHold` ya pone `HoldT = 0` cuando se suelta, así que el anillo se vacía solo.
+- ⬜ **Falta visor**: tamaño y posición del anillo respecto de la placa, y el color (hoy el default de `M_SoulRing`).
+
