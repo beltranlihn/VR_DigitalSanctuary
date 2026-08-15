@@ -592,3 +592,25 @@ Para ver las 6 salas en el editor se probó poner **actores `ALevelInstance`** a
 57. 🟢🟢 **RESUELTO — `SetNiagaraVariable(...)` va SIN el prefijo `User.`** (medido 2026-08-15 con un parámetro que existe de verdad). Con `"Calm"` la escritura llega y se lee de vuelta; el parámetro se llama `User.Calm` en el store pero el setter agrega el namespace solo. El bloque que afirmaba lo contrario en `assets-existentes.md` era falso, y por eso `BP_AimBeam` escribía `"User.BeamStart"` → **parámetro fantasma**, la causa más probable de que el beam no se viera en visor. Corregido.
 58. 🔴🔴 **`bIsValid` de `GetNiagaraVariable` NO prueba que el parámetro exista.** Lee el **store de OVERRIDES del componente**, que arranca vacío: da `false` para parámetros perfectamente existentes y pasa a `true` **recién después de escribir**. La receta "verificalo en 1 minuto con bIsValid" da **falsos negativos**. Para existencia: `NiagaraToolset_System.GetUserVariables` sobre el sistema. Para comprobar que tu escritura llegó: **escribir y leer de vuelta**. Y **no gatear las escrituras con un probe** — un nombre inexistente sólo crea un parámetro fantasma inofensivo, así que escribir siempre sale más barato que detectar.
 59. ⚠ Un `NiagaraComponent` con `bAutoActivate=false` **no tiene el store inicializado**: cualquier probe en `BeginPlay` da falso. Probar/escribir **después de `Activate`**.
+
+---
+
+## 🔴🔴🔴 60. El Undo que borra el nivel — el incidente del 2026-08-15
+
+**Qué pasó:** `L_Persistent` apareció **sin `BP_StageDirector`, `BP_BioHub`, `BP_Finale`, `BP_SoulArchive` ni `BP_Constellation`**, y así quedó **guardado en disco**. Se recuperó del último commit (`888f5c3`) después de verificar con `grep` sobre el `.umap` que el blob commiteado sí los tenía y el de disco no.
+
+**La causa, con el log como prueba:** cada `execute_tool_script` que **termina en excepción** hace que el plugin dispare un Undo del editor:
+```
+[13.42.22:594] LogScript: Warning: AssertionError: The node could not be created / ... does not exist
+[13.42.22:636] LogEditorTransaction: Undo Execute tool script
+```
+Hubo **7 de esos entre las 13:41 y las 13:47** (todos por errores míos de DSL: `&&`, `Math|Float|Max`, `AddEvent|Gameplay|BeginPlay`, `SetbResultsOn`, "Param already exists"…). El Undo saca la transacción de **arriba de la pila de undo del editor, que es GLOBAL**: si el script que falló no alcanzó a hacer ningún cambio propio, ese Undo **se come una transacción anterior que no es mía** — y una de ellas era la lista de actores del nivel. El `save_assets` de las 13:48 grabó el nivel ya mutilado, y ahí dejó de ser reversible.
+
+### Las 4 reglas que lo evitan (obligatorias)
+1. 🔴 **Un script nunca debe dejar escapar una excepción.** Envolver **toda** llamada en `try/except BaseException` y devolver el error como **dato**. Un script que retorna `{'errores': [...]}` **no dispara Undo**. Plantilla lista para copiar: **[`scripts/safe_script.py`](../scripts/safe_script.py)**. ⚠ `except Exception` **no alcanza**: varios errores del plugin no derivan de `Exception`.
+2. 🔴 **Canario de nivel antes y después de cada tanda**: contar los actores `BP_` del persistente (`level_canary()` en la plantilla). Si el número baja, **no guardar** y revisar.
+3. 🔴 **`save_assets` sólo con el canario en verde.** Guardar es lo que convierte un accidente reversible en pérdida de trabajo.
+4. 🔴 **Commitear ANTES de una tanda de construcción.** El rescate salió gratis únicamente porque había un commit de una hora antes.
+
+### El aviso que ya existía y no se leyó
+`BP_SelfTest` logueó **`TEST FAIL: presente: BP_StageDirector`** y **`TEST SKIP: aserciones del director (no hay director en el nivel)`** en la corrida siguiente. Estaba dicho. **Un `TEST FAIL` de presencia se investiga ANTES de seguir con lo propio** — es exactamente la clase de aserción que detecta este daño.

@@ -44,6 +44,18 @@ We drive Unreal from the native UE 5.8 **ModelContextProtocol** plugin, register
 >
 > ⚠ Y para verificar: **leé el valor efectivo en el objeto final, nunca la declaración** (`get_properties` del componente, `get_actor_transform` del actor, `connected_pins` del pin). **Que compile no prueba nada.**
 
+## 🔴🔴🔴 Antes de correr `execute_tool_script`: que NUNCA levante excepción
+El 2026-08-15 `L_Persistent` perdió **cinco actores clave** (director, BioHub, Finale, archivo, constelación) y se guardó así. La causa, con el log como prueba: **cada script que termina en excepción dispara un `Undo` del editor**, y ese Undo saca la transacción de arriba de la pila **global** — o sea, **se come trabajo que no es del script**.
+
+**Obligatorio, sin excepciones:**
+1. Envolver **toda** llamada en `try/except BaseException` y devolver el error como **dato** — plantilla lista: [`scripts/safe_script.py`](scripts/safe_script.py). (`except Exception` **no alcanza**.)
+2. **Canario de nivel** antes y después de cada tanda (`level_canary()`): si baja la cuenta de actores `BP_` del persistente, **no guardar**.
+3. **`save_assets` sólo con el canario en verde.** Guardar es lo que vuelve irreversible el accidente.
+4. **Commitear antes** de una tanda de construcción.
+5. Un **`TEST FAIL: presente: <algo>`** del SelfTest se investiga **antes** de seguir: es justo la aserción que detecta este daño (y esa vez lo detectó, y se pasó de largo).
+
+Detalle completo: `references/gotchas.md` §60.
+
 ## 🧪 Verificar SIN visor y sin humano — el bucle que hay que usar
 Existe **`Core/Debug/BP_SelfTest`** (tracker: [`blueprints/BP_SelfTest.md`](blueprints/BP_SelfTest.md)): una batería de aserciones que loguea `TEST PASS/FAIL/SKIP` y una línea `TEST SUMMARY`. El bucle completo, sin que nadie toque la máquina:
 ```
