@@ -161,6 +161,24 @@ MemberName="SetVariableFloat"    InVariableName="Life"        InValue=500.0
 
 > 🔴 **OJO: este bloque y el de `NS_TouchBeam` de más arriba se CONTRADICEN** — uno dice que el prefijo `User.` va sí o sí y el otro que es un no-op silencioso. **La contradicción sigue sin resolver** (2026-08-15) y el `BP_AimBeam` de hoy escribe **con** prefijo. La forma de cerrarla está construida: `BP_LovingField.ProbeParams` prueba **las dos escrituras** con el pin `bIsValid` de `GetNiagaraVariable` y loguea el resultado. Sobre `NS_VoidDust` los dos dieron `false` **porque ese sistema no expone NINGÚN user parameter** (`GetSystemSummary` → `userVariables: []`), así que no probó nada; en cuanto haya un sistema con parámetros reales, esa línea de log contesta la pregunta de una vez. **Hasta entonces, no confiar en ninguno de los dos bloques: medir con `bIsValid`.**
 
+### 🟢🟢 RESUELTO 2026-08-15 — el prefijo `User.` y la falsedad de `bIsValid`
+
+Se construyeron 3 sistemas con un user parameter **real** (`User.Calm`, confirmado por `GetUserVariables`) y se midió en PIE. Resultado:
+
+| Prueba | Resultado |
+|---|---|
+| `GetNiagaraVariable(Float)` con `"Calm"` **antes** de escribir | `bIsValid = FALSE` |
+| `GetNiagaraVariable(Float)` con `"User.Calm"` **antes** de escribir | `bIsValid = FALSE` |
+| `SetNiagaraVariable(Float)` con `"Calm"` (**sin** prefijo) y volver a leer | `bIsValid = TRUE`, valor **0.811109** = la calma viva del BioHub |
+
+**Las dos conclusiones, ahora medidas y no opinadas:**
+
+1. 🔴 **`SetNiagaraVariable(...)` va SIN el prefijo `User.`** — queda zanjada la contradicción que este archivo arrastraba. El bloque de `NS_TouchBeam` que decía *"el prefijo `User.` va sí o sí"* **es falso**. ⚠️ Eso implica que `BP_AimBeam.UpdateBeamPoints`, que hoy escribe `"User.BeamStart"`/`"User.BeamEnd"`, **está escribiendo parámetros fantasma** — es la explicación más probable de que Beltrán no viera el beam en visor. **Corregir a `"BeamStart"`/`"BeamEnd"` y reprobar.**
+
+2. 🔴🔴 **`bIsValid` de `GetNiagaraVariable` NO es una prueba de existencia.** Lee el **store de overrides del componente**, que arranca vacío: devuelve `false` para parámetros que existen perfectamente en el sistema, y pasa a `true` recién **después de que alguien escribe**. La receta *"verificalo en 1 minuto con bIsValid"* que este archivo recomendaba **da falsos negativos**.
+   👉 **Qué hacer en su lugar:** (a) para saber si un parámetro existe, `NiagaraToolset_System.GetUserVariables` sobre el **sistema**; (b) para saber si tu escritura llegó, **escribir y leer de vuelta** — eso sí funciona; (c) **no gatear las escrituras con un probe**: un nombre inexistente sólo crea un parámetro fantasma, que es inofensivo, así que **escribir siempre sale más barato que detectar**.
+   💡 Además el probe hay que hacerlo **con el componente ya activado**: con `bAutoActivate=false` el store ni siquiera está inicializado.
+
 ### 🔴🔴 Para escribir un array de Niagara: `SetNiagaraArrayVector` (array ENTERO), NO el setter por índice
 Verificado 2026-08-04 comparando contra el beam que **sí funciona** en el proyecto viejo Soul Charger (`Content/VRPawnSC.uasset` manejando `Content/Asset/FX/LineTrace.uasset`):
 - ✅ **Lo que funciona:** **`SetNiagaraArrayVector`** (`NiagaraDataInterfaceArrayFunctionLibrary`) — recibe un **`TArray<FVector>`** y **reemplaza el array completo**, así que **siempre queda bien dimensionado**.
