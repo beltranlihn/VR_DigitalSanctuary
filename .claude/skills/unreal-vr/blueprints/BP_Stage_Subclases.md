@@ -49,9 +49,11 @@ CheckHeart (poll 0,25 s):
 - **El auto-cierre del sensor quedó APAGADO**: `UpdateHeartbeat` llamaba `FinishAfterDelay()` (que **recargaba el nivel**, herencia del test aislado) al llegar a `MaxBeatCount`; ahora pasa por **`MaybeFinishHeart` + `bAutoFinish=false`**. 🔴 Esto era urgente: con el cierre ahora más largo, la etapa ya **no le ganaba la carrera** a esos 2 s del sensor.
 
 ### Valores (CDO de `BP_Descent`)
-`TotalRise` **320 cm** · `Jumps` **10** · `JumpTime` **1,1 s** · `DriftRate` **0,1 /s**.
+`TotalRise` **320 cm** · `Jumps` **10** · `JumpTime` **1,1 s** · `DriftRate` **0,008 /s** ← **verificado en el CDO el 2026-08-15**.
 
-🧪 **`DriftRate = 0,1` es un VALOR DE TEST** (pedido de Beltrán 2026-08-14: *"el recorrido completo de heart a 10 segundos, para que no sea tan largo mientras creamos"*). Con 0,1 el recorrido entero por drift dura **10 s**; el valor de obra era **0,012 ≈ 83 s**.
+⚠️ **Esta sección estaba DESACTUALIZADA**: decía `0,1` cuando el valor efectivo ya era **0,008** (≈125 s de drift puro). Es el mismo error de siempre pero al revés — **la doc declaraba una cosa y el asset tenía otra**. Con 0,008 la relación queda bien: el drift es ~8× más lento que los saltos (≈16 s), o sea que conviene estar en el umbral, como pide el guión. Lo de abajo se conserva como registro de por qué existió el valor rápido.
+
+🧪 **`DriftRate = 0,1` fue un VALOR DE TEST** (pedido de Beltrán 2026-08-14: *"el recorrido completo de heart a 10 segundos, para que no sea tan largo mientras creamos"*). Con 0,1 el recorrido entero por drift dura **10 s**; el valor de obra era **0,012 ≈ 83 s**.
 🔴 **Subir de vuelta antes de probar el ritmo real de la etapa en visor**: con 0,1 el drift es **más rápido que los propios saltos** (10 saltos a ½ de 75 BPM ≈ 16 s), así que la mecánica se invierte — conviene más quedarse fuera del umbral que dentro, que es exactamente lo contrario de lo que pide el guión. Es un valor para iterar rápido, no para juzgar la mecánica.
 💡 La relación que hay que respetar en la obra: **drift claramente MÁS LENTO que los saltos** (era ~5× más lento). Si se cambia `Jumps` o el BPM, recalcular.
 
@@ -132,3 +134,22 @@ Decisión #5 del guión (*"cierre por metros acumulados de trazo, no número de 
 - `ReportMeters` loguea **cada metro entero**, no cada tick — así el progreso se ve en el log sin inundarlo.
 - El timer se limpia en `CleanupSurr` y en `SurrDone`. El cortafuegos del director **sigue existiendo** como backstop: si nadie dibuja, la etapa igual cierra.
 - **Verificado por log (`DebugStartStage=5`)**: la etapa arranca, spawnea el pincel y el poll corre sin ruido; cero `Accessed None`. ⬜ Los metros reales necesitan visor (sin manos no se dibuja).
+
+## 🆕 2026-08-15 — Attracting: LA CODA entre la melodía y la ceremonia
+El tramo nuevo del guión (Acto 7): *"desaparecen beams/slots/no-elegidos; los elegidos se alinean al frente y suenan 2-3 vueltas + VO 22; luego desaparecen, el pad sigue"*. Antes, `OnConfirmed` (el FINISH MELODY) llamaba **`StageDone()` de una**.
+
+```
+OnConfirmed_Event → PrintString → CodaStart          ← ahí se insertó la coda
+CodaStart:  CacheAttractAudio · CodaKillBeams · CodaLineUp · CodaHideTable · CodaVo(VO 22)
+            + timer CodaEnd a CodaTime (12 s ≈ 3 vueltas)
+CodaLineUp: TargetPoint tag CodaSpot → CodaBase → CodaLineLoop → por cada BP_SeqSlot con Occupant:
+            CodaLineOne(burbuja, StepIndex) → la manda a CodaBase + (StepIndex−2) × CodaSpacing en Y
+CodaEnd:    DoFadeOut de cada ocupante → timer CodaFinish a CodaFade → StageDone()
+```
+- **Reusa lo que la mecánica de Touch ya tenía**: `BP_SeqSlot.Occupant` (quién quedó en cada paso), `BP_SoundBubble.TargetLocation`+`bMoving` (ya sabe viajar sola) y `DoFadeOut`. **Las no elegidas ya las limpiaba `ClearLooseBubbles` del propio botón** — no hubo que tocar eso.
+- El secuenciador **sigue corriendo** durante la coda, así que las 5 elegidas suenan y pulsan solas mientras están alineadas al frente. Por eso `CodaTime` es simplemente cuántos segundos dejarlas sonar.
+- Variables: `CodaTime` (12 s) · `CodaSpacing` (30 cm) · `CodaTag` (`CodaSpot`) · `VoCodaIndex` (21 = VO 22) · `CodaFade` (2 s) — **todas instance-editable**. TargetPoint colocado en `L_Room_Attracting` en (4900, 0, 135).
+- 🔴 **Si falta el TargetPoint lo dice y las elegidas se quedan en la mesa** — la etapa igual cierra. Sin callejón sin salida.
+
+### 🧹 De paso: 6 eventos fantasma borrados
+El `EventGraph` tenía **`OnConfirmed_Event_0..5`**: eventos custom vacíos que fue dejando cada `AssignOnConfirmed` de escrituras anteriores. Nunca estuvieron conectados, pero **el barrido de huérfanos no los toca** porque `K2Node_CustomEvent` está en la lista `ENTRY`. Se borraron a mano filtrando por "exec sin conexiones". Es la misma lección que los `FunctionResult` sobrantes: **el barrido no limpia entradas duplicadas, hay que buscarlas**.
