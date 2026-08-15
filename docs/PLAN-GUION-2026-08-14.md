@@ -308,6 +308,14 @@ El patrón **está sano**: cada etapa spawnea lo suyo y su `Cleanup<X>` lo destr
 6. **Aparición/desaparición gradual** de la constelación y del HUD por elemento.
 7. **Pool aleatorio + Quartz** en Attracting.
 
+
+## 2.f Higiene final de la jornada (2026-08-15, madrugada)
+
+- **Barrido de huerfanos sobre los 23 Blueprints centrales**: solo **13 huerfanos** en todo el proyecto (BP_AudioHub 8, BP_Stage_Loving 5), los dos restos de reescrituras de esta misma noche. Borrados con **`identical: true`** en ambos. El resto salio limpio porque se barrio despues de cada escritura.
+- **PIE de control final**: cero `Accessed None` en la corrida completa.
+- **`DebugStartStage` restaurado a -1** y todos los flags de debug (`bDebugRunOnPlay`, `bDebugAppendOnPlay`, `bDebugClearOnPlay`, `bDebugBuildOnPlay`) en `false`. Slot de prueba `SoulConstellation.sav` borrado del disco.
+- ⬜ **Pendiente: el layout automatico de los grafos nuevos.** `scripts/auto_layout.py` existe y esta validado, pero corre sobre **un grafo por invocacion** y hay que pasarle el script entero (6,5 KB) al `execute_tool_script`. Transcribirlo a mano viola la regla de no reimplementar scripts de la skill, asi que se dejo para una pasada dedicada. Los grafos nuevos **funcionan bien pero estan encimados en el origen**: al abrirlos en el editor hay que ordenarlos a ojo.
+
 ## 3. Orden de construcción propuesto
 
 1. **`BP_SoulHUD` + señales OSC (EEG/BPM) + registro de promedios** (1.a + 1.c) — el HUD atraviesa todo; sin él no hay ceremonia ni Loving ni final.
