@@ -72,6 +72,31 @@ _rv43 = (and  GetLinearVelocity.ReturnValue  GetAngularVelocity.ReturnValue)   �
 Sin ese último, había una **carrera perdida**: yo escribía `bBreathing=true` 20 veces por segundo y `Step` lo apagaba ~60 (y `UpdateHeartbeat` corre justo después de `Step` en el mismo tick, así que leía `false` siempre). Subiendo el retardo de desactivación, `Step` **nunca llega a apagarlo** y una sola escritura alcanza. 💡 Regla general: **para ganarle a una lógica por tick no hay que escribir más rápido, hay que desarmar su condición de apagado.**
 ⚠ Con esto **el detector no queda probado** — queda probado todo lo que viene después de él, que es la cadena larga (intervalo, pulso, conteo, háptico, audio, cierre, ceremonia, transición).
 
+## 🟢 El gatillo inyectado FUNCIONA — y con eso cayó el primer diagnóstico real
+`Input|InjectInputForAction` entrega la acción por el mismo camino que un usuario. Verificado dos veces en la misma corrida:
+```
+BOTON armado: START      →  1 s después  →  BOTON apretado: START      (sin ningún atajo)
+ROBOT: hover conseguido, inyecto el gatillo   21:43:37.095
+SOULCHOICE: elegida la variante 0             21:43:37.427   ← 330 ms después
+```
+🔴 **Conclusión que importa: el hover+trigger sobre las proto amebas del Hall NO está roto.** Beltrán reportó en visor *"sigue sin funcionar el trigger con las protoamebas"*, y acá funciona por el camino real del input — ni llamada directa, ni cortafuego.
+
+👉 **La hipótesis que queda es de ALCANCE, no de lógica**, y la sostiene el propio log del juego:
+```
+AUDIT: camara en           X=0    Y=0     Z=115
+AUDIT: candidata sigue en  X=70   Y=0     Z=172      (y las otras cuatro, todas en Z=172)
+```
+Las candidatas están **57 cm por encima de los ojos** y a **65-70 cm al frente**. El robot consigue el hover porque **teletransporta la mano exactamente al actor**; una persona sentada tiene que llegar de verdad. Encaja con la intuición de Beltrán (*"me acuerdo que las amebas estaban altas"*).
+⬜ **Próxima prueba en visor:** bajar los `TargetPoint` de las candidatas a la altura del pecho/hombros y ver si el trigger "empieza a andar" — sería la confirmación.
+
+## 🔬 Autopsia del instrumento: por qué la inyección "no llegaba" al principio
+Los primeros intentos no disparaban nada, y estuve a punto de reportar el bug de Beltrán como reproducido. **Lo salvó el control positivo**: probé la inyección contra el botón START —que ya sabía que funciona— y tampoco lo apretaba. Eso movió la sospecha de la obra a mi herramienta. El log lo confirmó al cerrar PIE:
+```
+Accessed None trying to read (real) property CallFunc_GetLocalPlayerSubsystem_ReturnValue
+```
+**`LocalPlayerSubsystems|GetEnhancedInputLocalPlayerSubsystem` sin argumentos devuelve None.** Hay dos nodos con el mismo nombre y sólo uno sirve: **`PlayerController|LocalPlayerSubsystems|GetEnhancedInputLocalPlayerSubsystem`**, que recibe el PlayerController (`Game|GetPlayerController 0`). Con ese, todo anduvo a la primera.
+💡 La lección, otra vez: **un instrumento sin validar produce diagnósticos falsos con toda confianza.** El control positivo costó una corrida y evitó acusar al juego de un bug que no tiene.
+
 ## Cómo se usa (modelo por lotes, no en vivo)
 No se puede llamar a una función de Blueprint desde el MCP con PIE corriendo. El ciclo es:
 **configurar (`RobotOn`, `Routine`, `DebugStartStage`) → `StartPIE` → leer log y capturas → `StopPIE`.**
