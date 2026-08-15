@@ -97,6 +97,38 @@ Accessed None trying to read (real) property CallFunc_GetLocalPlayerSubsystem_Re
 **`LocalPlayerSubsystems|GetEnhancedInputLocalPlayerSubsystem` sin argumentos devuelve None.** Hay dos nodos con el mismo nombre y sólo uno sirve: **`PlayerController|LocalPlayerSubsystems|GetEnhancedInputLocalPlayerSubsystem`**, que recibe el PlayerController (`Game|GetPlayerController 0`). Con ese, todo anduvo a la primera.
 💡 La lección, otra vez: **un instrumento sin validar produce diagnósticos falsos con toda confianza.** El control positivo costó una corrida y evitó acusar al juego de un bug que no tiene.
 
+## 🔴 ESTADO DE LA CAMPAÑA DE PASADAS (2026-08-15 noche) — leer esto primero al retomar
+Beltrán se fue a dormir y autorizó seguir solo, pasada tras pasada, hasta que la obra corra fluida y sin errores. **Él prueba con visor mañana.**
+
+### El protocolo de una pasada (acordado con él)
+1. **Configurar** (`RobotOn=1`, `Routine=0`, `DebugStartStage=-1`, `Phase=0`) con PIE **detenido**.
+2. `StartPIE` y **NO TOCAR NADA** — ni una consulta al log durante la corrida. Esperar con un `sleep` en background (fuera de Unreal).
+3. Al terminar, revisar de una sola vez: cortafuegos, líneas `completa - aviso al director por el camino real`, `Accessed None`.
+4. Arreglar **con PIE detenido**, y repetir.
+
+🔴🔴 **NUNCA compilar con PIE corriendo.** Beltrán está fuera de la oficina y no puede reiniciar el editor: colgarlo nos deja parados a los dos.
+🔴 **Al terminar cada sesión, dejar `RobotOn=0` y `DebugStartStage=-1`** — si no, su corrida con visor arranca con el robot llevándole las manos al pecho.
+
+### Veredicto de la última pasada completa (22:41 → 22:54)
+| Etapa | Cierre |
+|---|---|
+| Hall · Entering · Recognizing · Loving | 🟢 **por el camino real**, sin ningún cortafuego |
+| **Attracting** | 🔴 por tiempo — el robot coloca **una sola burbuja** y la etapa espera la melodía terminada (falta repetir agarrar-soltar y apretar FINISH MELODY) |
+| **Surrounding** | 🔴 por tiempo — `PULSE\|Surrounding\| metros=0.0 \| dibujando=false \| puntos=0`: **el pincel no dibuja**. Se le escribe `bTrigHeld` pero el lienzo no registra un solo punto → probablemente hay que **agarrar el pincel primero** |
+| Final | ⬜ pendiente de confirmar con `RunFinale` |
+
+✅ **Cero cortafuegos de instrucciones** en esa pasada: los tres arreglos (`InstrHeart`, `BreathBypass`, gatillo por frame) funcionaron.
+
+### Lo que falta construir, en orden
+1. **Attracting**: bucle de N burbujas (no una) + botón FINISH MELODY sostenido.
+2. **Surrounding**: averiguar por qué el trazo no nace (¿el pincel necesita estar agarrado? ¿`BP_DrawCanvas` necesita `StartStroke`?) y dibujar de verdad hasta `TargetMeters`.
+3. Confirmar el final por gesto.
+4. Cuando las seis etapas cierren por interacción: **pasada limpia de punta a punta con cero cortafuegos** y revisar `Accessed None`.
+
+### 📉 El misterio de los 3 fps (medido, no resuelto)
+El editor renderiza a **~36 frames cada 12 s** durante PIE. Descartado por medición: `bThrottleCPUWhenNotForeground` ya estaba en `false`, `t.MaxFPS`=0, y **una ventana controlada de 10 minutos sin una sola llamada MCP dio exactamente el mismo ritmo** (la hipótesis de que lo causaban mis consultas es falsa).
+💡 **No invalida los tests**: la simulación corre en tiempo real (12,000 s de juego por cada 12 s de reloj) y todo lo que mide la obra es por `DeltaSeconds`. El único cuidado es la granularidad de 0,33 s en lo que se evalúa por frame (sostenidos de gatillo).
+
 ## Cómo se usa (modelo por lotes, no en vivo)
 No se puede llamar a una función de Blueprint desde el MCP con PIE corriendo. El ciclo es:
 **configurar (`RobotOn`, `Routine`, `DebugStartStage`) → `StartPIE` → leer log y capturas → `StopPIE`.**
