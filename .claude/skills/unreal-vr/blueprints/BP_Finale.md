@@ -54,6 +54,25 @@ Lo que se hizo, **replicando [[BP_SoulChoice]]** (que ya resuelve hover+trigger 
 2. 🔴 **Un guard que falta en una función de Tick inunda el log**: `CheckHoverHand` leía `SoulRef` sin `IsValid` y generó **miles** de `Accessed None` en segundos, tapando todo lo demás. En funciones que corren por frame, **el guard no es opcional**.
 3. ⚠ **Agregar un parámetro a una función que ya tiene llamadores rompe el compile** (*"Could not find a pin for the parameter S"*), y como el script de `execute_tool_script` falla, **se revierten los `add_function_graph` del mismo script**. Salida limpia: **no tocar firmas en uso** — meter el guard en una función nueva encadenada.
 
+## 🆕 El cierre completo (2026-08-15, misma jornada)
+Después del viaje a la constelación, la obra **ya cierra sola y vuelve a empezar**:
+```
+StarTravel  → timer StartExplore a TravelTime+1
+StartExplore → "tiempo de explorar la constelacion" · timer FinaleFadeOut a ExploreTime (45 s)
+FinaleFadeOut → FadeBlack (reusa BP_FadeSphere.StartFade) · timer FinaleCredits a FadeOutTime
+FinaleCredits → CreditsAudio (SCredits + VO 30) · timer FinaleReload a CreditsTime
+FinaleReload  → OpenLevel(LevelToReload) → la obra arranca de cero para el próximo usuario
+```
+- **`FinaleForce` ya no es sólo un log**: el cortafuegos ahora **muestra la constelación igual** (`BuildConstOnly`, sin `AppendMe` porque el usuario no decidió compartir) y entra al mismo cierre. Antes era un callejón sin salida.
+- **Verificado por log de punta a punta** (con tiempos de test acortados): carga → disolución → alcance de la mano → cortafuegos → constelación → negro → créditos → **reload**, y la obra volvió a empezar sola. Valores de obra restaurados: `ExploreTime` 45 · `CreditsTime` 12 · `FadeOutTime` 4 · `FinaleTimeout` 120 · `LevelToReload` `L_Persistent`.
+
+## 🆕 Los promedios y la melodía ya son REALES
+`SaveMySoul` ya no guarda 0.5/70.0 fijos:
+- **[[BP_BioHub]] gana `GetCalmAvgAll()` / `GetHeartAvgAll()`**: promedian **todos los bins con muestras** (`BinCalmSum`/`BinCalmCount`), usando dos acumuladores `AccSum`/`AccCount`. ⚠ El `for` es multi-exec y tiene que ir último, así que el acumulado vive en su propia función (`AccumCalmAll` → `AccumCalmBin`) y el promedio se calcula después.
+- **La melodía se serializa como string** (`MelodyString` → `MelodyFromSlots` → `MelodyAppend`), que es el criterio del proyecto para la firma sonora: **datos, no assets**.
+- El log lo dice al guardar: `FINAL: promedios del recorrido - calma X | ritmo Y`.
+- ⬜ Los promedios **por etapa** (que es lo que pide el gráfico de resultados del guión) están al alcance: `BP_BioHub.BinStage` ya registra a qué etapa pertenece cada bin. Falta la UI del gráfico.
+
 ## TODO
 - [ ] 🔴 **Visor**: el hover, el agarre, el traslado al pecho y el radio de la zona. Nada de eso es verificable sin manos.
 - [ ] Unificar la zona del pecho con la de `BP_HeartSensor` en vez de la aproximación por cámara.
