@@ -4,7 +4,8 @@
 El guión, Acto 8: *"mecánica de dibujo alrededor con **esfera traslúcida de límite** — invadirla afina la línea en punta y la corta"*. Es lo que convierte el dibujo libre en **dibujar ALREDEDOR de la ameba**: la esfera marca dónde no se puede entrar, y entrar tiene una consecuencia clara y sin castigo.
 
 ## Status
-🟡 **Construido y compilando**; ⬜ **falta el `DrawSpot` en la sala y el visor**. Ver "Lo que falta de tu lado" abajo.
+🟢 **Corrido en PIE y verificado** (2026-08-15): la ameba se desprende, viaja y **llega exacto** — `SURROUNDING POSE: distancia ameba-DrawSpot cm = 0.0` —, y la esfera se enciende sin cortar nada. Cero `Accessed None`.
+⬜ Falta el visor: el corte real sólo se puede juzgar con el pincel en la mano.
 
 ## 🔴 Cómo corta el trazo: reusando el camino que ya existe
 No hay lógica nueva de corte. `BP_DrawCanvas` **ya sabe terminar un trazo en punta**: tiene `TaperOut`, `CollapseRing` y `EndStroke`, y los usa cuando se suelta el gatillo. Entonces lo único que hace la esfera es **fingir que se soltó el gatillo**:
@@ -36,9 +37,16 @@ La burbuja es una esfera del motor con **`MI_Ghost`** (el material fantasma que 
 - **`SpawnDrawLimit`** → nace la esfera ahí mismo y se enciende.
 `CleanupSurr` la destruye junto con el pincel y el lienzo: **cero residuos**, que es la regla de la obra.
 
-## ⬜ Lo que falta de tu lado (Beltrán)
-🔴 **Poner un `BP_Anchor` con tag `DrawSpot` en `L_Room_Surrounding`**, igual que ya está el `BrushSpawn`. Ahí es donde se planta la ameba y nace la esfera — o sea, **con arrastrarlo se decide toda la composición del dibujo**: a qué distancia, a qué altura, qué tan cerca del cuerpo.
-Si no está, la etapa **no se rompe**: loguea `SURROUNDING: FALTA el TargetPoint DrawSpot en la sala - se dibuja sin lienzo` y el dibujo sigue funcionando como hasta ahora.
+## 🔴 La trampa geométrica que encontró el primer PIE
+Con el `DrawSpot` en (6085, 0, 125) y el `BrushSpawn` donde estaba (6060, 0, 110), los dos anchors quedaban a **29 cm** — **menos que el radio de 45**. O sea: **el pincel nacía ADENTRO de la burbuja**. El log lo cantó a los 133 ms:
+```
+LIMITE: esfera de dibujo activa
+LIMITE: el trazo toco la esfera y se corto en punta - cortes = 1
+```
+En visor eso habría sido un misterio: el primer trazo cortado antes de empezar.
+**Arreglado** moviendo el pincel a un costado: **(6035, −40, 105)** — 65 cm del centro de la burbuja (afuera) y 64 cm de la cabeza (al alcance). Segunda corrida: la esfera enciende y **no corta nada**.
+
+💡 **Regla que queda:** cada vez que se mueva el `DrawSpot` o se cambie `LimitRadius`, hay que **verificar que `BrushSpawn` quede afuera de la esfera**. Es una resta, pero es invisible en el editor porque la burbuja no existe hasta que corre la etapa.
 
 ## TODO
 - [ ] 🔴 Visor: si 45 cm de radio es cómodo, si el corte se siente justo o castigador, y si la ameba a escala 1.8 tapa demasiado.
