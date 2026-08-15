@@ -90,3 +90,23 @@ El log dio **`PACER: widget del anillo guiado cacheado`**: `GetUserWidgetObject(
 
 ## Relacionados
 [[BP_Stage_Entering]] (quien lo spawnea y a quien avisa) · `BP_BreathSensor_V2` (el que mueve el objeto; su auto-cierre por conteo quedó **apagado**) · `M_SoulRing` · [[BP_Ceremony]] (mismo patrón de dependencia invertida)
+
+## 🆕 El anillo y su sonido, calzados (2026-08-15)
+Pedido de Beltrán: *"el anillo ahora tiene que estar dividido en 3 — eso se hace con una textura que yo armaré después. Simplemente hay que lograr que la fase completa del anillo dure los 12 segundos"*.
+
+**El anillo ya daba una vuelta completa por ciclo**: `PacerApply` manda `(Phase + A) / 3` a `SetBreathRing`, o sea 0→1 a lo largo de las tres fases. Con 4+4+4 eso son **12 s exactos por vuelta**. La división visual en tres la va a dar la textura; el valor que la alimenta ya está bien.
+
+### 🔴 Lo que SÍ había que arreglar: el anillo derivaba
+`PacerNextPhase` hacía **`PhaseT = 0`** al cambiar de fase, y eso **tira el sobrante del frame**. Cada fase duraba 4 s *más lo que sobrara de un frame*; con 15 fases en los 5 ciclos, la deriva acumulada llega a ~0,25 s a 60 fps. Contra un loop de audio de 12 s exactos, eso se **escucha** desfasado hacia el final.
+**Arreglado:** `PhaseT = PhaseT − PhaseDur()` — arrastra el resto en vez de descartarlo. Se extrajo **`PhaseDur()`** (la duración de la fase actual, con piso 0,05) y ahora la usan `PacerAdvance` y `PacerNextPhase`, que además deja el grafo más corto.
+⚠ En `PacerNextPhase` el `PhaseDur()` se calcula **antes** de incrementar `Phase`; si se reordena, se resta la duración equivocada.
+
+### El sonido
+- **`LBreath`** (el clip `BreathCount`, loop de 12 s) entra por **`BreathAudioOn`** colgado de `PacerShowRing` — que es lo que `StartPacer` llama justo al abrir el anillo, así que **audio y anillo arrancan en el mismo latido**. Fade in de 0,08 s: casi seco, para no correr el ataque.
+- Se apaga en **`BreathAudioOff`**, colgado de `NotifyPacerStage`, con 1,2 s de fade.
+- 🔴 **`PacerPlayCount` ya no dispara audio**: antes tocaba el clip **al final de cada ciclo**, que era lo correcto para un one-shot y es lo incorrecto para un loop continuo. Quedó sólo como log de vuelta completa.
+- Se colgó de `PacerShowRing` y `NotifyPacerStage` porque `StartPacer` y `PacerFinish` contienen setters de bools con prefijo `b` y **no se pueden reescribir por DSL** (gotcha §62).
+
+### Estado
+🟡 Compila y los valores están verificados en el CDO (4/4/4, 5 ciclos, `LBreath`).
+⬜ **No se pudo probar en PIE**: el pacer arranca después de las páginas de instrucciones, que se pasan con el gatillo — y sin visor no hay mandos. **El calce audio-anillo se juzga en el casco.**
