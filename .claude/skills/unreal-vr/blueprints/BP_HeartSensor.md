@@ -4,6 +4,27 @@
 - **Propósito**: sensor físico agarrable del stage Heart. Es un **duplicado de `BP_BreathSensor_V2`** (ver ese tracker para la anatomía base: agarre, quietud, calibración/zona segura, hápticos, conteo) al que se le agregó la lógica de LATIDO por BPM y un VISUALIZADOR DE DEBUG de la zona segura.
 - **Estado**: 🟢 gameplay Heart funcional end-to-end · 🟡 visualizador de debug construido pero con bug de anclaje (ver abajo)
 
+## 🔴🔴 2026-08-15 — por qué la etapa Recognizing quedaba ATASCADA (dos candados en serie)
+Beltrán se quedó trabado en visor: puso el sensor en el corazón, dentro del umbral, y **no hubo pulso, ni háptico, ni sonido, ni avance**. No era el sensor: era que **todo el latido vive dentro de dos condiciones que nadie cerraba**.
+
+```
+UpdateHeartbeat (cada tick, ya agarrado)
+  if IsValid(OSCRef)                 ← CANDADO 1
+      BeatInterval = 60 / (OSCRef.HeartRate / 2)
+      if bBreathing                  ← el umbral de quietud (este SÍ se cerraba)
+          ...timer... → bBeatPulse · GrabPulse · Play(AudioHeartBeat)
+              if bCountingEnabled    ← CANDADO 2
+                  BeatCount++ · log "HB: Latido n/15" · MaybeFinishHeart
+```
+
+**Candado 1 — `OSCRef` era `None`.** La rama `Is Not Valid` se auto-cachea con `GetActorOfClass(BP_OSCReceiver)`, pero **no había ninguna instancia de `BP_OSCReceiver` en el nivel**, así que el cache devolvía null para siempre y el bloque entero no corría nunca. → **Arreglado**: `BP_OSCReceiver` colocado en `L_Persistent` (carpeta `02 Hubs`, etiqueta "OSCReceiver (fuente de latido)").
+
+**Candado 2 — `bCountingEnabled` sólo lo enciende `StartBreathStage()`, y Recognizing no lo llamaba.** O sea que aun con el receptor puesto, el latido habría sonado pero **`BeatCount` no habría subido nunca** → `PumpBeats` nunca dispara `FireJump` → sin salto de columnas, sin háptico, sin `SPulse` y **sin final de etapa**. → **Arreglado**: `BP_Stage_Recognizing.PumpBeats` ahora abre con `Class|BPHeartSensor|StartBreathStage(S)` (idempotente, sólo pone el bool en true; corre cada 0,25 s con el sensor ya válido, así que se auto-cura si el sensor aparece tarde).
+
+💡 **Lo que descartó al tercer sospechoso, sin teorizar:** el log de SU corrida mostraba `[BP_HeartSensor_C_0] UMBRAL IN` a las 18:33:18 y `UMBRAL OUT` **48 s después**. O sea `bBreathing` estaba en true casi un minuto: el umbral de quietud **no era el problema**, y no hubo que tocar `Step` (el pipeline frágil). Regla que queda: **antes de tocar el detector, buscar sus flancos en el log** — `Step` ya loguea `UMBRAL IN/OUT` y eso convierte una teoría en un dato.
+
+⚠ Y `MaxBeatCount = 15`: con ~68 bpm el intervalo es `60/(68/2)` ≈ **1,76 s** → la etapa pide unos **26 s de latido en zona**.
+
 ## Lo específico de Heart (sobre la base de BreathSensor_V2)
 - Lee BPM de `BP_OSCReceiver.HeartRate` (test fijo 75.5), lo **divide /2**, y pulsa un háptico fuerte + audio `HeartBeat` a ese ritmo cuando está en zona. Cuenta pulsos; a `MaxBeatCount` (test=4, real=15) espera `FinishDelay` (2s) y cierra el nivel. Función clave: `UpdateHeartbeat(DT)` (llamada desde EventTick en la rama agarrado+no-completo). Detalle fino de esas vars: pendiente de documentar acá (ver transcript 2026-07-20).
 - Calibración apretada: `SafeTol=4`, `SafeHorizMax=20`, `SafeVDropMin` heredado. Doble háptico: `HapticAmplitude=0.08` (zumbido continuo en zona) + `GrabPulse=BeatPulseAmount` (pulso fuerte por latido).

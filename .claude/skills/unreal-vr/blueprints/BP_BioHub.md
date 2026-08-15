@@ -26,6 +26,15 @@ Beltrán tiene su server OSC probado y enviará **3 señales** (él define las d
 
 Consumidor nuevo: [[BP_SoulHUD]] (lee `CalmSmooth`, `HeartSmooth`, `bConnected AND bSensorOn`).
 
+### 🆕 2026-08-15 — la simulación ahora también le da de comer al sensor de latido
+Había **dos fuentes de referencia distintas** y sólo una estaba simulada: el HUD y el gráfico leían el BioHub (LFO vivo), pero [[BP_HeartSensor]] lee **`BP_OSCReceiver.HeartRate`** — un valor **fijo 75.5** de otro Blueprint. Resultado: la etapa Recognizing dependía de un actor que ni siquiera estaba en el nivel.
+
+**Puente nuevo**: `FakeTick` calcula el BPM **una sola vez** (`_bpm`), lo manda al `Ingest` de siempre **y** cierra con **`PushFakeHeart(Bpm)`**, que cachea el `BP_OSCReceiver` del nivel (`OSCOut`, con `GetActorOfClass` + cast en la rama `Is Not Valid`) y le escribe `SetHeartRate(Bpm)`. Verificado en PIE: `BIO: latido simulado conectado al receptor` (se loguea **una sola vez**, al cachear).
+👉 Con esto **el latido del corazón late al ritmo simulado (68 ± 9 bpm, ciclo lento)** en vez de a un número fijo, y se prueba la obra entera sin hardware.
+⚠ Sólo corre bajo `bFakeSignal` (vive dentro de `FakeTick`): **cuando llegue el server OSC real, `bFakeSignal = false` y el puente se apaga solo** — no compite con la señal verdadera.
+
+🔴 **Trampa de DSL que costó tres intentos acá**: en `CallFunction`, los argumentos **posicionales empiezan por `self`**, así que `(CallFunction|Ingest X Y)` intenta conectar `X` a `self` y falla con *"Could not connect pin … to self"*. **Siempre keywords** (`:Addr`, `:Value`, `:N`, `:Bpm`) — y ojo que el pin de `IngestInt` se llama **`V`**, no `Value`.
+
 ## Registro de variables
 
 ### Config — cambiar de dispositivo se hace acá
