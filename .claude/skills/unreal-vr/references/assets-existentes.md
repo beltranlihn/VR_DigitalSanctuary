@@ -267,3 +267,26 @@ Transformation|AttachActorToComponent(self, cam, "None", "SnapToTarget", "SnapTo
 ## 💾 Persistencia
 Patrón de SaveGame en `Calibration/` (`SG_CalibSession`). `bUseExternalFilesDir=True` ya está en `DefaultEngine.ini`.
 ⚠ El brief de Touch dice que `add_variable` por MCP no crea arrays — **es falso**: se crean pasando `container_type: "Array"`.
+
+---
+
+## 🗂️ Convención del Outliner (2026-08-15)
+Los niveles quedaron ordenados en carpetas. **Al agregar un actor nuevo, va a su carpeta y con una etiqueta que diga qué es** — si no, en dos semanas nadie sabe qué es `BP_Anchor_C_17`.
+
+**`L_Persistent`** (lo que vive toda la obra):
+| Carpeta | Qué va |
+|---|---|
+| `01 Flujo` | Director · Finale · Ceremonia · Recorrido (spline) · Caminata |
+| `02 Hubs` | BioHub · AudioHub · HapticHub · Archivo de almas · Constelación |
+| `03 UI y HUD` | HUD del alma · Panel de resultados · Créditos · Fundido a negro · Viñeta |
+| `04 Exterior` | Vacío · FX polvo del vacío · Explorador de la constelación |
+| `05 Anclas/Cuerpo` | `TP_HudAnchor` · `TP_AmebaAnchor` · `Ref_CabezaSentado` · `TP_SoulHandSpot` |
+| `05 Anclas/Constelacion` | `TP_ConstSpot_0..11` |
+| `05 Anclas/Hall y menu` | `A_MenuRoot` · `A_MenuSpawn*` · `A_BellSpawn` · `A_SoulSpawn_1..5` |
+| `06 Debug` | DebugDirector · SelfTest |
+| `07 Sistema` | PlayerStart |
+
+**Cada `L_Room_*`** usa siempre las mismas tres:
+`1 Sala` (la sala y su puerta) · `2 Anclas` (todos los `TP_*`) · `3 Escena` (lo propio de esa etapa: paneles, campos, beams, botones).
+
+**Etiquetas:** el anchor se llama por **lo que ancla**, no por su clase (`TP_DrawSpot`, `TP_ChargeSpot`, `TP_Bubble7`). Cuando un actor se repite, la etiqueta lleva **el dato que lo distingue**, no un número ciego: `CampoLuz_0 (rosa)` / `_1 (violeta)` / `_2 (ámbar)` según su `FieldIndex`, y `AimBeam_Der` / `AimBeam_Izq` según su `bIsRight`. Así el outliner responde la pregunta sin abrir el Details.
