@@ -46,13 +46,39 @@ El pawn aporta **tres nodos y nada de lógica** (regla del pawn liviano): `IA_Me
 - **Log**: `GetLogEntries(pattern:"MARK #")` → número, etapa y segundo de cada marca.
 - **Capturas**: `VR_Test/Saved/Screenshots/WindowsEditor/HighresScreenshotNNNNN.png`, numeradas en orden. ⚠ **El número del archivo NO es el número de marca** (la numeración sigue entre corridas): correlacionar **por orden de modificación**, no por nombre.
 
-## 💡 Y además: `CaptureEditorImage` funciona durante PIE
-Hallazgo del mismo día: `EditorToolset.EditorAppToolset.CaptureEditorImage` devuelve una imagen del editor tal como se ve — **y funciona con PIE corriendo**. O sea que durante una sesión por Link puedo mirar el espejo del visor **cuando quiera**, sin que Beltrán haga nada. Los dos mecanismos se complementan: el MARK congela **su** instante, `CaptureEditorImage` me deja mirar **ahora**.
+## 🔴 El PULSO: la línea de estado cada 12 segundos
+`BeginPlay` arranca un timer (`PulsePeriod` = 12 s) sobre **`PulseTick`**, que llama a siete reporteros. Cada uno busca **el actor que realmente tiene el progreso** de su etapa (`GetActorOfClass` + cast + `IsValid`) y **no escribe nada si ese actor no existe** — así no hay switch por etapa y no hay ruido: sólo habla la mecánica que está viva.
+
+| Función | De dónde saca los números | Línea |
+|---|---|---|
+| `PulseHead` | `BP_StageDirector` | `PULSE\|t=36.4 \| etapa=0` |
+| `PulseHall` | `BP_SoulChoice` | candidatas · hover · inputListo · armado |
+| `PulseEntering` | `BP_BreathPacer` | ciclo n/N · corriendo · listo |
+| **`PulseHeart`** | `BP_HeartSensor` | **latidos n/15 · enMano · umbral · cuenta** |
+| `PulseLoving` | `BP_Stage_Loving` | pregunta n/N |
+| `PulseAttracting` | `BP_AttractDirector` | step n/8 · burbujas · arrancado |
+| `PulseSurrounding` | `BP_DrawCanvas` | metros · dibujando · puntos |
+
+Verificado en PIE (2026-08-15), y la primera corrida ya sirvió para dos cosas a la vez:
+```
+PULSE|t=12.416943 | etapa=0
+PULSE|Heart| latidos=0/15 | enMano=true | umbral=false | cuenta=true
+```
+👉 **Esa segunda línea es exactamente la que faltaba** el día que Beltrán quedó atascado en Recognizing: dice de un vistazo que el conteo está habilitado (`cuenta=true` — antes del arreglo era `false`) y que lo que falta es el umbral de quietud. Un diagnóstico que costó una hora ahora es una línea de log.
+
+🔑 **El dato que hizo posible leer los bools:** desde OTRA clase, las variables con prefijo `b` **sí se leen**, y el getter va **sin la `b`** — `GetBreathing`, `GetAttached`, `GetCountingEnabled`, `GetChosen`, `GetDrawing`, `GetDone`. Es la contraparte del §67 (los setters) y levanta la limitación del §74, que sólo aplica **dentro** de la propia clase.
+
+## 📸 Cómo llegan las imágenes — y qué NO funciona
+- ✅ **`HighResShot` → archivo → `Read`**: el camino que funciona. Barato en tokens (una imagen).
+- ❌ **`CaptureEditorImage`**: probado con PIE corriendo → *"Failed to capture any editor windows"*. No sirve como vista en vivo.
+- ⚠ **`CaptureViewport`**: funciona, pero devuelve el PNG **en base64 dentro de la respuesta** (651.000 caracteres en la prueba) → inviable por tokens. Sólo para un caso puntual, nunca de rutina.
+
+👉 Conclusión operativa: **las capturas salen de los MARK de Beltrán**, no de que yo mire cuando quiera.
 
 ## TODO
-- [ ] 🔴 Visor: confirmar que el botón ≡ entrega el input (si no, quedan `IA_Move`/`IA_Turn` libres).
-- [ ] Volcado de estado más rico en la marca: qué actor está en hover, qué compuertas de la etapa están abiertas.
-- [ ] Anclas automáticas (captura en cada entrada/salida de etapa) y el reportero de atascos.
+- [ ] 🔴 Visor: confirmar que el botón ≡ entrega el input (si no, quedan `IA_Menu_Toggle_Right`, `IA_Move` e `IA_Turn` libres).
+- [ ] Volcado de estado en la marca: hoy la marca dice etapa y tiempo; el detalle lo da el pulso de los 12 s. Si hiciera falta, `DoMark` puede llamar a `PulseTick`.
+- [ ] Los reporteros de Hall / Entering / Loving / Attracting / Surrounding **compilan pero no se han visto imprimir** (sus actores no existen sin manos en PIE). Confirmar en la primera corrida de visor.
 
 ## Relacionados
 - [[BP_StageDirector]] (de dónde sale la etapa) · [[BP_SelfTest]] (la otra pata: aserciones sin humano) · `references/assets-existentes.md` §input
