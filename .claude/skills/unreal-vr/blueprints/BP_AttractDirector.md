@@ -117,3 +117,24 @@ Hoy el clip lo dispara la burbuja con un `Play()` común desde `PulseOnBeat`. Lo
 - 2026-07-23: creado el tracker (Fase 0). Rama `stage/touch` creada desde `main`. Nivel `L_Touch` y `DA_SoundBank` pendientes (requieren Unreal abierto). Stubs de los BPs ya existían del scaffold.
 - 2026-08-03: **traspaso del stage a Beltrán** (rama `stage/touch` actualizada con `main`). 🔴 **Hallazgo grave al abrir `L_Touch`: TODOS los actores de gameplay estaban en (0,0,0)** — beam, 3 burbujas, 5 slots y el Director apilados en el origen. Los trackers documentaban posiciones (burbujas "~120cm al frente", slots "X=55, Z=75", cubo de test "(150,0,120)") que **no estaban en el `.umap` guardado**; el cubo apareció en (0,0,120), o sea perdió la X. Conclusión: las Fases 1-4 nunca fueron testeables, y no por el código sino porque la escena no estaba armada. **Lección: verificar la posición real de los actores con `get_actor_transform` antes de dar una fase por lista** — que compile no dice nada de la escena, y el tracker puede describir una escena que no existe. Arreglado: slots en fila (X=55, Z=75, Y −60/−30/0/+30/+60, `StepIndex` 0-4 verificados y coincidentes con el orden espacial), burbujas migradas a spawn por TargetPoint.
 - 2026-07-28: **Fase 0 completada por MCP.** `L_Touch` (dup de `L_Test_Breath`, sin los BPs de Breath) + `BP_AttractDirector` colocado (0,0,50) + `DA_SoundBank` (PrimaryDataAsset, arrays Clips/Previews vacíos). GameMode `BP_SoulChargerGameMode` verificado. Guardado. Falta test en visor + poblar audio + MapsToCook. (El MCP se cortó y reconectó a mitad; los assets ya estaban guardados, sin pérdida.)
+
+## 🆕 Secuenciador de 8 pasos a 90 BPM (2026-08-15)
+Cambio pedido por Beltrán. Tres piezas:
+
+**1. El reloj.** `BPM` 72 → **90** y `NumSteps` 5 → **8** en el CDO. Verificado en PIE: **`STEP 7` vuelve cada 5,333 s**, que es exactamente 8 × (60/90). El Quartz ya estaba bien armado; sólo cambiaron los números.
+
+**2. Los slots.** La fila pasó de 5 a 8, **simétrica y con el mismo espaciado de 30 cm** que ya usabas: `Y = −105, −75, −45, −15, +15, +45, +75, +105` en `X=4855, Z=75`. Se movieron los 5 existentes y se crearon `TP_Slot5/6/7` con tags `SlotSpawn5/6/7`. `BP_Stage_Attracting.SpawnSlots` ahora spawnea los ocho. Log: `TCH|Dir slots=8 bubbles=20 beams=2`.
+💡 El ancho total quedó en **2,1 m**, que sería inalcanzable para una obra sentada — pero **las burbujas se agarran con el beam, no con la mano**, así que la fila puede ser ancha. El espaciado de 30 cm se mantuvo a propósito: `BP_SoundBubble.PlaceRadius` es 25 cm, y apretar más la fila haría que una burbuja caiga en el slot vecino.
+
+**3. Guardar con UN solo slot.** Antes `RefreshAvailable` exigía **todos** los slots ocupados (arrancaba en `true` y apagaba al primer hueco). Ahora arranca en `false` y **el primer ocupante lo enciende**: el usuario puede quedarse con su melodía sin llenar los ocho.
+
+### 🔴 Cómo se hizo el punto 3, porque no se podía escribir
+`bAvailable` tiene prefijo `b`, y **su setter no se puede escribir por DSL desde su propia clase** (gotcha §62) — o sea `RefreshAvailable` era **irreescribible**. Pero los dos nodos `SetbAvailable` **ya existían en el grafo**, así que la inversión se hizo por **cirugía**, sin crear ni borrar nada:
+1. el `true` del arranque → `false` (un `set_pin_value`),
+2. el `false` del loop → `true` (otro `set_pin_value`),
+3. y ese nodo se colgó del pin **Is Valid** en vez de **Is Not Valid** (un `connect_pins`).
+💡 **La lección general:** cuando una función no se puede reescribir, mirar si los nodos que hacen falta **ya están ahí**. Invertir una condición suele ser mover un cable y cambiar dos constantes, no reconstruir la función.
+
+### ⚠ Dos cosas vistas de paso
+- Los tres anchors nuevos **cayeron primero en `L_Room_Surrounding`** (era el nivel activo del editor) y hubo que rehacerlos: se borraron, se abrió `L_Room_Attracting` como mapa, se crearon ahí y se volvió al persistente. 🔴 **Un actor nuevo va al nivel ACTIVO, no al que uno tiene en la cabeza** — y en una sala equivocada el `GetAllActorsOfClassWithTag` no lo encuentra, porque esa sala no está cargada durante la etapa.
+- `BP_AimBeam` escupe **una línea de debug por segundo por mano** (`TCH|B L fx=...`). Es ruido de desarrollo que conviene apagar antes del APK.
