@@ -290,3 +290,29 @@ Los niveles quedaron ordenados en carpetas. **Al agregar un actor nuevo, va a su
 `1 Sala` (la sala y su puerta) · `2 Anclas` (todos los `TP_*`) · `3 Escena` (lo propio de esa etapa: paneles, campos, beams, botones).
 
 **Etiquetas:** el anchor se llama por **lo que ancla**, no por su clase (`TP_DrawSpot`, `TP_ChargeSpot`, `TP_Bubble7`). Cuando un actor se repite, la etiqueta lleva **el dato que lo distingue**, no un número ciego: `CampoLuz_0 (rosa)` / `_1 (violeta)` / `_2 (ámbar)` según su `FieldIndex`, y `AimBeam_Der` / `AimBeam_Izq` según su `bIsRight`. Así el outliner responde la pregunta sin abrir el Details.
+
+---
+
+## 🤲 Mapa de HÁPTICOS de la obra (2026-08-15, auditado)
+Todos pasan por **`BP_HapticHub`** (`HapticHover` · `HapticSelect` · `HapticHold`), nunca por la API directa. El patrón en cada BP es el mismo: variable `HapticRef` + una función chica que cachea el hub y dispara.
+
+| Momento | Dónde vive | Pulso |
+|---|---|---|
+| Hover sobre un botón / salir del hover | `BP_MenuButton.HoverHaptic` | Hover |
+| Confirmar un botón | `BP_MenuButton.SelectHaptic` | Select |
+| Sostener el timbre | `BP_MenuButton.HoldHapticOn/Off` | Hold |
+| Hover / elegir la proto ameba del Hall | `BP_SoulChoice.ChoiceHover/SelectHaptic` | Hover / Select |
+| 🆕 **Tomar el sensor** (la calibración) | `BP_Sensor.SensorTakeHaptic` | Select |
+| 🆕 **Hover sobre una burbuja** | `BP_SoundBubble.BubbleHoverHaptic` | Hover |
+| 🆕 **Agarrar con el beam** (burbuja o botón) | `BP_AimBeam.BeamGrabHaptic` (reemplazó al log de debug) | Select |
+| 🆕 **Colocar la burbuja en un slot** | `BP_SoundBubble.BubblePlaceHaptic` | Select |
+| Latido reconocido en Recognizing | `BP_Stage_Recognizing.BeatFeedback` | Select |
+| 🆕 **Cada fase del ritmo guiado** (4/4/4) | `BP_BreathPacer.PacerHaptic` | Hover |
+| 🆕 **Arranque de cada trazo** en Surrounding | `BP_DrawCanvas.DrawHaptic` | Select |
+| Invadir la esfera límite | `BP_DrawLimit.CutHaptic` | Select |
+| 🆕 **La carga de la ceremonia** | `BP_Ceremony.ChargeHaptic` | Select |
+| Tomar la ameba final | `BP_Finale.GrabHaptic` | Select |
+| Apuntar una ameba de la constelación | `BP_ConstExplorer.ExploreHaptic` | Hover |
+
+**Deliberadamente SIN háptico:** cruzar puertas, caminar, y el pulso por beat de los slots del secuenciador — serían vibración continua, que cansa y compite con lo que sí importa.
+⚠ Casi todos pasan `bRight = true` porque el actor no sabe qué mano lo tocó. Donde **sí** se sabe (botones), va la mano real. **Afinar en visor**: si se siente que vibra la mano equivocada, hay que propagar la mano desde el beam.
