@@ -123,3 +123,12 @@ Reemplaza al gate ciego de v2 ("no sucedió nada"). Trae la cadena PROBADA de `S
 - `CacheRecogFeedback` cachea los dos hubs al arrancar la etapa (insertado por **cirugía** al principio de `RecogRunBody`, para no reescribir un grafo ya verificado).
 - Variables nuevas: `HapticRef` · `AudioRef` · `bHandRight` (qué mano vibra) · `PulseSfxName` (`SPulse`, instance-editable).
 - 🔴 **No verificable en PIE**: el latido sólo dispara con el sensor dentro de la zona del pecho, y sin visor no hay manos. Queda para el casco.
+
+## 🆕 2026-08-15 — Surrounding: cierra por METROS ACUMULADOS, no por cortafuegos
+Decisión #5 del guión (*"cierre por metros acumulados de trazo, no número de trazos"*). Antes esta etapa **sólo cerraba por el timeout del director**.
+
+- **[[BP_DrawCanvas]] lleva ahora la cuenta total**: variable **`TotalArc`** (nunca se resetea) + **`FoldArcIntoTotal`**, insertada por cirugía al principio de `EndStroke`: suma el `ArcLength` del trazo que termina **y lo pone en cero**, para que no se cuente dos veces. La API pública es **`GetDrawnMeters()`** = `(TotalArc + ArcLength) / 100`, que da los metros **en vivo**, también a mitad de trazo.
+- **La etapa poll-ea cada 0,5 s**: `CheckMeters` → si no tiene canvas lo busca (`FindCanvas`), si lo tiene mide → `CheckMetersBody` → al llegar a **`TargetMeters` (12 m, instance-editable)** → `SurrDone` → `StageDone()`.
+- `ReportMeters` loguea **cada metro entero**, no cada tick — así el progreso se ve en el log sin inundarlo.
+- El timer se limpia en `CleanupSurr` y en `SurrDone`. El cortafuegos del director **sigue existiendo** como backstop: si nadie dibuja, la etapa igual cierra.
+- **Verificado por log (`DebugStartStage=5`)**: la etapa arranca, spawnea el pincel y el poll corre sin ruido; cero `Accessed None`. ⬜ Los metros reales necesitan visor (sin manos no se dibuja).
