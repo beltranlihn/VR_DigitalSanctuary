@@ -138,3 +138,20 @@ Cambio pedido por Beltrán. Tres piezas:
 ### ⚠ Dos cosas vistas de paso
 - Los tres anchors nuevos **cayeron primero en `L_Room_Surrounding`** (era el nivel activo del editor) y hubo que rehacerlos: se borraron, se abrió `L_Room_Attracting` como mapa, se crearon ahí y se volvió al persistente. 🔴 **Un actor nuevo va al nivel ACTIVO, no al que uno tiene en la cabeza** — y en una sala equivocada el `GetAllActorsOfClassWithTag` no lo encuentra, porque esa sala no está cargada durante la etapa.
 - `BP_AimBeam` escupe **una línea de debug por segundo por mano** (`TCH|B L fx=...`). Es ruido de desarrollo que conviene apagar antes del APK.
+
+## 🆕 El Módulo 1 suena (2026-08-15)
+Beltrán subió `Core/Audio/AttractingSounds/Module1/`: un **pad de base** y los clips de las burbujas.
+
+- **El pad** entra como voz en loop **`LAttractPad`** del [[BP_AudioHub]], con **3 s de fade** — arranca en `LogInit` (`PadOn`) y se apaga en el `CleanupAttract` de la etapa (`PadOff`). Es lo que reemplaza al ambiente: esta sala ya no lleva Ambient Clip, manda la música.
+- **Los clips de burbuja** viven en **`ModuleSounds`** (array instance-editable del director). `AssignBubbleSounds` recorre las burbujas recién spawneadas y a cada una le pasa **su clip y su id** (`BP_SoundBubble.SetClip`), que escribe el `Sound` del `BeatAudio` que la burbuja ya tenía, el `PreviewSound` del hover, y guarda el **`ClipId`**.
+- Log de la corrida: `TCH|Dir slots=8 clips repartidos=20`. Cero `Accessed None`.
+
+🔴 **Con esto se cierra la deuda de la melodía.** `BP_Finale.MelodyFromSlots` anotaba el **`StepIndex`** — la posición en la secuencia, no el sonido — y por eso **todas las melodías guardadas salían iguales**. Ahora anota el **`ClipId` del ocupante**, y `-1` para el slot vacío, que es una melodía de verdad: qué sonido hay en cada paso. El explorador de la constelación ([[BP_ConstExplorer]]) ya reproduce ese string sin cambios.
+
+⚠ **Falta `M1S10`.** La carpeta trae 19 clips (1-9 y 11-20) y hay **20 `BubbleSpawn`**, así que una burbuja queda muda — `AssignOneBubble` la saltea sin romper nada. Cuando aparezca el archivo, se agrega al array y listo.
+
+⚠ **`CleanupAttract` se reescribió con bucles.** Tenía 12 `KillOneBubble` y unos cuantos `KillOneSlot` **escritos a mano**, y con 20 burbujas y 8 slots ya no alcanzaban: quedaban residuos. Ahora son `KillAllBubbles` / `KillAllSlots`, que recorren todo. **Es la clase de bug que aparece cuando cambian las cantidades y nadie revisa el barrido.**
+
+### El debug del beam, apagado
+`BP_AimBeam.LogBeamPose` escribía **una línea por segundo y por mano**. Se le borró el `PrintString` (y a `LogInit`); las funciones quedan vacías para no romper a sus llamadores.
+💡 De paso: ese log leía **`Beam_Start`** con guión bajo, y los parámetros reales del sistema son **`User.BeamStart` / `User.BeamEnd`** (confirmado con `GetUserVariables` sobre `NS_TouchBeam`). O sea el `okS=false` que mostraba **era del log, no del beam**. La escritura de `UpdateBeamPoints` con el nombre pelado sigue siendo la correcta.
