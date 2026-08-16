@@ -5,7 +5,25 @@
 
 ---
 
-## 🔴🔴 EL GRANDE: el jugador nunca se mueve del origen
+## ❌ RETRACTADO — "el jugador nunca se mueve" era MI robot, no la obra
+
+> 🔴 **Este hallazgo era falso.** Lo dejo escrito con su corrección porque el error de método vale más que la conclusión.
+>
+> **El recorrido por spline funciona perfecto.** Medido con el robot sin interferir:
+> ```
+> pawn=X=1200 | camara=X=1200
+> pawn=X=2400 | camara=X=2400
+> pawn=X=3000 | camara=X=2925   ← en pleno tramo, la cámara sigue al pawn
+> pawn=X=3600 | camara=X=3600
+> ```
+> **La causa era mi propio robot**: `SetHead` reescribía la *posición completa* del `VROrigin` sesenta veces por segundo para simular la cabeza a 115 cm — y el `VROrigin` es justamente lo que el recorrido desplaza. Yo pisaba el movimiento y después medía el resultado de mi interferencia.
+>
+> **Arreglado**: `SetHead` ahora conserva X e Y y **sólo corrige la altura** (`_cur + up * (HeadHeight − _cur.z)`), más un interruptor `HeadOn` para poder aislarlo.
+>
+> 🔑 **La lección, que es la importante:** un instrumento que *modifica* el mundo puede fabricar el bug que después reporta. Beltrán tenía la evidencia en contra desde el principio — *"en gafas íbamos pasando de sala en sala sin problema"* — y **el dato del visor le gana a mi medición en PIE**. Cuando las dos cosas chocan, sospechar primero del instrumento.
+> ⚠ Consecuencia: **todo lo que concluí sobre Attracting a partir de las distancias hay que volver a medirlo** con el robot arreglado. Que las burbujas estuvieran a 48 m era, casi seguro, el mismo artefacto.
+
+## ~~EL GRANDE: el jugador nunca se mueve del origen~~ (ver retractación arriba)
 
 ```
 sala Entering     X=1200
