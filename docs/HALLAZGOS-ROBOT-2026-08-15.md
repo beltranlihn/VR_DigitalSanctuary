@@ -55,7 +55,38 @@ Y explica la contradicción con las pruebas anteriores: **la mecánica de Attrac
 
 ---
 
-## 🔴 LO QUE HAY QUE DECIDIR HOY: el puntero choca con cosas que no deberían bloquearlo
+## 🎯 ESTADO FINAL DE LA CAMPAÑA (2026-08-16, mañana)
+
+**Cinco de siete etapas cierran por interacción, sin ningún cortafuego de instrucciones:**
+```
+HALL         completa - camino real   (elegir ameba con el gatillo)
+ENTERING     completa - camino real   (5 ciclos del pacer)
+RECOGNIZING  completa - camino real   (15 latidos)
+LOVING       completa - camino real
+SURROUNDING  completa - camino real   (metros dibujados)
+ATTRACTING   ⛔ por tiempo
+FINAL        ⛔ cortafuegos - nadie la tomo
+```
+✅ Confirmado además que **los botones siguen andando** (START y PLACE YOUR HAND se aprietan): el hover por distancia está intacto.
+
+### 🔴 El patrón que queda por resolver: los ENVOLTORIOS bloquean el puntero
+Cada vez que se destrabó uno, apareció el siguiente. Todos son cosas que **rodean al jugador** y que no deberían responder a un trazo:
+
+| Envoltorio | Qué es | Estado |
+|---|---|---|
+| `BP_Void` | la esfera del vacío (decorado puro) | ✅ colisión apagada |
+| `BP_Sensor` | el sensor en la mano — **el rayo nacía dentro de él** | ✅ resuelto sin tocar su colisión: el trazo ahora sale de `TipLoc()`, 22 cm adelante |
+| `BP_FadeSphere` | la esfera negra del fundido, pegada a la cámara a 30 cm | ✅ colisión apagada |
+| `BP_ProtoSoul` (la del HUD) | la ameba que viaja con vos | ⬜ **es la que bloquea ahora** |
+
+🔑 **El dato de Beltrán que ordenó todo el diagnóstico**: *"en el level de test de Attracting funcionaba sin problema; ahí había que agarrar los sensores"*. Esa es exactamente la diferencia — en la obra armada el sensor llega **ya puesto en la mano**, o sea sobre el origen del rayo. **Es un bug que sólo existe en la obra armada.**
+
+### 👉 La decisión que queda (es de diseño, no la tomo solo)
+Ir apagando colisiones de a una **no escala**: siempre va a aparecer el siguiente objeto pegado al jugador. Lo correcto es que el trazo del beam sepa a qué puede apuntar:
+1. **Ignore list** en el `LineTraceByChannel` — pasarle los actores pegados al pawn. (Bloqueado por MCP: no se pueden crear variables de tipo array; habría que agregar la variable a mano en el editor y yo cableo el resto.)
+2. **Un canal de trazo propio** ("Pointer") al que sólo respondan burbujas, botones y amebas elegibles. Es la solución de fondo y arregla el puntero en toda la obra de una vez.
+
+## 🔴 El detalle del recorrido (histórico)
 
 La cadena de Attracting se persiguió hasta el fondo con mediciones. El puntero **apunta perfecto** — medido:
 ```
