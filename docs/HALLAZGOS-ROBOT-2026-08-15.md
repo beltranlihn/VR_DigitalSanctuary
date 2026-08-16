@@ -55,7 +55,30 @@ Y explica la contradicción con las pruebas anteriores: **la mecánica de Attrac
 
 ---
 
-## 🟢 Tres bugs encontrados Y arreglados
+## 🔴 LO QUE HAY QUE DECIDIR HOY: el puntero choca con cosas que no deberían bloquearlo
+
+La cadena de Attracting se persiguió hasta el fondo con mediciones. El puntero **apunta perfecto** — medido:
+```
+fwd del aim      = X=0.102 Y=-0.977 Z=0.187
+dirección a la burbuja = X=0.102 Y=-0.977 Z=0.187    ← el mismo vector
+distancia = 171 cm · beam equipado · gatillo=true · burbuja con perfil BlockAllDynamic
+```
+El problema es **qué se cruza en el camino**. Tres capas, y ya cayó una:
+
+| Obstáculo | Estado |
+|---|---|
+| **`BP_Void`** — la esfera del vacío, actor puramente decorativo (cero variables, cero lógica). El jugador queda parado sobre su cáscara, así que **todo rayo la golpeaba primero**. | ✅ **ARREGLADO**: se apaga la colisión en su `BeginPlay`. |
+| **`BP_Sensor`** — el sensor que se lleva en la mano. El puntero nace en la mano, así que el sensor es lo primero que el rayo encuentra. Medido en el beam **izquierdo**: `golpea=BP_Sensor_C_0`. | ⬜ **Abierto.** Le pasa igual a una persona. |
+| **`BP_Room`** — la geometría de la sala. Medido en el beam **derecho**: `golpea=BP_Room_C_0` antes de llegar a la burbuja. | ⬜ **Abierto.** |
+
+### La decisión (es de diseño, por eso no la tomé solo)
+El arreglo correcto **no** es apagarle la colisión a cada cosa: es que **el trazo del beam ignore lo que no es apuntable**. Dos caminos:
+1. **Ignore list en el trace** — pasarle al `LineTraceByChannel` de `BP_AimBeam` los actores agarrados al pawn (sensores) y la sala. Es lo más limpio y no toca la colisión de nadie.
+2. **Un canal propio para apuntar** — que sólo las burbujas, los botones y las amebas respondan a él. Más trabajo, pero es la solución de fondo y arregla el puntero en toda la obra de una vez.
+
+⚠ **Por qué no aparecía en tus pruebas de Touch**: en su propio nivel no está la esfera del vacío ni la sala del recorrido. **Es un bug que sólo existe en la obra armada** — exactamente lo que el robot vino a cazar.
+
+## 🟢 Cuatro bugs encontrados Y arreglados
 
 ### 1. El pincel de Surrounding pedía que lo agarraran
 Nacía con `bAttached=false` y su Tick llamaba `TryAttach` hasta que una mano lo tocara; el log decía *"pincel flotando - tomalo con cualquier mano"*. **Contradice la regla de la obra**: el sensor que se toma en el Hall es la herramienta de toda la experiencia.
