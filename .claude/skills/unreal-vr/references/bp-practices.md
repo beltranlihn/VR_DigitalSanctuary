@@ -57,6 +57,16 @@ Buscado específicamente. **No existe**: ni máximo de nodos, ni máximo de tama
 
 **Conclusión honesta:** partir un grafo gigante está bien respaldado como **mantenibilidad**; **no esperar ganancia de frame**. Son los mismos nodos y los mismos despachos, reorganizados (y una función agrega su propio costo de llamada). Hacerlo por cordura, no por el frame budget.
 
+## 🔴 Blueprint Nativization: **ELIMINADA en UE5** — no hay botón mágico
+En UE4 existía "Blueprint Nativization": convertir los BP a C++ al empaquetar, para ganar performance sin reescribir. **En UE5 no existe.**
+
+> *"Blueprint Nativization will not exist in UE5."*
+> *"Projects that leveraged this feature should not see any changes or need to receive any modifications in order to function properly, **though performance may be impacted. If this happens, developers will need to take other optimization approaches**."*
+> — [Unreal Engine 5 Migration Guide](https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-migration-guide) · UE5-actual
+
+**Lo que implica para este proyecto (Quest 3, game-thread apretado):** no hay escape hatch. Si un Blueprint cuesta, las únicas palancas son **(1) que el grafo haga menos trabajo** — ver [bp-lean-construction.md](bp-lean-construction.md) —, **(2) que corra menos seguido** (timers/delegados en vez de Tick, cita más abajo), o **(3) moverlo a C++ a mano**. Y Epic **no promete** que lo primero se note: ver la sección de abajo, donde dice que la diferencia BP vs C++ *"usually insignificant and depends on context"*.
+⚠ Si alguien propone "nativizar" o encuentra la opción de *Nativization Method* en Project Settings de un proyecto viejo: está muerta, y en 5.x ni siquiera empaqueta.
+
 ## Blueprint vs C++ — la posición ACTUAL
 > "Fundamentally, C++ is more performant … **However, Blueprint and C++ performance differences are usually insignificant and depend on context.**"
 > — [Coding in Unreal Engine: Blueprint vs. C++](https://dev.epicgames.com/documentation/en-us/unreal-engine/coding-in-unreal-engine-blueprint-vs-cplusplus) · **UE5-actual**

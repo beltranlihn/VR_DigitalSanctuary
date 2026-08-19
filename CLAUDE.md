@@ -19,6 +19,13 @@ Otros documentos de diseño (raíz): [`Soul-Charger-Design.md`](Soul-Charger-Des
 - **Antes de tocar config, materiales o luces** → `skills/unreal-vr/references/materials-vr.md` y `lighting-quest.md`.
 - Empaquetar en **Development** para los builds de trabajo/data (Shipping recorta logs y cambia rutas de guardado).
 
+## 2.b 🧼 ETAPA ACTUAL (desde 2026-08-17): la versión LIMPIA en `MapsV2`
+🔴 **El nivel de trabajo es `/Game/SoulCharger/MapsV2/L_SoulCharger`** (persistente nuevo) con sus 6 sublevels en `MapsV2/RoomsV2/`. La etapa consiste en **rehacer las mecánicas de forma limpia y ordenada en un nivel nuevo**; el esqueleto viejo (`Maps/L_Persistent` y sus BPs) **no se toca** y queda como referencia de lo ya probado.
+
+Rehecho hasta ahora: **`BP_Director_Movement`** (recorrido + caminata + pasos + viñeta en un solo BP), **`BP_Director_Music`** (ambientes con crossfade), **`BP_Door_SC`** (puerta con el arte real, una por sublevel) **`BP_Director_Rooms`** (carga/descarga de sublevels con fundido por material), **`BP_Alma_SC`** (la guía, con toda su vida en el material), **`BP_ProtoSoul_SC`** (el alma del usuario: malla intercambiable, hover, y puntos que dan posición **y tamaño**) y **`BP_SoulPicker_SC`** (la pantalla de "Start experience": siembra las 5 candidatas y resuelve la elección por hover + gatillo). Detalle y estado: [`blueprints/_INDEX.md`](.claude/skills/unreal-vr/blueprints/_INDEX.md), sección "ETAPA ACTUAL".
+
+⚠ **Dos reglas de trabajo que salieron de esta etapa** (`references/gotchas.md` §114-118): **colocar actores sí, sacarlos se pregunta**; y **contar actores antes/después de cada tanda de scripts, guardando siempre con rutas explícitas** — un `execute_tool_script` que falla dispara un Undo que se lleva trabajo del nivel.
+
 ## 3. Estado de los stages (actualizar al avanzar)
 Carpetas en `VR_Test/Content/SoulCharger/Stages/`: **Breath · Heart · Mind · Movement · Touch · Inicio · Centro · Salida**. Detalle vivo en [`docs/ESTADO-STAGES.md`](docs/ESTADO-STAGES.md).
 

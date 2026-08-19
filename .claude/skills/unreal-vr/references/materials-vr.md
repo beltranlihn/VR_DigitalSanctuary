@@ -270,3 +270,32 @@ OpacityMask    <-  FontSampleParameter, salida R
 💡 **`Emissive ← VertexColor` conserva el fade por `SetTextRenderColor`** — no hace falta ningún parámetro extra para animar la opacidad.
 
 ⚠ **Negro opaco es invisible pero sigue ocluyendo.** Un plano opaco con emisivo 0 no se ve, pero **escribe profundidad** y tapa lo que esté detrás (cortó la mitad del título de la intro). Si algo tiene que desaparecer de verdad, `SetVisibility(false)`, no sólo apagarle el brillo.
+
+---
+
+## 🔴🔴 DEGRADADOS ANIMADOS EN QUEST: son DOS problemas distintos con la misma pinta
+Investigado el 2026-08-18 a partir de dos quejas de Beltrán sobre intentos anteriores — *"en el packaging de VR no se ven tan bien"* y *"el movimiento se empieza a ver cortado a medida que avanza la experiencia"*. **Parecen el mismo defecto y no lo son.** Confundirlos hace perder el día entero tocando la palanca equivocada. Implementación completa en [`blueprints/BP_TurrellPanel_SC.md`](../blueprints/BP_TurrellPanel_SC.md).
+
+### 1. El movimiento se corta con el tiempo = **fp16**, no el diseño de la animación
+Los shaders móviles corren en **half (fp16, 10 bits de mantisa)**. `Time` acumula desde el arranque; cuando el valor crece lo suficiente, **el avance entre dos cuadros cae por debajo del ulp** y la animación pasa a saltos. En el hilo de Epic lo reportan **a los 3 minutos en Android**, con el juego a 60 fps estables.
+> *"Turning on the Use Full Precision option helped me"* — [Why does a material slow down after a short period of time?](https://forums.unrealengine.com/t/why-does-a-material-slow-down-after-a-short-period-of-time/466050)
+
+**Las dos palancas, y conviene usar ambas:**
+- **`floatPrecisionMode = MFPM_Full_MaterialExpressionOnly`** (propiedad del material; en la UI *"Use Full-Precision For Material-Expressions Only"*). Fuerza fp32 **sólo en la matemática del material**, sin pagarlo en el resto del shader. El enum completo: `MFPM_Default` · `MFPM_Full_MaterialExpressionOnly` · `MFPM_Full` · `MFPM_Half` · `MFPM_Half_WithShaderParameters`.
+- **Nodo `Time` con `bOverride_Period = true` + `period = <N>`** para que el valor **nunca crezca**. Protege además la sesión larga de editor, no sólo el APK.
+
+🔴 **Y el detalle que hace que el período no se note:** expresar cada frecuencia como un **número entero de ciclos dentro del período** (y pasarla por `round()` si es un parámetro). Enteros ⇒ el reinicio de `Time` cae justo en el cierre del ciclo y **el salto es matemáticamente invisible**; enteros **coprimos** (2/3/5) ⇒ el patrón compuesto no se repite hasta completar el período entero. Así se tiene movimiento aparentemente aleatorio **y** bucle sin costura, sin ruido y sin textura.
+
+### 2. Las bandas = **cuantización a 8 bits**, y se curan con **dither**
+Un degradado amplio y suave es el peor caso para 8 bits por canal: los escalones salen como anillos concéntricos. Se rompe con ruido de amplitud ~1 LSB (**1/255 ≈ 0.004**) sumado al final.
+
+🔴 **`DitherTemporalAA` NO sirve en Quest**: necesita TAA, y acá el antialiasing es **MSAA** (ver arriba: *"Disable antialiasing in GammaLDR mode"*). Hay que usar un dither **estático en espacio de pantalla** — que además, con MSAA, es estable y no titila.
+
+Receta barata (~6 instrucciones, **sin textura**): `frac(dot(PixelPosition, float2(0.7548776662, 0.5698402910)))` — la **secuencia R2** de baja discrepancia, que distribuye parecido a blue noise con dos multiplicaciones. Centrar en 0 (`− 0.5`) y escalar por un parámetro.
+💡 El nodo `ScreenPosition` ya tiene salida **`PixelPosition`** — no hace falta multiplicar `ViewportUV` por `ViewSize`.
+
+### 3. Emisivo brillante sin quemarse a blanco
+No es un problema de VR sino de composición, pero aparece siempre con estos degradados. **Nunca sumar capas de color, sólo interpolar** (sumar sobre una base clara satura a blanco). Y para dejar que el autor empuje el brillo sin perder el tono: **normalizar por el canal máximo**, `col / max(max(r,g,b), 1)` — identidad mientras nada se pase de 1, y cuando algo se pasa baja **el color entero junto**, conservando el tono exacto.
+⚠ Efecto lateral que hay que avisarle al autor: **el `Brightness` deja de hacer efecto** pasado ese punto. La intensidad se lleva con los colores.
+
+⚠ **Y encima de todo esto sigue el piso de 13/255 del panel** (arriba): el extremo oscuro de cualquier degradado **se aplasta a negro plano** en el visor aunque en el monitor se vea perfecto. Autorar el color exterior más arriba de lo que pide el ojo en el editor.

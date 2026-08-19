@@ -73,7 +73,23 @@ AddMappingContext(IMC, Priority = 1000,
 ### 🔴🔴 NO TOCAR LOS IMC — decisión de Beltrán (2026-08-15)
 > *"Ya intentamos una vez cambiar los IMC y todas esas cosas, y era supercomplicado, y no sé cómo terminamos haciendo funcionar el trigger que usamos ahora. Así que tratemos de hacerlo funcionar con el trigger que ya tenemos creado, que estamos usando para los botones y para las demás cosas."*
 
-⚠️ **Esto invalida la ruta "mapear `IA_Grab_*` al trigger en un IMC nuevo".** El mapeo de input de este proyecto es frágil y **nadie sabe reconstruir por qué anda** el que anda — tocarlo es riesgo puro. La regla queda: **no se crean ni se editan IMC; se reusa `IA_Continue` + `IMC_Continue`**, que es el gatillo que ya mueve los botones y las páginas de instrucciones en toda la obra.
+⚠️ **Esto invalida la ruta "mapear `IA_Grab_*` al trigger en un IMC nuevo".** El mapeo de input de este proyecto es frágil y **nadie sabe reconstruir por qué anda** el que anda — tocarlo es riesgo puro. La regla queda: **no se crean ni se editan IMC; se reusa uno de los que ya existen** (`IMC_Continue` o `IMC_MenuTrigger`), que es el gatillo que ya mueve los botones y las páginas de instrucciones en toda la obra.
+
+### 🟢🟢 ZANJADO 2026-08-19 — "reusar `IA_Continue` + `IMC_Continue`" mezcla DOS cosas distintas
+La frase corta se recuerda mal y manda a cablear el evento equivocado. Medido barriendo los `.uasset` (`grep -aoh "IMC_[A-Za-z_]*\|IA_Continue\|IA_Shoot_[A-Za-z]*"`):
+
+| Blueprint | IMC que registra | **Evento que escucha** |
+|---|---|---|
+| `BP_Instructions` (Breath, **probado en visor**) | `IMC_Continue` | **`IA_Shoot_Left` + `IA_Shoot_Right`** |
+| `BP_MenuButton` · `BP_SoulChoice` | `IMC_MenuTrigger` | **`IA_Shoot_*`** |
+| `BP_CalibProbe` · `BP_AimBeam` · `BP_BrushTool` · `BP_HeartInstructions` · `BP_TouchInstrPanel` · `BP_DebugDirector` | — | **`IA_Shoot_*`** |
+| `BP_Finale` | — | `IA_Continue` (**es el ÚNICO**, y no está probado en visor) |
+
+👉 **Son dos piezas separadas y hay que nombrarlas por separado:**
+1. **El `IMC`** es lo que hace que el gatillo físico entre al sistema. Da igual cuál de los dos, pero hay que **registrarlo con los tres flags** (`Priority=1000` + `bIgnoreAllPressedKeysUntilRelease=False` + `bForceImmediately=True`) **desde el Tick**. Esa es la parte que falla en silencio con los defaults, y es lo que de verdad se está copiando cuando se dice "la receta de `IA_Continue`".
+2. **La acción que se escucha** es **`IA_Shoot_Right` / `IA_Shoot_Left`**, en el pin **`Started`** (`Triggered` dispara cada frame). `IA_Continue` existe como asset y casi nadie tiene su evento.
+
+⚠ Y el `IMC` que se registra **no tiene que contener** la `IA` que se escucha: `BP_Instructions` registra `IMC_Continue` y escucha `IA_Shoot_*`, y anda en visor. Los mapeos llegan por el sistema de contextos por defecto de UE 5.6+, no por el asset — por eso los `Mappings` de los IMC del framework leen vacíos. **No diagnostiques por ahí.**
 
 👉 **La receta para el grab con el gatillo actual, sin tocar input:**
 1. Quien necesite el grab **agrega el contexto existente** `IMC_Continue` con la config probada (`Priority=1000` + `bIgnoreAllPressedKeysUntilRelease=False` + `bForceImmediately=True`) — copiarla del sitio que ya funciona, no de los defaults.

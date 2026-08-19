@@ -137,6 +137,9 @@ Add StaticMeshComponent primitives to an actor — pass the BP's **CDO** (get_de
 ## ActorTools (`editor_toolset.toolsets.actor.ActorTools`)
 - **add_component**(owner, component_type: ref, name) / **remove_component**(component) / **get_components**(actor, component_type?).
 - **get_root_component**(actor) / **get_component_actor**(component) / **get_parent_component**(component) / **set_parent_component**(component, parent?) (null detaches/promotes root).
+  - 🔴 **SÍ se pueden reparentar componentes por MCP — no lo niegues sin leer esta línea.** El 2026-08-16 se afirmó "reparentar es lo único que no puedo hacer por MCP" y era falso; lo corrigió Beltrán. Funciona sobre el **CDO** del Blueprint (`get_default_object`), con los nombres `<Comp>_GEN_VARIABLE`, y devuelve `True` por componente. Caso real: `Ring0…Ring4` colgaban de `Body` y heredaban su pulso; se movieron al `DefaultSceneRoot` en una llamada.
+  - ⚠ **Reparentar cambia la base de la escala relativa.** Si el padre viejo tenía escala ≠ 1, hay que compensar o el hijo cambia de tamaño. En ese caso `Body` estaba a 0,15, así que los anillos pasaron de `RingBaseScale` 2 → 0,30 y `RingScaleStep` 0,35 → 0,0525 para verse igual. **Calculá el factor ANTES de mover.**
+  - 💡 `get_parent_component` es la forma de **leer** la jerarquía: `AttachParent` NO se puede leer con `ObjectTools.get_properties` sobre el template del CDO (falla con "could not be read").
 - **get_actor_transform**(actor) / **set_actor_transform**(actor, xform: Transform, worldspace?) / **get_actor_bounds**(actor) / **look_at**(actor, target: Vector).
 - **get_label/set_label**(actor[, label]) / **get_tags/has_tag/add_tag/remove_tag**(actor[, tag]).
 
@@ -158,7 +161,8 @@ Add StaticMeshComponent primitives to an actor — pass the BP's **CDO** (get_de
 - **connect_expressions**(**from_expression**, from_output_name, **to_expression**, to_input_name) / **disconnect_expressions**(to_expression, to_input_name).
 - **connect_to_output**(expression, output_name, material_property: enum e.g. MP_BaseColor) / **disconnect_from_output**(mat, material_property).
 - **get_expression_input_names/output_names**(expression) / **get_expression_inputs** / **get_property_input**(**material**, material_property).
-- **list/rename/delete_parameter_group** / **layout_expressions** / **delete_unused_expressions** / **recompile**(**material_or_function**) (once when done).
+- **list/rename/delete_parameter_group** / **recompile**(**material_or_function**) (once when done).
+- 🔴 **`layout_expressions` y `delete_unused_expressions` NO usan `material_or_function`: su parámetro es `material`** (verificado 2026-08-17 — el error es explícito, pero el script fallido dispara un Undo que se comió un actor del nivel, así que sale caro. Ver gotchas §60/§103).
 
 ⛔ **NO corras `ObjectTools.list_properties` sobre un Material: son ~10k chars.** Los flags que se usan de verdad son `shadingModel` (`MSM_Unlit`), `blendMode` (`BLEND_Opaque`/`BLEND_Translucent`), `twoSided`, `bFullyRough`, `bDisableDepthTest`, `bUsedWithStaticLighting`. Verificá con `get_properties` pidiendo solo esos.
 

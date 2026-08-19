@@ -4,6 +4,29 @@
 
 ---
 
+## 🔴🔴 (a0) REGLA DEL PROYECTO: diseñar ANTES de construir, y una función por RESPONSABILIDAD
+
+**Instrucción permanente de Beltrán (2026-08-18):** todo Blueprint se construye con la **menor cantidad posible de nodos, funciones y variables**, y **el análisis va antes del primer nodo** — qué requiere, cómo se construye, con cuántas funciones. *"Para no andar inventando nodos y agregando cosas sobre la marcha, sino tener muy claro los elementos mínimos que requiere. Si después lo necesitamos complejizar, lo complejizamos, pero a partir de la base de usar la menor cantidad de nodos para llegar al objetivo."*
+
+⚠ **El matiz importa:** *"Si necesitamos aumentar variables para tener control, perfecto."* Las **perillas de autor** (instance-editable: tiempos, distancias, colores, audios, tags) **no son grasa** — son justamente lo que él pide para ajustar sin abrir el grafo. Lo que sobra es el **estado interno redundante** y las **funciones-por-paso**.
+
+### El caso que la generó: [[BP_Bell]] terminó en 22 funciones y 31 variables — para un botón
+Se construyó **incrementalmente**, pieza por pieza, cada pedido nuevo agregando una función. Beltrán lo miró y listó en 9 líneas todo lo que el botón hace de verdad: animación por cercanía · audios · material · movimiento del mesh por hover · ring · háptica y detección de mano · animación de salida · destroy · señal de apertura por tag. Su veredicto: *"Demasiada data para un simple boton"*. El colapso identificado lo deja en **11 funciones sin perder una sola funcionalidad**, porque se había hecho **una función por PASO en vez de una por RESPONSABILIDAD**.
+
+🔴 **Y no es estética: un grafo inflado ESCONDE BUGS.** El bug del nodo podado (§125 de `gotchas.md`) sólo pudo existir porque había una llamada entre dos funciones que debían ser una sola. Fundirlas lo elimina de raíz.
+
+### El procedimiento
+1. **Antes de tocar el MCP**, escribir la lista de **responsabilidades reales** del BP y mapear **una función por responsabilidad**. Decir el plan; después construir.
+2. Separar de entrada **variables de autor** (instance-editable) de **estado interno**. Recortar sólo el estado interno.
+3. Al cerrar, pasar el checklist (a) de abajo **más** estos olores de sobre-factorización:
+   - funciones de **1-2 nodos**;
+   - pares `X` / `ApplyX` que **siempre se llaman juntos**;
+   - **dos bools que siempre valen lo mismo** (`bHandsNear`/`bTouching`, `bDone`/`bLeaving`);
+   - funciones llamadas **desde un solo sitio** y que no se reusan;
+   - una función `CacheX` por cada referencia, en vez de un `CacheRefs` único.
+
+---
+
 ## (a) Checklist — antes de dar por cerrado un grafo
 
 1. **¿Un pure/getter/cast alimenta a más de un consumidor?** → cachear una vez: `Set` de una **variable local** (impuro, ejecuta una sola vez) y leerla con `Get` en cada consumidor. No dejar que el mismo pure se re-evalúe N veces.
@@ -129,3 +152,24 @@ No existe un número oficial de Epic (confirmado en bp-practices.md). El criteri
 5. Cast repetido al mismo tipo en vez de reusar el resultado de un único Cast.
 
 **Test rápido:** si al borrar 1 nodo del grafo y seguir el flujo hacia atrás, encuentras 2+ nodos idénticos en configuración e inputs en otro punto del mismo grafo → es candidato a extracción (función/macro) o a cacheo (variable local), según si el problema es repetición de lógica o repetición de evaluación de un mismo valor.
+
+---
+
+## (g) 🔴 Qué dice Epic OFICIALMENTE sobre optimizar Blueprints — y qué NO (research 2026-08-18)
+
+Se buscó específicamente doc oficial sobre "menor cantidad de nodos" y optimización de grafos. **El resultado es en su mayor parte negativo, y eso es información:**
+
+| Pregunta | Respuesta oficial |
+|---|---|
+| ¿Menos nodos = más rápido? | **Epic no lo dice en ningún lado.** Lo único cercano es sobre *mantenibilidad*: *"Large C++ files are easier to modify than large Blueprint graphs."* (§ de `bp-practices.md`) |
+| ¿Cuánto cuesta un nodo? | *"executing each **individual node** in a Blueprint is slower than executing a line of C++ code, but **once execution is inside a node, it's just as fast** as if it had been called from C++"*. 👉 El coste está en el **salto entre nodos**, no en el trabajo del nodo. Un grafo de 200 nodos que corre una vez no es problema; uno de 20 en Tick puede serlo. |
+| ¿Hay un botón para acelerar BP? | **No.** *Blueprint Nativization* **fue eliminada en UE5** — ver `bp-practices.md`. Las únicas palancas son hacer menos trabajo, correr menos seguido, o C++ a mano. |
+| ¿Cómo mido cuál BP cuesta? | **Unreal Insights** (canal CPU) — ya documentado end-to-end para Quest/Android en [profiling-quest.md](profiling-quest.md) §5. **No adivinar por tamaño del grafo.** |
+| ¿Qué hace el compilador con lo que no está cableado? | *"Prunes any nodes that are unscheduled or not a data dependency."* — [Compiler Overview](https://dev.epicgames.com/documentation/en-us/unreal-engine/compiler-overview-for-blueprints-visual-scripting-in-unreal-engine). Es el mecanismo exacto del bug de `gotchas.md` §125. |
+
+### 🔴 La conclusión honesta, y por qué la regla (a0) sigue en pie
+**La razón para construir con pocos nodos NO es la performance** — ahí Epic guarda silencio y la evidencia dice que el coste real está en *frecuencia de ejecución*, no en cantidad de nodos. **Es legibilidad, mantenibilidad y superficie de bugs**, que en este proyecto ya se cobraron días:
+- El bug del nodo podado ([[BP_Bell]], `gotchas.md` §125) existió **porque había una llamada entre dos funciones que debían ser una**.
+- El grafo inflado hizo que auditarlo nodo por nodo **tres veces** no encontrara nada, mientras el compilador lo estaba diciendo.
+
+👉 Donde SÍ hay ganancia medible y documentada: **(b)** cachear pures compartidos (el compilador **copia el bytecode del pure en cada consumidor**, verificado en `KismetCompiler.cpp:2898`) y **usar timers/delegados en vez de Tick** (*"To improve performance, use timers or delegates to schedule work in Blueprints instead of using Tick."*, citado en `bp-practices.md`). Esas dos sí son optimización; el resto es higiene — que es igual de importante, pero conviene no confundirlas.
