@@ -332,3 +332,22 @@ Todos pasan por **`BP_HapticHub`** (`HapticHover` · `HapticSelect` · `HapticHo
 
 **Deliberadamente SIN háptico:** cruzar puertas, caminar, y el pulso por beat de los slots del secuenciador — serían vibración continua, que cansa y compite con lo que sí importa.
 ⚠ Casi todos pasan `bRight = true` porque el actor no sabe qué mano lo tocó. Donde **sí** se sabe (botones), va la mano real. **Afinar en visor**: si se siente que vibra la mano equivocada, hay que propagar la mano desde el beam.
+
+## 📡 La señal biológica — el emulador ya está hecho, y el actor tiene que estar EN EL WORLD
+
+**`BP_BioHub`** (`Core/Signals/`) es la única fuente de calma y ritmo. Trae su propio **emulador de sensor**:
+`bFakeSignal` + `FakeHz` → `MaybeFake` → `FakeTick` inyecta por el mismo camino que el OSC real
+(`Ingest(AddrCalm, 0.5 + 0.4·sin(2π·FakeHz·t))` y `Ingest(AddrHeart, 68 + 9·sin(...))`), y de ahí sale
+`CalmSmooth` / `HeartSmooth` suavizados. **No hace falta escribir ninguna simulación nueva: se prende el flag.**
+
+🔴 **Es un Actor: sin instancia colocada en el nivel no corre nada** (el servidor OSC se levanta en su
+`BeginPlay` y el emulador vive en su `Tick`). En `MapsV2/L_SoulCharger` está colocado como **`BioHub_SC`**
+en (−5355, 200, 120) con `bFakeSignal = true`. Quien necesite la señal lo busca por clase
+(`GetActorOfClass` + cast) y lee `CalmSmooth`/`HeartSmooth` — así lo hace [[BP_SoulHUD_SC]].
+Cuando llegue el sensor real: apagar `bFakeSignal`, nada más.
+
+## 🪟 `M_HudWidget_SC` — el material para que un WidgetComponent quede por encima de todo
+`Core/HUD/M_HudWidget_SC`. Unlit + translúcido + two-sided + **Disable Depth Test** (las manos no lo tapan,
+igual que la ameba). Se asigna al componente en **`overrideMaterials[0]`**. 🔴 Sus parámetros tienen nombre
+obligatorio (`SlateUI`, `TintColorAndOpacity`, `OpacityFromTexture`): los escribe el motor. Ver gotcha §200.
+⚠ **No lo combines con `GeometryMode = Cylinder`**: el cilindro no dibuja a escala chica de componente (gotcha §203).
