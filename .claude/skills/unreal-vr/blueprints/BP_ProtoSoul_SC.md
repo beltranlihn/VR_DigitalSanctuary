@@ -106,6 +106,20 @@ Dos funciones nuevas, las dos **sin tocar el Construction Script** (intocable po
 
 🔬 **La advertencia de "cambiar la malla se lleva puesto el MID" quedó ACOTADA, medida en PIE:** el log dio `MID_M_ProtoSoul_0` en las 5 almas **después** del cambio de malla. `SetStaticMesh` sólo **recorta** los override materials cuando la malla nueva tiene MENOS slots; con una malla de un solo material el slot 0 (donde el CS dejó el MID) sobrevive. 👉 La regla precisa es: **el orden importa dentro del Construction Script**; en runtime, sobre un componente ya construido, el MID aguanta el swap.
 
+## 🆕 El QUINTO anillo — Surrounding sí lleva anillo (2026-08-24)
+🔴 **Se revirtió la decisión de "en Surrounding no hay anillo".** Beltrán lo pidió de vuelta: *"vuelve a agregarlo… en el mismo formato y parámetros en el que están los otros… alrededor del que está amarillo"*. Ahora son **cinco**.
+
+- **`Ring4`** — `ProceduralMeshComponent` colgado de `RingRoot`, como los otros cuatro. Transform continuando la serie que autoró Beltrán en las instancias: **roll 90 (igual en los cinco), pitch 26, escala 1,72** (los otros: pitch 12 / 34 / −18 / −30 y escalas 1,00 / 1,18 / 1,36 / 1,54 — el paso es +0,18).
+- **`RingColors[4]`** = verde `(0.145, 1, 0.28)`, el color de Surrounding.
+- Extendidas a índice 4: **`CollectRingComps`**, **`BuildAllRings`**, **`HideRings`** y **`ApplyRingScale`**. `SeedRings`, `DrawRing`, `StepRings` y `TickRingKey` ya eran genéricas (`TickRingKey` topea con `Length(RingComps)`, así que la tecla 6 ahora llega hasta el quinto sola).
+- ⚠ **Los cinco actores colocados necesitaron mano**: el componente nuevo llegó con la transform de FÁBRICA y `RingColors` tenía **override propio de 4 entradas** en cada instancia. Es la §164 otra vez. Hubo que escribir en los cinco, **campo por campo** (`roll`, `y`, `z` por separado: en una instancia `set_properties` aplica sólo el primer campo de un struct).
+
+### ⏱ Cuándo aparece
+Lo dispara **`BP_Director_Story.BeginEnding`**, o sea **al cerrar Surrounding**, con el mismo `DrawRing` que los otros cuatro.
+🔴 **No se tocó el flujo de subs del director.** `RingIndex` sigue siendo `[-1,0,1,2,3,-1]`: el −1 de Surrounding es lo que enruta la sala 5 a `BeginEnding`, y **`RunEnding` arranca en el sub 6** — meter el anillo por el camino normal habría corrido la numeración y roto el final. En cambio `BeginEnding` ahora: dibuja el anillo → espera **`FinalRingHold`** (2,8 s; el anillo tarda `RingDrawTime` 2,5) → recién ahí `CloseRoomNow` cierra la sala, y el timer del final se corre el mismo tanto. **Sin ese retraso el fundido (1,2 s) se comía el anillo a la mitad.**
+Palancas nuevas en el director, categoría *C - Tiempos y tags*: **`FinalRingIndex`** (4) y **`FinalRingHold`** (2,8).
+✅ Verificado: los cinco componentes presentes con su transform, `RingColors` de 5 en el CDO y en las 5 instancias, compila y corre sin `Accessed None`. ⬜ **Falta el juicio visual** — los anillos son aditivos y sobre el fondo claro del Hall se lavan, así que en captura no se distingue el verde.
+
 ## 💍 Los 4 anillos — componentes NATIVOS (migrado 2026-08-19)
 Los anillos son **4 `ProceduralMeshComponent`** (`Ring0..Ring3`) colgando de `RingRoot`, con la generación del trazo, el material y la animación **adentro de este Blueprint**. [[BP_SoulRing_SC]] sigue existiendo sólo como **banco de pruebas suelto** en el Hall; la obra ya no lo usa.
 

@@ -191,6 +191,8 @@ Dibujas **alrededor**, no adentro — dentro de un volumen semitransparente tu p
 
 **El límite:** al salir del cascarón **deja de emitir puntos nuevos**; el trazo se corta y se reanuda al volver a entrar. 🔴 **Nunca borrar lo ya dibujado.** El borde brilla suave al acercarse, para que la regla se aprenda con el cuerpo.
 
+> 🔄 **Actualizado 2026-08-24:** *Surrounding SÍ tiene su propio anillo* (verde), que aparece al cerrar la etapa como los otros cuatro — Beltrán revirtió la decisión original. La capa dibujada a mano sigue siendo suya, pero ya no es "el único anillo de Surrounding": conviven.
+
 🔴 **Mientras dibujas, la ameba ya muestra sus cuatro anillos.** Compones encima de lo que construiste, ves exactamente lo que vas a ver al final (sin escalados ni sorpresas), y la última etapa se convierte en la culminación visible de las otras cuatro.
 
 **Tu capa es el sexto anillo — el único hecho a mano.** En la carga final se contrae y entra en el alma.
