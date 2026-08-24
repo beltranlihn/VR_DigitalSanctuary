@@ -120,3 +120,17 @@ PROTO: material slot 0 tras Configure = MID_M_ProtoSoul_0   x5
 
 ## Relacionados
 - [[BP_ProtoSoul_SC]] — las candidatas, y de dónde salen `Configure` / `Select` · [[BP_SoulChoice]] — la versión VIEJA de esta misma pantalla (esqueleto), de donde salen las lecciones · [[BP_MenuButton]] — la receta de input · [[BP_Alma_SC]] — el sistema de puntos por tag
+
+## 🎬 2026-08-19 — enganchado al guión: `ChosenTag`, `OnChosen`, `Rearm`, `ForceChoose`
+- **`FaceTag` se eliminó → `ChosenTag`** (`soul_pick_0`): la elegida ya **no viaja a la cara** al elegirla sino a **`TP soul_pick_0`** (pedido de Beltrán: *"se mueve hacia TP_Pick_0, simultáneamente VO 8; cuando termina VO 8, se mueve hacia el target point de nuestro hud"*). El viaje a la cara lo ordena el director después.
+- **`OnChosen`** (dispatcher): se dispara al final de `Judge`, después de esconder a las perdedoras. El director lee `Winner` ahí.
+- **`Rearm(NewTag)`**: para el final de la obra (VO 32): `Souls = [Winner]`, `bChosen=false`, `ChosenTag=NewTag`, `Winner.EnableHover(true)` → el mismo gatillo vuelve a funcionar y `Select` la manda a `soul_pick_6`. Con guarda `IsValid(Winner)`.
+- **`ForceChoose()`** (test): marca `bHovering=true` en `Souls[0]` y llama `Judge` → elige sin manos. Lo usa `bAutoTest` del director.
+- La instancia quedó con **`bAwakeOnStart=false`**: ahora despierta por `Awake()` desde el director (al arrancar el VO 7). El andamio de `AwakeDelay` queda por si se prueba el picker solo.
+
+## 🤲 2026-08-20 — el modo COMPARTIR reemplaza a la re-elección
+`Rearm(NewTag)` ya **no** rehabilita `Judge`: prende **`bShareMode`** y el hover de la ganadora. Con `bShareMode`:
+- **Gatillo `Started`** → `Choose` → `ShareGrab`: si la ganadora está hovereada, `StartCarry(bTouchRight)` — queda agarrada a ESA mano **mientras el gatillo esté apretado**.
+- **Gatillo `Completed`** (los pines de soltar de `IA_Shoot_Right/Left`, cableados por cirugía) → `ReleaseGrab` → `EndCarry`: vuelve sola a su punto.
+- **Compartir** = acercarla bajo el visor (lo detecta la propia ameba, ver su tracker) → `OnShared` → el guión la manda a `soul_pick_6`.
+- `ForceShare()` (test) dispara `Shared()` directo. ⚠ `ChosenTag` quedó sin uso en este modo (el destino lo comanda el guión).

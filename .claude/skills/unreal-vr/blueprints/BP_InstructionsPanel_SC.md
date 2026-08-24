@@ -157,3 +157,51 @@ La referencia al panel se **cachea** en `PanelRef` con el mismo patrón auto-rep
 
 ## Trampas pagadas acá
 Ver `gotchas.md` **§147** (sólo se aplica el PRIMER campo de un struct en una instancia → poner adelante el que importa), **§148** (`AddWidget` devuelve `None`; las refs se piden con `GetWidgets`, y los slots cuelgan del PADRE) y **§149** (las continuaciones de un cast en el DSL son `(:then ...)` / `(:CastFailed)`, no statements sueltos).
+
+## 🎬 2026-08-19 — los paneles de sala nacen OCULTOS y los muestra el guión
+- **Panel `bStartHidden`** (cat. *0 - Paginas*, instance-editable; **true en las 4 instancias de sala**, false en el de la partida): `BeginPlay` → `InitVisible()` pone `bVisible=!bStartHidden` y, si oculto, `AppearT=0` + `Panel` a escala 0. **`Show()`** (API pública) prende `bVisible` y `bEntering`; `TickShow → StepShow` lo hace crecer a `1/ExitTime` hasta `AppearT=1` (la misma curva de salida, al revés). El `Tick` quedó `TickShow → TickLeave`.
+- **Botón**: dos `AND` por cirugía. En `ApplyVisible`, `bShown = (OnlyOnPage<0 || PageIndex==OnlyOnPage) AND PanelRef.bVisible` → oculto y sin detección mientras el panel esté oculto. En `AppearStep`, el target del crecimiento pasa a `(cerca AND bShown)` → cuando el panel se muestra el botón **crece** en vez de aparecer de golpe.
+- Quién llama `Show()`: [[BP_Director_Story]] (`ShowPanel`, busca por tag `instr_<sala>` y se bindea a `OnFinished`). **Ya no es cierto que "OnFinished no lo escucha nadie".**
+
+## 🔊 2026-08-20 — el sonido del botón suena al hacerse VISIBLE, no al entrar a la sala
+El `PlayAppear` (y el crecimiento) estaban gateados solo por **cercanía** — al entrar a la sala ya estabas a <7 m y sonaba con el botón aún invisible. Cirugía en `AppearStep`: la condición del flanco pasó de `cerca` a **`cerca AND bShown`** (el mismo AND que ya alimentaba el crecimiento). Ahora el "aparece" suena en el momento en que el panel se muestra (o al acercarse, si ya estaba visible).
+
+## 🎨 2026-08-20 — los colores de instancia POR FIN llegan al widget (+ alfa)
+Beltrán: *"por más que cambie los colores de los menús, no cambiaban en el juego"*. **Causa**: `Apply` corre en el BeginPlay, cuando `GetUserWidgetObject` del WidgetComponent todavía devuelve null → el cast fallaba en silencio y el `BgColor` de la instancia nunca se aplicaba (el widget quedaba con su color de Designer). **Fix**: `ReApply()` (Apply con el `PageIndex` vigente) se llama (1) por **timer a 0,5 s del BeginPlay** (cubre el panel de la partida) y (2) dentro de **`Show()`** (cubre los paneles de sala, que aparecen tarde). Además el **alfa del `BgColor` ahora es la opacidad del fondo** (el `Setup` del widget usa `SetColorAndOpacity`, que siempre la respetó): las 5 instancias quedaron con **A = 0,55** conservando los RGB de Beltrán (Recognizing rojizo y Surrounding ámbar ya estaban autorados y por fin se ven). El texto no se toca.
+
+## 🪟 2026-08-21 — el fondo deja el widget y pasa a ser GEOMETRÍA: `Glass` + `M_InstrGlass`
+Pedido de Beltrán: *"en vez del color genérico del widget, un material translúcido como el de las ventanas, y yo poder configurar el emisivo y la transparencia"*.
+
+🔴 **La causa real de que no le gustara**: el `WidgetComponent` está en **`blendMode = Masked`** → alfa de **1 bit**. El `BgColor` con alfa 0,55 se dibujaba **opaco**; ninguna transparencia hecha dentro del widget iba a funcionar.
+
+**Arquitectura nueva**: el widget se queda **sólo con texto e imagen** (el `Bg` quedó en `visibility = Hidden`), y el fondo es un **`ProceduralMeshComponent` `Glass`** — un plano **curvado igual que el widget** — con material de mundo propio.
+- **`Glass` cuelga del `Panel`**, así hereda su escala y **la animación de aparición/salida funciona gratis** (`StepShow`/`TickLeave` escalan el Panel).
+- La malla se genera en el **Construction Script** (`BuildGlass`): grid de `GNx`×`GNy` (32×6 = 231 verts / 384 tris) curvado con la fórmula del modo Cylinder de UE — `R = DrawSize.X / arcRad`, `Apothem = R·cos(arc/2)`, y por vértice `X = Apo − R·cos(ang)`, `Y = R·sin(ang)`. Verificado: con arco 30° da `R = 3666,9` y `Apo = 3541,98`; con 52,552° (el de la partida) `R = 2093,3`.
+- 🔴 **`ArcAngle` es ahora una VARIABLE DEL ACTOR** y el CS se la **empuja al widget** (`SetCylinderArcAngle`) — una sola fuente de verdad, imposible que vidrio y widget se desincronicen. Ver el gotcha §183 (por qué no se puede leer del componente).
+- **Esquinas redondeadas por SDF en el material**, no por geometría: bordes suaves y antialiaseados en vez de recorte poligonal. `CornerRadius` se escribe en **píxeles del widget** (48, el mismo valor que el `RoundedBox` del brush) y el BP lo convierte a fracción de altura.
+- Colisión apagada **por código** en el CS (`SetCollisionEnabled(NoCollision)`): en la instancia no se deja escribir (§58), y una colisión ahí bloquearía los punteros.
+
+### `M_InstrGlass` (Core/UI/) — unlit · translucent · **two-sided**
+Parámetros: `GlassColor` · `Emissive` · `Opacity` · `CornerRadius` · `EdgeSoft` · `Aspect` (los tres últimos los calcula el BP). Two-sided a propósito: un plano abierto no paga fill extra y así no depende del winding.
+
+### Las perillas del actor (cat. *2 - Vidrio*, todas por instancia)
+| Perilla | Default | Qué hace |
+|---|---|---|
+| `GlassColor` | el `BgColor` que ya tenía cada instancia | color del vidrio |
+| `GlassEmissive` | 1,0 | **cuánto brilla** |
+| `GlassOpacity` | 0,55 | **transparencia real** (ahora sí) |
+| `GlassCornerRadius` | 48 px | redondeo de esquinas |
+| `GlassEdgeSoft` | 6 px | suavizado del borde |
+| `GlassMargin` | 24 px | cuánto sobresale respecto del texto |
+| `GlassOffset` | 2 px | cuánto se separa del widget (**invertir el signo si queda delante**) |
+| `ArcAngle` | 30 (52,552 en la partida) | curvatura — la manda al widget |
+| `GNx` / `GNy` | 32 / 6 | densidad de la malla |
+⚠ Las 5 instancias quedaron escritas con sus valores (§146). El `BgColor` sigue existiendo pero ya no se ve: el color vive ahora en `GlassColor`.
+
+### 🎨 2026-08-21 (2ª vuelta) — instancias de material por sala + interruptor del vidrio
+- **5 instancias de `M_InstrGlass`** en `Core/UI/`: `MI_InstrGlass_{Blue,Red,Purple,Orange,Green}`, todas con **`Emissive 0,5` y `Opacity 0,25`, copiados de `MI_Vidrio`** (el vidrio de las ventanas de las puertas). **El color, el emisivo y la transparencia se editan EN LA INSTANCIA DE MATERIAL**, no en el BP.
+- 🔴 Por eso `PushGlassMat` **ya no empuja color/emisivo/opacidad** (las variables `GlassColor`/`GlassEmissive`/`GlassOpacity` se eliminaron): sólo asigna **`GlassMaterial`** (variable nueva, por instancia) y los tres parámetros que dependen de la geometría (`Aspect`, `CornerRadius`, `EdgeSoft`). Así la MI manda y no hay dos fuentes peleando.
+- **Reparto**: partida/título **morado** · Entering **azul** · Recognizing **rojo** · Attracting **naranja** · Surrounding **verde** (sigue el código de color de los anillos: entering azul, recognizing rojo, loving morado, attracting naranja).
+- 🆕 **`bShowGlass` + `SetGlassVisible(On)`**: interruptor del fondo, por instancia y también en runtime. **El panel del título va con `bShowGlass = false`** (pedido de Beltrán: ahí sólo se ve la imagen).
+- **`GlassOffset` = 1 cm de mundo por detrás** del widget, para no tapar texto ni imagen: en unidades de widget son **−9,6** en las salas (escala 200/1920) y **−7,68** en la partida (250/1920). Negativo = atrás; si en visor apareciera delante, invertir el signo.
+- El `Bg` del `WBP_Instructions` quedó **`visibility = Hidden`**: afecta a los 5 paneles de una vez.

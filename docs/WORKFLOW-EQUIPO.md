@@ -82,3 +82,13 @@ El aprendizaje del equipo vive en el **repo**, no en la cabeza ni en la memoria 
 - URL: `github.com/beltranlihn/VR_DigitalSanctuary` (fue renombrado desde `VR_Digital`; si tenés un clon viejo: `git remote set-url origin https://github.com/beltranlihn/VR_DigitalSanctuary.git`).
 - `.gitignore` (raíz) ignora lo regenerable: `Binaries/`, `Intermediate/`, `Saved/`, DDC, `Build/`. No los versiones.
 - Sin Git LFS por ahora (ningún asset >50 MB). Si algún día metés un asset pesado, avisá para evaluar LFS.
+
+### 📦 Receta que FUNCIONA para empaquetar el APK desde la terminal (2026-08-19, con el editor abierto)
+```
+"C:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun -project="<ruta>\VR_Test\VR_Test.uproject" -unrealexe="C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" -skipbuildeditor -nocompileeditor -platform=Android -cookflavor=ASTC -clientconfig=Development -cook -AdditionalCookerOptions="-ini:EditorPerProjectUserSettings:[/Script/ModelContextProtocolEngine.ModelContextProtocolSettings]:bAutoStartServer=False" -build -stage -pak -iostore -compressed -package -archive -archivedirectory="<ruta>\VR_Test\Saved\Packaged\Android_Development" -prereqs -utf8output -nop4
+```
+Salida: `VR_Test/Saved/Packaged/Android_Development/VR_Test-arm64.apk` + `main.1.com.YourCompany.Demonstration.obb` + `Install_VR_Test-arm64.bat` (instala APK+OBB por adb). Tres cosas que hubo que aprender:
+1. **Proyecto sin código**: sin `-unrealexe=...UnrealEditor-Cmd.exe` + `-skipbuildeditor`, UAT busca `Binaries/Win64/VR_TestEditor.target` y muere (`DirectoryNotFoundException`).
+2. **GameFeatures está ON** (lo arrastra el plugin `GameFeaturesToolset` del MCP) → hace falta la regla `PrimaryAssetTypesToScan` de `GameFeatureData` en `DefaultGame.ini` (ya está). Sin ella: `Error: Asset manager settings do not include a rule for GameFeatureData` y el cook sale con 1.
+3. **Con el editor abierto, el cook intenta abrir el puerto 8000 del MCP** → `Error: HttpListener unable to bind` y el cook sale con 1. El `-AdditionalCookerOptions="-ini:...bAutoStartServer=False"` lo apaga **sólo para el commandlet**; el MCP del editor sigue vivo.
+El mapa de arranque del APK es `GameDefaultMap` en `DefaultEngine.ini` (hoy `MapsV2/L_SoulCharger`).

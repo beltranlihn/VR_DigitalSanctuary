@@ -270,3 +270,6 @@ Las salas de `MapsV2/RoomsV2` tienen que estar **en la posición mundial de su p
 ## Relacionados
 - [[BP_Journey]] y [[BP_Walker]] — los antecesores. De ahí salieron el tiempo normalizado, la relación `Phase` / `Phase/2` y el no-tocar-la-yaw; todo eso estaba probado y se copió tal cual.
 - [[BP_StageDirector]] — el que va a consumir `OnArrived` cuando se rehaga en limpio.
+
+## 🕶️ 2026-08-21 — la viñeta se OCULTA cuando no actúa (reporte del visor)
+Beltrán en el APK: *"se ve el borde de la esfera que hace la viñeta, a pesar de que esté apagada — un cambio en los materiales donde termina"*. La esfera translúcida pegada a la cámara, aun con `Amount = 0`, altera lo que se ve a través (blending/sorting). **Fix**: `ApplyVignette(Amount)` ahora también hace `SetVisibility(Vignette, Amount > 0.004)` — invisible en reposo (el `ApplyVignette(0)` del `SetupVignette` la esconde desde el frame 1) y sólo existe mientras el fundido de caminata la enciende. `VignetteMax = 0` ahora sí la elimina del todo.

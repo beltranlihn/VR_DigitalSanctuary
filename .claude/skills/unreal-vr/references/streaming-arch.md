@@ -220,3 +220,34 @@ Ausencia verificada: **ni una** doc de Unreal sobre streaming, estrategia de mem
 1. **Registrar los 9 mapas** en Packaging Settings → *List of Maps to Include*. **Este es el riesgo real de fallo silencioso al empaquetar.**
 2. **`OptionalLevelNameOverride` en cada `LoadLevelInstance`**, y disparar las transiciones desde **`OnLevelShown`**.
 3. **Bajar `s.LevelStreamingActorsUpdateTimeLimit` de 5.0 a ~1–2 ms** y perfilar el GC forzado en cada descarga con OVR Metrics Tool. **El default es 36% de nuestro frame y nadie lo tuneó para VR.**
+
+---
+
+# 🚫 CERO SALTOS DE FRAME — la config de carga (2026-08-21)
+
+Pedido explícito de Beltrán tras probar el APK: *"deberíamos encontrar la manera de que nunca haya un salto de frame. Si eso es compilar todo mientras se carga el juego, está perfecto, me da lo mismo que se demore"*. Y la razón de hacerlo AHORA: *"estamos teniendo saltos sólo con las cosas que hay; ahora empezaremos a agregar meshes, FX con Niagara, más elementos"*.
+
+Todo lo de abajo salió de **leer el código del motor** (`CoreSettings.cpp`, `World.cpp`, `GarbageCollection.cpp`, `UnrealEngine.cpp`), no de foros. Vive en `Config/DefaultEngine.ini`.
+
+## 🔴 El hallazgo grande: `s.ForceGCAfterLevelStreamedOut` viene en 1 y su propia ayuda dice que produce un hitch
+> *"Whether to force a GC after levels are streamed out to instantly reclaim the memory at the expense of a hitch."* — texto literal del motor.
+
+Cada vez que se descargaba una sala (o sea, **cada vez que se cruza una puerta**), el motor forzaba un GC completo en un frame. Ese era el salto que Beltrán sentía al pasar por las puertas. **A 0**, y la memoria se recupera goteando con `s.ContinuouslyIncrementalGCWhileLevelsPendingPurge=1` + `...WhileActorsPendingPurge=1`.
+
+## Los cuatro frentes
+| Frente | Qué se hizo | Por qué |
+|---|---|---|
+| **GC al descargar** | `s.ForceGCAfterLevelStreamedOut=0` + los dos `ContinuouslyIncrementalGC…=1` | ver arriba |
+| **Presupuestos "extra"** | `s.PriorityLevelStreamingActorsUpdateExtraTime=0` · `s.PriorityAsyncLoadingExtraTime=0` | se **suman** al time limit y anulan el tuneo justo en las cargas de alta prioridad (venían en 5 y 15 ms) |
+| **Granularidad** | Registration/Unregistration/RouteActorInitialization a **2**, `RouteActorEndPlayForRemoveFromWorld` a **4** (venía en **0 = todo en una pasada**), `ForceRouteActorInitializeNextFrame=1` | 🔴 **el time limit sólo se chequea cada N componentes**: bajar el tiempo sin bajar la granularidad no sirve de nada |
+| **GC repartido** | `gc.IncrementalGCTimePerFrame=0.001` · `IncrementalBeginDestroyGranularity=4` · `AllowIncrementalReachability=True` + `IncrementalReachabilityTimeLimit=0.002` · `AllowIncrementalGather=True` · clusters (`AssetClustrering`/`ActorClustering`) en **True** · `TimeBetweenPurgingPendingKillObjects=1201.3` | el marcado (reachability) es el pico grande; los clusters reducen el trabajo TOTAL; y el GC periódico de 61,1 s tiraba ~18 dados por función a ver si caía en un momento sensible |
+
+⚠ **`AllowIncrementalReachability` y `AllowIncrementalGather` están marcados EXPERIMENTAL en el código.** Si aparece comportamiento raro (objetos que sobreviven de más, crashes en GC), son los primeros dos que se apagan.
+⚠ El typo es del motor: **`gc.AssetClustreringEnabled`** (no "Clustering").
+⚠ **Cuatro cvars son PLACEHOLDER** (`gc.MaxObjectsNotConsideredByGC`, `gc.MaxObjectsInGame`, `s.AsyncLoadingThreadEnabled`, `s.EventDrivenLoaderEnabled`): el cvar existe pero el motor lee el valor **del ini** al inicializar → sólo funcionan en `DefaultEngine.ini`, nunca por consola.
+⚠ `s.MaxIncomingRequestsToStall` / `MaxReadyRequestsToStallMB` / `MaxPrecacheRequestsInFlight` pertenecen al **loader viejo (EDL)**; en 5.8 el loader por defecto es el Zen Loader y **no los usa**. No perder tiempo con ellos.
+
+💡 Alternativa si hiciera falta más: `s.AdaptiveAddToWorld.Enabled=1` **reemplaza** `s.LevelStreamingActorsUpdateTimeLimit` por un timeslice adaptativo (min 1 / max 6 ms, objetivo 6 s de finalización). Y `s.UseUnifiedTimeBudgetForStreaming=1` funde los presupuestos de async loading y level streaming en un único techo compartido.
+
+## 🔊 Audio: `loadingBehavior = ForceInline` en los 94 SoundWave del proyecto
+Con el valor heredado, un clip se lee del disco **al reproducirse** → hitch. Era la causa de los cortes "al aparecer Alma" (el corte no era la aparición: era el VO arrancando) y del salto al tomar la proto ameba (el sonido de selección). Ver `gotchas.md` §186.

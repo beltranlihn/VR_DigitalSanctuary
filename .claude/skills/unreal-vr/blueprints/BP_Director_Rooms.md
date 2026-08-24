@@ -113,7 +113,23 @@ El `WidgetComponent` del título ([[BP_Door_SC]]) es UMG: no lo pinta ningún ma
 ## 🐛 ✅ ARREGLADO en la verificación: el Hall se volvía a encender a mitad del recorrido
 El primer log dio `0 → 1 → 0 → 1`. La causa: `CheckHall` sólo miraba `bHallDone` y el índice de parada, así que cuando el pawn llegaba a la parada 1 —ya con otra sala cargada— **volvía a pedir el Hall**. Fix: agregar `RoomIndex < 0` a la guarda. Después de eso el log da `0 → 1 → 2 → 3 → 4 → 5` monótono.
 
+## 🧪 2026-08-21 — `DebugJumpTo(Index)`: cargar cualquier sala al arrancar
+La API que usa el `DebugStartRoom` de [[BP_Director_Story]] para saltar a una etapa. Tres líneas, todas apoyadas en la máquina que ya existía:
+```
+DebugJumpTo(Index):
+  log
+  bHallDone = true                        ← 🔴 para que CheckHall NO vuelva a encender el Hall después
+  if bHallPreloaded:
+      if Index == 0 → HallInstant()       ← ya está cargado: no se descarga y recarga sin necesidad
+      else          → RoomIndex = 0 ; BeginTransition(Index, false)
+  else              → BeginTransition(Index, false)
+```
+🔴 **La línea que importa es `RoomIndex = 0`.** Con `bPreloadHall` (default true) el Hall entra al mundo en el arranque, pero `RoomIndex` sigue en −1 porque nadie "entró" todavía. Si se llamara `BeginTransition` así, el `DoSwap` vería que **no hay sala previa**, no descargaría nada, y quedarían **dos salas cargadas a la vez** — justo lo que esta clase existe para evitar. Diciéndole que la sala actual es el Hall (que es la verdad: está cargado), la transición normal lo descarga sola y no hace falta ningún camino nuevo.
+
+Verificado por log: `SALTO DE DEBUG a la sala 3` → `transicion hacia sala 3` → `sala visible, indice 3` → `sala encendida`, con el Hall descargado en el mismo swap. Y con `Index = 0`, `HallInstant` (sin recarga).
+
 ## TODO
+- [x] ✅ **Race de `MID_L`/`MID_R` en [[BP_Door_SC]] — ARREGLADO 2026-08-21.** La causa real no era el fundido sino el `Tick` de la puerta: `BeginPlay → SetTimer("Boot", 0.3)` crea los materiales dinámicos, pero `TickDoor → Apply` los lee desde el frame 1. En la obra normal se llega caminando mucho después de 0,3 s; **el salto de debug de [[BP_Director_Story]] deja al pawn pegado a la puerta en el frame 1** y lo destapó como una catarata de errores. Fix: guarda `IsValid(MID_L)` sobre los dos `SetVectorParameterValue` de `Apply`. Verificado: cero `Accessed None`.
 - [ ] 🔴 **Visor**: ajustar `FadeOutTime` / `FadeInTime` / `HoldAfterLight` contra la sensación real. Lo medible ya está verificado; el ritmo no.
 - [ ] Cargar los colores y las texturas de cada sala en sus `MI_<Sala>_Muro` / `MI_<Sala>_Piso` (hoy todas heredan el gris del maestro).
 - [ ] Cambiar la tecla `2` por el aviso real de "término de nivel" cuando exista.
@@ -125,3 +141,13 @@ El primer log dio `0 → 1 → 0 → 1`. La causa: `CheckHall` sólo miraba `bHa
 - [[BP_Director_Movement]] — el recorrido; le pide `LegIndex` y le llama `GotoNext`.
 - [[BP_Door_SC]] — la puerta de cada sala; su vidrio y su marco se encienden con la misma perilla.
 - [[BP_StageDirector]] — el director del esqueleto viejo, que hacía esto con fade sphere y `LoadLevelInstance`.
+
+## 🎬 2026-08-19 — `CloseRoom()`: fundir y descargar SIN sala siguiente
+Para el final de Surrounding (*"aquí desaparece el nivel; ya no avanzamos, pero la arquitectura desaparece"*): **`CloseRoom()`** = `BeginTransition(-1, false)` si `Phase==0` y hay sala. `DoSwap` descarga la actual y llama `LoadNew`, que ahora tiene una **guarda por cirugía**: `if RoomIndex >= 0 → LoadStreamLevel` · `else → bLoadDone=true` + log `SALAS: sala cerrada, no hay siguiente (final)`. El resto de la máquina sigue igual (fase 3 sube `RoomLight` a 1 sin sala cargada — no se ve nada porque no hay nada; `CallGotoNext` con `bAdvanceAfter=false` no avanza). El que lo llama es [[BP_Director_Story]] (`BeginEnding`). `EndStage()` **no cambió**: sigue siendo el cierre normal con sala siguiente.
+
+## ⚡ 2026-08-21 — el Hall se PRECARGA en el arranque (mata el hitch de entrada)
+Beltrán seguía viendo el corte al entrar al Hall aun con el PSO precache. **Medido en el log del device**: el Hall pasa de "transicion" a "sala visible" en **94 ms repartidos en 3 frames** (~31 ms cada uno), mientras las salas 1-5 hacen lo mismo en **604 ms repartidos en 42 frames** (14,4 ms/frame = ritmo normal). O sea: **sólo el Hall concentra la carga**, porque su transición **se saltea el fundido** (`RoomIndex < 0` → directo a la fase 2) y encima ocurre **mientras el usuario camina**, no bajo un negro estático.
+✅ **Solución: cargarlo cuando no cuesta nada.** `Boot()` → **`PreloadHall`** (evento; `LoadStreamLevel` es latente) trae el Hall **en el arranque de la app**, cuando todo está en negro; como `RoomLight = 0`, la sala **nace negra y no se ve** (el principio de siempre), y un `ApplyLight(0)` posterior apaga el título de la puerta que acaba de entrar. Cuando llega el momento real, **`CheckHall` ramifica**: si `bHallPreloaded` → **`HallInstant()`** (fija `RoomIndex = 0`, `bLoadDone = true` y salta **directo a la fase 3**, el encendido) en vez de `BeginTransition`. Cero streaming en el instante sensible.
+- Perilla: **`bPreloadHall`** (cat. *A - Salas*, true). En false vuelve al comportamiento anterior.
+- ✅ Verificado en PIE: `Hall PRECARGADO en negro` a los **17 ms** del boot, y después `arranco la caminata, enciendo el Hall` → `sala encendida` 1,5 s más tarde (el `FadeInTime`), cero `Accessed None`.
+💡 Encaja con el plan de Beltrán de poner una esfera azul de intro: la precarga transcurre justo ahí.

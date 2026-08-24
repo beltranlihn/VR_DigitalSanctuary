@@ -237,3 +237,32 @@ Si en algún momento se decide reactivar `r.PSOPrecaching=1` (sistema B) detrás
 **[FOLCLORE] comunitario (marcado, no citado como verdad):**
 - [PSO Caching in Unreal Engine — Vermilion (blog)](https://blog.rime.red/pso-caching-in-unreal-engine/) — no usado como fuente de ningún claim de este documento
 - [Setting up PSO Precaching & Bundled PSOs — Tom Looman](https://tomlooman.com/unreal-engine-psocaching/) — usado solo para el dato "introducido en 5.1" y "insuficiente solo hasta 5.3, mejorado en 5.6", marcado explícitamente como no verificado contra código/changelog oficial
+
+## 🆕 2026-08-21 — `r.PSOPrecaching=1` ENCENDIDO en `Config/Android/AndroidEngine.ini`
+Medido en el APK de la maqueta: al cargar el primer sublevel (Hall) hubo **un frame de ~100 ms** (138 ms de pared en 4 frames entre "transicion hacia sala 0" y "sala visible" del log del device) — compilación de PSOs al primer draw de los materiales de la sala, con el precache apagado por la herencia del VRTemplate. OVR Metrics NO lo muestra (promedia FPS por segundo). En la segunda corrida el mismo tramo costó 69 ms (el `vkqcache.bin` ya estaba tibio). Se encendió el precache: el costo se paga al ARRANQUE, que en esta obra transcurre en negro (la recomendación literal del template: "conceal it with a loading screen"). ⚠ El primer launch tras instalar será algo más lento — vigilarlo; si molesta, el plan B es el Bundled PSO Cache.
+
+---
+
+# 🔴 CORRECCIONES 2026-08-21 (verificadas contra el código de UE 5.8)
+Investigación a fondo tras el pedido de Beltrán de **cero saltos de frame**. Tres cosas de este archivo estaban desactualizadas o eran falsas en 5.8:
+
+### 1. En Vulkan, Bundled PSO Cache y PSO Precaching son MUTUAMENTE EXCLUYENTES
+`VulkanRHI.cpp:462`: `GRHISupportsPipelineFileCache = !GRHISupportsPSOPrecaching || r.Vulkan.EnablePSOFileCacheWhenPrecachingActive`, y ese segundo cvar es **false** por defecto (comentario de Epic: *"If precaching is active we should not need the file cache"*).
+👉 **Con el precaching encendido (nuestro caso), el `.upipelinecache` bundleado NO se abre y `-logpso` NO GRABA NADA, en silencio.** Antes de invertir una tarde en la ruta del `.spc`, leer en el log del device la línea **`Vulkan PSO Precaching = X, PipelineFileCache = Y`**: hoy da `1, 0`.
+El nombre del cvar de grabación en 5.8 es **`r.ShaderPipelineCache.SaveBoundPSOLog`** (con el segundo punto; el de UE4 sin punto ya no existe), y `r.ShaderPipelineCache.SaveAfterPSOsLogged` hay que dejarlo en 0 (Epic dice en el .cpp que el autosave *"is found to be broken"*).
+
+### 2. La §2 de este archivo asumía los servicios remotos de compilación en Android: en Quest 3 con 5.8 NO se levantan
+`BaseDeviceProfiles.ini` (~1450) trae `r.Vulkan.UseChunkedPSOCache=0` para Quest 1/2/3/3S/Pro (Epic adoptó lo que el fork de Meta ya hacía), y `VulkanAndroidPlatform.cpp:2163` exige ese cvar ≠ 0 para arrancar los *remote program compile services*. **Todo el precaching compila en el propio proceso.**
+
+### 3. La §6 decía que los contadores de precache y de pipeline cache son SEPARADOS: ya no
+`ShaderPipelineCache.cpp:864-884`: **`FShaderPipelineCache::NumPrecompilesRemaining()` ya suma `PipelineStateCache::NumActivePrecacheRequests()`** — un solo número cubre los dos sistemas. Sigue sin estar expuesto a Blueprint (haría falta un nodo C++) — es lo que haría falta para gatear una pantalla de carga.
+
+### 4. Meta: el Automated Shader Binary Cache (SBC) está DEPRECADO
+La doc de Horizon OS ahora dice *"is deprecated and is no longer actively maintained"*, además del viejo aviso de que el soporte a Unreal *"is not guaranteed"*. **No contar con eso como mitigación.**
+
+## La config que quedó (`Config/Android/AndroidEngine.ini`)
+`r.PSOPrecaching=1` · `Components=1` · **`Resources=1`** (la palanca clave: mueve el costo al PostLoad, o sea a la carga, en vez del primer draw) · `ProxyCreationStrategy=1` (el deprecado `ProxyCreationWhenPSOReady` lo avisa el motor por log) · `GlobalShaders=1` · `Mode=0` · `WaitForHighPriorityRequestsOnly=0`.
+⚠ **Casi todos son `ECVF_ReadOnly`: por consola no hacen nada, tienen que estar en el ini.**
+🔬 **Medición**: `r.PSOPrecache.Validation=2` loguea cada *precache miss* con detalle, y `r.PSO.RuntimeCreationHitchThreshold=10` marca en el log toda compilación que pase de 10 ms. Con eso, el log del device dice **exactamente** si queda algún PSO compilando en runtime. Bajar a 0 cuando el tema esté cerrado.
+
+Fuentes: [Manually Creating Bundled PSO Caches](https://dev.epicgames.com/documentation/en-us/unreal-engine/manually-creating-bundled-pso-caches-in-unreal-engine) · [PSO Precaching](https://dev.epicgames.com/documentation/en-us/unreal-engine/pso-precaching-for-unreal-engine) · [Optimizing Rendering With PSO Caches](https://dev.epicgames.com/documentation/en-us/unreal-engine/optimizing-rendering-with-pso-caches-in-unreal-engine) · [Meta — Shader Compilation](https://developers.meta.com/horizon/documentation/unity/ps-shader-compilation/)
