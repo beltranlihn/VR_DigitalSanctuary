@@ -1050,3 +1050,191 @@ Hubo **7 de esos entre las 13:41 y las 13:47** (todos por errores míos de DSL: 
 ⚠ Y el número que hay que mirar es el del FUNDIDO: `FadeOutTime` era 1,2 s y el anillo tarda 2,5 s — sin el retraso el anillo se cortaba a la mitad y parecía un bug del anillo, no del timing.
 🔴 **Corolario de la §209, pagado acto seguido: al sumar un elemento a una serie, hay que extender TODOS los arrays paralelos, no sólo el obvio.** El quinto anillo se creó con su componente, su transform y su color (`RingColors` de 5)… y salía **invisible**. Faltaba **`RingReveal`**, el array de progreso que `PushRingMat` lee para el parámetro `Reveal` del material: con 4 entradas, el índice 4 cae fuera de rango y devuelve **0**, o sea "no dibujado". El síntoma engaña — parece que el componente no se creó, cuando en realidad está entero pero con opacidad 0.
 👉 Regla: ante "el elemento nuevo no se ve", listá **todos** los arrays indexados por ese mismo índice y verificá su longitud, antes de sospechar de la geometría.
+
+210. 🔎 **`get_node_type_pins` INSTANCIA un nodo real en el grafo para inspeccionarlo — y lo deja ahí.** El `refPath` que devuelve (`...EventGraph.K2Node_CallFunction_5`) no es un ejemplo: es un nodo suelto recién creado en TU grafo. Hay que `delete_node` de ese refPath después de leer los pins, o queda un nodo huérfano sin conectar (2026-08-24, mordió en `BP_Sensor_Soul`).
+
+211. 🏷️ **Dos type_ids que el `read` imprime y el `write` rechaza (2026-08-24):** `Utilities|Name|Equal(Name)` no existe como escribible — para comparar Names en el DSL va el operador **`==`** (promotable, resuelve Name==Name bien; la advertencia de "== no sirve para strings" es del tipo String, no de Name). Y **`switch int` nace con cases 0-2**: un `(:4 ...)` falla con *"Unknown exec output 4"* — o `add_node_pin` por cirugía, o directamente `if/elif` con `==`, que además acepta cualquier valor.
+
+212. 🔴🔴 **Variables instance-editable NUEVAS sobre un BP con instancia YA COLOCADA: la instancia nace con TODO en CERO — los 25 knobs a la vez.** Recaída medida de [[instance-editable-nace-en-cero]] (2026-08-24, `BP_Sensor_Soul`): los defaults se escribieron en el CDO, verificados por `get_properties`… y la instancia colocada en `L_SoulCharger` tenía los 25 en 0. Síntoma delator: la calibración de respiración "calibró" en 17 ms (`CalHold=0`). **Receta:** tras agregar knobs a un BP colocado → `get_properties` de la INSTANCIA (no del CDO) → `set_properties` con los valores → guardar el **NIVEL** (`save_actor` falla con "not an external actor"; va `save_assets` del mapa). Alternativa: NO marcar instance-editable lo que no necesite ajuste por instancia (así heredan del CDO, como `MechTimeout` del director, verificado en la misma sesión).
+
+213. 🔴🔴 **Un `(bind _x (Get<Var>))` de un getter PURO no es un SNAPSHOT — se evalúa cuando se CONSUME.** El patrón de flanco `bind _was (GetWasActive)` → `SetWasActive _active` → `(if (xor _active _was) ...)` compila perfecto y **nunca dispara**: el getter bindeado es un nodo puro que se evalúa recién cuando el `xor` corre, o sea DESPUÉS del Set — compara el valor consigo mismo. Medido 2026-08-24 en `BP_BreathOrb_SC` (el log de flanco no salía) y el mismo bug estaba en el apagado del háptico de `BP_Sensor_Soul` (el zumbido habría quedado prendido para siempre al salir del umbral). ✅ **El patrón correcto: actualizar el estado SOLO dentro del flanco** — `(if (xor _active (GetWas)) (SetWas _active) (…efectos del flanco…))` — así el Get se consume antes de cualquier Set. Regla general: si un valor se lee y se escribe en la misma función, ordená los consumidores ANTES del Set o mové el Set adentro de la rama; un `bind` NO congela nada.
+
+214. 🔴🔴 **Bordes con diente de sierra y "línea negra" en un `WidgetComponent` = `BlendMode` en `Masked`.** Es el default de fábrica y da **alfa de 1 bit**: no hay antialiasing posible en el borde, los píxeles semi-transparentes se recortan y por el corte se ve el fondo oscuro del render target — se lee como un contorno negro finito y escalonado, aunque el brush no tenga ningún outline. **Subir `DrawSize` NO lo arregla** (más resolución = escalones más chicos, pero siguen siendo duros); es exactamente el síntoma que reportó Beltrán en `BP_StageIntro_SC` después de haber duplicado la resolución él mismo. ✅ **Fix: `BlendMode = Transparent`** en el componente (CDO **y** en la instancia colocada, que puede tener override propio). Es la 2ª vez que este proyecto se lo come: en [[BP_InstructionsPanel_SC]] el mismo `Masked` hacía que el alfa 0,55 del fondo se dibujara opaco, y ahí se resolvió sacando el fondo del widget a geometría. 👉 **Regla: cualquier `WidgetComponent` de esta obra que tenga bordes redondeados, transparencias o fundidos va en `Transparent`, no en `Masked`.**
+⚠ Y el hallazgo lateral que salió al arreglarlo: **la instancia colocada tenía `DrawSize` y `relativeScale3D` propios** (1920×1920 · 0,06, autorados por Beltrán) distintos de los del CDO (1040×1240 · 0,05). Antes de "corregir" la resolución de un widget, **leer la INSTANCIA**: el CDO puede no ser lo que corre.
+
+215. ⏱️ **Una ventana de animación corta NO se verifica muestreando propiedades por MCP — se verifica LOGUEANDO desde adentro del grafo.** Para comprobar que la salida por opacidad de `WBP_StageIntro_SC` hacía lo pedido había que ver 0,6 s de fundido que empiezan ~18 s después del disparo. **Cuatro intentos de poll con `get_properties` en bucle volvieron vacíos**: cada llamada MCP cuesta ~0,3 s de ida y vuelta, así que el muestreo es grueso, irregular y cae fácil fuera de la ventana; además cualquier excepción intermedia corta el bucle en silencio. ✅ **Lo que sí funciona: una función de diagnóstico temporal** (acá `LogExit`, un `if bExiting → PrintString` colgado del final de `StepPills`), correr PIE una vez, dormir el total y leer con `GetLogEntries` — dio **210 muestras a frame-rate** con el valor exacto de las tres variables; después se borra la función y se barre. Regla: **el motor muestrea a 72 Hz gratis; el MCP a ~3 Hz y caro.** Todo lo que dure menos de unos segundos se mide por log, no por poll.
+⚠ Corolario del DSL: un `if` o un `for` **cierran la lista de statements**, así que un print condicional NO se intercala en medio de una función existente — va en su **propia función**, llamada al final de la cadena (una línea de alta y una de baja, sin tocar la lógica que se está verificando).
+
+216. 🔴🔴 **El `read_graph_dsl` imprime type_ids que el `write` NO acepta — cuatro formas exactas, medidas a golpes (2026-08-25).** Amplía la §211. Al reescribir `ApplyRingScale`, `SpawnSoul` e `IntroOutro` el read daba texto que el write rechazaba una y otra vez. Las reglas que salieron, todas verificadas con `create_node`:
+   - **Variables propias:** el read imprime `(|GetSoulRef)` pero el write/`create_node` exigen **`Variables|<CategoríaSinEspacios>|GetSoulRef`** (`Z - Estado interno` → `Z-Estadointerno`). El prefijo vacío no existe.
+   - **Booleanos `bAlgo`: el getter PIERDE la `b`.** `Variables|Z-Estadointerno|GetbAppearing` **no existe**; la buena es **`GetAppearing`**. (El read imprime `GetbAppearing`.)
+   - **Miembros de OTRA clase: hay que nombrar la clase por la que está TIPADA la referencia, no la que lo declara.** `AppearTime` vive en `BP_Alma_SC`, pero `SoulRef` es un `BP_ProtoSoul_SC` → `Class|BPAlmaSC|SetAppearTime` **crea el nodo pero no conecta** (*"Could not connect pin SoulRef to self"*: el MCP no hace upcast implícito hijo→padre). Con **`Class|BPProtoSoulSC|SetAppearTime`** entra a la primera. El read, para colmo, lo imprime siempre como la clase declarante.
+   - **`Math|Interpolation|Ease` tiene 4 pines al crearse** (`Function, Alpha, A, B`) aunque el read imprima 5: el `BlendExp` está oculto hasta que la Function tiene valor. Pasarle 5 args falla.
+   ⚠ Y un límite del `select`: sus `Option` son wildcard y **no aceptan la salida de un nodo** si el tipo aún no se resolvió (*"Could not connect pin Result to Option 1"*); con literales anda. Si el factor sale de un cálculo, reformulá la expresión en vez de pelearte con el select.
+   👉 **Método barato para no adivinar:** `create_node` con el type_id candidato → si devuelve refPath, existe (y lo borrás); si no, probá la variante. Cuatro sondas en una llamada cuestan nada y ahorran cinco writes fallidos.
+
+217. 🔴🔴 **Dos formas de romper algo mientras lo verificás (2026-08-25).**
+   - **El valor de instancia de una variable nueva se lo come el SIGUIENTE recompilado del Blueprint.** Es la §212 con un añadido caro: escribir el override en la instancia y verificarlo **no alcanza** si después vas a volver a compilar el BP — al reconstruirse el actor el override se pierde (medido: `IntroInTime` puesto en 1,2 y verificado, y tres compilaciones después valía 0,6). ✅ **Orden correcto: terminar TODOS los cambios del Blueprint → compilar por última vez → recién ahí escribir los valores de instancia → guardar el NIVEL.** Y verificar el valor en una corrida real, no sólo con `get_properties`.
+   - **Borrar un nodo de diagnóstico INTERCALADO deja la cadena cortada.** Si insertaste `A → log → B`, el `delete_node` del log te deja `A → (nada)` y `B` colgando; el compilador **no se queja** porque `B` sigue siendo un nodo válido. Pasó con `ApplyRingScale → StepRings` en el Tick de la ameba: los anillos no se habrían animado nunca más. ✅ **Al sacar un nodo intercalado, re-empalmar siempre**, y confirmarlo leyendo el pin de salida del predecesor. 💡 Preferible: colgar el diagnóstico **al final de una cadena** (donde no hay sucesor que reconectar) en vez de intercalarlo.
+
+218. ⏳ **Una captura sacada justo después de `MaterialTools.recompile` NO es evidencia: el shader todavía está compilando.** Al probar `BLEND_Translucent` en `M_SoulRibbon_SC` la captura inmediata mostró **los anillos desaparecidos**, y estuvo a punto de quedar escrito en el tracker que el translucent no servía para ese material — una conclusión falsa que habría cerrado el único camino que resolvía el pedido. **Con 4 segundos de espera antes de capturar, el mismo cambio se ve perfecto.** 👉 Regla: después de cambiar `blendMode`, `shadingModel` o cualquier cosa que dispare recompilación de shaders, **dormir unos segundos antes de mirar**; y si el resultado es "no se ve nada", **sospechar del timing antes que del cambio** (el síntoma de un shader a medio compilar y el de un material roto son idénticos en una imagen).
+⚠ Emparentado con §202 y con [[debugging-instrumento-sin-validar]]: **un instrumento sin validar produce diagnósticos falsos con total confianza**. El control positivo barato acá era volver al modo anterior y comprobar que la captura sí muestra los anillos.
+
+
+## 🌾 Cosecha 2026-08-25 (construyendo `BP_BreathRing_SC`, el temporizador de respiración)
+
+219. 🔴🔴 **LOS NOMBRES DE FUNCIÓN CHOCAN ENTRE BLUEPRINTS Y EL DSL RESUELVE AL EQUIVOCADO — EN SILENCIO, Y COMPILANDO.**
+La trampa más cara del día, y es de la misma familia que §"los literales string de una función propia se pierden": **compila, corre, y miente.**
+Escribiendo `(CallFunction|Apply :Time ...)` para llamar a **mi propia** función `Apply`, el DSL cableó
+`Class|BPInstructionsPanelSC|Apply` — la función homónima de **otro** Blueprint — y le enchufó un float en el pin de target.
+Tres rondas del mismo bug en una sola sesión:
+- `Apply`   → `Class|BPInstructionsPanelSC|Apply`
+- `Advance` → `Class|BPBell|Advance`
+- `RingApply` / `RingAdvance` → `Class|BPProtoSoul|RingApply` / `RingAdvance` (¡el segundo intento de renombrar también chocó!)
+
+**Cómo se detecta:** **leyendo el grafo después de escribirlo**. Si aparece `Class|OtroBP|MiFuncion` donde escribiste
+`CallFunction|MiFuncion`, es esto. `compile_blueprint` **no lo detecta** (el grafo es válido, sólo llama a otra cosa).
+**Cómo se evita:** antes de nombrar una función, `find_node_types(graph, "MiNombre", [])` y mirar que **no** haya
+`Class|...|MiNombre`. Un nombre libre devuelve `[]`. Es una llamada barata contra media hora de reescritura.
+⚠ **Los event dispatchers tienen el mismo problema, pero ahí sí falla la compilación**: `Default|CallOnFinished` resolvió
+al `OnFinished` de `BP_InstructionsPanel_SC` y el compilador tiró *"This blueprint (self) is not a BP_InstructionsPanel_SC_C"*.
+Ese error, molesto como es, es **el caso afortunado**: avisa. Con las funciones no avisa nadie.
+👉 Es la generalización de la lección de `BP_BreathPacer` ("todo lo del pacer lleva prefijo `Pacer*`"): **no es cosmética,
+es corrección**. En un proyecto con 80 Blueprints, `Apply`, `Advance`, `Step`, `Layout`, `Update` y `Init` están todos tomados.
+
+220. **Las variables se referencian por su CATEGORÍA, no por `Variables|Default|`.** En cuanto le ponés categoría a una
+variable con `set_variable_category`, su `type_id` pasa a ser `Variables|<Categoria-sin-espacios>|Get<Nombre>` — p.ej.
+categoría `"A - Ritmo"` → **`Variables|A-Ritmo|GetDivisions`**. `Variables|Default|` queda **sólo para los componentes**.
+Combinado con la normalización rara de mayúsculas y la `b` que se cae, un `bScaleToCycleTime` en la categoría `A - Ritmo`
+se escribe **`Variables|A-Ritmo|GetScaletoCycleTime`** (sin `b`, y con la "to" en minúscula).
+✅ La forma barata de obtener la lista exacta: `find_node_types(graph, "Variables|A-Ritmo|", [])`.
+
+221. **`add_variable` quiere los tipos en MINÚSCULA.** `bool`, `int`, `float`, `byte`, `name`, `string`, `text`, y
+`Vector`/`Rotator`/`Transform`/`Vector2D`/`LinearColor`. `"Boolean"` e `"Integer"` fallan con *Unknown type*.
+⚠ Y el error de `execute_tool_script` **sale agregado al final** aunque cada llamada esté envuelta en `try/except`:
+las variables que sí se pudieron crear **quedan creadas**. Re-listar antes de reintentar, o se duplican.
+
+222. **`get_actor_bounds` devuelve un cubo fijo de 256 cm** para los actores de BP de este proyecto (verificado en
+`BP_BreathRing_SC`, `BP_BreathOrb_SC` y `BP_InstructionsPanel_SC`: los tres dan exactamente ±128 alrededor de su posición).
+**No sirve para medir tamaños ni para decidir encuadres.** Casi dispara una cacería de un bug inexistente ("el anillo mide
+2,5 m"). Para medir de verdad: leer `relativeScale3D`/`relativeLocation` de los componentes.
+
+223. **`ActorTools.set_actor_transform` SÍ funciona** sobre un actor ya colocado (contra lo que decía `toolsets.md`), y en
+cambio `ObjectTools.set_properties` sobre su **root component se aplicó a medias**: tomó la X e ignoró la Z, devolviendo
+éxito. Es "declarado ≠ aplicado" otra vez. 👉 Para actores del nivel: **`set_actor_transform` y verificar con
+`get_actor_transform`**; si los dos no coinciden, volver a setear hasta que coincidan.
+
+224. **El `WidgetComponent` RECREA su widget en cada reconstrucción del actor.** Se ve en el log por el nombre de instancia:
+tres cambios de propiedad seguidos produjeron `WBP_..._C_90`, `_158`, `_92`, `_95`, `_98`. Consecuencia práctica: **todo lo que
+el Construction Script le meta al widget por código (hijos, texto) se pierde**, y por eso **el contenido dinámico de un widget
+no se previsualiza en el viewport del editor** — aunque sí se construya en Play (medido: 20 letras).
+👉 Corolario de diseño: **lo que Beltrán tiene que autorar mirando no puede vivir en un widget**. En `BP_BreathRing_SC` los
+anillos, divisores y marcador son componentes reales (se ven en vivo) y sólo los textos son widget (se ven en Play).
+💡 Truco de diagnóstico que lo destapó: loguear `GetChildrenCount` **antes** del `ClearChildren` — si siempre da 0, el widget
+es otro. Y loguearlo **después** de construir mide cuántos hijos quedaron de verdad, sin depender de una captura.
+
+225. ✅ **`select` es la salida a la regla "un solo multi-exec y va al final".** `Layout` necesitaba tres bucles y varias
+ramas seguidas; se escribió **completamente desenrollada** (4 divisiones como máximo → 4 bloques explícitos) y con `select`
+en vez de `if`. Resultado: un grafo plano, sin un solo bucle, sin acumuladores y sin funciones auxiliares de una sola línea.
+Cuando el tamaño del problema está acotado y es chico, **desenrollar sale más barato que pelearse con el parser**.
+
+226. 🔴 **El signo del PITCH: `pitch positivo LEVANTA el +X`.** `Ry(+90)` manda **+X→+Z (arriba)** y **+Z→−X**;
+`Ry(−90)` manda **+X→−Z (abajo)**. Lo tuve al revés armando el marco de `BP_BreathRing_SC` y el resultado fue un
+reloj que **giraba al revés**: con `Pitch −90` el eje local que yo usaba como "arriba" apuntaba abajo, así que
+`(cos θ, sin θ)` recorría el círculo en antihorario. **Compila, se ve bien en una captura estática, y sólo se nota
+cuando algo se mueve** — lo cachó Beltrán mirando, no yo midiendo, porque mis mediciones eran de coordenadas
+**locales** (correctas) y el bug estaba en el mapeo local→mundo.
+👉 **Regla:** cuando un componente-marco define un sistema de coordenadas 2D (un reloj, un dial, un tablero),
+**asertar el sentido con un valor asimétrico**: poner el indicador a 1/8 de vuelta y confirmar que cae en el cuadrante
+esperado. Con 4 marcas simétricas a 0/90/180/270 **una captura no distingue horario de antihorario**.
+💡 Y la palanca queda barata: el sentido de giro entero se invierte cambiando **ese solo número** (±90), sin tocar fórmulas.
+
+227. **Una forma orientada en UV no se acomoda probando signos: hay que saber QUÉ EJE es.** El medio disco de
+`M_BreathDot_SC` se cortaba con `CutDir`. Probar (0,1,0) y después (0,−1,0) dio "mal" las dos veces, porque **ambos son
+el eje tangencial**: cambiaba de un tangente al otro, nunca a radial. El correcto era **(−1,0,0)** — el eje U del `Plane`,
+que es el que el `Yaw = θ` del componente alinea con el radio. ⚠ En una captura chica los dos valores equivocados
+"parecen casi bien", que es justo lo que hace perder la ronda. **Razonar el eje primero, elegir el signo después.**
+
+228. 🔴🔴 **`set_properties` con varias propiedades juntas puede aplicar unas y NO otras, devolviendo éxito.**
+Creando los planos de palabra de `BP_BreathRing_SC` mandé `staticMesh` + `overrideMaterials` + flags de sombra en
+**una sola llamada**: entró todo menos **`staticMesh`, que quedó en `None`**. El síntoma fue de manual del terror:
+planos **invisibles** cuyo material, escala, rotación y visibilidad **leídos daban todos correctos**. Depuré el
+material, la textura, el alpha, el blend y el mapeo UV antes de mirar lo único que no había verificado.
+👉 **El mesh va en su propia llamada, y se verifica componente por componente.** En la misma tanda yo sí había
+verificado `RingFixed` y `Mark` — **la regla aplicada a medias no protege**: hay que verificar TODOS.
+⚠ Segunda capa: la **instancia ya colocada guarda su propio override**, así que arreglar el CDO **no la cura**;
+hubo que reponer el actor. Y ⚠ tercera: un `SetStaticMesh` por código con la **ruta entre comillas no resuelve**
+(el literal no se convierte en referencia de asset) — si hace falta por código, va por **variable de objeto**.
+
+229. ✅ **Cómo averiguar el mapeo UV de un mesh sin adivinar: la prueba de la "F".**
+Necesitaba saber cómo cae una textura sobre un `Plane` rotado, y había **ocho** combinaciones posibles
+(4 rotaciones × espejo). En vez de probarlas de a una, horneé una textura con una **"F" grande y asimétrica**
+en una posición conocida y la miré una sola vez: **dónde cae** da la traslación/rotación y **cómo se ve**
+(espejada o no) da el determinante. Con eso el mapeo queda determinado y la corrección se calcula, no se tantea.
+💡 Resultado para `/Engine/BasicShapes/Plane` girado por `Yaw` bajo un marco con `Pitch +90`: el eje **U es el
+radial** y el **V el tangencial**; una textura pensada "arriba y leyendo a la derecha" entra **rotada 90° horario**.
+⚠ Y ojo: **un espejo no se arregla con un offset de yaw**, sólo con rehornear o invertir la UV.
+
+230. **Para un material ADITIVO conviene texto blanco sobre fondo NEGRO, no alpha.** El primer horneado fue blanco
+con fondo transparente y usé el canal A: no se vio nada. Con fondo negro y usando el **RGB**, el negro no suma y
+el problema del alpha (compresión, premultiplicado, `sRGB`) desaparece de la ecuación. Es un nodo menos y una
+fuente de fallo silencioso menos.
+
+231. **`TextureTools.import_file` NO sobrescribe**: si el asset existe, falla con *"already exists"*. Hay que
+`AssetTools.delete` primero. ⚠ Y borrar la textura **rompe el default del `TextureSampleParameter2D`** del material
+que la usaba (*"Found NULL, requires Texture2D"* al recompilar) — después de reimportar hay que **volver a setear
+el default del nodo** y los parámetros de las instancias.
+
+232. 🔴 **Si un material remapea la UV, la textura necesita `TA_Clamp` — si no, aparecen COPIAS.** En
+`M_BreathWord_SC` la palabra se escala reescalando la UV alrededor de su centro. En cuanto el autor achicó el
+texto, el muestreo se salió de [0,1] y el **`TA_Wrap` de fábrica** trajo la palabra de vuelta **rotada 180°** al
+otro lado del anillo (wrap en U y en V a la vez = giro de media vuelta).
+👉 **Dos capas, y conviene poner las dos:** un **`Saturate` sobre la UV** en el material (protege aunque cambien
+la textura) y **`addressX`/`addressY` = `TA_Clamp`** en el asset. Funciona porque el borde de la textura es negro
+y el material es aditivo: lo que se sale no suma nada.
+⚠ Yo había **previsto este riesgo** al descartar la versión polar por "copias fantasma al achicar"… y después no
+lo apliqué a la versión cartesiana, que tiene el mismo problema por otra vía. **Un riesgo identificado y no
+mitigado es un bug con aviso previo.**
+
+233. 🔴 **Un componente agregado al CDO DESPUÉS de que la instancia existe nace SIN su `staticMesh` en esa instancia.**
+Agregué `RingAnim2`/`RingAnim3` al CDO de `BP_BreathRing_SC` con malla y material **verificados en el CDO**, y en
+el actor ya colocado los dos aparecieron con `staticMesh = None` (invisibles), aunque el material y la escala sí
+llegaron. Es la misma familia que §228 pero por otra puerta: no es que la llamada falle, es que la instancia
+**no adopta** ese campo para componentes nuevos.
+✅ **Reparación sin reponer el actor** (importante cuando la instancia tiene ajustes a mano que no se pueden
+perder): setear `staticMesh` **en el componente de la instancia** y confirmar que **sobrevive una reconstrucción**
+(forzarla escribiendo una propiedad con su MISMO valor, para no alterar nada del autor). En este caso sobrevivió.
+👉 Regla: después de agregar un componente con malla al CDO, **verificar la INSTANCIA, no sólo el CDO**.
+
+234. 🔴 **Los nombres de EVENTO CUSTOM colisionan igual que los de función — y los buenos ya están tomados.**
+Llamando desde `BP_Director_Story` a los eventos `Appear` y `Play` de `BP_BreathRing_SC`, el DSL cableó
+**`Class|BPAlmaSC|Appear`** y **`Components|Animation|Play`**, con el anillo como target y compilando sin chistar.
+Es la §219 aplicada a eventos. 👉 **La API pública de un BP también necesita prefijo propio** (`BRingShow`,
+`BRingGo`, …). ⚠ Y ojo: `find_node_types` **no lista los eventos custom recién creados** desde otro BP, pero
+`write_graph_dsl` **sí los crea** con el id armado a mano (`Class|BPMiClase|MiEvento`) — la ausencia en el
+listado no significa que no se pueda llamar.
+
+235. 🔴 **`set_pin_value` sobre un `CallFunction`: el primer argumento es el índice 2, no el 1.**
+Los pines de entrada son `0 = execute`, `1 = self` (oculto para funciones propias), `2 = primer parámetro`.
+Escribir en el 1 **no da error** y el argumento se queda en su default. Me dejó dos llamadas con `Mode = 0`
+cuando debían ser 1 y 2. 👉 **Leer los pines con `get_node_infos` antes de escribir**, siempre.
+
+236. 🔴 **Una condición de "apagate" hay que probarla con el caso de ARRANQUE, no con el de cierre.**
+`OrbRetire` destruía el orbe en el primer frame porque la condición (`Mode == -1 && RevealT < 0.02`) **ya era
+verdadera antes de que la etapa empezara** — el sensor está en −1 mientras no haya `SetStage`. Lo delató el log
+de PIE. 👉 Toda lógica de auto-destrucción necesita un flag de **"esto llegó a ocurrir"** (acá `bEverShown`),
+no sólo de "ya terminó". ⚠ Y la lección de método: yo había **identificado** el riesgo y lo descarté razonando.
+**Un riesgo identificado se mitiga o se verifica; no se argumenta.**
+
+237. ✅ **Para cerrar una etapa desde un BP nuevo, reusar la función de cierre que el director YA tiene.**
+`BP_Director_Story.StepTimeDone()` trae adentro la guarda `WaitFor == "time"`. Llamarla desde afuera sale gratis
+y además **conserva el cortafuegos por tiempo**: cierra el que llegue primero y el segundo aviso se ignora solo,
+sin coordinación ni banderas nuevas. Buscar siempre ese punto de entrada antes de inventar un handshake.
+
+238. ⚠ **Un `bool` instance-editable nuevo es el peor caso del "nace en cero": cero = `false` = APAGADO.**
+Con un float, nacer en 0 suele dar algo raro pero visible; con un bool de tipo `bShowX`, la instancia vieja
+arranca con **todo invisible**, que parece que el Blueprint se rompió. 👉 Dos salidas: (a) inicializar la
+instancia a mano al agregar la variable — y avisarle al autor que se tocó sólo eso; o (b) **invertir el nombre**
+(`bHideX`), donde `false` = comportamiento de siempre y el default del motor ya es el correcto.
+Acá se eligió (a) porque "activar/desactivar" en positivo se lee mejor en el panel, pero (b) es la opción
+a prueba de olvidos si nadie va a inicializar la instancia.

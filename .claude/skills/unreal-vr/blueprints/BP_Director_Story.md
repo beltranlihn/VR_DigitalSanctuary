@@ -96,7 +96,8 @@ Es el mismo principio que el `DebugStartStage` del esqueleto viejo ([[BP_StageDi
 | **0** | Arranca **dentro del Hall**, en el paso 2 (Alma aparece): sin panel de partida, sin caminata, sin timbre. No siembra nada — el sensor y la elección se viven de verdad ahí. |
 | **1..5** | Arranca **dentro de esa sala**, en el paso 1, **con todo lo que el usuario ya habría hecho**. |
 
-**Cómo se usa:** seleccionar `Director_Story` en `L_SoulCharger` → Details → *D - Test* → `Debug Start Room` → índice de sala (0 Hall · 1 Entering · 2 Recognizing · 3 Loving · 4 Attracting · 5 Surrounding) → Play. 🔴 **Volver a −1 al terminar** (y así queda commiteado siempre).
+**Cómo se usa:** seleccionar `Director_Story` en `L_SoulCharger` → Details → *D - Test* → `Debug Start Room` → índice de sala (0 Hall · 1 Entering · 2 Recognizing · 3 Loving · 4 Attracting · 5 Surrounding) → Play.
+🔴🔴 **ESTA PALANCA LA MANEJA BELTRÁN — no la restaures.** (Pedido explícito, 2026-08-25: *"si estamos testeando ahora en hall, es medio lento tener que volver a ajustar ese valor todo el rato"*.) Si necesitás otro valor para una prueba propia, **leé el que estaba y dejalo así al terminar**; nunca la devuelvas a `−1` por prolijidad. Lo mismo con `bAutoTest`. Antes de commitear un hito, preguntarle a él en qué valor la quiere.
 
 ### Qué siembra (salas 1-5), todo con los verbos que YA existían
 | Lo que el usuario habría hecho | Cómo se siembra |
@@ -149,6 +150,23 @@ Reporte: *"tiró una serie de errores. Probé apareciendo en Loving. Mi proto am
 
 **3. La catarata de `Accessed None` de la puerta — la expuso el salto, pero el bug era viejo.** [[BP_Door_SC]] hace `BeginPlay → SetTimer("Boot", 0.3)` y los materiales dinámicos (`MID_L`/`MID_R`) nacen ahí, **pero el `Tick` corre desde el frame 1** y llama `Apply`, que los lee. En la obra normal se llega caminando a la puerta mucho después de 0,3 s y nunca se nota; **el salto deja al pawn pegado a la puerta en el frame 1** y dispara el error en todos esos frames. ✅ Fix en la puerta: guarda `IsValid(MID_L)` sobre los dos `SetVectorParameterValue` de `Apply` (los dos MID nacen juntos, así que uno alcanza). Beneficia también al flujo normal.
 👉 **Regla:** una herramienta de debug que teletransporta es un **test de estrés de las suposiciones temporales**. Todo lo que "siempre alcanzó a inicializarse" queda expuesto.
+
+## 🎛️ 2026-08-24 — el sensor de mecánicas, versión FINAL del día (tras el pivote de Beltrán: sin calibración)
+Cableado con el sistema de modos de [[BP_Sensor_Soul]]. La jornada pasó por dos diseños descartados (cierre por mecánica con `MechTimeout`; calibración con barra y candado del botón) que se revirtieron por pedido explícito — lo que quedó:
+
+- **`ArmPractice`** (primera llamada de `ShowPanel`): si `Room == 1` → `Sensor.SetStage(1)` + `Sensor.bPractice = true` — **el umbral de respiración corre desde que aparecen las instrucciones**, en modo práctica. Log: `umbral activo en modo practica durante las instrucciones`.
+- **`TickPractice(DT)`** (última de la cadena del Tick: `TickDebugKey → TickDoor → TickPractice`): mientras `Room==1 && WaitFor=="panel"` (guardas `IsValid` sobre sensor y panel — el `and` de K2 no cortocircuita), 🆕 (noche, v3) toma **`Sensor.BreathLevel`** gateado por **`bZonePre`** (la zona instantánea, no el umbral debounceado — mismo motivo que el orbe) y empuja `PracticeScale = FInterpTo(lerp(0.8, 2.1, nivel), 4.0)` a `PanelRef.SetPractice(S)` → **el círculo de la página de instrucciones respira con el usuario**.
+- **`StartStepTime`**: print + `Sensor.SetStage(Room)` (resetea `bPractice` → la esfera del mundo aparece) + timer por sala: 🆕 **`StepTimes`** (array de 6 en *C - Tiempos y tags*, **NO instance-editable** — manda el CDO; entrada 0 o faltante = fallback a `StepGameTime`). Hoy `[0, 90, 0, 0, 0, 0]`: **Entering dura 90 s** para probar con calma, el resto sigue en 10 s — 🔴 **el cierre de etapa es SOLO por la duración definida** (decisión de Beltrán); la mecánica no cierra nada. `TickMechDone` y `MechTimeout` se **eliminaron**.
+- **`StepTimeDone`**: `SetStage(-1)` (apaga mecánica y beam) + `Next()`.
+- ⚠ El botón de instrucciones quedó **exactamente como el original** (sin candado; el experimento `bLocked`/`bAdvanceLocked` se revirtió y sus variables se eliminaron).
+- ⚠ Trampas pagadas hoy: `(CallFunction|FindPanel _tag)` posicional choca con `self` (§179) → `:Tag` · `Utilities|Name|Equal(Name)` no es escribible → `==` (§211) · el setter cross-class de una VARIABLE lleva el valor primero → `(Class|BPSensorSoul|SetPractice :self ref :bPractice true)` · el compile sin guardar reprodujo los eventos vacíos de los `Assign` (gotcha del [[BP_BioHub]]) — limpiados y verificado `0 reaparecidos`.
+- ✅ Verificado por log + medición directa en la instancia PIE (`DebugStartRoom=1` + autotest): práctica ON durante el panel (esfera oculta, `RevealT=0`), paso → `ORB: true`, 10 s → `SetStage -1` → `ORB: false`, salas 2-5 intactas, **cero `Accessed None`**.
+
+### 🎬 2026-08-25 — la explicación de las etapas entra en el VO 3 y **manda al sensor**
+- **`PlayStageIntro()`** (nueva): busca [[BP_StageIntro_SC]] por clase (vive en el sublevel del Hall), lo cachea en `IntroRef` y llama `IntroPlay()`. Se insertó **por cirugía en el sub 3 de `RunHallA`, entre `Alma.MoveTo` y el `Say(VO 3)`** — la lámina arranca cuando Alma se corre a un costado.
+  ⚠ `RunHallA` **no se reescribe desde el `read`**: el lector muestra `BP_Sensor_Soul.Appear` como `Class|BPAlmaSC|Appear` (colisión de nombres) y una reescritura rompería la aparición del sensor.
+- 🔴 **El sub 3 ya no espera el VO, espera la EXPLICACIÓN**: su `SetWaitFor` pasó de `"vo"` a **`"intro"`** (cambio de un literal). **`TickIntroDone`** (en el Tick, tras `TickPractice`) poll-ea `IntroRef.bIntroDone` y, cuando la animación de salida termina, hace `Next()` → sub 4 = **VO 4 + `Sensor.Appear()`**. Dependencia invertida por poll, como la ceremonia: sin nodos `Assign` y sin sus trampas.
+- ✅ Verificado en PIE: `arranca la explicacion (VO 3)` → `INTRO: termino la animacion de salida` → `la explicacion termino - sigue el sensor` → `SENSOR: aparece`; pasos `3 espera: intro` → `4 espera: taken`, cero `Accessed None`.
 
 ## Trampas pagadas acá (van a `gotchas.md`)
 1. **Los literales `bool` y `string`/`name` pasados a una función PROPIA se pierden** (ya se sabía de los strings; hoy también los bool: `(CallFunction|Take true)` llegó como `false`). Salidas: pasar el literal por un nodo nativo (`MakeLiteralName`, `MakeLiteralBool`) o escribir la variable antes y que la función la lea. A funciones de **otra** clase (`Class|BPSensorSoul|Take ref true`) el literal **sí** llega.

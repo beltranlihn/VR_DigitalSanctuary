@@ -169,6 +169,21 @@ El `PlayAppear` (y el crecimiento) estaban gateados solo por **cercanía** — a
 ## 🎨 2026-08-20 — los colores de instancia POR FIN llegan al widget (+ alfa)
 Beltrán: *"por más que cambie los colores de los menús, no cambiaban en el juego"*. **Causa**: `Apply` corre en el BeginPlay, cuando `GetUserWidgetObject` del WidgetComponent todavía devuelve null → el cast fallaba en silencio y el `BgColor` de la instancia nunca se aplicaba (el widget quedaba con su color de Designer). **Fix**: `ReApply()` (Apply con el `PageIndex` vigente) se llama (1) por **timer a 0,5 s del BeginPlay** (cubre el panel de la partida) y (2) dentro de **`Show()`** (cubre los paneles de sala, que aparecen tarde). Además el **alfa del `BgColor` ahora es la opacidad del fondo** (el `Setup` del widget usa `SetColorAndOpacity`, que siempre la respetó): las 5 instancias quedaron con **A = 0,55** conservando los RGB de Beltrán (Recognizing rojizo y Surrounding ámbar ya estaban autorados y por fin se ven). El texto no se toca.
 
+## 🌬️ 2026-08-24 — las páginas de ENTERING son la 2 y la 3, con el círculo de práctica
+🔴 **La instancia de `L_Entering_SC` define el rango: `StartIndex 2` / `EndIndex 3`** (las "dos páginas" de Beltrán — la tabla vieja de abajo que decía 0-2 está superada; la instancia manda). Sin sistema de calibración (pivote del día): el usuario lee, practica y parte.
+
+| Página | Contenido (EN) | Extra |
+|---|---|---|
+| 2 | *"In this room, your breath takes the lead. / Rest the sensor gently on your belly, stay still, and breathe slowly - the circle follows your breath."* | **`BreathCircle`** — Image circular (brush `RoundedBox` + `HalfHeightRadius`, blanco tibio, anclas 0.44-0.56 × 0.36-0.54) que **respira con el usuario** vía `SetRenderScale` |
+| 3 | *"When you feel ready, hold the button. / A sphere of light will appear and follow your breath."* | el botón (sin candado, original) → `Finish()` → la esfera del mundo |
+
+- **Cadena del círculo**: widget `SetCircleSize(S)` (`Widget|Transform|SetRenderScale` — 🐛 fix 2026-08-24: el DSL había SOLTADO el getter del target y el pin `self` quedó libre → **escalaba el widget entero** (texto+imagen+círculo, lo vio Beltrán en visor); el pin se conectó por cirugía a `BreathCircle` y verificado con `get_node_infos`) ← panel **`SetPractice(S)`** (con caché `WidgetRef`/`bWidgetOk` vía `EnsureWidget`) ← `BP_Director_Story.TickPractice` (empuja la escala interpolada cada tick mientras se espera el panel de la sala 1).
+- 🗃️ **Dormido para cuando vuelva la calibración con datos**: `CalibBar` (ProgressBar en `Page_1`, `visibility=Collapsed`) + widget `SetCalibBar(P)` + panel `SetCalibProgress(P)`. Nadie los llama.
+- ⚠ `Txt_0` (agregado por error a la Page_0 cuando se asumió el rango 0-2) fue **eliminado**; `Txt_1` restaurado a su valor previo ("Start experience"). Page_0/Page_1 quedaron como estaban.
+- ⚠ Trampas UMG: `AddWidget` exige **`widgetDisplayName`** · `ToggleWidgetAsVariable` exige **`bIsVariable`** · los `
+` de los textos entran bien por `set_properties` (JSON), la trampa del `
+` literal es solo del DSL.
+
 ## 🪟 2026-08-21 — el fondo deja el widget y pasa a ser GEOMETRÍA: `Glass` + `M_InstrGlass`
 Pedido de Beltrán: *"en vez del color genérico del widget, un material translúcido como el de las ventanas, y yo poder configurar el emisivo y la transparencia"*.
 

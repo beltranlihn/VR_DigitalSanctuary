@@ -35,9 +35,28 @@ Se evaluó y se descartó con razones concretas, no por gusto:
 - Costo medido: `Segments = 220` → **442 vértices y 440 triángulos** por anillo. Somos fill-rate bound, no geometry bound: 5 anillos son ruido.
 
 ## El material `M_SoulRibbon_SC` — 77 expresiones, cero texturas
-**Unlit · Additive · TwoSided · `FloatPrecisionMode = Full`** (por la trampa de fp16 en degradados animados).
+**Unlit · 🆕 Translucent · TwoSided · `DisableDepthTest` · `FloatPrecisionMode = Full`** (por la trampa de fp16 en degradados animados). ⚠ **Fue Additive hasta el 2026-08-25** — ver abajo por qué cambió y qué se perdió con el cambio.
 
-🔴 **Additive por una razón estética, no sólo por barato:** en la referencia, **donde los trazos se cruzan brilla más**. Eso lo da el additive y no lo puede dar un opaco. Y de yapa el additive es **order-independent**, así que la trampa de los parches triangulares que mordió a `M_Alma` (translucidez a dos caras ordenada por índice) **no aplica** — por eso acá `TwoSided` es seguro.
+### 🎨 De Additive a Translucent — el blanqueo de los cruces (2026-08-25)
+Beltrán, en dos pasos: primero *"no me gusta que se sume cuando está superpuesto con otros colores y se empiece a ver blanco"*, y después, sobre el aditivo bajado, *"menos transparencia porfa"*.
+
+**Por qué blanqueaba:** additive suma en el framebuffer. Un anillo verde `(0,15 / 1 / 0,28)` cruzando uno morado `(0,77 / 0,36 / 0,93)` da **(0,92 / 1,36 / 1,21)** → satura los tres canales → **blanco**. Es geometría del blend, no un valor mal puesto.
+
+**Lo que se probó, en orden:**
+| Intento | Resultado |
+|---|---|
+| `Brightness` 1,0 → **0,5** (sigue aditivo) | Mata el blanqueo de a **dos** colores (la suma queda en `0,46/0,68/0,61`), pero **el anillo queda a mitad de brillo y se ve transparente** — justo lo que Beltrán después rechazó. |
+| `Brightness` **0,32** | Más separación de color todavía, más transparente todavía. Descartado por lo mismo. |
+| **`BLEND_Translucent`** ✅ **lo que quedó** | **No hay suma**: donde se cruzan, uno tapa al otro. Anillos **sólidos y saturados**, con `Brightness` de vuelta en **1,0**. |
+| `BLEND_AlphaComposite` (premultiplicado) | También sólido y sin blanquear, con un poco de glow aditivo en los bordes suaves. Alternativa válida si se quiere recuperar algo del brillo en los cruces. |
+
+🚩 **Un error propio que casi cierra el camino bueno:** el primer test de `BLEND_Translucent` dio *"los anillos desaparecen"* y estuvo a punto de quedar documentado como imposible. **Era el shader todavía compilando**: la captura salió inmediatamente después del `recompile`. Con 4 s de espera el mismo cambio se ve perfecto. 👉 **Después de `MaterialTools.recompile`, esperar antes de mirar** — una captura inmediata no es evidencia de nada.
+
+**Valores vigentes:** `Brightness` **1,0** · `TipBoost` **1,5** (era 2,5; con translucent la punta ya no puede blanquear, pero 2,5 la metía muy dura). Ninguno de los dos lo empuja el Blueprint — `PushRingMat` sólo escribe `Color`, `Reveal`, `ScaleComp`, `FloatScale`, `PhaseSeed`, `HalfWidthBaked` y `WobbleAmount` — así que **mandan los defaults del material y se pueden scrubbear ahí**.
+
+⚠ **Lo que se PERDIÓ al dejar el aditivo** (y hay que vigilarlo en visor):
+- **El brillo extra en los cruces.** Era la razón estética original del aditivo: en la referencia, **donde los trazos se cruzan brilla más**. Con translucent eso desaparece — es exactamente el trade que Beltrán eligió al pedir que no blanqueara.
+- **La independencia del orden de dibujo.** El aditivo era order-independent, así que la trampa de los parches triangulares que mordió a `M_Alma` (translucidez a dos caras ordenada por índice) no aplicaba y `TwoSided` era gratis. 🔴 **Ahora sí puede aparecer**: en las capturas del editor los cinco anillos se ven limpios, pero **el orden de dibujo entre anillos superpuestos no está garantizado**. Si en visor aparecen parches o un anillo tapando raro al de al lado, la salida es `BLEND_AlphaComposite`, que tolera mejor el desorden.
 
 | Capa | Cómo |
 |---|---|
