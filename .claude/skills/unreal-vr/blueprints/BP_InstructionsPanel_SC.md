@@ -184,6 +184,12 @@ Beltrán: *"por más que cambie los colores de los menús, no cambiaban en el ju
 ` de los textos entran bien por `set_properties` (JSON), la trampa del `
 ` literal es solo del DSL.
 
+## ❤️ 2026-08-25 — la página de RECOGNIZING es la 4, con el círculo del latido
+🔴 **La instancia de `L_Recognizing_SC` define el rango: `StartIndex 4` / `EndIndex 4`** — UNA sola página (decisión de Beltrán; la tabla vieja 3-5 está superada, la instancia manda).
+
+- **`HeartCircle`** — Image en `Page_4` (brush `RoundedBox` + `HalfHeightRadius`, tono rosado cálido 0.9/0.62/0.58, anclas 0.44-0.56 × 0.36-0.54, **`RenderOpacity` 0 de fábrica**): el círculo que **late a 1/2 del pulso** y **solo se ve dentro del umbral de pecho**. Falta el texto en inglés de la página (Beltrán) y su posición fina en el Designer.
+- **Cadena**: widget `SetHeartCircle(S, O)` (SetRenderScale + SetRenderOpacity sobre `HeartCircle`, pines `self` verificados con `get_node_infos`) ← panel **`SetHeartFx(S, O)`** (mismo caché `EnsureWidget`/`WidgetOk` de `SetPractice`) ← `BP_Director_Story.TickHeartFx` (S = 1 + 0.6·`BeatEnv` del sensor; O = fade por `bHeartZone`).
+
 ## 🪟 2026-08-21 — el fondo deja el widget y pasa a ser GEOMETRÍA: `Glass` + `M_InstrGlass`
 Pedido de Beltrán: *"en vez del color genérico del widget, un material translúcido como el de las ventanas, y yo poder configurar el emisivo y la transparencia"*.
 

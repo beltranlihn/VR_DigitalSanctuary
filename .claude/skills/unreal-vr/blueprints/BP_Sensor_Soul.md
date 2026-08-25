@@ -53,8 +53,16 @@ Beltrán, tras 3 iteraciones fallidas: *"no siento nada conectado el sensor con 
   - **Los visuales volvieron a gatear por `bBreathing`** (no por `bZonePre`): Beltrán reportó que reaccionaban *antes* del pulso háptico. Ahora visual y háptica entran juntos, y el freeze que motivó el cambio anterior ya no aplica porque el umbral es estable con la señal nueva.
 - 🔴 **Lección**: tres iteraciones afinando el mapeo de una señal que no contenía la información. **Ante "no se siente conectado", medir primero si la ENTRADA discrimina** — con un label del usuario real, en su contexto real.
 
-## ❤️ Modo 2 — latido
-`TickHeart` → zona de pecho base (`HeartHorizMax` 25, `HeartVDrop` 10-45, a ojo — afinar en visor) con debounce → `HeartBeatStep`: intervalo `60/(HeartSmooth/BeatDiv 2)` del [[BP_BioHub]] (fake LFO ya late) → `Pulse` + `OnBeatPulse` + conteo. **No cierra nada.**
+## ❤️ Modo 2 — latido (completado 2026-08-25 para la etapa Recognizing)
+`TickHeart` → zona de pecho base (`HeartHorizMax` 25, `HeartVDrop` 10-45, a ojo — afinar en visor) con debounce (`ActivateDelay` 1.5 de entrada, salida instantánea) → **`HeartZoneFx(DT)`** (nueva, corre siempre en modo 2) → si en zona: `HeartBeatStep`: intervalo `60/(HeartSmooth/BeatDiv 2)` del [[BP_BioHub]] (fake LFO ya late) → `Pulse` + `OnBeatPulse` + **`BeatEnv=1`** + **audio `HeartBeatSound` (SpawnSoundAttached al `Body`)** + conteo. **No cierra nada** — el cierre de Recognizing lo hace [[BP_Elevator_SC]] por distancia.
+
+**`HeartZoneFx`** (el feedback del umbral, patrón calcado de `BreathHaptic`):
+1. `bHeartZone` = `bBioOk && ZoneTimer ≥ ActivateDelay` — **la bool pública del umbral** (la leen el director para el círculo del widget y quien haga falta).
+2. `BeatEnv` decae con `FInterpTo(→0, BeatEnvDecay 2.5)` — el **envelope del latido** (salta a 1 en cada beat): el círculo de la página escala con esto.
+3. Zumbido continuo en la mano hábil mientras `bHeartZone`, con apagado limpio en el flanco de salida (`bWasHeartZone` actualizado DENTRO del flanco, §213). 🆕 **2026-08-25: la amplitud LATE — `lerp(HapticAmp 0.25, 1.0, BeatEnv)`**: en cada latido la vibración salta a tope y decae con el envelope. Fue el fix del reporte de Beltrán *"falta el pulso fuerte"*: el `PlayHapticEffect` del `Pulse()` quedaba pisado porque `SetHapticsByValue` se re-aplica CADA TICK en zona (comparten canal) — en vez de pelear canales, el pulso viaja EN el zumbido.
+
+⚠ La salida de zona es instantánea (sin `DeactivateDelay`): si en visor el zumbido parpadea al borde de la zona, agregar el debounce de salida como en breath.
+⚠ Consumidores de `OnBeatPulse`: [[BP_Elevator_SC]] (el kick del ascensor).
 
 ## 🔦 Modo 4 — beam
 `TickBeam`: trace Visibility desde el Aim de la mano hábil (`TraceDistance` 800) → publica `bBeamHit`/`BeamHitLoc` → estira `BeamMesh` (cilindro, `M_Beam_SC` unlit, NoCollision) del inicio al impacto. Visible sólo en modo 4.
@@ -63,7 +71,7 @@ Beltrán, tras 3 iteraciones fallidas: *"no siento nada conectado el sensor con 
 | Cat | Variables | Rol |
 |---|---|---|
 | C - Breath (knobs por instancia) | `TauSlow` 20 · `TauFast` 0.4 · `TauAmp` 4 · `MinAmplitude` 0.003 · `StillLin` 8 · `StillAng` 25 · `StillTau` 0.3 · `SafeTol` 9 · **`SafeHorizMax` 23 · `SafeVDropMin` 33 · `SafeVDropMax` 63** · `CalHold` 4.5 · `CalGap` 2 · **`ActivateDelay` 1.5** · `DeactivateDelay` 0.5 · `DirFrac` 0.3 · `InhaleHold` 4 · `MaxBreaths` 5 | zona y delay del análisis 2026-08-24 (`docs/ANALISIS-CALIBRACION-2026-08-24.md`); los `Cal*`/`SafeTol` hoy dormidos. `HapticAmp` 0.25 = knob de CDO (no editable, §212) |
-| D - Heart | `BeatDiv` 2 · `HeartHorizMax` 25 · `HeartVDropMin` 10 · `HeartVDropMax` 45 · `MaxBeats` 15 | `MaxBeats` hoy sin efecto (no cierra) |
+| D - Heart | `BeatDiv` 2 · `HeartHorizMax` 25 · `HeartVDropMin` 10 · `HeartVDropMax` 45 · `MaxBeats` 15 · 🆕 `BeatEnvDecay` 2.5 · 🆕 `HeartBeatSound` = `Core/Audio/Sounds/HeartBeat` | `MaxBeats` hoy sin efecto (no cierra). Los 2 nuevos son **knobs de CDO, no instance-editable** (a propósito, §212). 🧪 Truco de PIE sin visor: `HeartVDropMin=0` en la instancia abre la zona con la mano de escritorio (VDrop=0). |
 | E - Beam | `TraceDistance` 800 · `BeamRadius` 0.6 | |
 | Z - Estado | `Mode` −1 · `bPractice` · `bMechDone`(dormida) · `bQuiet` · `bZonePre/Post` · filtros (`SlowV/FastV/BreathV/Amplitude/RunExtreme`) · `bCalibrated`/`CalDist`/`CalTimer`/`CalCooldown` (dormidas) · `InTimer/OutTimer` · `bBreathing`/`bInhaling`/`bWasBreathing`/`InhaleTimer`/`bHoldCounted`/`BreathCount` · `ZoneTimer/BeatTimer/BeatCount/bBioOk/BioRef` · `bBeamHit/BeamHitLoc` · `GeomHoriz/GeomVDrop/SensDist` · `HandRef/AimRef` · `bPendingRight` | |
 

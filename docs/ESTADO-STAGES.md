@@ -31,6 +31,8 @@ El flujo entero corre en el visor sin errores. **Es el patrón arquitectónico a
 
 ## 🟡 HEART — en progreso
 Segundo stage temático (latido). Recibe el ritmo cardíaco por **OSC** (desde un sensor externo / Empatica-style) y lo visualiza.
+
+🆕 **2026-08-25 — RECOGNIZING REHECHO EN LIMPIO en `MapsV2` (versión V2)**: la etapa completa quedó construida y verificada en PIE — el sensor en **modo latido desde las instrucciones** (zona de pecho + zumbido continuo + pulso háptico + audio `HeartBeat` por 1/2 latido, y un **círculo en la página del panel** que late y solo se ve dentro del umbral), y el **ascensor** (`BP_Elevator_SC`): el pawn quieto y los meshes tagueados `rise` suben — cada latido da un kick de velocidad que decae; fuera del umbral sigue lento constante; al completar la distancia (marcada por dos muros `rise_top`/`rise_bottom`) cierra la etapa y da paso a la carga de la ameba. Falta **visor**. Trackers: `blueprints/BP_Elevator_SC.md`, `BP_Sensor_Soul.md`. Lo de abajo es el esqueleto viejo (referencia):
 - **`BP_OSCReceiver`** — recibe el heart rate por OSC.
 - **`BP_HeartSensor`** — beat desde OSC + **visualizador de zona segura (debug)**: esfera traslúcida verde/rojo para calibrar el tamaño de la zona. 🟡 Construido y funcional **pero la esfera queda fija en el mundo** (la zona es relativa a la cabeza) → pendiente hacer que siga la cabeza.
 - **`Ball_Heart`** — pulso de escala por latido.

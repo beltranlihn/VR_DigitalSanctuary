@@ -1238,3 +1238,15 @@ instancia a mano al agregar la variable — y avisarle al autor que se tocó só
 (`bHideX`), donde `false` = comportamiento de siempre y el default del motor ya es el correcto.
 Acá se eligió (a) porque "activar/desactivar" en positivo se lee mejor en el panel, pero (b) es la opción
 a prueba de olvidos si nadie va a inicializar la instancia.
+
+## §220 — `create_node` de operadores promotables (`Utilities|Operators|Divide/Add/...`) resuelve a la sobrecarga EQUIVOCADA (2026-08-25)
+Un `create_node` con `Utilities|Operators|Divide` creó un nodo cuyo `type_id` efectivo fue
+`Utilities|TimeManagement|FrameNumber/FrameNumber` (pines Wildcard); ídem `Add` →
+`FrameNumber+Int`. Nacidos así ANTES de conectar nada, quedan resueltos mal y hay que borrarlos.
+Contraste: `Utilities|Operators|Multiply` creado y CONECTADO a floats promovió bien a
+`Math|Float|float*float` — la promoción depende del orden y no es confiable.
+👉 Regla práctica (BP_Elevator_SC, ElvStep): para aritmética por cirugía **preferir las funciones
+tipadas del catálogo** (`Math|Float|SafeDivide`, `Math|Float|Max(Float)`, `Math|Float|Min(Float)`,
+`Math|Float|Sqrt`, `Math|Float|Lerp` — todas verificadas) y, si se usa un promotable, leer el
+`type_id` con `get_node_infos` DESPUÉS de conectar; si dice FrameNumber, borrar y rehacer.
+Los ids `Math|Float|float*float` / `float-float` que muestran los reads NO existen para `create_node`.
