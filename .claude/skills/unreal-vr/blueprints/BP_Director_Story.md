@@ -182,8 +182,39 @@ La mecánica vive en [[BP_Elevator_SC]] (nuevo) + el modo 2 completado de [[BP_S
 4. **`elif` se anida**: `(if A … (elif B … (elif C … (else …))))`. Como hermanos dentro del mismo `if` el parser los rechaza.
 5. **Un script con errores atrapados igual se reporta como error** — pero no dispara Undo (canario verificado 44→44). Lo que sí pasa: si un `write_graph_dsl` de un lote falla y se relanza TODO el lote, los que habían salido bien se **duplican** (pasó en `BP_Alma_SC`: 24 huérfanos, limpiados con `clean_orphans.py`, `identical=true`). **Reescribir sólo lo que falló.**
 
+## 🎵 2026-08-26 — la etapa Attracting limpia: `ArmBeam` + el cierre por SAVE MELODY
+- **`ArmBeam()`** (nueva): `Room==4` → `Sensor.SetStage(4)` + **`Sensor.MaybeInput()`** (arma el IMC del gatillo para el far-grab) + `GetActorOfClass(BP_Sequencer_SC)` → `SeqIntro()` (aparecen slots, botón y la esfera de las instrucciones). Colgada **por cirugía del pin `else` del branch de `ArmHeart`** (la misma cadena `ArmPractice → ArmHeart → ArmBeam`).
+- **La espera `panel` de la sala 4 se resuelve POR MECÁNICA**: no hay botón de instrucciones en `L_Attracting_SC` (se eliminó la instancia). El usuario arrastra la esfera de las instrucciones a un slot → `BP_Sequencer_SC.NotifyPlaced` → `panel.Finish()` → `OnFinished` → `Next()` como siempre. En autotest, `Poke` fuerza `Finish()` y el `TickIntro` del secuenciador completa la intro solo.
+- **`StepTimes` CDO = `[0, 90, 240, 0, 300, 0]`**: Attracting tiene cortafuegos de **300 s**; el cierre real lo dispara el botón SAVE MELODY → 2 pasadas del loop → `Sequencer.TellDirector` → `StepTimeDone` (la guarda `WaitFor=="time"` de siempre). El watchdog inverso también existe: si el cortafuegos gana, el secuenciador ve `Mode != 4` y se cierra solo.
+- Detalle completo del ecosistema: [[BP_Sequencer_SC]].
+
+## 🔴🔴 2026-08-26 (tarde) — el actor `Director_Story` se PERDIÓ y se repuso
+Un `execute_tool_script` con un **error de Python no atrapado** (un `TypeError` de formateo, fuera de los `T()`) disparó el Undo del editor. Ese Undo (a) revirtió **el lote entero** de writes del script (todo el script es UNA transacción) y (b) **se comió el actor `Director_Story` del persistente** — el diff contra HEAD mostró que era el ÚNICO actor perdido, y el log probó que a las 11:32 (corridas de Beltrán de la mañana) todavía existía. Un `save_assets([])` posterior grabó el nivel mutilado.
+**Repuesto** (2026-08-26): `BP_Director_Story_C_0` en (−5000, 200, 0), carpeta `01 - Directores`, con `DebugStartRoom=3` / `bAutoTest=false` (los valores del tracker de ayer — ⚠ la última corrida real de Beltrán esa mañana usaba **4**: confirmar con él en qué valor la quiere), `WebOutTime=4`, y `StepGameTime=18` restaurado en CDO + instancia (se leía 10 tras el incidente).
+👉 Lecciones (van a gotchas): `except BaseException` por llamada **no** protege de los errores del script mismo; y tras CUALQUIER script fallido, **verificar el actor-diff contra HEAD**, no solo contar actores.
+
 ## TODO
 - [ ] 🔴 **Visor**: hover real de las 5, toma del sensor con la mano, el hold del panel y del timbre.
+- [ ] Confirmar con Beltrán el valor de `DebugStartRoom` (quedó en 3; su última corrida usaba 4 para testear Attracting).
 - [ ] Los puntos `alma_<sala>_appear` están **en el centro de cada sala (x=0,1500…, z=150), justo donde se para el pawn** → Alma aparece encima de la cabeza. Moverlos (son datos de autor de Beltrán; no se tocaron).
 - [ ] Apagar `bDebugKey` en la obra final.
 - [ ] Persistir la elección / el arco final (VO 33 es el último paso; no hay créditos ni cierre).
+
+
+## 🕸️ 2026-08-26 — enganche de la red neuronal de Loving (`CloseStageFX`)
+**Qué se agregó:** en `StepTimeDone` el `Next()` final se reemplazó por **`CallFunction|CloseStageFX`** (cirugía por nodos, 1 nodo creado + 1 borrado + 1 cable).
+
+```
+(fn StepTimeDone ()
+  (if (WaitFor == "time")
+    (Sensor.SetStage -1)
+    (CallFunction|CloseStageFX)))     ; <- antes era (Next)
+```
+
+`CloseStageFX` busca [[NS_NeuralWeb_SC]] con `GetActorOfClass`; **si existe** llama su `WebOut()` (fade suave) y programa el avance con `SetTimerbyFunctionName(self, "Next", WebOutTime)`; **si no existe llama `Next()` directo**. 👉 Por eso **no hace falta condicionar por sala**: la red solo está colocada en `L_Loving_SC`, así que las otras 5 salas se comportan exactamente igual que antes (el único costo es un `GetActorOfClass` por cierre de etapa).
+
+**Variable nueva:** `WebOutTime` (float, 4 s, categoría *C - Tiempos y tags*). ⚠ **Nació en 0 en el actor ya colocado** — la trampa de siempre con las instance-editable nuevas; hay que setearla en la instancia además del CDO.
+
+🔴 **`StepGameTime` se subió de 10 a 18 s** porque la red nacía ~8 s después de arrancar el step time y solo vivía 1,7 s. Con 18 vive 12,7 s. **Es un valor GLOBAL, no por sala**: alarga el cortafuegos de las 5 salas. Inocuo en Entering y Recognizing (cierran por su propia mecánica), pero si Loving necesita un tiempo distinto al resto hay que convertirlo en **array por sala**.
+
+**Verificado por log en una corrida real** (`DebugStartRoom=3`, `bAutoTest` temporal): VO 21 → nace la red → step time → sale → se destruye → paso 4 (desprendimiento de la proto ameba) → paso 5 (la carga). Las flags de debug se restauraron a como estaban (`DebugStartRoom=3`, `bAutoTest=false`).

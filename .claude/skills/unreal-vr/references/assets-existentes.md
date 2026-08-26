@@ -109,6 +109,7 @@ La frase corta se recuerda mal y manda a cablear el evento equivocado. Medido ba
 | `Calibration/Audio/` | 11 SoundWaves: `Pad` (68 s, **looping**, stereo), `Inhala`, `Exhala`, `Conteo`, `Trigger`, `Inicio`, `Termino`, `Tomado`, `Aparece`, `Aguanta1`, `Aguanta_2` | ✅ **probados en visor** |
 | `Stages/Breath/Audio/` | `Inhale`, `Exhale`, `Umbral` | ✅ probados |
 | `Stages/Touch/Audio/` | `MS_Synth`, `MS_Perc` — MetaSounds **procedurales** (sin dependencias externas) | ⚠ se llaman pero **no se comprobó que suenen** |
+| 🆕 `Core/Audio/AttractingSounds/Module1/` | **`PadM1`** (5,333 s, **looping**, stereo — **exactamente 8 pasos a 90 BPM**, la base del secuenciador de Attracting) + **los 20 clips `M1S1..M1S20`** (1,33 s, one-shot, stereo; ✅ **`M1S10` ya llegó** — la nota vieja de que faltaba está superada). Cargados en `BP_Sequencer_SC` (`PadSound` + `ModuleSounds`). | 🟡 cableados en la versión limpia, falta visor |
 | `Stages/Touch/Ref/` | `BP_Sequencer`, `MS_Kick`, `MS_HiHats`, `M_ON`, `M_OFF` — migrados de terceros | 🔴 **4 referencias rotas**, riesgo de cook |
 | `Recursos/Audio Calibration/` | 16 archivos fuente (`.wav` + proyecto de Ableton) | fuente, fuera de Content |
 
@@ -124,6 +125,7 @@ La frase corta se recuerda mal y manda a cablear el evento equivocado. Medido ba
 | `XRFramework/VFX/NS_PlayAreaBounds` | Límites del área | — |
 | `Stages/Breath/NS_BreathParticles` | Partículas de respiración | — |
 | 🆕 `Core/VFX/NS_VoidDust` | **Las partículas del EXTERIOR** (2026-08-12): emitter `HangingParticulates` del plugin Niagara, Box Size **(10000, 10000, 600)**, SpawnRate **80** (default 50). Colocado como `FX_VoidDust` en `L_Persistent` en (0,0,250). **Placeholder a la espera de la pasada de arte de Beltrán** — es la firma visual que cierra el arco (mismo cielo al inicio y al final, §6.b). ⚠ Sprite renderer CPU; verificar en APK que la Scalability del emitter no lo apague (`fx.Niagara.QualityLevel` clampeado en Android, ver `niagara-quest.md`). | 🟡 colocado, falta visor/device |
+| 🆕 `Core/VFX/NS_NeuralWeb_SC` + `BP_NeuralWeb_SC` + `M_NeuralDot_SC`/`M_NeuralLink_SC` + `MPC_NeuralWeb` | **La red neuronal de Loving** (2026-08-25): puntos + líneas conectadas por topología sembrada desde BP como arrays (`User.NodeHomes`/`PairA`/`PairB`), partículas inmortales sin fuerzas, movimiento entero en el vertex shader (Custom HLSL compartido). **Es LA receta para efectos de "geometría conectada" en Quest** (plexus sin Scratch Pad ni PAR): `SelectVectorFromArray`/`SelectIntFromArray` en modo Direct + sprite `CustomAlignment`+`FaceCameraPosition` para las líneas. Tracker: `blueprints/NS_NeuralWeb_SC.md` (con los 3 gotchas que costaron la sesión). | 🟡 verificado por captura en Simulate, falta visor |
 
 ⚠ **El pointer NO trae cursor de impacto.** `BP_Menu` lo resuelve con un `StaticMeshComponent` aparte (esfera + `XRFramework/Materials/M_VRCursor`). Si querés punta, va como componente.
 

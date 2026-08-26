@@ -64,8 +64,14 @@ Beltrán, tras 3 iteraciones fallidas: *"no siento nada conectado el sensor con 
 ⚠ La salida de zona es instantánea (sin `DeactivateDelay`): si en visor el zumbido parpadea al borde de la zona, agregar el debounce de salida como en breath.
 ⚠ Consumidores de `OnBeatPulse`: [[BP_Elevator_SC]] (el kick del ascensor).
 
-## 🔦 Modo 4 — beam
-`TickBeam`: trace Visibility desde el Aim de la mano hábil (`TraceDistance` 800) → publica `bBeamHit`/`BeamHitLoc` → estira `BeamMesh` (cilindro, `M_Beam_SC` unlit, NoCollision) del inicio al impacto. Visible sólo en modo 4.
+## 🔦 Modo 4 — beam (extendido 2026-08-26 para la etapa Attracting limpia)
+`TickBeam`: trace Visibility desde el Aim de la mano hábil (`TraceDistance` 800) → publica `bBeamHit`/`BeamHitLoc`/**`BeamStart`** (el origen del rayo)/**`BeamHitActor`** (el actor golpeado, null sin impacto — sale del `BreakHitResult` que ya existía; cirugía: 2 sets insertados tras `SetBeamHitLoc`) → estira `BeamMesh` (cilindro, `M_Beam_SC` unlit, NoCollision) del inicio al impacto. Visible sólo en modo 4.
+
+**El gatillo del beam** (2026-08-26): los eventos `IA_Shoot_Right/Left` (que ya alimentaban los labels de debug) ganaron continuación — `LabelOn.then → BeamPress(Right)` y `LabelOff.then → BeamRelease(Right)`, con el literal del bool verificado por `get_pin_value`. Solo actúan con `Mode==4` y la **mano hábil** (`Right == bTookRight`):
+- `BeamPress` → `BeamGrabTry`: cast de `BeamHitActor` a [[BP_SoundOrb_SC|BP_Sequencer_SC]] → `HeldOrb` + `GrabStart()` + `Pulse()` háptico; si no, `BeamBtnTry` → cast a `BP_SaveMelody_SC` → `HeldBtn` + `BeginHold()`.
+- `BeamRelease` → `DropOrb` (`GrabEnd()` → la esfera se coloca o vuelve a casa) + `DropBtn` (`EndHold()`).
+- El IMC lo arma el director en `ArmBeam` vía **`MaybeInput()`** (la receta probada de `EnsureInput`: `IMC_MenuTrigger`, Priority 1000, etc.).
+Los consumidores del beam (esferas y botón) **poll-ean** `BeamHitActor == self` para el hover; la esfera agarrada sigue `BeamStart + dir × GrabHoldDist` leyendo `BeamStart`/`BeamHitLoc`.
 
 ## Registro de variables (además de las de la toma)
 | Cat | Variables | Rol |

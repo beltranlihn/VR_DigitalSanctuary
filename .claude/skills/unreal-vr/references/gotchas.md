@@ -1250,3 +1250,109 @@ tipadas del catálogo** (`Math|Float|SafeDivide`, `Math|Float|Max(Float)`, `Math
 `Math|Float|Sqrt`, `Math|Float|Lerp` — todas verificadas) y, si se usa un promotable, leer el
 `type_id` con `get_node_infos` DESPUÉS de conectar; si dice FrameNumber, borrar y rehacer.
 Los ids `Math|Float|float*float` / `float-float` que muestran los reads NO existen para `create_node`.
+
+## 🌾 Cosecha 2026-08-25 (noche) — la red neuronal de Loving (`NS_NeuralWeb_SC`): Niagara y materiales por MCP
+
+### §221 🔴🔴 `connect_expressions`/`connect_to_output` NO recompilan el material — el shader queda CONGELADO en el grafo anterior
+Construir un material entero por MCP (crear → set BlendMode/ShadingModel → agregar expresiones → conectar) deja el **shader compilado del estado en que estaba en el último PostEditChange** — para un material recién creado, el grafo VACÍO. Un unlit aditivo vacío = negro = **invisible sin ningún error**: compila, el thumbnail renderiza, `bUsedWithNiagaraSprites` está en true… y la partícula no dibuja NADA. Costó ~1 hora y 12 capturas.
+- **Síntoma de diagnóstico:** el emitter dibuja con `DefaultSpriteMaterial` y con el material propio no.
+- **Fix:** al TERMINAR el grafo, forzar PostEditChange tocando cualquier propiedad real: `ObjectTools.set_properties {"TwoSided": false}` (y de vuelta si hace falta). `set_properties` sí recompila; las tools de grafo de `MaterialTools` no.
+- **Regla:** después de CUALQUIER edición de expresiones/conexiones de un material → un `set_properties` de sacrificio antes de juzgar el resultado.
+
+### §222 🔴 Un módulo Set Parameters NO puede leer un atributo que él mismo escribe
+Todos los Map Get de un `AddSetParametersModule` se evalúan ANTES que todos sus writes. Encadenar entradas dentro del mismo módulo (`Particles.PosA ← f(Particles.IdxA)` con IdxA escrito arriba en el mismo módulo) da:
+`Variable Particles.IdxA was read before being set. It's default mode is "Fail If Previously Not Set"`.
+**Fix: partir en módulos consecutivos** (uno por "nivel" de dependencia: índices → posiciones → derivados). `AddSetParametersModule` agrega **al final** del script → crearlos en orden y borrar el combinado con `RemoveModule` (param: `moduleToRemove`). Verificar el orden con `GetScriptStackTopology`.
+
+### §223 🔴 EmitterState `Once` + partículas inmortales = el sistema MUERE a los 2 s, sin error
+`SpawnBurst` + `Kill Particles When Lifetime Has Elapsed = false` no alcanza para un efecto permanente: con `Loop Behavior = Once` y `Loop Duration = 2` (los defaults de `SimpleSpriteBurst`), el loop termina, el emitter completa (`Inactive Response = Complete`) y **se lleva las partículas inmortales**. Nada en logs. **Fix: `Loop Duration Mode = Infinite`** (`ENiagara_InfiniteLoopDuration::NewEnumerator1`) en cada emitter persistente.
+
+### §224 Recetas verificadas de autoría Niagara por MCP (las que faltaban en `toolsets.md`)
+- **Crear sistema:** `CreateNiagaraSystem {assetName, assetPath, templateSystem: "/Niagara/DefaultAssets/DefaultSystem.DefaultSystem"}` → ⚠ **trae un emitter `Fountain` de regalo: `RemoveEmitter`**. Emitters: `AddEmitter {system, templateEmitter, emitterName}` — plantillas útiles en `/Niagara/DefaultAssets/Templates/Emitters/` (`SimpleSpriteBurst` = burst+initialize+state+sprite, ideal base).
+- **User var de DATA INTERFACE** (`AddUserVariables`): `type.underlyingType = 1` (Class) y el default va como `{"struct": {"refPath": "/Script/NiagaraEditor.NiagaraExt_VariableValue_DataInterface"}, "value": {"dataInterfaceClass": {"refPath": "/Script/Niagara.NiagaraDataInterfaceArrayFloat3"}}}` (sin `dataInterface`, se crea solo). Con structs normales el default `{"struct": <tipo>, "value": {...}}` de siempre.
+- **Asignar un dynamic input a un stack input:** `SetStackInputData` con `{"struct": ".../NiagaraExt_StackInputData_DynamicInput", "value": {"dynamicInputAsset": {"refPath": "/Niagara/DynamicInputs/..."}}}`; sus hijos se direccionan EXTENDIENDO `inputNameStack` (p.ej. `["Particles.Position", "Input Position", "A"]`) y se descubren con `GetDynamicInputChain`. Enumerar qué dynamic inputs existen para un tipo: `GetAvailableDynamicInputs {type}`.
+- **Muestrear un array User por índice SIN Scratch Pad** (la llave del plexus): dynamic input `SelectVectorFromArray`/`SelectIntFromArray` → hijo `Array Sampling Mode` = `ENiagaraArraySamplingMode::NewEnumerator1` ("Direct Set"), hijo `Vector/Int Selection Array` = Linked al User DI, hijo `Direct Array Index` = `ReturnExecIndex` o Linked a un atributo int. Piezas hermanas verificadas: `ConvertVectorToPosition` (hijo `Input Position`), `Lerp_Vector` (A/B/Alpha), `Subtract_Vector` (A/B = A−B), `NormalizeVector` (hijo `Vector To Normalize`), `VectorLength` (hijo `Vector`), `MakeVector2D` (X/Y), `Vector2DFromFloat` (hijo `Value`), `Multiply_Float`/`RandomRangeFloat` (Minimum/Maximum).
+- **Renderer:** `SetRendererData {renderer, rendererData.propertyValues}` acepta JSON PARCIAL (`Material`, `Alignment: "CustomAlignment"`, `FacingMode: "FaceCameraPosition"`, `bCastShadows`). `SetEmitterData {emitter, emitterData.propertyValues}` ídem (`{"bLocalSpace": true}`).
+- **Set de propiedades con arrays que crecen** (`Inputs` del Custom material node): el tool rechaza cambiar tamaño y contenido a la vez ("insertion points are ambiguous") → **primero crecer el array replicando el elemento existente tal cual, después setear los valores** en una segunda llamada.
+- **Verificar sin visor:** `StartPIE {options:{bSimulate:true, playMode:"PlayMode_Simulate", warmupSeconds}}` (Simulate SÍ avanza Niagara; el viewport quieto NO) + captura a disco. Y **control positivo**: un Niagara probado colocado al lado separa "el efecto no dibuja" de "mi instrumento no ve" — fue lo que destrabó §221.
+
+
+### §225 🔴🔴 `set_properties` con el MISMO valor NO recompila el material — y un Custom node roto usa el Default Material
+Ampliación de §221, pagada de nuevo el 2026-08-26. Dos capas:
+1. **Forzar la recompilación exige un cambio REAL de valor.** Poner `{"TwoSided": true}` en un material que YA estaba en `true` no dispara PostEditChange: el shader sigue congelado. Hay que **alternar** (false → true) o tocar otra propiedad.
+2. **Si el HLSL del Custom node no compila, Unreal cae al Default Material** (gris opaco) y lo dice SOLO en el log: `Failed to compile Material ... Default Material will be used in game`. El síntoma en pantalla es "las partículas se ven negras/grises opacas". 🔎 **Ante cualquier rareza visual de un material tocado por MCP, el primer llamado es `GetLogEntries(pattern:"<Material>.*Failed to compile")`.**
+⚠ Un Custom node con MUCHOS inputs (13, con nombres como `UV`/`Cam`/`Dx`) falló a compilar sin decir por qué; el mismo código con 6 inputs compiló. Si hay que pasar muchos datos, preferir menos inputs (o Collection Parameters) antes que engordar el nodo.
+
+### §226 🔴 `ReturnExecIndex` NO es válido en Particle **Update** — colapsa todas las partículas en el índice 0
+Sirve en Particle **Spawn** (da el índice de la partícula que nace). En Update devuelve lo mismo para todas → si se usa para indexar un array de posiciones, **las N partículas se apilan en una sola posición** (síntoma: "de 120 puntos veo uno solo").
+**Receta:** guardar el índice en un atributo propio durante el Spawn (`Particles.MiIdx = ReturnExecIndex`) y en Update leer **ese atributo**. Es el mismo patrón que ya usaban `IdxA`/`IdxB` y por eso las líneas no sufrían el bug.
+
+### §227 🔴🔴 `ObjectPositionWS` significa cosas DISTINTAS en Sprite vs Mesh renderer
+- **Sprite renderer**: devuelve la posición del **componente** (el centro del sistema). ✓ es lo que uno espera.
+- **Mesh renderer**: devuelve la posición de **esa instancia** (la partícula misma).
+Consecuencia real (2026-08-26, `NS_NeuralWeb_SC`): un WPO que colapsaba todo hacia `(P - C)` funcionaba en los puntos (sprites) y **no hacía nada en las líneas** (meshes), porque cada línea se colapsaba sobre su propio centro. Síntoma: "los puntos se achican pero las líneas quedan grandes".
+**Solución:** no depender de `ObjectPositionWS` cuando hay meshes — pasar el centro explícitamente por un **VectorParameter del MPC** que el BP escribe con `GetActorLocation`.
+💡 Para crear el VectorParameter por MCP: si el array está vacío, `set_properties` con la lista completa de un elemento funciona; si ya tiene elementos, primero **crecerlo replicando** y después renombrar (ArrayAdd no acepta cambio de tamaño + contenido a la vez). Las claves del struct son **camelCase**: `parameterName`, `defaultValue`, `id` (dar un `id` GUID distinto al duplicar).
+
+### §228 Ciclo de vida de partículas que indexan un catálogo: el orden de módulos y el índice compartido
+Para que las conexiones "nazcan y mueran tomando pares nuevos" (efecto plexus vivo) sin Scratch Pad:
+`EmitterUpdate`: **desactivar** `SpawnBurst_Instantaneous` y agregar `/Niagara/Modules/Emitter/SpawnRate` con el rate linkeado a un user param. · `ParticleState`: `Kill Particles When Lifetime Has Elapsed = true`. · `InitializeParticle`: `Lifetime Mode = Random` (`ENiagara_LifetimeMode::NewEnumerator1`) + Min/Max linkeados. · Fade: `RampInOut` con **`Mode = 2`** (In+Out) sobre `Particles.NormalizedAge`, multiplicando el color.
+🔴 **El índice del par tiene que ser UNO SOLO compartido**: si A y B sortean por separado, se conectan nodos de pares distintos y se pierde el filtro de distancia. Guardar `Particles.PairIdx = RandomRangeInt(0, LinkCount-1)` en un módulo **anterior** al que lee A y B.
+⚠ Y como `AddSetParametersModule` **siempre agrega al final**, la única forma de reordenar es **borrar y recrear en orden** (`RemoveModule` param: `moduleToRemove`). Verificar el orden con `GetScriptStackTopology` antes de dar por bueno.
+
+### §229 El `Plexus` de Epic (Content Examples) NO corre en un proyecto mobile
+`/Game/ExampleContent/Niagara/NeighborGrid3D/Plexus` es exactamente el efecto de referencia (GPU, NeighborGrid3D, curl+vortex+attraction), pero **falla a compilar acá**: su módulo `Collision` usa **Distance Fields**, cuya query GPU exige SM5+ y Quest corre en ES3.1 (ya estaba verificado en `niagara-quest.md`). Duplicarlo y desactivar `Collision` **no alcanza**: el compilador se queda colgado (timeout de 120 s en `GetSystemCompileState`).
+👉 Lo aprovechable del ejemplo es la **receta**, no el asset: nodos como mesh (esferas), líneas como sprite alineado, y fuerzas reales en el Particle Update.
+🎁 De paso quedaron localizados módulos de librería que evitan el Scratch Pad: **`/Niagara/Modules/Debug/SpriteBasedLine`** (dibuja una línea entre dos puntos resolviendo el alignment por dentro — es lo que hay que usar si se vuelve a sprites) y la familia **`NeighborQuery`** / `Update/Neighbor/{CalculateNeighbors,SampleNeighbors}`.
+
+### §230 GPU sim de Niagara en Quest: matiz importante sobre lo que decía la doc
+`niagara-quest.md` §1 afirma (correctamente, por código) que el GPU sim **está permitido**: los 3 cvars vienen en `1`/`true`. Pero eso es **necesario y no suficiente**. Del hilo oficial de Epic (*Niagara GPU particles Sim on Meta Quest 2/3*):
+- Un moderador afirma que *"Quest standalone no soporta GPU particles, solo CPU"*.
+- Varios usuarios **lo hicieron funcionar en Quest 3** vía config del engine; uno confirma *"It does work!"* (con cautela para producción).
+- Un dev de Epic da la clave: hay que declarar **`quest3` en el metadata de packaging del APK**, o el visor arranca en **modo compatibilidad Quest 2** y el GPU sim no corre.
+- No hay evidencia de que funcione en Quest 2.
+👉 Regla práctica: **CPU por defecto**; GPU solo si se mide en device y con el device profile bien declarado. La duda se resuelve empaquetando, no discutiendo.
+
+### §231 🔴🔴🔴 TODO el `execute_tool_script` es UNA transacción — y una excepción de PYTHON no atrapada la revierte ENTERA (y puede comerse un actor ajeno)
+Cosecha 2026-08-26 (construcción de Attracting). El `try/except BaseException` alrededor de cada `execute_tool` (la plantilla `safe_script.py`) **no protege de los errores del PROPIO script**: un `TypeError` de Python (un `%s` de formato chocando con el `%` del DSL en el mismo string) escapó, el script terminó en excepción y el plugin disparó su Undo. Dos consecuencias medidas:
+1. **El lote entero se revirtió**: ~20 `write_graph_dsl` que ya habían salido bien quedaron en grafos vacíos (verificado por longitud de `read`). Todo lo que hace un script vive en UNA transacción.
+2. **El mismo Undo se comió el actor `Director_Story` del persistente** — el único actor perdido (diff de nombres contra el `.umap` de HEAD), y un `save_assets([])` posterior lo grabó así. Se repuso a mano con sus valores conocidos.
+👉 Reglas: (a) **nada de formateo `%` de Python** en scripts que contengan DSL — concatenar strings; (b) tras CUALQUIER script que termine en error, **diff de actores contra HEAD** (`grep -aoE 'BP_[A-Za-z0-9_]+_C_[0-9]+' | sort -u` sobre los dos `.umap`), no solo contar; (c) commitear antes de una tanda sigue siendo la única red real.
+
+### §232 El `%` NO es operador del DSL — el módulo es `Math|Integer|%(Integer)`
+`(% a b)` falla con `Utilities|Operators|Modulo does not exist`. Los demás operadores (`+ - * /`, comparaciones, `select`) sí existen.
+
+### §233 🔴 `FadeIn`/`FadeOut`/`AdjustVolume` de AudioComponent: el DSL agarra el overload de SynthComponent
+Mismo mecanismo que el §de los Fades de 2026-07-29, ahora medido también en `AdjustVolume` ("Could not connect pin PadAudio to self"). `Play` y `SetSound` en cambio resuelven bien. Salida: `create_node` con `declaring_class=/Script/Engine.AudioComponent` y cablear a mano.
+
+### §234 `(Variables|X|SetMiObjeto)` SIN argumento escribe NULL — es la forma de limpiar refs por DSL
+Compila y funciona (verificado: el read lo muestra como `(SetOccupant 0)`). Vale para pins de objeto de setters propios y cross-class (`(Class|BPSeqSlotSC|SetOccupant :self slot)` sin `:Occupant` → null).
+
+### §235 §147 también muerde en ACTORES del nivel: `RelativeLocation` por `set_properties` aplica SOLO el primer campo
+Colocando los 23 actores de Attracting: `{"RelativeLocation": {x,y,z}}` dejó todo con la X bien y **Y=0, Z=0** (y la rotación ni se aplicó). Fix: **una llamada por campo** (`{x}`, luego `{y}`, luego `{z}`, luego `{Pitch}`) y verificar con `get_actor_transform`.
+
+### §236 `(for e arr ...)` del DSL: verificado que ADMITE statements después del loop y un multi-exec al final del cuerpo
+No es terminal como el `if`. Con eso los barridos (`ShowSlots`, `HideSlots`, cacheos por `SetArrayElem`) caben en una sola función sin helpers de más. El `arr` puede ser el resultado bindeado de un nodo impuro (`GetAllActorsOfClass`).
+
+### §237 `Class|SoundBase|GetDuration` se materializa como LECTURA DE PROPIEDAD `Duration`
+El nodo que queda es un `K2Node_VariableGet` de la propiedad `Duration` (float) con target SoundBase — más barato que la función. ⚠ El `read` lo etiqueta `Components|GeometryCache|GetDuration` (colisión del lector); `get_node_infos` muestra la verdad.
+
+### §238 🔴🔴 EL MURO de las salas RoomBase tenía colisión SÓLIDA — todo line-trace lanzado DENTRO de una sala pegaba a distancia CERO
+`Asset/RoomBase/Cylinder_001` (el anillo de muro, compartido por las 6 salas de MapsV2) venía con `CollisionTraceFlag = CTF_UseDefault` → colisión simple = **casco convexo que llena todo el interior de la sala**. Cualquier `LineTraceByChannel` lanzado desde adentro nacía "dentro" del muro → hit inmediato en el punto de partida (`HitLoc == Start`, `bBlockingHit` true, largo 0). Síntoma real: **el beam de Attracting era invisible en visor** (mesh escalado a largo 0) — y era el PRIMER trace dentro de una sala RoomBase, por eso ningún otro sistema lo había delatado.
+✅ **Fix: `CTF_UseComplexAsSimple` en el BodySetup** (`ObjectTools.set_properties` sobre `Cylinder_001:BodySetup_0`) → los traces pegan en la superficie real del anillo. Vale para las 6 salas; acá no hay física que necesite la colisión simple. ⚠ Requiere reiniciar PIE para que el estado físico se recocine.
+👉 Diagnóstico que lo encontró (patrón reusable): publicar `BeamHitActor` desde el `BreakHitResult` y **posar la mano por MCP** (`set_properties` de `RelativeLocation`/`RelativeRotation` sobre el `MotionControllerComponent` del pawn en PIE — el truco de BP_Robot) → el hit dijo el nombre del culpable en una llamada.
+
+### §231b El sandbox de `execute_tool_script` usa `_StrictDict`: `.get(k, default)` NO existe — y ese crash repite el incidente del §231
+`einfo[0].get('output_pins', [])` tiró `TypeError: _StrictDict.get() does not support a default value` → excepción no atrapada → Undo → **el lote entero revertido y el actor `Sensor_Soul` comido del persistente** (segunda víctima tras `Director_Story`; repuesto con sus 28 knobs verificados contra el tracker — el CDO los tenía todos). Reglas que se suman al §231: (a) **acceso directo `d['k']`** o `try/except` alrededor, nunca `.get` con default; (b) mejor: NO hacer introspección de dicts dentro del script — leer los pines ANTES con `get_node_infos` desde afuera y pasar refs duras; (c) tras cada script fallido, diff de actores contra HEAD **en todos los mapas tocados**.
+
+### §239 🔴🔴 TODO lo que viaja pegado al pawn/cámara debe nacer `NoCollision` — y NADA lo era (la saga de los colisionadores fantasma, 2026-08-26)
+El beam de Attracting se cortaba "con algo cerca mío" y el izquierdo era invisible. Fueron CUATRO colisionadores distintos, todos con defaults del motor, todos pegados al usuario: la **esfera de la viñeta** (`BP_Director_Movement.Vignette`, QueryAndPhysics — la viñeta original decía "sin colisión para no tapar los line traces" y el duplicado lo perdió) · la **proto ameba de la cara + sus 5 anillos ProceduralMesh** (BlockAll — el `BP_ProtoSoul` viejo era sin colisión POR DISEÑO) · los **visualizadores de los mandos** (`XRDeviceVisualization*`, BlockAllDynamic) · y el definitivo: **el `WidgetComponent` del HUD** (`BP_SoulHUD_SC.Hud`, §54 — un widget de 40×16 cm frente a la vista que bloqueaba Visibility).
+👉 **Regla**: al crear cualquier cosa que se attachee al pawn o a la cámara (viñetas, HUDs, amebas, anillos, meshes de beam, visualizadores), poner `NoCollision` EXPLÍCITO en el momento de crearla — en el template Y verificado en la instancia (§294 muerde acá con ganas).
+👉 **Método que cerró la saga en UNA pasada** (después de 3 de hipótesis): un print con flanco `BEAM corto contra: <GetDisplayName(HitActor)>` cuando el trace pega a <40 cm. El log del visor de Beltrán escupió `SoulHUD_SC` cientos de veces. **Ante "choca con algo", instrumentar el NOMBRE del hit vale más que cualquier teoría.**
+
+### §240 🔴🔴 Un componente NUEVO en un BP con instancias YA COLOCADAS llega a la instancia con las propiedades PELADAS
+Mordió DOS veces el mismo día (2026-08-26, Attracting): se agregó `BeamMeshL` al sensor (instancia ya colocada) y la instancia lo recibió con **`StaticMesh=None`** (mesh invisible, costó dos pasadas de visor); se agregaron los `BeamFxR/L` (Niagara) y llegaron con **`Asset=None` y `bAutoActivate=true`** (ambos distintos del template). Es la §294 en su forma más venenosa: no es un default que no llega — es el componente entero degradado.
+👉 **Regla: después de agregar un componente a un BP con instancias colocadas, leer EN LA INSTANCIA el asset/mesh y las props clave y reescribirlas si llegaron vacías.** Los actores SPAWNEADOS no sufren esto (copian el CDO).
+
+### §241 `Deactivate` de un Niagara con partículas de vida ~infinita deja el efecto CONGELADO en el aire
+El ribbon del beam (`LineTrace`, `User.Life` enorme) al desactivarse solo corta el spawn: las partículas vivas quedan dibujadas donde estaban. Síntoma: "los beams se quedaron pegados donde estaban" al cerrar la etapa. ✅ Acompañar la activación con **`SetVisibility`** del componente (mismo bool) — esconde al instante y al reactivar vuelve. (`DeactivateImmediate` es la alternativa si se quiere matar la simulación.)

@@ -190,6 +190,11 @@ Beltrán: *"por más que cambie los colores de los menús, no cambiaban en el ju
 - **`HeartCircle`** — Image en `Page_4` (brush `RoundedBox` + `HalfHeightRadius`, tono rosado cálido 0.9/0.62/0.58, anclas 0.44-0.56 × 0.36-0.54, **`RenderOpacity` 0 de fábrica**): el círculo que **late a 1/2 del pulso** y **solo se ve dentro del umbral de pecho**. Falta el texto en inglés de la página (Beltrán) y su posición fina en el Designer.
 - **Cadena**: widget `SetHeartCircle(S, O)` (SetRenderScale + SetRenderOpacity sobre `HeartCircle`, pines `self` verificados con `get_node_infos`) ← panel **`SetHeartFx(S, O)`** (mismo caché `EnsureWidget`/`WidgetOk` de `SetPractice`) ← `BP_Director_Story.TickHeartFx` (S = 1 + 0.6·`BeatEnv` del sensor; O = fade por `bHeartZone`).
 
+## 🎵 2026-08-26 — la página de ATTRACTING es la 6, ÚNICA y SIN botón
+🔴 **La instancia de `L_Attracting_SC` define el rango: `StartIndex 6` / `EndIndex 6`** — una sola página (la tabla vieja 6-8 está superada). **`InstrButton_Attracting` se ELIMINÓ del sublevel**: en esta sala la instrucción no se termina con botón sino **por mecánica** — arrastrar la esfera que aparece junto al panel a un slot ([[BP_Sequencer_SC]] llama `Finish()` al detectar la colocación). El `Finish()` busca el botón por tag, no lo encuentra y sigue sin error.
+- `Txt_6` (EN): *"Sound floats all around you. / Point your beam at the sphere and hold the trigger to catch it. / Carry it to one of the slots below and let go - the music will begin."*
+- `Img_6` queda para el arte de Beltrán.
+
 ## 🪟 2026-08-21 — el fondo deja el widget y pasa a ser GEOMETRÍA: `Glass` + `M_InstrGlass`
 Pedido de Beltrán: *"en vez del color genérico del widget, un material translúcido como el de las ventanas, y yo poder configurar el emisivo y la transparencia"*.
 
