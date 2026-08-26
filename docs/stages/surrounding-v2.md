@@ -53,6 +53,15 @@
   disco queda para F5.
 - Paleta 3×3 (colores/grosores/pinceles): **queda tal cual**.
 
+## Estado (2026-08-26, noche)
+✅ **F1–F4 construidas y verificadas con el ROBOT dibujando de verdad** (rutina 3 de
+`BP_Robot`, 2 corridas limpias): práctica de 1 m cierra las instrucciones por mecánica,
+10 m cierran la etapa (~20 s), disolución, 5º anillo, cierre de sala, y la firma
+reaparece junto al alma **con el dibujo real** y sobrevive al paso final. Cero
+`Accessed None`. Tres bugs cazados y arreglados en el camino (detalle en el tracker
+de `BP_Sensor_Soul`). ⬜ Pendiente: **visor** (look del trazo = F0, paleta en mano,
+sensación) y F5 (materiales 4.4, háptica/audio, persistencia a disco).
+
 ## Riesgos anotados
 - La cinta plana sin test de visor (F0) — si se ve mal, las 2 cartas están en el
   tracker de `BP_DrawCanvas` (§RETOMAR ACÁ).

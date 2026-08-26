@@ -26,7 +26,7 @@ El sensor único de la versión limpia: **se toma UNA vez en el Hall** (esfera d
 | **2** | Recognizing | **latido** al BPM del BioHub en zona de pecho (base). |
 | 3 | Loving | nada (pasiva) |
 | **4** | Attracting | **beam** desde el Aim de la mano hábil. |
-| 5 | Surrounding | ⬜ stub (dibujo 3D = integrar `BP_DrawCanvas`, pendiente) |
+| **5** | Surrounding | **dibujo 3D libre desde la mano hábil** (2026-08-26, ver §Modo 5). |
 
 ## 🌬️ Modo 1 — respiración (los valores efectivos del CDO afinado de `BP_BreathSensor_V2`)
 `TickBreath(DT)` → `BreathGate` (puente) → `BreathThreshold` → `BreathHaptic` → `DetectDir` → `CountBreaths`:
@@ -72,6 +72,21 @@ Beltrán, tras 3 iteraciones fallidas: *"no siento nada conectado el sensor con 
 - `BeamRelease` → `DropOrb` (`GrabEnd()` → la esfera se coloca o vuelve a casa) + `DropBtn` (`EndHold()`).
 - El IMC lo arma el director en `ArmBeam` vía **`MaybeInput()`** (la receta probada de `EnsureInput`: `IMC_MenuTrigger`, Priority 1000, etc.).
 Los consumidores del beam (esferas y botón) **poll-ean** `BeamHitActor == self` para el hover; la esfera agarrada sigue `BeamStart + dir × GrabHoldDist` leyendo `BeamStart`/`BeamHitLoc`.
+
+## ✏️ Modo 5 — dibujo 3D libre (Surrounding V2, 2026-08-26)
+Plan maestro: `docs/stages/surrounding-v2.md`. **Sin lápiz** (la punta es el propio sensor en la mano hábil), **sin botón** (1 m de práctica cierra las instrucciones), **cierre por 10 m lineales**, la firma reaparece junto al alma al final. 🔴 **El canvas (`BP_DrawCanvas`) NO se tocó**: el sensor lo spawnea en identidad, lee su `ArcLength` público, y el "borrar" es destruir + re-spawnear.
+
+**Flujo:** `SetStage(5)` (nuevo último nodo: `DrawStage(StageIndex)`) → `DrawStage`: canvas nuevo (destruye el viejo = borra práctica) + paleta (`BP_BrushPalette`, `AttachToHand(bTookRight)` = mano contraria) + estado a cero + MPC `DrawFade=1`. `SetStage(≠5)` → `DrawOff`: suelta paleta, cierra trazo, **el canvas QUEDA** (la firma). El Tick despacha por el `else` del branch modo-4 de `TickMech` → **`DrawGate`** (guardas: Mode==5 → `CacheHandRef` → `IsValid(HandRef)` → `TickDraw`).
+
+**`TickDraw(DT)`:** punta = `Body.GetWorldLocation` → `DrawFilter` (One-Euro clonado del pincel) → `DrawCalm` (calma clonada, lee `HandRef`) → `Palette.UpdateTouch` + supresión `bOver` → gatillo (`bDrawHeld`, seteado por `DrawPress/DrawRelease` colgados de los `then` libres de `BeamPress/BeamRelease`, gateados Mode==5 + mano hábil) → `BeginStroke`(color/mat de la paleta)/`AddPoint`(ancho de la paleta, `CalmVal`)/`EndStroke` → **`DrawCount`**: `DrawTotalNow = DrawMeters + arc del trazo vivo`; si `≥ TargetCm` y no práctica → **`DrawFinish`** = guarda total, print, `FadeTo(0)` (disolución por MPC) y **`StepTimeDone`** del director.
+
+**Fade:** `FadeTo(Target)` + `FadeStep` (timer loop 0.04 s, `FInterptoConstant` a velocidad `1/DrawFadeTime`) escriben el escalar **`DrawFade` de `MPC_Draw`**, que multiplica el Opacity de `M_Brush_Light` (y hereda a las 2 MIs). **`ShowSignature()`** (la llama el director en el sub 9 del final): busca el TargetPoint tag **`signature_spot`**, mueve+escala el canvas (`loc = TP − s×centro_bounds`, **la escala del TP = la escala de la firma**) y `FadeTo(1)`.
+
+**Knobs** (instance-editable, ya escritos en la instancia): `PracticeCm` 100 · `TargetCm` 1000 · `DrawFadeTime` 2.5. De CDO: One-Euro (`MinCutoff` 1 / `Beta` 0.007 / `DCutoff` 1), calma (`VMax` 120 / `TurnMax` 200 / `SpeedTau` 0.15 / `CalmTauDown` 0.12 / `CalmTauUp` 0.6).
+
+✅ **Verificado por log (PIE autotest, `DebugStartRoom=5`, cortafuegos temporal 15 s):** ciclo completo sala 5 — SetStage 5 + canvas + paleta → práctica → panel cerrado → **re-SetStage 5 (borra práctica)** → cierre → 5º anillo → ending → `la firma aparece junto al alma` → `FIN del guion`, **cero `Accessed None` en la corrida completa**. ⚠ Lo que PIE no prueba: dibujar de verdad, el look del trazo (F0 pendiente), la paleta en mano — **visor**.
+🐛 **Tres bugs cazados por el ROBOT** (rutina 3 de [[BP_Robot]], mismo día): (1) `DrawCalm` leía `HandRef` null → `CacheHandRef` + `IsValid` en `DrawGate`. (2) 🔴 **El paso 10 del final re-llama `StartStepTime` → `SetStage(5)` y `DrawStage` DESTRUÍA LA FIRMA recién aparecida** → guarda `bDrawDone` en `DrawStage`: con el dibujo completado, la re-entrada al modo 5 no toca nada (ni canvas ni paleta). (3) Ese mismo paso 10 dejaba `TickDraw` corriendo sin paleta (Accessed None en `PaletteRef`) → `DrawGate` también gatea por `(not bDrawDone)`.
+✅ **Ciclo completo verificado 2× por el robot dibujando de VERDAD** (rutina 3: mano derecha en Lissajous ~70 cm/s): práctica 1 m cierra el panel POR MECÁNICA (una sola vez, candado del director), 10 m cierran la etapa a los ~20 s (cortafuegos 300 s intacto), la firma reaparece con el dibujo real y **sobrevive al paso 10**; cero `Accessed None` en la ventana completa.
 
 ## Registro de variables (además de las de la toma)
 | Cat | Variables | Rol |

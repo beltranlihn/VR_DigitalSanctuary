@@ -193,8 +193,17 @@ Un `execute_tool_script` con un **error de Python no atrapado** (un `TypeError` 
 **Repuesto** (2026-08-26): `BP_Director_Story_C_0` en (−5000, 200, 0), carpeta `01 - Directores`, con `DebugStartRoom=3` / `bAutoTest=false` (los valores del tracker de ayer — ⚠ la última corrida real de Beltrán esa mañana usaba **4**: confirmar con él en qué valor la quiere), `WebOutTime=4`, y `StepGameTime=18` restaurado en CDO + instancia (se leía 10 tras el incidente).
 👉 Lecciones (van a gotchas): `except BaseException` por llamada **no** protege de los errores del script mismo; y tras CUALQUIER script fallido, **verificar el actor-diff contra HEAD**, no solo contar actores.
 
+## ✏️ 2026-08-26 (noche) — Surrounding V2: el dibujo integrado (plan: `docs/stages/surrounding-v2.md`)
+- **`ArmDraw()`** (nueva): `Room==5` → `Sensor.SetStage(5)` + `bPractice=true` + `MaybeInput()`. Colgada del **pin `else` del branch de `ArmBeam`** — la cadena quedó `ArmPractice → ArmHeart → ArmBeam → ArmDraw`.
+- **`TickDrawPractice()`** (nueva, al final de la cadena del Tick, tras `TickHeartFx`): mientras `Room==5 && WaitFor=="panel"`, si `Sensor.DrawTotalNow ≥ Sensor.PracticeCm` → `PanelRef.Finish()` — **el metro de práctica cierra las instrucciones** (patrón Attracting, sin botón: la instancia de `BP_InstrButton_SC` se ELIMINÓ de `L_Surrounding_SC` y el panel quedó en UNA página, `StartIndex=EndIndex=9`).
+- **El cierre de la etapa lo dispara el sensor**: a los 10 m llama `StepTimeDone` (la guarda `WaitFor=="time"` de siempre). **`StepTimes` CDO = `[0,90,240,0,300,300]`** — Surrounding tiene cortafuegos de 300 s.
+- **La firma**: en el **sub 9 de `RunEnding`** (VO 33, recién llegada la ganadora a `soul_pick_6`) se insertó `Sensor.ShowSignature()` (cirugía: 1 nodo + getter entre `Say` y `SetWaitFor`). El punto es el TargetPoint **`TP_signature_spot`** (tag `signature_spot`) colocado en el persistente a la derecha del punto final — **posición y ESCALA los ajusta Beltrán en el viewport** (la escala del TP es la escala de la firma).
+- **`bDrawPracticeDone`** (candado, Z - Estado): sin él, `TickDrawPractice` llamaba `Finish()` ~30 veces (una por frame hasta que el panel resolvía). Se arma en `TickDrawPractice` al disparar y se resetea en `ArmDraw`. (`TickDrawPractice` se recreó con remove→compile→add; el nodo de llamada del EventTick re-resolvió solo, verificado.)
+- ✅ Ciclo completo verificado 3× — la última con **el ROBOT dibujando de verdad** (rutina 3 de [[BP_Robot]]): práctica cierra el panel por mecánica (1 print), 10 m cierran la etapa (~20 s, sin cortafuegos), firma con el dibujo real que **sobrevive al paso 10** (guardas `bDrawDone` del sensor), `FIN del guion`, cero `Accessed None`. Flags restauradas (`DebugStartRoom=3`, `bAutoTest=false`, `StepTimes[5]=300`, robot OFF).
+
 ## TODO
 - [ ] 🔴 **Visor**: hover real de las 5, toma del sensor con la mano, el hold del panel y del timbre.
+- [ ] 🔴 **Visor Surrounding V2**: dibujar de verdad (trazo, paleta, práctica de 1 m, cierre a los 10 m, la firma) — y de paso el F0 pendiente (el look de la cinta plana).
 - [ ] Confirmar con Beltrán el valor de `DebugStartRoom` (quedó en 3; su última corrida usaba 4 para testear Attracting).
 - [ ] Los puntos `alma_<sala>_appear` están **en el centro de cada sala (x=0,1500…, z=150), justo donde se para el pawn** → Alma aparece encima de la cabeza. Moverlos (son datos de autor de Beltrán; no se tocaron).
 - [ ] Apagar `bDebugKey` en la obra final.

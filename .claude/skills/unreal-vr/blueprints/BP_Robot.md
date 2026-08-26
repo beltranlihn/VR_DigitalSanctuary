@@ -141,5 +141,11 @@ El pulso de [[BP_TestKit]] es el que reporta si la rutina consiguió su objetivo
 - [ ] Rutinas: elegir ameba en el Hall · agarrar burbuja y soltarla en un slot · dibujar un trazo en Surrounding.
 - [ ] Aserciones `ROBOT: PASS/FAIL` con el formato de [[BP_SelfTest]].
 
+## 🆕 2026-08-26 — RunDrawV2 (rutina 3): el robot dibuja en Surrounding V2
+- **`RunDrawV2`**, colgada del `else` libre del branch `Routine==1` de `RobotTick` (la guarda `Routine==3` va adentro). Si el sensor está en **modo 5**: mueve la mano DERECHA en un **Lissajous** delante de la cámara (`centro = cam + fwd·55`, `right·28·sin(140°t)`, `up·18·cos(90°t)` ≈ 70 cm/s) con `SetHandR`, y escribe `Sensor.bDrawHeld = true` cada tick (no inyecta el gatillo: el camino de eventos ya lo prueba el beam).
+- 🆕 Hay una instancia **`Robot_Test` en `MapsV2/L_SoulCharger`** (el persistente V2). ⚠ `RobotOn`/`Routine`/`HeadOn` **no son instance-editable**: se configuran en el **CDO** (encender: `RobotOn=1`; hoy quedaron `RobotOn=0`, `HeadOn=0`, `Routine=3`).
+- ✅ **Primera etapa V2 completada por el robot** (2 corridas): práctica de 1 m cierra las instrucciones por mecánica, 10 m cierran la etapa (~20 s), la firma reaparece con el dibujo real. Cazó **3 bugs** el mismo día (HandRef null, la firma destruida por el paso 10, TickDraw sin paleta) — detalle en [[BP_Sensor_Soul]].
+- ❌ Lo que el robot NO prueba: el LOOK del trazo (F0 de la cinta plana), la paleta tocada de verdad, la sensación — visor.
+
 ## Relacionados
 - [[BP_TestKit]] (el pulso que dice si la rutina funcionó) · [[BP_SelfTest]] (las aserciones sin humano) · [[BP_HeartSensor]] · `references/vr-pawn.md` · `references/input.md`
