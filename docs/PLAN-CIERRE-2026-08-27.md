@@ -331,8 +331,16 @@ Las seis fases están construidas y verificadas por log. Lo que sigue abierto:
 ### 🔴 Bloqueantes antes de empaquetar
 | Qué | Dónde | Detalle |
 |---|---|---|
-| **`StepTimes[5]` está en 20 s** | `BP_Director_Story` (CDO) | Valor de PRUEBA pedido por Beltrán ("ya con el juego listo las alargamos"). Su valor de obra era **300**. `StepTimes[4]` (Attracting) sigue en 300 por si también molesta. |
+| ~~`StepTimes[5]` en 20 s~~ | — | ✅ **Resuelto (2026-08-27 noche)**: de vuelta en **300**, su valor de obra. Con eso Surrounding cierra por los 10 metros dibujados (29 s medidos) y no por el reloj. |
 | **Los VO 31 / 32 / 33** | `B - VOs sueltos` | Si no están, `Say` loguea "este paso no tiene VO" y el guión avanza igual — o sea que **falta en silencio**. |
+
+### 🤖 Rutinas del robot que faltan para V2 (2026-08-27 noche)
+`RunAuto` (rutina 0) está atado a `BP_StageDirector`, el director del esqueleto **viejo** — en
+`L_SoulCharger` no hace nada. Para poder correr una pasada donde **ninguna** etapa avance por cortafuego
+hay que construir, en [[BP_Robot]]: respiración de Entering, latido de Recognizing, colocar esferas +
+FINISH en Attracting, y el gesto del final. Hoy sólo existe la rutina 3 (dibujar en Surrounding), y
+funciona: cierra la etapa en 29 s por interacción.
+⚠ Y con `DebugStartRoom = 5` la práctica de dibujo se traba — el atajo de debug, no la obra.
 
 ### 🎨 Insumos de autor (Beltrán)
 - **Posición y escala de los 20 `TP_const_*`** y del `TP_const_anchor` (su escala = el tamaño de la

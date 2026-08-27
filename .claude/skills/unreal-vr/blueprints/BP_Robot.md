@@ -149,3 +149,71 @@ El pulso de [[BP_TestKit]] es el que reporta si la rutina consiguió su objetivo
 
 ## Relacionados
 - [[BP_TestKit]] (el pulso que dice si la rutina funcionó) · [[BP_SelfTest]] (las aserciones sin humano) · [[BP_HeartSensor]] · `references/vr-pawn.md` · `references/input.md`
+
+---
+
+## 🤖 2026-08-27 (noche) — campaña de pasadas completas con el robot
+
+**Qué se pidió**: pasadas completas de la obra con el robot simulando la interacción, sin cortafuegos
+salvo donde sean inevitables, y 2-3 repeticiones para ver si el SaveGame acumula gente nueva.
+
+### 🔴 El límite que apareció primero
+**`RunAuto` (rutina 0) del robot está atado a `BP_StageDirector`** — el director del esqueleto VIEJO,
+que no existe en `L_SoulCharger`. En el nivel V2 `StageIdx` devuelve −1 y la rutina no hace nada.
+👉 **Lo único que el robot sabe hacer hoy en V2 es dibujar en Surrounding (rutina 3).**
+Las rutinas de Entering, Recognizing, Loving y Attracting hay que **construirlas para V2**.
+
+### Veredicto de la pasada completa (obra entera, `DebugStartRoom = -1`, `bAutoTest = true`)
+| Etapa | Cómo cerró |
+|---|---|
+| Hall | 🟢 interacción (autotest fuerza el hover+gatillo, que es el camino real) |
+| **Entering** | 🔴 cortafuego — 90 s. El robot no respira. |
+| **Recognizing** | 🔴 cortafuego — **240 s exactos**. El robot no hace latido. |
+| Loving | 🟢 sin cortafuego (`StepTimes[3]` = 0) |
+| **Attracting** | 🔴 cortafuego — 300 s. El robot no coloca esferas. |
+| **Surrounding** | 🟢 **interacción: 29 s** — el robot dibujó los 10 m con `StepTimes[5]` en 300 |
+| Final | 🟢 entero por el camino real |
+
+### 🐛 Dos bugs que sólo aparecen en una corrida REAL
+Las verificaciones anteriores usaban datos ficticios, así que estos dos nunca se habían visto.
+
+**1. El dibujo del usuario NO se guardaba (`dibujoLen = 0`).**
+`TakeCanvas` buscaba el canvas con `GetActorOfClass` **en el paso 8**, y para entonces ya no existe.
+El instrumento lo cantó: `ARCHIVO: NO hay canvas al guardar - el dibujo se pierde`, y después
+`ARCHIVO: no habia canvas al cerrar la sala` — o sea que **ni siquiera al empezar el final** estaba.
+✅ **El arreglo no fue buscarlo más tarde sino capturarlo antes**: `BP_Sensor_Soul.KeepSign()` guarda el
+CSV en `SignCSV` **dentro de `DrawFinish`** — el instante exacto en que el dibujo se completa y el canvas
+con seguridad existe (la función hasta le llama `EndStroke`) — y `TakeCanvas` lo lee del sensor.
+Verificado: `firma guardada al terminar el dibujo, largo = 6129` → `firma tomada del sensor, largo = 6129`.
+
+**2. Los anillos se guardaban en 0.** Dos causas encadenadas:
+- **`DrawRing` nunca tocaba `RingsShown`** — el único que lo incrementaba era `TickRingKey`, o sea el
+  camino de **teclas de debug**. En una corrida real el contador se quedaba en 0 para siempre.
+- **`TakeSoul` dependía de `PickRef`**, que llega en None al guardar. La versión original tenía un
+  `IsValid(PickRef)` que **se tragaba el problema en silencio**; al reescribirla apareció el
+  `Accessed None` y con él la causa.
+✅ Arreglos: `DrawRing` hace `RingsShown = max(RingsShown, Index+1)`, y `TakeSoul` ya no depende del
+picker: toma el alma del **`WinnerRef` del director** (`SoulFromDirector`), que es la fuente confiable en
+ese momento; el picker sólo se usa para resolver el índice de variante (`VariantOf`).
+Verificado: `ARCHIVO: alma ganadora - anillos = 5`.
+
+### ✅ El SaveGame acumula
+Los `Stamp` de las pasadas sucesivas: **25 → 26 → 27 → 28 → 29**, con el FIFO sacando la más vieja cada
+vez (`ARCHIVO: se fue la mas vieja (FIFO)`, largos siempre `20/20/…`). La última entrada quedó completa:
+```
+stamp 29 | variante 0 | anillos 5 | calma 1052 | ritmo 899 | respiracion — | melodia — | dibujo 6129
+```
+
+### ⬜ Lo que sigue vacío, y por qué
+`respiracion` y `melodia` quedan vacías **porque el robot no puede producirlas todavía** (Entering y
+Attracting cierran por cortafuego). No es un bug del guardado: es la consecuencia directa del límite de
+arriba. Se llenarán solas cuando existan las rutinas V2 — o en la primera corrida con gafas.
+
+### ⚠ Otro hallazgo
+**Con `DebugStartRoom = 5` la práctica de dibujo no se completa** y la etapa se queda trabada. Por el
+flujo real (`DebugStartRoom = -1`) cierra en 29 s. Es un problema del atajo de debug, no de la obra.
+
+### Estado en que quedó todo
+`RobotOn = 0` · `HeadOn = 0` · `Routine = 3` · `DebugStartRoom = 5` (el de Beltrán) · `bAutoTest = false` ·
+**`StepTimes` de vuelta en los valores de obra `[0, 90, 240, 0, 300, 300]`** · todas las flags de debug
+del archivo, la constelación, el retrato y el picker en `false`.
