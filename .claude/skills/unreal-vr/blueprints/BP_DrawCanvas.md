@@ -191,3 +191,90 @@ Grosores de la paleta (en `BP_BrushPalette.PaletteWidths`): **0.8 / 1.8 / 3.5 cm
 - **2026-07-29 (2º test)** — 🎉 **Funciona en visor.** Feedback: *"es bastante feo y geométrico el trazo"*. Causa: **no había material**. Se creó `M_Brush_Light` y se afinó la decimación (`MinDist` 1.5→1.0, ángulo 10°→6°, `MinStep` 0.4→0.3).
 - **2026-07-29 (Fase 2)** — Taper de tres tiempos (6 arrays de puntos + `RefreshRing`/`RefreshTail`), continuación de sección (`OpenSection`/`ContinueSection` con el truco de inflar `ArcLength`), decimación por tiempo (apagada). `BeginStroke` y `AddPoint` **recreados** (`remove_function_graph` → `compile` → `add`) para no dejar huérfanos. Compila limpio con `warnings_as_errors`. **Sin probar en visor.**
 - ✅ **Hallazgo que destrabó todo:** el DSL **sí** acepta type_ids con paréntesis (`Utilities|Array|Get(acopy)`, `Math|Float|Clamp(Float)`) y tiene `(return expr)` con output params. La nota contraria en `nodes.md` era falsa y quedó corregida.
+
+
+## 🆕 2026-08-27 — la firma se persiste (F1 del plan de cierre / F5 de Surrounding V2)
+Cierra el pendiente "persistencia a disco de la firma". 🔴 **El plan asumía que los arrays `Pt*` eran
+el formato, y era falso**: `Pt*` son un buffer **por sección**, del tamaño de `Capacity` (2048), que
+`OpenSection` redimensiona y `BeginStroke` resetea. Sólo tienen el trazo en curso. Igual pasa con
+`Vertices`. O sea que **no había ningún lugar donde viviera el dibujo entero** — había que crearlo.
+
+**Variables nuevas**: `SavePts` (Vector[], el dibujo acumulado) · `SaveBreaks` (int[], en qué índice
+arranca cada trazo) · `SaveN` (contador del diezmado) · `Tmp` (String[] de andamio) ·
+🎛️ **`SaveEveryNth`** (3) y **`SaveMaxPoints`** (700), instance-editable.
+
+**Funciones nuevas**
+| Función | Qué hace |
+|---|---|
+| `RecordPoint(Idx, P)` | Si `Idx == 0` (arranque de sección) marca el corte en `SaveBreaks` y guarda el punto sí o sí; si no, guarda **uno de cada `SaveEveryNth`**. Corta al llegar a `SaveMaxPoints`. |
+| `SerializeDraw()` | `x,y,z` con 1 decimal, puntos separados por barra, trazos por punto y coma. |
+| `ClearSaved()` | Vacía la memoria de la firma. |
+
+**Cirugía**: un solo nodo al final de `StorePoint` (`CallFunction|RecordPoint Index P`). Se eligió
+`StorePoint` y no `AddPoint` porque es la función chica por la que pasan **todos** los puntos, con su
+índice, y se le puede colgar un nodo al final de la cadena sin recablear nada.
+
+**Números**: con `MinStep` 0.6 cm, 10 m de dibujo son ~1600 puntos → con `SaveEveryNth=3` quedan ~550,
+holgado bajo los 700. Cada punto pesa ~18 caracteres → ~10 KB por usuario.
+
+⚠ `ContinueSection` (al pasar de 2048 puntos en un trazo) también llama a `StorePoint 0`, así que
+metería un corte de trazo de más. Con 10 m no se alcanza; y aunque pasara, los puntos son contiguos,
+así que el dibujo reconstruido se ve igual.
+
+✅ **La práctica no contamina la firma, y está verificado en el grafo**: `BP_Sensor_Soul.DrawStage(5)`
+hace `DrawWipe` (que **destruye el actor canvas**) y spawnea uno nuevo, así que `SavePts` nace vacío
+en cada arranque del modo dibujo. `ClearSaved()` queda disponible por si alguna vez se reusa el canvas,
+pero hoy no hace falta llamarlo.
+
+🔴 **En qué espacio están los puntos guardados**: el PMC exige transform identidad mientras se
+dibuja, así que `SavePts` guarda **coordenadas de mundo del momento del trazo**. `ShowSignature()` del
+sensor mueve y escala **el mismo actor** después (no lo redibuja), por lo que al momento de guardar los
+puntos siguen intactos. ⚠ Para **reconstruir el dibujo de un vecino** (F5) hay que re-centrar y
+re-escalar a mano: el `.sav` no trae el encuadre, sólo la forma.
+
+Lo consume [[BP_SoulArchive_SC]] (`TakeCanvas`).
+
+
+---
+
+## 2026-08-27 — `RebuildFrom(CSV)`: reconstruir la firma de OTRO usuario (F5 del cierre)
+
+El archivo guarda el dibujo como texto (`x,y,z|x,y,z;…`, ver [[BP_SoulArchive_SC]]). Para mostrar el de
+un vecino hay que **volver a dibujarlo** en el mismo canvas, en un frame.
+
+```
+RebuildFrom(CSV)
+  guarda MinTime y SaveMaxPoints  →  MinTime = 0 ,  SaveMaxPoints = 0
+  WipeAll()          EndStroke · ClearAllMeshSections · SectionIndex=0 · bDrawing=false
+                     + transform del actor a identidad (escala 1, origen)
+  StrokeLoop(CSV)    for trazo en split(CSV, ";")  → OneStroke
+     OneStroke(S)    EndStroke (cierra el anterior) · PointLoop
+     PointLoop(S)    for punto en split(S, "|")    → OnePoint
+     OnePoint(P)     split(P, ",") → 3 floats → FeedPt(Vector)
+     FeedPt(V)       si bDrawing → AddPoint(V, RebuildUp, RebuildWidth, RebuildCalm)
+                     si no      → BeginStroke(CurrentBrushId, V, RebuildUp, StrokeColor, StrokeMat)
+  EndStroke() · DrawAudioOff() · restaura MinTime y SaveMaxPoints
+```
+
+🔑 **`SaveMaxPoints = 0` durante la reconstrucción** es el candado que impide que `RecordPoint` (que
+cuelga de `StorePoint`) **pise la firma propia** con la del vecino: con el tope en 0, el `if` de
+`RecordPoint` nunca entra. Cero cambios en `RecordPoint`.
+🔑 **`MinTime = 0`** es seguro aunque hoy ya valga 0 en el CDO: `AddPoint` compara
+`GetGameTimeInSeconds() - LastTime >= MinTime`, y en una reconstrucción **todos los puntos llegan en el
+mismo frame** → con `MinTime > 0` se caerían todos menos los dos primeros.
+🔑 **`DrawAudioOff()` al final**: `OpenSection` enciende el loop de dibujo una vez por trazo.
+
+### `R - Reconstruccion` (instance-editable)
+| Variable | Default | Rol |
+|---|---|---|
+| `RebuildUp` | (0,0,1) | El "up del mando" que no existe al reconstruir → cinta plana horizontal. |
+| `RebuildWidth` | 1,0 | Ancho fijo (el original venía de `Palette.GetCurWidth` por punto). |
+| `RebuildCalm` | 0,5 | Calma fija (el original venía de `CalmVal` por punto). |
+
+⚠ Por eso **la firma del vecino no es idéntica a la original**: conserva la *forma* (posición de cada
+punto) pero no la modulación de ancho ni de calma. Es una decisión, no un bug — los tres knobs están
+para afinar el look.
+
+✅ Verificado en PIE: 12 vecinos seguidos, `DIBUJO: firma del vecino reconstruida, secciones = 3` cada
+vez, seguido de `SENSOR: la firma aparece junto al alma`. La reconstrucción cuesta **~55-65 ms** (un
+hitch de frame) → ⬜ pendiente medirlo en APK y, si molesta, bajar `SaveMaxPoints` o meter un debounce.

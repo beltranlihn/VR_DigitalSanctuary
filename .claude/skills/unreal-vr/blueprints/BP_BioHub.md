@@ -137,3 +137,24 @@ BinCalmCount [17,15,17,15,15,17,15,1,0,0,0, ... 0]
 
 ## Relacionados
 - `BP_OSCReceiver` (el patrón del delegate, y el bloqueador del switch) · `BP_ProtoSoul` y `BP_Sensor` (sin construir) · [[BP_StageDirector]] (le va a pasar la etapa como int)
+
+
+## 🆕 2026-08-27 — `Series(bHeart)` : las casillas como CSV (F1 del plan de cierre)
+El consumidor del retrato (plan `docs/PLAN-CIERRE-2026-08-27.md`) no quiere las casillas de a una:
+quiere **la serie entera como texto** para meterla en el `.sav`. Eso es **`Series(bHeart) -> CSV`**,
+la única función nueva de este BP.
+
+- Recorre las casillas **0 .. `CurrentBin`** (clampeado a `BinCountMax`), o sea **sólo lo transcurrido**;
+  no escribe las 180 si la obra duró 3 minutos.
+- Por casilla emite `Sum / Count` redondeado con `SnapToGrid` (**0.001** para la calma, **0.1** para el
+  ritmo) y **`-1` cuando `Count == 0`** — el hueco explícito, no un cero que parece dato.
+- Junta todo con `JoinStringArray` sobre la variable de andamio **`Tmp`** (String[]).
+- ⚠ **Divide por `Max(Count, 1)`**, no por `Count`: el `select` de Blueprint **evalúa las dos ramas**,
+  así que sin el `Max` cada casilla vacía dispararía un divide-by-zero y ensuciaría el log.
+- Lo usa [[BP_SoulArchive_SC]] (`TakeBio`), que llama `Series(false)` para la calma y `Series(true)`
+  para el ritmo. Verificado en PIE: a los 12 s devolvió 3 valores reales.
+
+⚠ **Deuda pre-existente detectada de paso**: el EventGraph tiene **6** `OnOscMessageReceived_Event*`
+(uno con el handler, cinco vacíos) — es el gotcha del `Assign<Delegate>` documentado más arriba.
+No los borré para no tocar la cadena OSC en medio de otra tarea; hay que barrerlos con `delete_node`
+y **guardar antes de volver a compilar**.

@@ -134,3 +134,57 @@ PROTO: material slot 0 tras Configure = MID_M_ProtoSoul_0   x5
 - **Gatillo `Completed`** (los pines de soltar de `IA_Shoot_Right/Left`, cableados por cirugía) → `ReleaseGrab` → `EndCarry`: vuelve sola a su punto.
 - **Compartir** = acercarla bajo el visor (lo detecta la propia ameba, ver su tracker) → `OnShared` → el guión la manda a `soul_pick_6`.
 - `ForceShare()` (test) dispara `Shared()` directo. ⚠ `ChosenTag` quedó sin uso en este modo (el destino lo comanda el guión).
+
+
+## 🆕 2026-08-27 — el gesto sin gatillo (F3 del plan de cierre)
+Decisión 9 del plan: *"Atracción por gesto: **cualquier mano**, cono de ~10°, ~1 s de permanencia.
+Sin gatillo."*
+
+🔴 **NO se construyó de cero: se le cambió el DISPARADOR a un mecanismo que ya existía y andaba.**
+El modo compartir ya estaba entero (`Rearm` → `bShareMode` → `ShareGrabBody` con hover + gatillo sostenido
+→ `Winner.StartCarry`), cableado al `RunEnding` sub 7 del director. Lo único que cambia es **cómo se
+engancha**.
+
+⚠ **El plan decía "modo nuevo en `BP_Sensor_Soul`"** — se hizo **acá** en su lugar, y la razón es
+concreta: `bShareMode`, `Winner` y el Tick ya viven en el picker, y el sensor no conoce a la ganadora.
+Meterlo en el sensor habría sido reconstruir un camino probado. **Si Beltrán prefiere el sensor, se
+mueve; pero conviene saber que esto ya funciona.**
+
+### La cadena
+```
+Tick → AimStep(DT)
+   si bShareMode y todavía no enganchó:
+     AimScan(DT)   → AimTry(mano derecha) y AimTry(mano izquierda)   [o la cámara, ver debug]
+     AimAccum      → AimT += DT si alguna acierta, 0 si no
+                   → si AimT >= AimDwell → AimHook(cuál mano)
+AimHook → Winner.StartCarry(mano) + HidePortrait()  (apaga panel Y melodía)
+```
+- **`AimTry(Comp)`** es el mismo criterio por **ÁNGULO** que ya usaba [[BP_ConstExplorer]]: producto punto
+  entre la dirección al alma y el forward del componente, contra `cos(AimConeDeg)`.
+  **Sin colisión, sin line trace, sin tocar la ameba.**
+- El **gatillo sigue cableado** (`ShareGrabBody`) y no molesta: hace exactamente lo mismo. Se dejó como
+  camino alternativo probado en vez de borrarlo.
+
+| Variable | Default | Rol |
+|---|---|---|
+| `AimConeDeg` | 10° | Cuán fino hay que apuntar. **La palanca de comodidad.** |
+| `AimDwell` | 1.0 s | Cuánto hay que sostener la mirada/el gesto. |
+| `AimT` / `bAimHooked` / `AimRight` | — | Estado; `bAimHooked` hace que el enganche sea de una sola vez. |
+| `PawnAim` | — | El pawn, cacheado por `CacheAim` (lo rearma `RearmBody`). |
+| 🧪 `bAimFromCamera` | false | **Apunta con la CÁMARA en vez de las manos** — es lo que permite verificar el gesto en PIE sin visor. |
+| 🧪 `bDebugShareOnPlay` + `DebugShareDelay` | false | Abre el modo compartir solo, sin recorrer la obra. |
+
+### ✅ Verificado en PIE (2026-08-27), con los tiempos exactos
+```
+14:52:49.8  PICKER: DEBUG - abro modo compartir sin recorrer la obra
+14:52:49.8  PICKER: modo compartir - apuntar la ameba con cualquier mano, sin gatillo
+14:52:50.8  PICKER: enganchada por gesto con la DERECHA - viaja a la mano   ← +1,0 s = AimDwell
+14:52:50.8  RETRATO: se apaga
+14:52:53.9  PROTO: compartida - operacion lograda                          ← +3,05 s = ShareHold
+```
+Cero `Accessed None`. **Los dos tiempos caen clavados en sus knobs** — no es "parece que anda".
+
+## Relacionados
+[[BP_ProtoSoul_SC]] (`StartCarry` / `CarryBody` / `ShareZone`) · [[BP_Portrait_SC]] (lo que se apaga al
+enganchar) · [[BP_Director_Story]] (`RunEnding` sub 7 abre el modo, sub 8 guarda) ·
+[[BP_ConstExplorer]] (de dónde sale el criterio por ángulo)

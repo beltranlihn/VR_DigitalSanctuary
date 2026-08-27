@@ -226,3 +226,98 @@ Pedidos de Beltrán tras el primer run completo en editor:
 
 ## 🕐 2026-08-21 — ARREGLADO el bug histórico: el material se degradaba con el tiempo
 Beltrán venía reportando hace semanas que *"un material animado se va glitcheando poco a poco a lo largo de la experiencia"*. Al final del recorrido veía la ameba **pixelada y moviéndose a muy bajos frames — sólo el material**. **Causa encontrada y medida**: `M_ProtoSoul` (y `M_Alma`) tenían `floatPrecisionMode = MFPM_Default` (fp16 en móvil) y el nodo `Time` **sin período**, así que tras ~15 min el tiempo era demasiado grande para la precisión disponible: los senos del WPO y del gradiente avanzaban a saltos y los degradados se cuantizaban. ✅ **Fix: precisión Full + `Time.period = 300`** (lo que `M_SoulRibbon_SC` ya tenía, y por eso los anillos nunca fallaron). Detalle en `gotchas.md` §185.
+
+
+## 🆕 2026-08-27 — la zona del corazón ahora exige SOSTENER 3 s (F3 del plan de cierre)
+Antes `CarryBody` llamaba a **`Shared()` en el instante** en que la ameba entraba en la esfera del pecho
+(`ShareRadius` alrededor de la cámara menos `ShareDown`). El plan pide **sostenerla 3 segundos**.
+
+**Cambio mínimo**: `CarryBody` ya no llama a `Shared()`; calcula el bool "estoy en la zona" y se lo pasa a
+la función nueva **`ShareZone(DT, InZone)`**, que acumula `ShareT` mientras esté dentro, **lo resetea a 0
+al salir**, y recién dispara `Shared()` cuando llega a **`ShareHold`** (3 s, instance-editable).
+`Shared()` **no se tocó**: sigue poniendo `bCarried = false` primero, así que dispara una sola vez.
+
+🧪 **`bCarryToChest`** (false): camino de debug. Con true, la ameba viaja **al punto del pecho** en vez
+de a la mano. Es lo que hace verificable el ciclo completo **en PIE sin visor**: sin mandos, el grip se
+queda en el origen del pawn (relativeLocation 0,0,0, o sea a la altura del piso) y la ameba nunca entraría
+en la zona. Con el flag, el ciclo entero corre y se miden los 3 s. **Queda en false.**
+
+⚠ **La trampa al reescribir `CarryBody`**: el `read_graph_dsl` lo mostraba como
+`(Transformation|SetActorLocation (VInterpTo ...))` — **un solo argumento**. Escribir eso falla con
+*"Could not connect pin ReturnValue to self"*: `SetActorLocation` **tiene el target `self` como primer
+pin posicional**, y el read lo omite por ser el propio actor. Hay que escribirlo con keywords:
+`(Transformation|SetActorLocation :self self :NewLocation ...)`. Otra cara de **"el read no es escribible
+tal cual"**.
+
+⚠ **Y otra**: para que otro Blueprint pueda escribir una variable de éste (`Class|BPProtoSoulSC|SetX`),
+la variable tiene que ser **pública**. `bCarryToChest` no apareció como setter cruzado ni siquiera después
+de hacerla instance-editable + compilar + guardar, así que se resolvió **seteando el flag en la instancia**
+desde el panel de detalles, sin llamada cruzada. Menos nodos y más autorable.
+
+
+---
+
+## 2026-08-27 — `MoveToActor(Point)`: anclarse a un actor cualquiera (F4/F5 del cierre)
+
+`MoveTo(tag)` sirve cuando el destino tiene un tag único. La constelación tiene **20 destinos iguales**
+(todos con el tag `ConstSpot`) y necesita mandar cada ameba **a uno específico**, y traerla de vuelta.
+
+```
+(fn MoveToActor (Point)
+  (Variables|Z-Estadointerno|SetTargetRef Point)
+  (Variables|Z-Estadointerno|SetFound true)
+  (CallFunction|StartTravel))
+```
+
+Tres nodos. Es `MoveTo` **sin `FindPoint`** (el destino llega como parámetro) y **sin `bArriveArmed`**
+(no dispara `OnArrived`: son estrellas, no la ganadora del guión).
+
+Lo que se hereda gratis del sistema de viaje que ya estaba probado:
+- **Posición**: `TravelStep` interpola hasta el actor destino con la curva de siempre.
+- **TAMAÑO**: `AnchorStep` escribe `Size` desde el `Scale3D` del destino **cada frame** → Beltrán autora
+  el tamaño de cada estrella **escalando el TargetPoint en el viewport**, y se ve en vivo.
+- **Anclaje real**: `AnchorAttach` hace `AttachActorToActor` con `SnapToTarget` → si el punto se mueve,
+  la ameba lo sigue.
+
+Usos: [[BP_Constellation_SC]] `DressStar` (nacer en su estrella), `Focus` (bajar al atril) y `Unfocus`
+(volver a su estrella).
+
+⚠ El `read_graph_dsl` lo imprime como **`AI|Navigation|MovetoActor`** — es la colisión de nombres de
+siempre; `get_node_infos` confirma que el `type_id` real es `|MoveToActor` (resuelto por el pin `self`).
+
+
+---
+
+## 2026-08-27 (2ª tanda) — el alma lleva **su propia tarjeta**
+
+Componente nuevo **`Card`** (`WidgetComponent`, colgado del `DefaultSceneRoot` para no heredar la escala
+del `Body`), con **`WidgetClass = None`** de fábrica.
+
+| Propiedad | Valor | Por qué |
+|---|---|---|
+| `DrawSize` | 1600×900 | El mismo lienzo de `WBP_Portrait_SC`. |
+| `RelativeScale3D` | 0,16 | → **256 × 144 cm**. A 583 cm son ~25° ≈ 490 px en Quest: legible. |
+| `RelativeLocation` | (0, 0, **−155**) | Debajo de la ameba, justo por fuera del halo de anillos. |
+| `RelativeRotation` | yaw **180** | El `WidgetComponent` se ve por su **+X**; con el actor mirando *en contra* del usuario, la cara queda hacia él. |
+| `Space` / `BlendMode` | World / Transparent | |
+
+| Función | Qué hace |
+|---|---|
+| **`ShowCard(CalmCSV, HeartCSV, BreathCSV, Heading)`** | `CreateWidget` → `SetWidget` → colisión apagada → visible → `FeedCard`. **Crear el widget acá es lo que reserva el render target**, y por eso sólo lo tiene la enfocada. |
+| `FeedCard(...)` | Castea el `GetUserWidgetObject` a `WBP_Portrait_SC` y le pasa `SetHeading` + `SetSeries`. |
+| **`HideCard()`** | Invisible + **`SetWidget(None)`** → libera el render target. |
+
+🔴 **`bStartAsleep` del CDO estaba en `true`** — pensado para las 5 candidatas colocadas a mano, pero se
+aplica también a **todo lo que se spawnee**: la ameba corría `Sleep()` en su `BeginPlay` y quedaba con el
+`Body` en **escala 0**, invisible para siempre (con `EnableHover(false)`, nadie vuelve a escribir esa
+escala). Por eso [[BP_Constellation_SC]] `DressStar` llama a **`Appear`** después de vestirla — y de paso
+ésa es la "entrada propia de cada ameba" que pedía el plan.
+👉 La constelación corrió **tres veces** logueando `estrellas = 20` sin que se viera nada.
+**Si el resultado es que algo SE VEA, la aserción tiene que medir el TAMAÑO, no la cantidad.**
+
+También se apaga `bRingKeys` en las spawneadas (`SetRingKeys(false)`): son 20 amebas corriendo
+`TickRingKey` por frame para nada.
+
+🔑 **El halo de anillos manda sobre el cuerpo al repartir amebas en el espacio:**
+`radio visible = RingRadius × (Size / RingSizeRef)` = **83 cm × escala**. Con `Size` 1,2 son anillos de
+2 m de diámetro.

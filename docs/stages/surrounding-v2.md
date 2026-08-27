@@ -62,6 +62,20 @@ reaparece junto al alma **con el dibujo real** y sobrevive al paso final. Cero
 de `BP_Sensor_Soul`). ⬜ Pendiente: **visor** (look del trazo = F0, paleta en mano,
 sensación) y F5 (materiales 4.4, háptica/audio, persistencia a disco).
 
+## Ajustes tras la validación en visor (2026-08-27)
+Tres tandas de retoques de Beltrán, todas verificadas con el robot (detalle en los
+trackers de `BP_Sensor_Soul` y `BP_Director_Story`):
+1. **Ritmo de la práctica y del cierre**: práctica de **3 m** (`PracticeCm=300`); al
+   completarla el dibujo se **bloquea**, +3 s el trazo se desvanece, +3 s arranca la
+   experiencia. A los 10 m: bloqueo → **5 s de contemplación** (`AdmireTime`) → disolución
+   → recién con el fade completo empieza la carga.
+2. **Háptica**: zumbido continuo suave mientras se dibuja (patrón `BreathHaptic`), en la
+   mano hábil. Los pulsos de entrada/salida del gatillo se probaron y **se eliminaron**.
+   `bDrawDone` gatea gatillo + háptica, así que durante los bloqueos no responde nada.
+3. **Entradas y salidas del panel**: el widget (y con él el modo dibujo) entra
+   **`PanelDelay`=5 s después del VO** para que Alma llegue a su posición, y **se va junto
+   con el fade del trazo** (`PracticeHide`), no después.
+
 ## Riesgos anotados
 - La cinta plana sin test de visor (F0) — si se ve mal, las 2 cartas están en el
   tracker de `BP_DrawCanvas` (§RETOMAR ACÁ).

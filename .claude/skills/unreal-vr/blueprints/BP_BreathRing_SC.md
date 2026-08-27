@@ -360,3 +360,30 @@ depende de ningún TargetPoint.
 reloj) · [[BP_Door_SC]] (la fórmula de `EaseCurve`; su `WBP_DoorTitle.BuildArc` fue el primer intento, descartado) ·
 [[BP_BreathOrb_SC]] (comparte sala) · [[BP_Sensor_Soul]] (la respiración real; el anillo **no** la mide) ·
 `M_SoulRing` · [[BP_SoulHUD_SC]] (de ahí la convención de Yaw 180 del `WidgetComponent`)
+
+
+## 🆕 2026-08-27 — el puntaje de respiración por ciclo (F1 del plan de cierre)
+El anillo ya era el dueño del reloj de ciclos (`BRingStep` detecta el wrap de `T` y sube `CycleIndex`),
+así que es el lugar natural para **medir qué fracción de cada ciclo el usuario estuvo respirando**.
+Decisión 5 del plan: ese 0..1 será el radio del círculo interior dentro del anillo de ese ciclo.
+
+**Variables nuevas**: `SensorRef` ([[BP_Sensor_Soul]], cacheado solo) · `InThr` (segundos acumulados
+dentro del umbral en el ciclo en curso) · `LastCycle` (para detectar el borde) · `CycleScores` (float[],
+el resultado) · `Tmp` (String[] de andamio).
+
+**Funciones nuevas**
+| Función | Qué hace |
+|---|---|
+| `BreathAccum(Dt)` | Si `SensorRef` es válido y `bBreathing` está en true, suma `Dt` a `InThr`. Si no hay ref, la cachea con `GetActorOfClass` (mismo patrón que `PushFakeHeart` del BioHub). |
+| `BreathScore(Dt)` | Llama a `BreathAccum` y, cuando `CycleIndex` subió, empuja `clamp01(InThr / CycleDur)` a `CycleScores`, resetea `InThr` y loguea el puntaje. |
+| `ResetBreath()` | Vacía `CycleScores`, `InThr` y `LastCycle`. |
+| `SerializeBreath()` | CSV de `CycleScores` a 2 decimales, para el `.sav`. |
+
+**Cirugía en grafos existentes** (dos nodos, nada reescrito):
+- `EventTick`: `BRingTick(Dt)` → **`BreathScore(Dt)`**. Va DESPUÉS para que `CycleIndex` ya esté al día.
+- `BRingGo`: **`ResetBreath()`** al principio. Sin esto, arrancar la etapa de nuevo (con
+  `DebugStartRoom`) dejaría `LastCycle` viejo y empujaría un puntaje fantasma en el primer tick.
+
+🔴 **El anillo mide, pero NO decide**: la fuente de verdad de "estoy respirando" sigue siendo
+`bBreathing` del sensor. El anillo sólo aporta el reloj del ciclo.
+Lo consume [[BP_SoulArchive_SC]] (`TakeRing`).

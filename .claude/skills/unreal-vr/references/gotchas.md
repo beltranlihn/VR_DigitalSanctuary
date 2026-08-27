@@ -1356,3 +1356,261 @@ Mordió DOS veces el mismo día (2026-08-26, Attracting): se agregó `BeamMeshL`
 
 ### §241 `Deactivate` de un Niagara con partículas de vida ~infinita deja el efecto CONGELADO en el aire
 El ribbon del beam (`LineTrace`, `User.Life` enorme) al desactivarse solo corta el spawn: las partículas vivas quedan dibujadas donde estaban. Síntoma: "los beams se quedaron pegados donde estaban" al cerrar la etapa. ✅ Acompañar la activación con **`SetVisibility`** del componente (mismo bool) — esconde al instante y al reactivar vuelve. (`DeactivateImmediate` es la alternativa si se quiere matar la simulación.)
+
+
+---
+
+## 🔴🔴 `MinOfFloatArray` / `MaxOfFloatArray` entran por un `ToFloat(Integer)` y TRUNCAN (2026-08-27)
+Construyendo la normalización de las curvas de [[BP_Portrait_SC]]. Escrito por DSL:
+```
+(bind _lo (Math|Float|MinOfFloatArray In))
+(bind _hi (Math|Float|MaxOfFloatArray In))
+(bind _span (Math|Float|Max(Float) (- _hi _lo) 0.0001))
+```
+El `read_graph_dsl` devolvió esto:
+```
+(Math|Float|Max(Float) (Math|Conversions|ToFloat(Integer) (- (MaxOfFloatArray In) (MinOfFloatArray In))) 0.0001)
+```
+🔴 **El escritor mete un `ToFloat(Integer)` en el medio** — o sea que la resta se compiló como
+**entera**. Con una serie de calma en 0..1 eso deja `hi - lo = 0`, el span se va al piso de `0.0001`, y la
+curva sale **plana pegada al borde inferior**, con las 180 muestras en el mismo Y exacto.
+
+**Compila limpio con `warnings_as_errors`. No hay ningún aviso.**
+
+- **Cómo se detectó**: un `PrintString` en `Rebuild` con **el primer punto, el del medio y el último**
+  de la curva ya construida. Los tres con `Y = 316.000` → no es "se ve raro", es una medición.
+  La curva de `SeedDemo` (que escribe el array directo, sin normalizar) se veía bien: eso acotó el
+  problema a la función de normalizado en un solo paso.
+- **El arreglo**: no usar esos dos nodos. Mínimo y máximo **a mano**, con `Math|Float|Min(Float)` /
+  `Max(Float)` contra el elemento del `for` (que sí llega como double), y después
+  **`Math|Float|MapRangeClamped`**, que hace la normalización entera en un nodo y **sin ninguna resta**.
+- 👉 **La regla general**: después de escribir aritmética por DSL, **releer el grafo y buscar
+  `ToFloat(Integer)` que no escribiste**. Es la firma de una promoción a entero, y siempre es un bug.
+  Vale para cualquier operador (`+ - * /`) entre valores que vengan de nodos que devuelven `float`
+  single-precision.
+
+## 🔴 `write_graph_dsl` sobre una FUNCIÓN: la lógica queda bien, pero DEJA HUÉRFANOS — 2026-08-27
+La regla de oro dice "no re-`write_graph_dsl` un grafo que ya existe → lo DUPLICA". Precisión medida:
+sobre un **grafo de FUNCIÓN** el `write` **sí reemplaza la cadena viva** (el `read_graph_dsl` posterior
+muestra exactamente lo escrito, sin lógica duplicada) — **pero puede dejar el cuerpo anterior como isla
+huérfana**, y el `read` **no la muestra**.
+
+⚠ **Y no siempre**: de siete funciones reescritas la misma tarde, dos dejaron basura y cinco no.
+`BP_Portrait_SC:Show` quedó en **19 nodos con 11 huérfanos** y `WBP_Portrait_SC:Normalize` en
+**45 con 28**. Las otras cinco, limpias. O sea: **no se puede razonar sobre si quedó limpio — hay que
+medirlo.**
+
+- **Cómo se ve**: `find_nodes` devuelve muchos más nodos que los que imprime el `read`. Un
+  `get_node_infos` sobre ellos muestra la misma llamada repetida N veces (una por reescritura).
+- **El arreglo**: correr **`scripts/clean_orphans.py` tal cual** (dry=True primero). En este caso borró
+  39 nodos con `identical: true` en los dos grafos — el DSL vivo byte por byte igual antes y después.
+- 👉 **Regla: después de reescribir una función por DSL, barrer huérfanos.** No es opcional aunque el
+  `read` se vea perfecto.
+
+⚠ Lo que **no** se puede es `remove_function_graph` + `add_function_graph` con el mismo nombre en la misma
+tanda: devuelve `Nombre_0`. Hay que **compilar en el medio**. Y si la función tiene llamadores, borrarla les
+rompe el nodo → mejor reescribirla y barrer.
+⚠ Lo que **no** se puede es `remove_function_graph` + `add_function_graph` con el mismo nombre en la misma
+tanda: devuelve `Nombre_0`. Hay que **compilar en el medio**. Y si la función tiene llamadores, borrarla les
+rompe el nodo → mejor reescribirla.
+
+
+## 🔴🔴 Las variables instance-editable NUEVAS nacen en CERO en los actores YA COLOCADOS — otra vez (2026-08-27)
+Ya está en la memoria como "lo de la INSTANCIA le gana al Blueprint", pero mordió **tres veces en una sola
+jornada** y conviene el recordatorio operativo: **agregar una variable instance-editable a un Blueprint que
+ya tiene instancias en el nivel deja esas instancias con el valor CERO/vacío**, aunque el CDO tenga el
+default correcto.
+
+Los tres casos del día:
+1. `BP_Director_Story.PortraitHold` — CDO 20 s, instancia **0** → el retrato no habría esperado nada.
+2. `BP_Portrait_SC.MelodySteps/Spacing/Step/Scale/Offset` — CDO poblado, instancia **todo 0** →
+   `BuildMelody` redimensionó el array a 1 y **sembró 0 esferas** de 4. Compilaba, corría, y no decía nada.
+3. `BP_Portrait_SC.MelodySounds` — CDO con los 20 clips, instancia **array vacío**.
+
+👉 **Checklist**: después de `add_variable` + `set_variable_instance_editable` + escribir el default en el
+CDO, **escribirlo TAMBIÉN en cada instancia colocada** y verificar con `get_properties` **sobre la instancia**.
+El síntoma típico es "la función corre pero no hace nada": lo delató un log que contaba cuántas esferas
+había sembrado (`sembradas = 0` con la melodía bien parseada), no una hipótesis.
+
+## 💡 Colisiones de `GetDuration`: hay 16, y el DSL agarra la de GeometryCache
+`find_node_types(graph, "GetDuration")` devuelve **dieciséis** ids distintos. Escribir
+`Components|GeometryCache|GetDuration` sobre un `SoundBase` falla con *"Could not connect pin PadSound to
+self"* — el mensaje **nombra el pin de destino**, que es la pista de qué sobrecarga agarró.
+El de sonido es **`Class|SoundBase|GetDuration`**.
+⚠ Y ojo: el `read_graph_dsl` de `BP_Sequencer_SC.Boot` **imprime** `Components|GeometryCache|GetDuration`
+sobre su `PadSound` — es el mismo mislabel de siempre. **Copiar un id desde un `read` es cómo se hereda
+el bug.** Confirmar con `find_node_types` antes de escribir.
+
+
+## 🔴 `SetActorLocation` sobre el PROPIO actor: el `read` lo muestra sin target, pero el target es POSICIONAL
+El `read_graph_dsl` de `BP_ProtoSoul_SC.CarryBody` imprimía:
+```
+(Transformation|SetActorLocation (Math|Interpolation|VInterpTo ...))
+```
+— **un solo argumento**. Escribir eso falla con *"Could not connect pin **ReturnValue** to **self**"*:
+`SetActorLocation` tiene `self` (Actor) como **primer pin posicional**, y el read lo omite porque es el
+propio actor. La forma escribible es con keywords:
+```
+(Transformation|SetActorLocation :self self :NewLocation (...))
+```
+👉 Ojo con la asimetría: los **getters** sobre sí mismo sí se escriben pelados
+(`(Transformation|GetActorLocation)`, `(Transformation|GetActorTransform)`). Son los **setters** los que
+piden el target. **El nombre del pin en el mensaje de error dice exactamente qué se conectó mal.**
+
+## 💡 `select` no puede elegir entre dos componentes de clases HERMANAS
+`(select flag camara controladorDerecho)` falla con *"Could not connect pin MotionControllerRightAim to
+**Option 0**"*: el nodo `Select` se tipa con la primera opción conectada, y `CameraComponent` y
+`MotionControllerComponent` son hermanas, no compatibles. **Con dos controladores (misma clase) sí
+funciona** — así elige mano derecha/izquierda `CarryBody`.
+✅ La salida: **ramificar** (`if` con `else`) en vez de `select`, y llamar a la misma función desde las
+dos ramas.
+
+## ⚠ Un array del CDO puede NO poder escribirse en la instancia
+`StepTimes` de [[BP_Director_Story]]: `set_properties` sobre el actor colocado devuelve
+*"the following properties could not be set: StepTimes"* — con `StepTimes`, con `stepTimes`, con floats
+explicitos. Se escribe en **`Default__BP_Director_Story_C`** y la instancia lo lee de ahí
+(verificado: el `get_properties` de la instancia devuelve el valor nuevo).
+👉 O sea: **si un `set_properties` sobre una instancia rebota, probar el CDO** — y después **leer la
+instancia** para confirmar que efectivamente lo heredó. Es el caso inverso del gotcha habitual
+("lo de la instancia le gana al Blueprint"): acá la instancia **no tenía override** y hereda.
+
+
+## Cosecha 2026-08-27 (F4/F5 del cierre: constelación y exploración)
+
+242. 🔴🔴 **Un `bind` de un getter de VARIABLE no es una foto: el getter se RE-EJECUTA en cada
+     consumidor.** El compilador **copia el bytecode del nodo puro una vez por consumidor**
+     (`bp-lean-construction` §g, `KismetCompiler.cpp:2898`), y un *Get Variable* es un nodo puro. Si entre
+     dos consumidores hay un **`Set`** de esa misma variable, el segundo consumidor lee **el valor nuevo**.
+     ```
+     (bind _c (GetCursor))
+     (SetCursor (+ _c 1))        ; <-- acá cambia la variable
+     (CallFunction|SpawnStar _c) ; <-- _c NO es el viejo: re-lee y da Cursor+1
+     ```
+     **El caso:** `BP_Constellation_SC.GradualOne` se salteó la entrada 0 y pidió la 20 de un array de 20.
+     **La firma en el log:** `Attempted to access index 20 from array 'Variants' of length 20` **y una serie
+     de datos corrida un lugar** (los anillos arrancaban en la entrada 1 en vez de la 0). Compiló limpio
+     con `warnings_as_errors`.
+     ✅ **Regla: primero la llamada que LEE, después el `Set`.** Si de verdad hace falta una foto, guardala
+     en otra variable antes de tocar la original.
+     💡 Y el corolario de diagnóstico: **un off-by-one se confirma con los DATOS, no con la ausencia del
+     warning** — acá lo que lo probó fue que la lista de anillos empezara en el valor equivocado.
+
+243. ⚠ **Cambiar la CATEGORÍA de una variable cambia su path en el DSL.** `AimConeDeg` en `Default` es
+     `Variables|Default|GetAimConeDeg`; movida a `A - Constelacion` pasa a ser
+     `Variables|A-Constelacion|GetAimConeDeg`, y la vieja **deja de existir** ("does not exist").
+     ✅ **Escribí los grafos primero y categorizá al final** (los nodos ya creados no se rompen), o usá la
+     categoría definitiva desde el principio.
+
+244. ⚠ **Los bools con prefijo `b` se ESCRIBEN distinto de como los IMPRIME el read.** El read muestra
+     `(|SetbSkipMine true)` / `(|GetbDrawing)`; el **write** necesita
+     **`Variables|<Categoria>|SetSkipMine`** — sin la `b`, con la categoría real, y con la normalización
+     rara de mayúsculas: `bDebugBuildOnPlay` → **`SetDebugBuildonPlay`** (la `O` de "On" queda minúscula).
+     ✅ Para averiguar el nombre exacto: `find_node_types` con el filtro `Variables|<Categoria>|Set`.
+     (Corrige el §74, que decía que no se podían escribir: **sí se puede**, con el nombre real.)
+
+245. ⚠ **`CallFunction|X` con parámetros va con KEYWORDS.** Posicional, el primer argumento se enchufa al
+     pin **`self`**: *"Could not connect pin VOEnd1 to self"*. Y el keyword tiene que ser el **nombre real
+     del pin**, que el propio error lista: `BP_SoulPicker_SC.Rearm` lo llama **`NewTag`**, no `ChosenTag`.
+
+246. ⚠ **`add_to_scene_from_asset` no sirve para clases nativas** (`TargetPoint`, `PointLight`…):
+     *"Could not load asset at path /Script/Engine.TargetPoint"*. Es **`add_to_scene_from_class`** con
+     `actor_type`. El transform sigue sin aplicarse → setearlo después en el `rootComponent`
+     (`relativeLocation` + `relativeScale3D`), como dice el bloque de transforms de `toolsets.md`.
+
+247. ⚠ **`_StrictDict.get()` no acepta default.** `info.get('output_pins', [])` levanta
+     `TypeError` — y esa excepción **dispara el Undo del editor** (§60). Usar siempre
+     `d[k] if k in d else X`. (Ya estaba en el header de `clean_orphans.py`; volvió a morder al escribir
+     una cirugía de nodos a mano.)
+
+248. 💡 **Para reconstruir un trazo entero en UN frame hay que desarmar los filtros de tiempo.**
+     `BP_DrawCanvas.AddPoint` exige `GetGameTimeInSeconds() - LastTime >= MinTime`; en una reconstrucción
+     todos los puntos llegan en el mismo frame, así que con `MinTime > 0` **se caen todos menos los dos
+     primeros**. `RebuildFrom` guarda `MinTime`, lo pone en 0 y lo restaura.
+     🔑 Y el mismo truco sirve de **candado**: poniendo `SaveMaxPoints = 0` durante la reconstrucción,
+     el `RecordPoint` que cuelga de `StorePoint` no entra → el dibujo del vecino **no pisa** la firma
+     propia. Cero cambios en `RecordPoint`.
+
+249. 💡 **Para meter trabajo por frame en un BP frágil, no toques su Tick: llamalo desde el Tick del
+     OTRO.** El sensor tenía una cadena de `if` anidados por `Mode` en `TickMech` que no convenía tocar.
+     En vez de agregarle un modo, `BP_Constellation_SC` llama a `Sensor.AimBeams()` desde **su propio**
+     `EventTick` mientras explora. Mismo resultado por frame, cero cirugía sobre lo delicado — y de yapa
+     el sensor queda con `Mode = -1`, así que su gatillo (`BeamGrabTry`) no se activa por accidente.
+
+250. ⚠ **`remove_function_graph` → `add_function_graph` sin `compile_blueprint` en el medio devuelve
+     `Nombre_0`.** Ya estaba anotado, pero falta la mitad importante: **el compile del medio FALLA**
+     ("Could not find a function named X") porque los llamadores quedaron colgados. **Ese error es
+     esperado y hay que dejarlo pasar**; al re-agregar la función con el nombre correcto, los nodos de
+     llamada **se re-resuelven solos** (verificado en `GradualOne`, `AimBeamsBody` y `RunEnding`).
+
+251. 🔴🔴 **`bStartAsleep` del CDO se aplica a todo lo que SPAWNEES, y el log no se entera.**
+     `BP_ProtoSoul_SC` tiene `bStartAsleep = true` en el CDO (para que las 5 candidatas colocadas a mano
+     nazcan dormidas). Cada ameba **spawneada** corre `Sleep()` en su `BeginPlay` → `bAppearing=false` y
+     **escala del Body = 0**. Como `EnableHover(false)` deja a `ApplyHoverScale` sin escribir y
+     `StepAppear` sólo corre con `bAppearing`, **nadie vuelve a tocar la escala: quedan invisibles para
+     siempre**.
+     💣 La constelación corrió **tres veces** logueando `cielo completo, estrellas = 20` con las 20 en
+     escala 0. Todos los contadores daban bien porque contaban *actores*, no *píxeles*.
+     ✅ **La regla es la de siempre (`verificar-estado-estable-no-spawn`), aplicada a lo visual: si el
+     resultado es que algo SE VEA, la aserción tiene que medir el TAMAÑO, no la cantidad.** Quedó
+     permanente en `BP_Constellation_SC.Report`:
+     `(.x (Transformation|GetWorldScale (Class|BPProtoSoulSC|GetBody primera)))`.
+     ⚠ Y el instrumento también hay que validarlo: el primer intento usó
+     `Collision|GetActorBounds`, que en su forma de un solo valor devuelve **`Origin`** (una coordenada
+     del mundo), no `BoxExtent`. Reportó "tamaño = 8015,1" — que es la X del punto. Los dos pines son
+     `Origin` y `BoxExtent`; hay que sacarlos con el bind múltiple.
+
+252. ⚠ **`SpawnActorFromClass` + un sistema de anclaje que lee la escala del destino = escala al
+     CUADRADO.** Spawnear con `GetActorTransform(punto)` mete la escala del punto en el ACTOR; después
+     `AnchorStep` escribe `Size` desde **ese mismo** `Scale3D` y lo aplica al `Body`. Resultado: escala
+     0,35 pedida → **0,1225** real; escala 1,2 pedida → **1,44**.
+     ✅ **Spawnear con `MakeTransform(location, rotation, VectorOne)`** y dejar que `Size` sea el único
+     dueño del tamaño. Así "lo que escalo en el viewport es lo que veo", que es la regla de autoría de
+     Beltrán.
+     💡 Y el corolario de composición: en `BP_ProtoSoul_SC` el **anillo mide
+     `RingRadius × (Size / RingSizeRef)`** = **83 cm × escala** de radio. Antes de repartir N amebas en
+     el espacio hay que comparar ESO contra la separación, no el diámetro del cuerpo: 20 estrellas con
+     escala 1,2 son anillos de **2 m** — con 80 cm de separación, un muro.
+
+253. 🔴🔴 **Esconder un `WidgetComponent` NO libera su render target.** `SetVisibility(false)` deja de
+     dibujarlo, pero la textura sigue reservada. Un panel de 1600×900 son **5,8 MB**; veinte, **115 MB** —
+     inviable en el renderer móvil. La creencia contraria ("con una sola visible no se paga") es el
+     supuesto natural y es falsa.
+     ✅ **El patrón que sí funciona**: el componente vive en las N con **`WidgetClass = None`**, y el
+     widget se crea al mostrar (`UserInterface|CreateWidget` + `UserInterface|SetWidget`) y se suelta al
+     ocultar (`SetWidget` con el pin `Widget` vacío). **Un solo render target vivo, garantizado.**
+     💡 Y la contracara que justifica quedarse en UMG: **el render target se paga cuando se REDIBUJA**,
+     no por existir. Una tarjeta estática ya dibujada es un quad translúcido y nada más — no hace falta
+     rehacerla con mallas (y rehacerla costaría el Designer, que es donde se autora mirando).
+
+254. ⚠ **`Widget|SetText` es el de `RichTextBlock`.** El de un `TextBlock` común es
+     **`Widget|SetText(Text)`** (con el sufijo). Escribir el primero contra un TextBlock falla al
+     conectar el pin `self`.
+     ⚠ Y las variables del **árbol de un Widget Blueprint** viven bajo **`Variables|<NombreDelWBP>|`**
+     (`Variables|WBP_Portrait_SC|GetTitle`), **no** bajo `Variables|Default|`. `find_node_types` con el
+     filtro `Variables|` las lista todas.
+
+255. ⚠ **Cambiar la firma de una función y escribir su cuerpo en la MISMA tanda rompe a los llamadores.**
+     `add_function_param` + `write_graph_dsl` seguidos dan
+     *"Could not find a pin for the parameter X of F on F"* al compilar: el nodo de llamada todavía tiene
+     la firma vieja. **`compile_blueprint` entre el cambio de firma y la escritura**, y otro después.
+     (Es la misma familia del §511: la cirugía de firmas termina en compile explícito o queda muerta.)
+
+256. ⚠ **`add_to_scene_from_class` / `add_to_scene_from_asset` fallan con PIE corriendo**:
+     *"Cannot create actors while PIE is active"*. Como los `T()` envueltos lo tragan, el script sigue y
+     el resto **sí** se aplica — hay que releer el estado antes de reintentar, o se duplican variables y
+     grafos ("Param already exists!").
+
+## 📸 Sacar capturas de lo que RENDERIZA el juego (receta, 2026-08-27)
+El `CaptureViewport` de `EditorAppToolset` captura el **viewport del editor**, no la vista de PIE. Para
+ver lo que ve el jugador:
+```
+1. StartPIE (PlayMode_InViewPort)
+2. EditorAppToolset.CaptureEditorImage()      -> {mimeType, data:<PNG en base64>}
+3. AssetTools.write_file(<ruta ABSOLUTA bajo VR_Test/Saved>/shot.txt, data)
+4. base64.b64decode en local -> PNG
+```
+⚠ `write_file` sólo acepta **`.csv .html .json .md .py .txt`** y rutas dentro de
+`VR_Test/Content` o `VR_Test/Saved` — de ahí el `.txt` con base64 adentro.
+🔴 **El viewport de PIE tiene un FOV vertical de ~41°, contra los ~96° del visor.** Lo que en gafas cae
+cómodo dentro del campo visual se sale del cuadro en PIE. **No rediseñes una composición espacial por lo
+que se ve en la captura** — medí la posición en el mundo y calculá el ángulo.

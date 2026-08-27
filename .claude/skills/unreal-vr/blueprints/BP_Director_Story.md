@@ -199,6 +199,16 @@ Un `execute_tool_script` con un **error de Python no atrapado** (un `TypeError` 
 - **El cierre de la etapa lo dispara el sensor**: a los 10 m llama `StepTimeDone` (la guarda `WaitFor=="time"` de siempre). **`StepTimes` CDO = `[0,90,240,0,300,300]`** — Surrounding tiene cortafuegos de 300 s.
 - **La firma**: en el **sub 9 de `RunEnding`** (VO 33, recién llegada la ganadora a `soul_pick_6`) se insertó `Sensor.ShowSignature()` (cirugía: 1 nodo + getter entre `Say` y `SetWaitFor`). El punto es el TargetPoint **`TP_signature_spot`** (tag `signature_spot`) colocado en el persistente a la derecha del punto final — **posición y ESCALA los ajusta Beltrán en el viewport** (la escala del TP es la escala de la firma).
 - **`bDrawPracticeDone`** (candado, Z - Estado): sin él, `TickDrawPractice` llamaba `Finish()` ~30 veces (una por frame hasta que el panel resolvía). Se arma en `TickDrawPractice` al disparar y se resetea en `ArmDraw`. (`TickDrawPractice` se recreó con remove→compile→add; el nodo de llamada del EventTick re-resolvió solo, verificado.)
+- 🆕 **2026-08-27 — la práctica cierra en SECUENCIA** (ajuste de Beltrán tras validar en gafas): al llegar a `PracticeCm` (subido a **300** = 3 m, CDO+instancia del sensor) → `TickDrawPractice` **bloquea el dibujo** (`Sensor.bDrawDone=true` — congela `TickDraw` vía DrawGate) + timer → **`PracticeClose`** (a los **`PracticeHold`** 3 s): el trazo de práctica se desvanece (`Sensor.FadeTo(0)`) + timer → **`PracticeGo`** (a los **`PracticeExit`** 3 s): `Sensor.bDrawDone=false` (re-habilita el wipe) + `PanelRef.Finish()` → StartStepTime → canvas fresco. Knobs de CDO: `PracticeHold`/`PracticeExit`.
+- 🆕 **El cierre de los 10 m también es en secuencia**: `DrawFinish` del sensor ya NO llama `StepTimeDone` directo — corta la mecánica, disuelve, y un timer (`DrawFadeTime`+0.4) dispara **`DrawClosed`** → recién con el dibujo desvanecido del todo llama `StepTimeDone` y arranca la carga.
+- ✅ Verificado por robot con timestamps exactos (2026-08-27): bloqueo → +3.0 s desvanece → +3.0 s cierre → dibujo libre → completo → +2.9 s → carga. Cero errores.
+- 🆕 **2026-08-27 (3ª tanda) — el panel de Surrounding entra tarde y sale con el trazo:**
+  - **`ShowPanelWait()`** (nueva, reemplaza a `ShowPanel` en el sub 2 de `RunRoomA` para TODAS las salas): si `Room==5` → `SetTimer("ShowPanel", PanelDelay)`; si no → `ShowPanel()` directo (las salas 1/2/4 no cambian). Así el widget **y** el modo dibujo (que se arma dentro de `ShowPanel` → `ArmDraw`) entran **`PanelDelay` = 5 s (CDO)** después del VO, dándole a Alma tiempo de llegar a su posición.
+  - **`PracticeHide()`** (nueva, llamada desde `PracticeClose`): `WaitFor="none"` + `PanelRef.Finish()`. El widget arranca su salida **junto con el fade del trazo**; poner `WaitFor="none"` hace que el `OnFinished` del panel (que llega ~0.5 s después, su `ExitTime`) **se ignore** y no adelante el guión.
+  - **`PracticeGo`** ya no llama `Finish()`: ahora hace `Sensor.bDrawDone=false` + **`Next()`** (avanza el guión a mano, con el trazo ya desvanecido). Como el `Next→StartStepTime→SetStage(5)` corre en el MISMO frame que el desbloqueo, no queda ventana para que el `bDrawHeld`/`bStroking` viejos disparen un zumbido — era el "pulso háptico entre las instrucciones y la mecánica" que reportó Beltrán.
+  - ✅ Robot, timestamps: paso 2 → +5.0 s panel+modo → práctica → bloqueo → +3.0 s (fade del trazo **y** salida del panel juntos) → +3.0 s desbloqueo+`Next`+canvas fresco, todo en el mismo ms. Cero `Accessed None`.
+  - 🎚️ **Afinado, 2ª pasada de Beltrán**: `PanelDelay` **5 → 2.5 s** (5 se sentía eterno). Se probó igualar la salida subiendo el `ExitTime` del panel a 2.5 y **salió mal**: 🔴 **`ExitTime` maneja las DOS animaciones del panel** — `StepShow` (agrandarse) y `TickLeave` (achicarse) usan el mismo `1/max(ExitTime,0.05)`, así que la entrada quedó lentísima.
+  - 🎚️ **3ª pasada — la buena**: `ExitTime` de vuelta en **0.5** (entra y sale como los otros paneles) y el que se acelera es el **fade del trazo de práctica**: nuevo `PracticeFadeTime` (0.5) en el sensor + `FadeFast()`, que `PracticeClose` llama en lugar de `FadeTo(0)`. La disolución final sigue lenta (`DrawFadeTime` 2.5) porque `FadeTo` reescribe la velocidad. También `PracticeExit` **3 → 1.5 s** (con el fade en 0.5 s, 3 s dejaban aire muerto). Medido por robot: panel fuera **0.50 s**, desbloqueo **1.50 s** después, y la disolución final intacta en **2.9 s**.
 - ✅ Ciclo completo verificado 3× — la última con **el ROBOT dibujando de verdad** (rutina 3 de [[BP_Robot]]): práctica cierra el panel por mecánica (1 print), 10 m cierran la etapa (~20 s, sin cortafuegos), firma con el dibujo real que **sobrevive al paso 10** (guardas `bDrawDone` del sensor), `FIN del guion`, cero `Accessed None`. Flags restauradas (`DebugStartRoom=3`, `bAutoTest=false`, `StepTimes[5]=300`, robot OFF).
 
 ## TODO
@@ -227,3 +237,109 @@ Un `execute_tool_script` con un **error de Python no atrapado** (un `TypeError` 
 🔴 **`StepGameTime` se subió de 10 a 18 s** porque la red nacía ~8 s después de arrancar el step time y solo vivía 1,7 s. Con 18 vive 12,7 s. **Es un valor GLOBAL, no por sala**: alarga el cortafuegos de las 5 salas. Inocuo en Entering y Recognizing (cierran por su propia mecánica), pero si Loving necesita un tiempo distinto al resto hay que convertirlo en **array por sala**.
 
 **Verificado por log en una corrida real** (`DebugStartRoom=3`, `bAutoTest` temporal): VO 21 → nace la red → step time → sale → se destruye → paso 4 (desprendimiento de la proto ameba) → paso 5 (la carga). Las flags de debug se restauraron a como estaban (`DebugStartRoom=3`, `bAutoTest=false`).
+
+
+## 🆕 2026-08-27 — el retrato entra en el sub 6 de `RunEnding` (F2 del plan de cierre)
+Cirugía mínima, **un nodo insertado y un valor de pin cambiado**; el resto de `RunEnding` no se tocó.
+
+```
+sub 6 (antes):  Say(VOEnd1)  →  WaitFor "vo"    → ArmWait
+sub 6 (ahora):  Say(VOEnd1)  →  ShowPortrait()  →  WaitFor "timer" → ArmWait
+```
+
+**`ShowPortrait()`** (función nueva): arma el timer de **`PortraitHold`** hacia `EndingWaitDone`, encuentra
+el [[BP_Portrait_SC]] por clase (lo cachea en `PortraitRef`) y le llama `Show(WinnerRef)`.
+
+🎛️ **`PortraitHold` = 20 s**, instance-editable — es "el rato de contemplación" del paso 4 del plan.
+⚠ Se puso **en la instancia además de en el CDO**: las variables instance-editable **nacen en 0** en un
+actor ya colocado, y el `BP_Director_Story_C_0` del nivel tenía `PortraitHold = 0`.
+
+🔴 **La espera pasó de `"vo"` a `"timer"`**: el VO 31 ahora suena **dentro** de los 20 s en vez de
+mandarlos. Si el VO llegara a durar más, subir `PortraitHold`.
+
+⚠ **El sub 9 sigue llamando a `ShowSignature()`** y no se tocó. Con el flujo nuevo la firma ya apareció en
+el sub 6 (la dispara el retrato), así que esa segunda llamada la reubica en el mismo TargetPoint — es un
+no-op visual. Si Beltrán decide que el dibujo tiene que quedarse atrás cuando el alma viaja a
+`soul_pick_6`, hay que **sacar ese nodo del sub 9**.
+
+⚠ `DebugStartRoom` (hoy **5**) y `bAutoTest` (hoy **false**) son flags de Beltrán: **no se tocaron**.
+
+
+## 🆕 2026-08-27 — el archivo se escribe al compartir (F3 del plan de cierre)
+En el **sub 8** de `RunEnding` (el paso que corre cuando llega el aviso `shared`) se insertó
+**`SaveMyPortrait()`** ANTES del `MoveTo`: encuentra el [[BP_SoulArchive_SC]] por clase y le llama
+**`AppendMeFromWorld()`**, que recolecta del mundo y escribe la entrada en el `.sav`.
+Un nodo insertado; el resto del sub 8 sin tocar.
+
+✅ **Verificado en una corrida de autotest de punta a punta (2026-08-27)**, con los tiempos del log:
+```
+14:57:26  paso 5 espera: timer                          (5º anillo)
+14:57:32  STORY: aparece el retrato                     ← ShowPortrait
+14:57:32  paso 6 espera: timer                          ← antes esperaba "vo"
+14:57:36  paso 7 espera: shared                         ← +4 s = PortraitHold
+14:57:38  STORY: mi retrato queda guardado en el archivo ← SaveMyPortrait
+14:57:38  ARCHIVO: entre en la constelacion con indice 19
+14:57:38  paso 8 espera: arrived
+14:57:42  paso 9 espera: vo
+```
+Cero `Accessed None`. El `.sav` ganó su entrada por el camino real del director.
+
+### 🎛️ `StepTimes[5]` bajado de 300 a **20 s** (pedido de Beltrán, 2026-08-27)
+Es el **cortafuegos** de Surrounding: cuánto espera el paso 3 antes de seguir solo si el dibujo no
+termina por mecánica. Con 300 s cada prueba en PIE tardaba 5 minutos.
+🔴 **Es un valor de PRUEBA: hay que volver a subirlo antes de empaquetar.** Palabras de Beltrán:
+*"ya con el juego listo las alargamos"*.
+⚠ **`StepTimes` vive en el CDO, no en la instancia**: `set_properties` sobre
+`BP_Director_Story_C_0` **falla** (*"the following properties could not be set: StepTimes"*), y hay que
+escribirlo en `Default__BP_Director_Story_C`. La instancia lo lee de ahí.
+⚠ `StepTimes[4]` (Attracting) **sigue en 300**, por si también molesta.
+
+
+---
+
+## 2026-08-27 (F4 + F5) — `RunEnding` pasa de 6 a **13 pasos**
+
+`RunEnding` se **reescribió entero** (remove → compile → add → write; los pasos 6-8 quedaron
+idénticos). Los pasos nuevos son el 9, el 10 y el 11:
+
+| Sub | Qué pasa | Espera |
+|---|---|---|
+| 6 | VO 31 + `ShowPortrait()` | `timer` (`PortraitHold`, 20 s) |
+| 7 | VO 32 + `Picker.Rearm(tag)` = modo compartir por gesto | `shared` |
+| 8 | `SaveMyPortrait()` + la ganadora viaja a `soul_pick_6` | `arrived` |
+| **9** | 🆕 **`ShowConstellation()`** → `Constellation.Build()` | `timer` (**`ConstHold`**, 10 s) |
+| **10** | 🆕 **`StartExplore()`** → `Constellation.StartExploring()` | `timer` (**`ExploreSeconds`**, 60 s) |
+| **11** | 🆕 VO 33 + **`StopExplore()`** = `StopExploring()` + `FadeOut()` | `vo` |
+| 12 | `Alma.Disappear()` + `StartStepTime()` | `time` |
+| 13 | `FIN del guion` + `FinaleOut()` → `ReloadLevel()` | — |
+
+**Variables nuevas** (`C - Tiempos y tags`, instance-editable): `ConstHold` (10 s) y `ExploreSeconds`
+(60 s). Más `ConstRef` (interna).
+
+🔴 **Se sacó `Sensor.ShowSignature()` del viejo paso 9.** Ahora la firma la muestra el **retrato**
+(`BP_Portrait_SC.PlaceDraw`, paso 6) y después la reusa la exploración para el dibujo del vecino.
+Llamarla de nuevo al aparecer la constelación habría vuelto a encender el dibujo propio justo cuando la
+ameba ya se fue.
+
+✅ **Corrida completa por autotest, con cada perilla clavada** (2026-08-27):
+```
+15:43:36  paso 6  retrato            15:43:58  paso 10 EXPLORACION   +10,0 s
+15:43:42  paso 7  compartir  +6,0 s  15:44:23  paso 11 VO 33         +25,0 s
+15:43:44  paso 8  llegada            15:44:33  paso 12 step time
+15:43:48  paso 9  CONSTELACION       15:44:53  STORY: FIN del guion  +20,0 s
+```
+Y en el medio: `CONSTELACION: mi ameba ya viajo sola - salteo su entrada` →
+`cielo completo, estrellas = 19` (las 19 guardadas + la propia = 20). Cero `Accessed None`.
+
+### ⚠ Trampas de esta reescritura
+- **`CallFunction|X` con parámetros va con KEYWORDS.** Posicional, el primer argumento se enchufa al pin
+  `self`: *"Could not connect pin VOEnd1 to self"* al escribir `(CallFunction|Say (GetVOEnd1))`.
+  Lo correcto es `(CallFunction|Say :Index (GetVOEnd1))`.
+- **El keyword tiene que ser el nombre REAL del pin**, que el error lista: `Rearm` lo llama **`NewTag`**,
+  no `ChosenTag`.
+- **`remove_function_graph` → `add_function_graph` sin `compile_blueprint` en el medio devuelve
+  `RunEnding_0`.** Y el compile del medio **falla** ("Could not find a function named RunEnding"):
+  ese error es esperado y hay que dejarlo pasar. Al re-agregar con el nombre bueno, `RunStep`
+  **se re-resuelve solo**.
+- 🔴 **`ConstHold` y `ExploreSeconds` nacieron en CERO en la instancia colocada** (como pasa siempre con
+  las instance-editable nuevas). Hay que escribirlas también en `BP_Director_Story_C_0`.

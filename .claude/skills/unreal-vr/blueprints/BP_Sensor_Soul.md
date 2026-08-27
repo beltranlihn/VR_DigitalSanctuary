@@ -82,7 +82,15 @@ Plan maestro: `docs/stages/surrounding-v2.md`. **Sin lápiz** (la punta es el pr
 
 **Fade:** `FadeTo(Target)` + `FadeStep` (timer loop 0.04 s, `FInterptoConstant` a velocidad `1/DrawFadeTime`) escriben el escalar **`DrawFade` de `MPC_Draw`**, que multiplica el Opacity de `M_Brush_Light` (y hereda a las 2 MIs). **`ShowSignature()`** (la llama el director en el sub 9 del final): busca el TargetPoint tag **`signature_spot`**, mueve+escala el canvas (`loc = TP − s×centro_bounds`, **la escala del TP = la escala de la firma**) y `FadeTo(1)`.
 
-**Knobs** (instance-editable, ya escritos en la instancia): `PracticeCm` 100 · `TargetCm` 1000 · `DrawFadeTime` 2.5. De CDO: One-Euro (`MinCutoff` 1 / `Beta` 0.007 / `DCutoff` 1), calma (`VMax` 120 / `TurnMax` 200 / `SpeedTau` 0.15 / `CalmTauDown` 0.12 / `CalmTauUp` 0.6).
+🆕 **2026-08-27 (4ª tanda) — dos velocidades de fade**: `FadeStep` ya no lee `DrawFadeTime` sino una variable interna **`FadeTime`**, que se escribe al arrancar cada fade: `FadeTo` la pone en `DrawFadeTime` (2.5 — la disolución final y el fade-in de la firma) y la nueva **`FadeFast()`** en **`PracticeFadeTime`** (0.5, instance-editable, CDO+instancia). El director llama `FadeFast()` para el trazo de práctica, así se va a la misma velocidad que el panel de instrucciones (`ExitTime` 0.5). Verificado por robot: práctica 0.5 s, disolución final 2.9 s.
+
+🆕 **2026-08-27 (3ª tanda):** **se eliminan los pulsos de entrada y salida del gatillo** (decisión de Beltrán tras probarlos en gafas: alcanza con el zumbido continuo). `DrawPress`/`DrawRelease` quedan solo con el `Set bDrawHeld`; borrados el nodo `Pulse` y su getter de `bTookRight` en ambos grafos. La háptica continua (`DrawHaptic`) y las compuertas `bDrawDone` **no se tocaron** (pin C verificado intacto post-borrado).
+
+🆕 **2026-08-27 (2ª tanda):** (a) **`bDrawDone` también gatea gatillo y háptica**: pin C con `NOT bDrawDone` en los `AND` de `DrawPress`, `DrawRelease` y `DrawHaptic` (vía `add_node_pin` del AND conmutativo) — durante el bloqueo de la práctica (y la contemplación del final) el trigger no pulsa y el zumbido se apaga en el primer tick; todo revive cuando `PracticeGo` re-habilita. ⚠ El lector del DSL muestra el AND con 2 entradas aunque tenga 3 — verificar con `get_node_infos`. (b) 🐛 **El pulso salía en la mano contraria**: `Pulse(Right)` tiene PARÁMETRO de mano y las llamadas nuevas lo dejaban en el default `false` (= izquierda); cableado `bTookRight` en ambas.
+
+🆕 **2026-08-27 (ajustes tras la validación en gafas):** (a) **contemplación**: `DrawFinish` ya no disuelve al toque — bloquea, espera **`AdmireTime`** (5 s, instance-editable) → `DrawDissolve` (fade) → `DrawClosed` (aviso al director con el fade completo). (b) **Háptica del dibujo**: `Pulse()` al apretar Y al soltar el gatillo (colgado en `DrawPress`/`DrawRelease`), y **zumbido continuo suave** mientras se dibuja — `DrawHaptic` (en la cadena de `DrawGate`, ANTES de la compuerta `bDrawDone`, así el flanco de apagado siempre corre), patrón calcado de `BreathHaptic` (`SetHapticsByValue` 1.0/`HapticAmp` por tick, apagado limpio en el flanco con `bWasDrawHap` §213); `DrawHapOff` también se llama desde `DrawOff` (salida de modo).
+
+**Knobs** (instance-editable, ya escritos en la instancia): `PracticeCm` **300** · `TargetCm` 1000 · `DrawFadeTime` 2.5 · 🆕 `AdmireTime` 5. De CDO: One-Euro (`MinCutoff` 1 / `Beta` 0.007 / `DCutoff` 1), calma (`VMax` 120 / `TurnMax` 200 / `SpeedTau` 0.15 / `CalmTauDown` 0.12 / `CalmTauUp` 0.6).
 
 ✅ **Verificado por log (PIE autotest, `DebugStartRoom=5`, cortafuegos temporal 15 s):** ciclo completo sala 5 — SetStage 5 + canvas + paleta → práctica → panel cerrado → **re-SetStage 5 (borra práctica)** → cierre → 5º anillo → ending → `la firma aparece junto al alma` → `FIN del guion`, **cero `Accessed None` en la corrida completa**. ⚠ Lo que PIE no prueba: dibujar de verdad, el look del trazo (F0 pendiente), la paleta en mano — **visor**.
 🐛 **Tres bugs cazados por el ROBOT** (rutina 3 de [[BP_Robot]], mismo día): (1) `DrawCalm` leía `HandRef` null → `CacheHandRef` + `IsValid` en `DrawGate`. (2) 🔴 **El paso 10 del final re-llama `StartStepTime` → `SetStage(5)` y `DrawStage` DESTRUÍA LA FIRMA recién aparecida** → guarda `bDrawDone` en `DrawStage`: con el dibujo completado, la re-entrada al modo 5 no toca nada (ni canvas ni paleta). (3) Ese mismo paso 10 dejaba `TickDraw` corriendo sin paleta (Accessed None en `PaletteRef`) → `DrawGate` también gatea por `(not bDrawDone)`.
@@ -113,3 +121,29 @@ Plan maestro: `docs/stages/surrounding-v2.md`. **Sin lápiz** (la punta es el pr
 - [ ] 🔴 **Visor**: umbral con el sensor en la panza (zona base, sin calibrar), zumbido + pulso del IN, círculo de práctica en la página 2, esfera al terminar instrucciones, y el beam en Attracting.
 - [ ] Cuando lleguen los **datos del levantamiento**: definir los valores seguros del umbral (y decidir si vuelve la calibración por usuario — la maquinaria dormida está lista).
 - [ ] Modo 5 (dibujo 3D) · visual real del beam · consumidores de `OnBeatPulse`.
+
+
+---
+
+## 2026-08-27 — modo exploración: el beam VISIBLE sin trace (F5 del cierre)
+
+La constelación se apunta **por ángulo** (las amebas no tienen colisión), pero el guión pide un **láser
+visible** como el de Attracting. Dos funciones nuevas, y **cero cirugía** sobre `SetStage` / `TickMech`:
+
+| Función | Qué hace |
+|---|---|
+| **`ExploreOn(On)`** | `SetActive` + `SetVisibility` de `BeamFxR` y `BeamFxL`. Enciende y apaga los dos beams sin tocar `Mode`. |
+| **`AimBeams()`** | Guarda `IsValid(PawnSC)` → `AimBeamsBody`. |
+| `AimBeamsBody()` | Toma los dos `MotionController*Aim`, escribe `BeamStart`/`BeamEndR` y `BeamStartL`/`BeamEndL` como `origen + forward × TraceDistance` (**sin `LineTraceByChannel`**) y llama a `DrawBeamR`/`DrawBeamL`. |
+
+🔑 **Por qué no se tocó `TickMech`**: su cadena de `if` anidados por `Mode` es delicada, y agregarle un
+modo 6 obligaba a cirugía sobre nodos nesteados. En cambio **[[BP_Constellation_SC]] llama a `AimBeams()`
+desde SU propio `EventTick`** mientras `bExploring`. El beam se actualiza igual por frame, y el sensor
+queda con un `Mode` de -1 (inerte) durante toda la exploración.
+
+⚠ Consecuencia buscada: con `Mode` en -1, `BeamPress`/`BeamGrabTry` **no** se activan → el usuario no
+puede agarrar por accidente una de las esferas de la melodía del vecino con el gatillo.
+
+`ShowSignature()` se reusa tal cual para el dibujo del vecino (lo llama `BP_Constellation_SC.DrawNow`
+después de `Canvas.RebuildFrom`). 🔴 **Por eso hay que mover `TP_signature_spot`**: hoy sigue arriba, al
+lado de `soul_pick_6`; ahora es el atril del dibujo y va junto al panel del retrato.
