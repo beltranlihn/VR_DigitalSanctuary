@@ -278,3 +278,71 @@ para afinar el look.
 ✅ Verificado en PIE: 12 vecinos seguidos, `DIBUJO: firma del vecino reconstruida, secciones = 3` cada
 vez, seguido de `SENSOR: la firma aparece junto al alma`. La reconstrucción cuesta **~55-65 ms** (un
 hitch de frame) → ⬜ pendiente medirlo en APK y, si molesta, bajar `SaveMaxPoints` o meter un debounce.
+
+
+---
+
+## 2026-08-28 — **el paquete**: ameba + dibujo + esferas viajan como una sola pieza
+
+**El pedido de Beltrán** (con un boceto): *"el dibujo está de un tamaño, la ameba en otro, el dibujo no
+está anclado a la ameba, aparece suelto muchísimo más lejos. Las esferas del sequencer tampoco están
+ancladas, están siempre al medio. […] Todo eso debe ser un solo paquete."*
+
+Su diseño: **ameba con sus anillos al centro, dibujo al costado del mismo tamaño, y la fila de esferas
+abajo** — todo anclado y viajando junto.
+
+### 🔴 La causa real del "aparece lejísimos" NO era el ancla
+`RebuildFrom` reconstruía el dibujo con las **coordenadas del MUNDO** que trae el CSV (x ≈ 7600), así que
+la geometría nacía a **76 metros del pivote del canvas**. El bounding box daba ~4000 cm de extent, la
+escala calculada salía **0**, y el trazo aparecía en cualquier parte.
+✅ `FeedPt` ahora **captura el primer punto como origen y se lo resta a todos** (`RebOrigin` /
+`bRebHasOrigin`, reseteados en `RebuildFrom`). Medido: el extent pasó de miles a **(60, 60, 30)**.
+
+### Las anclas: componentes que se arrastran en el viewport
+Dos `SceneComponent` nuevos en el CDO, hijos del root — **Beltrán los diagrama moviéndolos**:
+
+| Componente | Relativo por defecto | Qué cuelga ahí |
+|---|---|---|
+| `DrawAnchor` | (0, −230, 0) | El dibujo, **centrado por su bounding box** |
+| `OrbAnchor` | (0, −115, −260) | La fila de esferas del secuenciador |
+| `Card` (ya existía) | (0, 0, −155) | La tarjeta de datos |
+
+### El tamaño ahora se normaliza contra los anillos
+```
+SoulDrawHalf()  =  DrawSizeRel × (RingRadius / RingSizeRef) × Size     ; = 83,3 × Size con DrawSizeRel 1
+SoulDrawFit()   =  SoulDrawHalf / max(|BoxExtent|, 1)
+SoulPlaceDrawing():  escala 1 → k → escala k → centrar el bounding box en DrawAnchor → ATTACH a la ameba
+```
+El **attach** es lo que hace que el dibujo viaje con ella. Medido: `escala real = 0,459`, el centro del
+dibujo a 16-39 cm del ancla (la diferencia es pivote↔centro, que es justo lo que corrige el centrado).
+
+### Las esferas
+`OneOrb` ya no parte del transform del **retrato** sino de **`OrbWorld`**, una variable Vector que la
+ameba escribe con la posición mundial de su `OrbAnchor`. Verificado, coincidencia exacta:
+```
+OrbAnchor en   (8116.5, 72.5, -122.8)
+base esferas   (8116.5, 72.5, -122.8)
+```
+
+### 🔴 Tres formas del DSL que devolvieron valores vacíos y costaron una vuelta cada una
+1. **`Collision|GetActorBounds` en su forma de un solo valor devuelve `Origin`, no `BoxExtent`.**
+   Con `(bind (_o _e) …)` el segundo SÍ se liga (el read lo nombra `_boxextent`), pero cualquier consumidor
+   que lo re-inline agarra el primero.
+2. **Un `return` de struct `Transform` desde dentro de una rama de `IsValid` vuelve en IDENTIDAD.**
+   `OrbFrame` devolvía (0,0,0) con el alma perfectamente válida. Con un `Vector` **también** falló.
+   ✅ **La salida que funciona: no devolver — que el dueño del dato lo escriba en una VARIABLE y el otro
+   la lea** (los getters de variable entre objetos sí funcionan: es como andan `GetRingsShown`, `GetMesh`).
+3. **`Transformation|GetWorldTransform` sobre un componente devuelve identidad**, mientras que
+   `GetWorldLocation` sobre el MISMO componente devuelve lo correcto.
+
+💡 Y la lección de método: el print que decía `escala = 0.0` **estaba mal el print**, no la lógica.
+Dos vueltas se fueron ahí. **Medir el valor EFECTIVO aplicado** (`GetActorScale3D` del canvas después de
+escribirlo) es lo que destrabó el diagnóstico.
+
+### Los otros dos ajustes del mismo pedido
+- **El viaje al corazón era demasiado rápido**: `CarrySpeed` **14 → 4** (es la velocidad de un `VInterpTo`;
+  a 14 converge en ~0,3 s). ⬜ Pendiente: la preferencia de Beltrán es frenada física (v ∝ √distancia),
+  no exponencial — si a 4 todavía no se siente bien, ahí está el camino.
+- **El salto entre vecinos**: `Resolve` y `ForceHover` ahora **desvanecen primero** (`FadeDrawOut`),
+  guardan el índice en `PendingIdx` y disparan `FocusDelayed` a los **`SwapTime` = 0,35 s**. La
+  reconstrucción del trazo (~60 ms de hitch) queda escondida detrás del fundido.
