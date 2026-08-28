@@ -188,3 +188,57 @@ Cero `Accessed None`. **Los dos tiempos caen clavados en sus knobs** — no es "
 [[BP_ProtoSoul_SC]] (`StartCarry` / `CarryBody` / `ShareZone`) · [[BP_Portrait_SC]] (lo que se apaga al
 enganchar) · [[BP_Director_Story]] (`RunEnding` sub 7 abre el modo, sub 8 guarda) ·
 [[BP_ConstExplorer]] (de dónde sale el criterio por ángulo)
+
+
+---
+
+## 2026-08-28 — el gesto no enganchaba en el visor: rayo GRUESO, no line trace
+
+**El reporte de Beltrán**: *"Apunté a la ameba para traerla hacia mí al final. Pero no sucedió nada.
+¿Podrías integrarle el linetrace para hacerlo más fácil?"*
+
+**Lo que decía el log de su corrida** (2026-08-28 12:32) — el reporte era exacto:
+```
+12:32:17  STORY: aparece el retrato
+12:32:37  PICKER: modo compartir - apuntar la ameba con cualquier mano, sin gatillo
+          (nunca llegó "enganchada por gesto")
+```
+El modo se abrió bien y hubo **cero `Accessed None`** → `Winner` válido, `AimStep` corriendo, `AimScan`
+llamando a `AimTry`. O sea: **el apuntado simplemente nunca entró en los 10°.** Con la ameba en
+`portrait_soul` a ~490 cm y ~100 cm por encima del mando, hay que subir el brazo unos 11°, y con un cono
+de 10° eso se falla fácil.
+
+### 🔴 Por qué un line trace habría empeorado las cosas
+Un line trace es **infinitamente delgado**: sólo engancha si la línea toca geometría. El cono de 10° que
+ya existía es *más* generoso que eso. Un trace sólo ayudaría dándole a `BP_ProtoSoul_SC` un volumen de
+colisión grande — que es justo lo que el diseño evita (arriesga el agarre y el dibujo de Surrounding).
+
+✅ **Lo que sí hace lo que se pedía es un rayo GRUESO (sphere cast), y se calcula sin colisión ninguna:**
+```
+v = ameba − origen del mando
+t = dot(v, forward)                      ; proyección sobre el rayo
+perp = |v − forward·t|                   ; distancia perpendicular del rayo a la ameba
+hit  =  t > 0  Y  ( perp < AimRadius  O  cos(ángulo) > cos(AimConeDeg) )
+```
+El término del **radio** es exactamente un sphere cast de radio `AimRadius`; el del **cono** mantiene la
+tolerancia a distancia. Los dos son knobs de autor.
+
+| Variable | Antes | Ahora | Qué cubre |
+|---|---|---|---|
+| `AimConeDeg` | 10° | **20°** | Manda a distancia. A 4,9 m son **178 cm** de radio. |
+| `AimRadius` | — | **150 cm** | Manda de cerca. A 4,9 m equivale a 17°. |
+| `AimDwell` | 1,0 s | 1,0 s | Sin cambio. |
+
+### 🔬 Y un instrumento para que el visor deje de ser una caja negra
+`AimLog(DT)` imprime **una vez por segundo** (sólo a log, no a pantalla) el ángulo real a cada mano y la
+tolerancia vigente:
+```
+PICKER: mira - angulo der = 35.4 | izq = 35.4 | tolerancia = 20.0
+```
+Con esto, si vuelve a fallar en gafas, el log dice **cuánto** se falló — en vez de tener que adivinar.
+
+✅ Verificado en PIE (`bAimFromCamera`): `angulo 179.2` → `35.4` → `enganchada por gesto con la DERECHA`
+→ **`PROTO: compartida`** 3,0 s después. Cero `Accessed None`.
+
+⚠ Y otra vez la trampa de siempre: **`AimRadius` nació en 0 en la instancia colocada**. Hay que escribir
+toda variable de autor nueva **también en el actor del nivel**, no sólo en el CDO.
