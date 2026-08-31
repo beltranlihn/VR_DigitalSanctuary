@@ -389,3 +389,111 @@ escribirlo) es lo que destrabó el diagnóstico.
 - **El salto entre vecinos**: `Resolve` y `ForceHover` ahora **desvanecen primero** (`FadeDrawOut`),
   guardan el índice en `PendingIdx` y disparan `FocusDelayed` a los **`SwapTime` = 0,35 s**. La
   reconstrucción del trazo (~60 ms de hitch) queda escondida detrás del fundido.
+
+
+---
+
+## 2026-08-28 (tarde) — el paquete, versión 2: la diagramación se CALCULA, no se autora en centímetros
+
+**Los cuatro reportes de Beltrán mirando el PIE:** la ameba se agranda al pasar al retrato; el dibujo se ve
+enano y dentro de la ameba; las esferas del secuenciador no se mueven con la ameba; y en la constelación
+pasa lo mismo (dibujo suelto, esferas todas en el mismo punto).
+
+### 🔴 La causa de los cuatro: el paquete se armaba UNA VEZ, en el instante equivocado
+`BP_Portrait_SC.Show` llama a `PlaceSoul` (que **arranca un viaje de 4 s** hacia `portrait_soul`) y en el
+mismo frame llama a `PlaceDraw`. Así que `SoulPlaceDrawing` medía y colocaba todo con el **`Size` de
+ANTES del viaje** — que en el retrato propio es el de la ameba en el HUD, **0,02**.
+
+| | Al colocar | Al terminar el viaje |
+|---|---|---|
+| `Size` | 0,02 | 1,0 (la escala del TargetPoint) |
+| Radio del halo de anillos | 1,7 cm | 83 cm |
+| Mitad del dibujo (`SoulDrawHalf`) | **1,7 cm** | seguía siendo 1,7 cm |
+
+De ahí salen literalmente los dos síntomas: **"enano"** (un dibujo de 3 cm al lado de una ameba de 1,7 m)
+y **"se agranda"** (un salto de escala de ×50). Y como los offsets de las anclas eran **centímetros fijos**
+(`DrawAnchor` a −230 cm), la composición sólo podía verse bien a un único tamaño de ameba.
+
+### ✅ El arreglo: todo el paquete es proporcional al halo, y se recalcula solo
+Función nueva **`LayoutPackage()`**, con `R = RingRadius × Size / RingSizeRef` (el radio visible del halo):
+
+```
+DrawAnchor.loc    = (0, −R × (1 + DrawSizeRel + DrawGapRel), 0)
+DrawAnchor.escala = Size / RingSizeRef
+OrbAnchor.loc     = (0, −R × (1 + DrawSizeRel + DrawGapRel) / 2, −R × (1 + OrbGapRel))
+OrbAnchor.escala  = Size / RingSizeRef
+```
+
+🔑 **La clave es que las anclas también ESCALAN.** El dibujo se attachea a `DrawAnchor` (no al actor) y las
+esferas a `OrbAnchor` con `SnapToTarget`, así que sus offsets y sus tamaños son **constantes en el espacio
+local del ancla**: cuando la ameba cambia de tamaño, el ancla escala y **todo el paquete la sigue, sin
+recalcular nada**. Por eso ya no importa en qué instante se coloque el dibujo.
+
+**El enganche está en `ApplyRingScale`**, dentro de la rama que ya sólo corre **cuando el cociente
+`Size / RingSizeRef` cambia** — o sea: gratis en reposo, y cada frame mientras la ameba viaja.
+
+### Las perillas (todas relativas al halo, cat. Default, instance-editable)
+| Perilla | Valor | Qué hace |
+|---|---|---|
+| `DrawSizeRel` | 1,0 | El dibujo mide **lo mismo que el halo de anillos** (el pedido del boceto) |
+| `DrawGapRel` | 0,25 | Aire entre el borde del halo y el borde del dibujo, en fracciones de R |
+| `OrbGapRel` | 0,5 | Cuánto baja la fila de esferas por debajo del halo |
+| `OrbSpacingRel` | 0,45 | (sin uso hoy: el paso de las esferas lo fija `MelodySpacing` del retrato, en unidades locales) |
+
+### El movimiento al corazón: smootherstep, no exponencial
+`CarryBody` interpolaba con `VInterpTo(CarrySpeed = 4)` → constante de tiempo 0,25 s, o sea que **llegaba
+en menos de un segundo desde 5 metros**. Ahora usa **la misma curva que el viaje al HUD**
+(`t³(t(6t−15)+10)` sobre `CatchTime` = **3 s**), con `CarryFrom` capturado por **`ArmCarry()`**, que se
+llama al final de `StartCarry`.
+💡 Al llegar a `t = 1` el lerp devuelve exactamente la posición de la mano, así que **el mismo nodo sirve
+para el viaje y para el seguimiento** — sin rama ni segundo modo.
+🗑 **`CarrySpeed` se borró**: ya no la lee nadie, y una perilla muerta con nombre correcto es una trampa.
+(Antes de borrarla: `grep -rl CarrySpeed` sobre `Content/` → sólo el propio BP y el nivel.)
+
+### La ameba ya no se agranda en el retrato
+No era código: **`TP_portrait_soul` estaba en escala 1,0** y la ameba toma su tamaño de la escala del
+TargetPoint (`TravelStep` / `AnchorStep`). Puesto en **0,3** — el mismo valor que `soul_pick_5`, que está
+a 1 cm del mismo lugar — el tamaño **aparente** queda igual al que tenía en el HUD (5,4° contra 5,8°).
+👉 Si Beltrán lo quiere de otro tamaño, es **arrastrar la escala de ese TargetPoint**, nada más.
+
+### ✅ Verificado por medición en PIE (constelación, cero `Accessed None`)
+```
+PROTO: ajuste  - largo del extent = 90.8 | k = 0.459      → 90,8 × 0,459 = 41,7
+PROTO: paquete - Size 0.5 | mitad objetivo 41.7 | ancla dibujo a 93.7 | ancla esferas a 78.1
+RETRATO: base de esferas en (7976.0, -582.175, 74.7)
+RETRATO: esfera 0 en Y=-675.508 … esfera 7 en Y=-488.842
+```
+- `mitad objetivo` **41,7** = 25 × 0,5/0,3 ✓ y **coincide con `k × extent`** ✓
+- `ancla dibujo a` **93,7** = R × 2,25 ✓ · `ancla esferas a` **78,1** = |(46,9 , 62,5)| ✓
+- El centro de la fila de esferas **cae exactamente sobre la base** (−582,175) ✓
+- Paso entre esferas = 186,67/7 = **26,67 cm** = 16 local × 1,667 de escala del ancla ✓
+- Y la base **cambia con cada vecino** (−582 / −234 / +141 / +488): cada uno con sus esferas ✓
+
+### ⚠ Trampas de la jornada
+- **Las variables nuevas nacieron en CERO en las 5 amebas colocadas** (`DrawGapRel`, `OrbGapRel`,
+  `CatchTime`) — la §"lo de la instancia le gana al Blueprint" por sexta vez. Hay que escribirlas en el
+  actor del nivel, no sólo en el CDO.
+- **`DrawSizeRel` y `OrbSpacingRel` NO son instance-editable**, y `set_properties` sobre la instancia
+  falla con *"the following properties could not be set"*. No es un error: heredan del CDO, que es lo
+  que se quiere. Setear sólo las que sí lo son.
+- **El `MelodyOffset` de la INSTANCIA del retrato seguía en (0,0,−45)** después de ponerlo en cero en el
+  CDO. Mismo cuento.
+- **Un `select` de bool con prefijo `b`**: el read imprime `(|GetbCarryToChest)`, pero el id que se
+  escribe es `Variables|Default|GetCarrytoChest` — con la **"t" minúscula**. Se confirma con
+  `find_node_types` filtrando por el nombre, que devuelve el id exacto.
+- **`Collision|GetActorBounds` con dibujo VACÍO devuelve extent 0** → `k = 41,667`. Es inofensivo (no hay
+  geometría que escalar) y `SoulPlaceDrawing` recalcula tras cada `RebuildFrom`, pero está anotado.
+
+### ⬜ Insumo de autor pendiente
+Con la ameba enfocada de la constelación en `TP_const_anchor` (escala **1,0** → `Size` 1,0), el paquete
+entero mide ~3,5 m de ancho a ~5 m de distancia (39°). Se achica **escalando ese TargetPoint**.
+
+### 2026-08-28 (cierre) — al venir al corazón, viaja sola la ameba
+*"Cuando atraigo la ameba a mi corazón, el dibujo ya no debe estar."*
+- **`HasDraw`** (bool, `Z - Estado interno`): la enciende `SoulPlaceDrawing`, la apaga `ArmCarry`.
+- **`ArmCarry`** ahora, además de capturar `CarryFrom`/`CarryT`, llama a **`DropMyDraw()`** si `HasDraw`
+  → `BP_Sensor_Soul.DropSignature()` (detach + `FadeTo(0)`).
+- 🔴 **La guarda no es cosmética:** durante Surrounding el `CanvasRef` del sensor es el **dibujo vivo** del
+  usuario. Sin `HasDraw`, agarrar la ameba con la mano en esa etapa lo apagaría. Detalle y la verificación
+  de las dos ramas en [`BP_Sensor_Soul.md`](BP_Sensor_Soul.md).
+- 💡 Las esferas ya desaparecían solas (`HidePortrait` → `Hide` → `StopMelody` → `VanishOrbs`).

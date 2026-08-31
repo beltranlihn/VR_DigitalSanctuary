@@ -366,3 +366,44 @@ funciona: cierra la etapa en 29 s por interacción.
   más; ahora que el modelo nuevo está probado, el propio podría usar el mismo.
 - **`F_SoulPortrait`** sigue vacío: la persistencia usa 9 arrays paralelos. Si Beltrán llena el struct a
   mano, se puede migrar.
+
+---
+
+## 10. El paquete (2026-08-28)
+
+Beltrán mandó un boceto: **ameba con sus anillos a un lado, el dibujo del mismo tamaño al otro, y la fila
+de 8 esferas abajo — todo junto, viajando junto.** Cerrado en dos tandas.
+
+**Lo que se hizo:** la diagramación pasó de centímetros fijos a **proporciones del halo de anillos**
+(`LayoutPackage()` en `BP_ProtoSoul_SC`, enganchada donde ya se detecta el cambio de tamaño), y el dibujo
+y las esferas se **attachean a anclas que llevan la escala de la ameba**. Con eso el paquete es correcto a
+cualquier `Size` y ya no depende del instante en que se arme. Detalle y mediciones en
+`blueprints/BP_ProtoSoul_SC.md` y `blueprints/BP_Portrait_SC.md`; las trampas en `gotchas.md` §257-261.
+✅ Se resolvió el ítem "las esferas de la melodía no viajan" de la §9.
+
+**Lo que queda de esto para el visor:**
+- El paquete de la estrella **enfocada** mide ~3,5 m de ancho a ~5 m (39°), porque `TP_const_anchor` está
+  en escala 1,0. Se achica **escalando ese TargetPoint**.
+- `TP_portrait_soul` quedó en escala **0,3** (era 1,0) para que la ameba no se agrande al pasar al
+  retrato. Es la perilla del tamaño de la ameba en ese momento.
+- Las tres proporciones nuevas — `DrawSizeRel` 1,0 · `DrawGapRel` 0,25 · `OrbGapRel` 0,5 — son valores de
+  arranque, no decisiones de autor. Se ajustan en el Blueprint (y también en las 5 amebas del nivel).
+- `CatchTime` = **3 s** para el viaje al corazón. Si todavía se siente rápido o lento, es esa.
+
+### 11. OSC real y APK de prueba (2026-08-28, cierre del día)
+
+**El OSC quedó conectado y VERIFICADO con el emisor de Beltrán en vivo**: puerto **10000**,
+`/muse/calm` · `/muse/heart_rate` · `/muse/sensor_active`, `ListenIP = 0.0.0.0`. Dos cosas estaban mal, no
+sólo sin configurar: el puerto era el **8000** (el del servidor MCP del editor) y **`bFakeSignal` estaba en
+`true` en la instancia** del nivel, así que el LFO de simulación habría pisado la señal real.
+Detalle y la lectura de las seis muestras en [`blueprints/BP_BioHub.md`](../.claude/skills/unreal-vr/blueprints/BP_BioHub.md).
+
+**APK de prueba**: `C:\Users\beltr\Desktop\SoulCharger\Android_ASTC\` — Development, Android ASTC,
+`com.almadigital.soulcharger`. **FULL COOK de 1008 paquetes, cero errores.** Se instala con
+`Install_VR_Test-arm64.bat` (APK + OBB por adb).
+Armado para la corrida de punta a punta: `DebugStartRoom = -1`, `bAutoTest = false`,
+`StepTimes = [0,90,240,0,300,300]`, `ExploreSeconds = 60`, robot apagado, todas las flags de debug en false.
+El final reinicia solo (`FinaleOut` → fundido → `ReloadLevel`).
+
+⬜ Lo único que queda por probar de la cadena OSC es **el mismo emisor contra el APK en el visor**: ahí
+cambia la red (el Quest tiene que alcanzar al emisor, o el emisor al Quest).

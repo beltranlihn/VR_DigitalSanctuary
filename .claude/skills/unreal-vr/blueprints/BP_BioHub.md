@@ -158,3 +158,57 @@ la única función nueva de este BP.
 (uno con el handler, cinco vacíos) — es el gotcha del `Assign<Delegate>` documentado más arriba.
 No los borré para no tocar la cadena OSC en medio de otra tarea; hay que barrerlos con `delete_node`
 y **guardar antes de volver a compilar**.
+
+
+---
+
+## 2026-08-28 — OSC real conectado: puerto 10000 y direcciones `/muse/*`
+
+Beltrán pidió dejar la cadena lista para probar con el sensor de verdad. Es el momento que él mismo había
+agendado el 2026-08-14 (*"OSC se integra AL FINAL, con toda la mecánica lista"*).
+
+| Perilla | Antes | Ahora |
+|---|---|---|
+| `Port` | **8000** | **10000** |
+| `AddrCalm` | `/calm` | **`/muse/calm`** (float 0–1) |
+| `AddrHeart` | `/hr` | **`/muse/heart_rate`** (float, bpm) |
+| `AddrSensorOn` | `/sensor` | **`/muse/sensor_active`** (int 0/1) |
+| `bFakeSignal` | **true en la INSTANCIA** | **false** |
+| `ListenIP` | `0.0.0.0` | igual (escucha en todas las interfaces) |
+
+🔴 **Dos cosas que había que corregir, no sólo escribir:**
+1. **El puerto era el 8000 — el mismo del servidor MCP del editor.** En PIE eso es una colisión directa.
+2. **`bFakeSignal` estaba en `true` en la instancia del nivel** (y en `false` en el CDO): el LFO de
+   simulación pisaba la señal real. Es la §"lo de la instancia le gana al Blueprint" otra vez.
+
+`Port`, `ListenIP` y `AddrSensorOn` **no eran instance-editable** (`set_properties` sobre el actor fallaba
+con *"the following properties could not be set"*). Se marcaron editables para poder ajustarlas desde el
+nivel sin recompilar.
+
+### 🛡 `IngestFloat`: tolerar que `sensor_active` llegue como float
+`HandleOsc` probaba primero `GetOSCMessageFloatAtIndex` y sólo caía a la rama entera si eso fallaba. Con un
+emisor que mande `sensor_active` como **1.0** en vez de **1** (lo hace medio mundo: python-osc, Max, TD),
+el mensaje entraba por la rama float, no coincidía con `AddrCalm` ni `AddrHeart` y **se perdía en silencio**.
+```
+(fn IngestFloat (Addr Value)
+  (CallFunction|Ingest Addr Value)                       ; calma / ritmo + el watchdog de conexión
+  (if (== Addr AddrSensorOn) (SetbSensorOn (> Value 0.5))))
+```
+`HandleOsc` ahora llama a `IngestFloat` en vez de a `Ingest`. **`Ingest` quedó intacta** — no se puede
+reescribir por DSL porque contiene setters de bools con prefijo `b` (§62), y de paso no había motivo para
+tocar lo que ya andaba.
+
+✅ **VERIFICADO CON EL EMISOR REAL** (2026-08-28, Beltrán transmitiendo en vivo). Seis muestras seguidas leídas del BioHub **dentro de PIE**:
+```
+Calm   0.344 -> 0.364 -> 0.383 -> 0.395 -> 0.409 -> 0.445
+Heart  74.5  -> 76.3  -> 77.2  -> 76.9  -> 76.9  -> 76.0   bpm
+bSensorOn = true · bConnected = true · SinceLastMsg = 0 (mensajes cada frame)
+```
+Las tres direcciones llegan y los valores **se mueven** — no es un dato pegado.
+
+⬜ Lo que sigue sin probarse: el mismo emisor contra el **APK en el visor** (ahí cambia la red: el Quest tiene que alcanzar al emisor, o el emisor al Quest).
+
+**Nota histórica**: no se había probado con un emisor real al escribir esto. Lo que sí está comprobado es la forma del grafo y que
+el servidor se crea con `ListenIP` + `Port` en `BeginPlay` (`CreateOSCServer` → `AssignOnOscMessageReceived`
+→ `HandleOsc`). Si no llega nada, el orden de sospecha es: firewall de Windows / red del Quest → puerto →
+tipo del argumento → dirección exacta.

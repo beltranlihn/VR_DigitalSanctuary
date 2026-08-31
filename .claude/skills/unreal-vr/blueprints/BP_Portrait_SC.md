@@ -305,3 +305,55 @@ constelación (`SOMEONE WHO WAS HERE`), así el retrato propio conserva `YOUR TR
 - **`Widget|SetText` es el de `RichTextBlock`**; el de un `TextBlock` es **`Widget|SetText(Text)`**.
 - Las variables del árbol de un widget viven bajo **`Variables|<NombreDelWBP>|`**
   (`Variables|WBP_Portrait_SC|GetTitle`), **no** bajo `Variables|Default|`.
+
+
+---
+
+## 2026-08-28 — las esferas viajan con su ameba: `OneOrb` ahora ATTACHEA
+
+**El reporte:** *"Las esferas del sequencer no se están moviendo con la ameba, no están ancladas todavía.
+Se quedan pegadas en el mismo lugar del world"* — y en la constelación, *"se ven al medio del world,
+todas en el mismo lugar"*.
+
+**La causa:** `OneOrb` spawneaba cada `BP_SoundOrb_SC` en una posición de MUNDO calculada a partir de
+`OrbBase` (una foto de dónde estaba el ancla en ese instante) y **no las attacheaba a nada**. Si después
+la ameba se movía — el viaje al punto de retrato, o el acercamiento de la estrella enfocada — las esferas
+se quedaban donde nacieron. Y como en la constelación **todas las estrellas enfocadas van al mismo
+`const_anchor`**, todas las filas terminaban en el mismo lugar.
+
+### ✅ Lo que hace ahora
+```
+spawn en la identidad  →  Setup / SetPlaced / Reveal
+AttachActorToComponent( orbe, alma.OrbAnchor, SnapToTarget × 3 )
+SetActorRelativeLocation( orbe, MelodyOffset + (0, (slot − (n−1)/2) × MelodySpacing, 0) )
+SetActorRelativeScale3D ( orbe, MelodyScale )
+```
+
+🔑 **`MelodySpacing`, `MelodyScale` y `MelodyOffset` pasaron a ser LOCALES al `OrbAnchor` del alma.** Como
+ese ancla lleva escala `Size / RingSizeRef`, los tres números son **constantes** y el tamaño real de la
+fila sale solo. A `Size = 0,3` (el `RingSizeRef`) la escala del ancla es 1, así que **los valores de hoy
+(16 / 0,45) producen exactamente lo que se veía antes** y escalan desde ahí.
+⚠ `MelodyOffset` pasó a **(0,0,0)**: el descenso de la fila ahora lo controla `OrbGapRel` del alma, y
+tener dos perillas para lo mismo confunde. Hubo que ponerlo en cero **también en la instancia del nivel**.
+
+💡 **El `Reveal` del orbe no pelea con esto**: anima la escala del **componente `Body`**, no la del actor
+(`UpdateVisual` escribe `Body.RelativeScale3D` a partir de `BaseScale`). La escala relativa del actor
+queda intacta.
+
+🗑 `OrbBaseLoc` / `OrbBase` quedaron sin uso — el ancla se lee en vivo del alma.
+
+### ⚠ Dos trampas del DSL en esta función
+- **`SetPlaced` de otro Blueprint es un SETTER de variable: el valor va PRIMERO y el target segundo.**
+  `(Class|BPSoundOrbSC|SetPlaced _orb true)` falla con *"Could not connect pin AsBP Sound Orb SC to
+  Placed"*; lo correcto es `(Class|BPSoundOrbSC|SetPlaced true _orb)`. Es lo contrario del orden de una
+  función normal (`Setup`), donde el `self` va primero.
+- El read etiquetaba ese nodo como **`Class|BPIntroSequence|SetPlaced`** (colisión de nombres). El id
+  bueno lo dio `find_node_types` con filtro `Placed`: `Class|BPSoundOrbSC|SetPlaced`.
+
+### ✅ Medido en PIE
+```
+RETRATO: base de esferas en (7976.0, -582.175, 74.7)
+RETRATO: esfera 0 en Y=-675.508  …  esfera 7 en Y=-488.842
+```
+Centro de la fila = −582,175 → **coincide exactamente con la base**. Paso = 186,67/7 = **26,67 cm**
+(= 16 local × 1,667 de escala del ancla). Y la base cambia con cada vecino.

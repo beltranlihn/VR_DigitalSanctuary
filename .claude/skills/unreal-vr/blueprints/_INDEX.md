@@ -159,6 +159,7 @@
 ## Externo
 | Blueprint | Ruta | Qué hace | Estado | Tracker |
 |---|---|---|---|---|
+| 🆕 **BP_VRPawn_SC** | `Core/Pawn/` | El pawn VR de la obra. 🔴 **compartido**. 2026-08-28: **recentrado automático al arrancar** (`ArmRecenter` + `RecenterSeated` al final del BeginPlay) — el pawn usa `SetTrackingOrigin(Stage)` y nunca recentraba, así que al recargar el nivel el usuario no caía en el PlayerStart. | 🟡 construido y compilado; **el recentrado sólo se juzga en visor** | [✓](BP_VRPawn_SC.md) |
 | **BP_OSCReceiver** | `/Game/OSC/` | Recepción de datos por OSC (única referencia funcionando del cableado del delegate). | 🟢 | ✓ |
 
 ---

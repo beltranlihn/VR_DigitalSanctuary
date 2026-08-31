@@ -1614,3 +1614,74 @@ ver lo que ve el jugador:
 🔴 **El viewport de PIE tiene un FOV vertical de ~41°, contra los ~96° del visor.** Lo que en gafas cae
 cómodo dentro del campo visual se sale del cuadro en PIE. **No rediseñes una composición espacial por lo
 que se ve en la captura** — medí la posición en el mundo y calculá el ángulo.
+
+## Cosecha 2026-08-28 — el paquete de la ameba
+
+257. 🔴🔴 **Una composición espacial que se arma UNA VEZ se arma en el instante equivocado.**
+     `BP_Portrait_SC.Show` arranca un viaje de 4 s (`PlaceSoul`) y **en el mismo frame** coloca el dibujo
+     (`PlaceDraw`). O sea que todo se medía con el `Size` de ANTES del viaje: 0,02 (la ameba del HUD) en
+     vez de 1,0. Los dos síntomas que reportó Beltrán — *"el dibujo se ve enano"* y *"la ameba se
+     agranda"* — eran **el mismo bug visto desde los dos lados**.
+     👉 **La cura no es colocar más tarde** (siempre hay otro momento en que el tamaño cambia): es que la
+     composición sea **proporcional y se recalcule sola**. Anclas que llevan la escala del objeto +
+     `AttachActorToComponent` = los offsets y los tamaños quedan **constantes en espacio local** y todo el
+     conjunto sigue al padre sin recalcular nada.
+
+258. ⚠ **`SetX` de una variable de OTRO Blueprint lleva el VALOR primero y el target segundo.**
+     `(Class|BPSoundOrbSC|SetPlaced _orb true)` → *"Could not connect pin AsBP Sound Orb SC to Placed"*.
+     Lo correcto es `(Class|BPSoundOrbSC|SetPlaced true _orb)`. Es **al revés** que una función normal
+     (`Setup`), donde el `self` va primero. Y el read etiquetaba el nodo con la clase equivocada
+     (`Class|BPIntroSequence|SetPlaced`, colisión de nombres): el id bueno lo da `find_node_types`.
+
+259. ⚠ **`set_properties` sobre una instancia falla para las variables que NO son instance-editable**
+     (*"the following properties could not be set"*). No es un bug: heredan del CDO, que es lo correcto.
+     Al escribir valores en los actores colocados, setear **sólo** las editables — si el lote entero va en
+     una llamada, una sola no-editable tumba las demás.
+
+260. 💡 **Al reemplazar una interpolación exponencial por una temporizada, no hace falta una rama para
+     "ya llegué".** Un `Lerp(desde, objetivoActual, smootherstep(t))` con `t → 1` devuelve exactamente el
+     objetivo, así que **el mismo nodo hace el viaje y después el seguimiento rígido**. Es lo que resolvió
+     el *"se viene muy rápido"* del gesto al corazón sin tocar el resto de `CarryBody`.
+
+261. 🗑 **Una perilla que quedó sin lectores es una trampa, no un resto inofensivo.** Al pasar `CarryBody`
+     a `CatchTime`, `CarrySpeed` dejó de leerse: Beltrán la habría buscado para ajustar la velocidad y no
+     habría pasado nada. Antes de borrarla, **`grep -rl CarrySpeed` sobre `Content/`** (2 s) confirmó que
+     sólo la nombraban el propio BP y el `.umap`.
+
+262. 🔬🔬 **CON PIE CORRIENDO, `find_actors` devuelve los actores del MUNDO DE PIE** — el refPath trae
+     `UEDPIE_0_` delante del nombre del mapa
+     (`/Game/.../UEDPIE_0_L_SoulCharger.L_SoulCharger:PersistentLevel.BP_BioHub_C_0`). Y sobre ese actor,
+     **`ObjectTools.get_properties` lee los valores VIVOS**.
+     👉 Esto cambia el método de verificación: **para leer un valor en runtime ya no hace falta sembrar un
+     `PrintString`, recompilar y filtrar el log.** Se arranca PIE, se listan los actores y se leen las
+     variables — y se puede **muestrear en el tiempo** (varias lecturas con `time.sleep` dentro de un
+     `execute_tool_script`) para distinguir un dato que **fluye** de uno **pegado**, que es justo lo que un
+     print de una sola línea no distingue.
+     Caso real: se confirmó la llegada del OSC del sensor real (`Calm` subiendo 0,344 → 0,445, `Heart`
+     ~76 bpm, `SinceLastMsg = 0`) **sin tocar un solo nodo**.
+
+263. 🔬🔬🔬 **EL LOG DEL VISOR SE BAJA CON `adb pull` — dejá de adivinar qué pasó en gafas.**
+     El APK de Development escribe el log completo en el dispositivo:
+     ```
+     adb pull /sdcard/Android/data/<packageid>/files/UnrealGame/<Proyecto>/<Proyecto>/Saved/Logs/<Proyecto>.log
+     ```
+     (`adb shell ls` en esa carpeta lista además los `-backup-` de las corridas anteriores, con fecha.)
+     Caso real: Beltrán reportó *"llegué al final y nunca reinició"*. El log traía el instante exacto —
+     `STORY: step game time de 300.0` justo después del último VO — y con eso la causa quedó cerrada en
+     dos minutos, **sin reproducir nada**.
+     👉 Va **antes** de cualquier hipótesis sobre un bug de visor. Es el equivalente en device del
+     `GetLogEntries` de PIE, y responde lo mismo: *dónde se quedó*, no *qué me imagino que pasó*.
+
+264. ⏱ **No reuses el reloj de una etapa para un beat de transición.** El sub 12 del final llamaba a
+     `StartStepTime()` — que toma `StepTimes[Room]`, y en la última sala eso son **300 s** — sólo para
+     esperar un momento antes del fundido. De paso, esa función también hacía `SetStage(Sensor, Room)`,
+     rearmando el modo dibujo en pleno cierre. **Un beat de transición quiere su propio timer y su propia
+     perilla**, aunque parezca duplicación.
+
+265. 🎯 **`ResetOrientationAndPosition` no se llama solo.** Con `SetTrackingOrigin(Stage)` el origen es el
+     centro del Guardian, así que **el usuario aparece donde esté su cuerpo**, no en el PlayerStart — y al
+     recargar el nivel dentro de la misma sesión de app eso no se corrige. En una obra sentada que se
+     reinicia sola para el próximo usuario, el recentrado en el arranque **es parte del ciclo**, no un
+     lujo. Y va **con un retardo**: en el frame del BeginPlay la pose del HMD puede no ser válida todavía.
+     Pista para detectarlo sin gafas: si el proyecto tiene un botón "Reset Orientation" en un menú, es que
+     alguien ya lo necesitó a mano.

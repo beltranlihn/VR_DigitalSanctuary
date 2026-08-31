@@ -346,3 +346,49 @@ escribirlo) es lo que destrabó el diagnóstico.
 - **El salto entre vecinos**: `Resolve` y `ForceHover` ahora **desvanecen primero** (`FadeDrawOut`),
   guardan el índice en `PendingIdx` y disparan `FocusDelayed` a los **`SwapTime` = 0,35 s**. La
   reconstrucción del trazo (~60 ms de hitch) queda escondida detrás del fundido.
+
+
+---
+
+## 2026-08-31 — la estética de Neural Canvas, dentro de nuestra estructura
+
+Beltrán: *"el material se veía super bien, y partía y terminaba puntiagudo más suave. Tratemos de dejarlo
+igual estéticamente… pero bajo tu estructura de código."*
+
+Migraron **sólo assets de arte** desde Neural Canvas (ver `docs/stages/neural-canvas-port.md`). Ningún
+Blueprint de allá entró al proyecto: el reparto sensor↔canvas↔paleta queda como estaba.
+
+### Los cuatro cambios
+| Qué | Antes | Ahora | Por qué |
+|---|---|---|---|
+| Orientación de la cinta | transporte paralelo (`FrameUp`) | **`ControllerUp` en cada punto** | Es lo que hace su `PincelA_AddPoint`. `AddPoint` ya calculaba las dos; sólo usaba la muñeca en el primer punto. |
+| **Normales** | `Up` en los dos vértices | **`+side` y `−side`** | 🔴 **La clave del borde suave.** Su material usa `VertexNormalWS`; con normales iguales en los dos cantos ese gradiente no existe y las puntas salen duras. |
+| UV0.V | `Arc / TexScale` con `TexScale` = 20 | `Arc` absoluto (**`TexScale` = 1**) | El tiling lo gobierna el `Divide` que ellos autoraron (6 emissive / 15 spray). |
+| Parámetros vivos | — | **`PushBrushParams`** al final de `PushMesh` | `StrokeLength` = arco acumulado · `ShrinkAmount` = −(ancho/2). Son los dos que su Blueprint empuja en cada punto, y de donde sale la punta. |
+
+`PaletteBrushes` de [BP_BrushPalette](BP_BrushPalette.md) pasó a los materiales de Neural Canvas.
+
+### 🔴 Dos errores propios que conviene no repetir
+1. **Concluí que `M_Brush_Light` "nunca se usaba" porque el CDO tenía `StrokeMat = None`, y era falso.**
+   El material se entrega **por parámetro**: `TickDraw` llama
+   `BeginStroke(canvas, 0, loc, up, Palette.CurColor, Palette.CurBrushMat)` y `BeginStroke` hace
+   `SetStrokeMat(Mat)`. Un `grep` del nombre de la variable **no encuentra una entrega por parámetro**.
+   👉 Antes de declarar muerta una cadena, buscar también **quién llama a la función que la escribe**.
+2. **Pedí crear un array `BrushMats` en el canvas antes de leer la paleta**, que ya tenía `PaletteBrushes`
+   haciendo exactamente eso. Se borró junto con `PickBrush`. La paleta es el **único** centro de selección
+   (entrega color, ancho y material); el canvas no elige nada.
+
+### ⏪ Cómo volver atrás (valores exactos de antes)
+```
+BP_BrushPalette.PaletteBrushes = [ M_Brush_Light , MI_Brush_Veil , MI_Brush_Neon ]   (siguen en Stages/Movement/Materials/)
+BP_DrawCanvas.TexScale         = 20
+WriteRing: Normals[i0] = Normals[i1] = Up        (hoy: +side / −side)
+AddPoint:  los 3 consumidores de la rama de continuación vuelven al GetUpVector del rotador de FrameUp
+PushMesh:  desenganchar la llamada a PushBrushParams
+```
+Nada se borró: los materiales viejos siguen en su carpeta y sólo quedaron sin referenciar.
+
+### ⬜ Palanca que queda sin tocar
+`TaperIn` / `TaperOut` siguen en **3 / 3**. Neural Canvas **no tiene taper geométrico** — su punta es sólo
+del material. Si con el material nuevo la punta queda demasiado marcada (doble taper), bajarlos a 0 es la
+primera prueba. Se dejó como estaba para cambiar una cosa por vez.

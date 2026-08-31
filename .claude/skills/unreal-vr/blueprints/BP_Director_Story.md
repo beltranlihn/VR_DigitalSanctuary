@@ -343,3 +343,63 @@ Y en el medio: `CONSTELACION: mi ameba ya viajo sola - salteo su entrada` →
   **se re-resuelve solo**.
 - 🔴 **`ConstHold` y `ExploreSeconds` nacieron en CERO en la instancia colocada** (como pasa siempre con
   las instance-editable nuevas). Hay que escribirlas también en `BP_Director_Story_C_0`.
+
+
+---
+
+## 2026-08-28 — el cierre tardaba 5 minutos: el paso 12 reusaba el reloj de la ETAPA
+
+**Reporte de Beltrán tras probar el APK:** *"llegué al final y se quedó eternamente con la ameba al frente
+y nunca reinició"*. Después, probando otra vez: *"ahí vi que se reseteó, pero se demoró muchos minutos"*.
+
+### 🔬 Cómo se encontró: se bajó el log DEL VISOR
+No hizo falta reproducirlo ni adivinar. El APK de Development escribe su log en el dispositivo:
+```
+adb pull /sdcard/Android/data/com.almadigital.soulcharger/files/UnrealGame/VR_Test/VR_Test/Saved/Logs/VR_Test.log
+```
+y ahí estaba la corrida real, con el minuto exacto en que se quedó:
+```
+15:19:09  ALMA: termino VO 33
+15:19:10  STORY: step game time de 300.0      <-- el paso 12 armó una espera de 300 s
+15:19:10  STORY: sala 5 paso 12 espera: Time
+```
+
+### La causa
+El sub 12 llamaba a **`StartStepTime()`**, que es el reloj de las ETAPAS: toma `StepTimes[Room]` y con
+`Room = 5` eso es **300 s = los 5 minutos de Surrounding**. Además `StartStepTime` hace
+`SetStage(SensorRef, Room)` — o sea que **volvía a armar el modo dibujo** justo en el cierre.
+
+### El arreglo
+Función nueva **`OutroBeat()`**, que reemplaza a `StartStepTime` **sólo en el sub 12** (cirugía de un nodo:
+`K2Node_CallFunction_28` fuera, `CallFunction|OutroBeat` en su lugar, mismo exec de entrada y de salida):
+```
+(fn OutroBeat ()
+  (SetTimerbyFunctionName self "StepTimeDone" (max OutroHold 0.5))   ; MISMO camino, sólo que corto
+  (IsValid WinnerRef :"Is Valid" (Class|BPProtoSoulSC|Disappear WinnerRef)))
+```
+🔑 **Se conserva el camino `WaitFor = "time"` → `StepTimeDone` → `CloseStageFX` → sub 13 → `FinaleOut`**,
+que es el que la corrida de Beltrán demostró que llega hasta la recarga. Lo único que cambia es **cuánto
+espera** y que **la ameba del usuario también se apaga**.
+
+**`OutroHold`** (float, `C - Tiempos y tags`, editable) = **4 s**. El cierre completo tras el VO 33 pasa de
+**~305 s a ~6,5 s**: 4 de `OutroHold` + `CloseStageFX` (inmediato, no hay NeuralWeb en Surrounding) +
+2 de `FinaleFadeTime` + 0,5 de la recarga.
+
+### 🔴 Por qué la ameba se quedaba a la vista
+`StopExplore` (sub 11) apaga **la constelación** (`FadeOut` → `FadeLoop` → `KillStars`), pero la ameba del
+usuario **no es parte de `Spawned`** — viajó sola a `soul_pick_6` y la constelación la saltea a propósito
+(`"mi ameba ya viajo sola - salteo su entrada"`). Nadie la apagaba. Ahora la apaga `OutroBeat`.
+⚠ En la corrida de Beltrán el archivo tenía **una sola entrada** (instalación nueva), así que
+`CONSTELACION: no quedo ninguna estrella en el cielo` — la única ameba en pantalla era la suya.
+
+### ⚠ Dos trampas del camino
+- **`Class|BPAlmaSC|Disappear` NO acepta un `WinnerRef`** (*"Could not connect pin WinnerRef to self"*)
+  aunque `Class|BPAlmaSC|MoveTo` sí lo acepta en el sub 8. El id bueno es **`Class|BPProtoSoulSC|Disappear`**,
+  que `find_node_types` lista al lado del otro. El read posterior igual lo etiqueta como el de Alma.
+- **`OutroHold` nació en CERO en la instancia** del director. Con el `max(…, 0.5)` no rompe, pero el cierre
+  habría sido de medio segundo. Séptima vez.
+
+### ⛔ Por qué NO se reescribió `RunEnding` entero
+El read de esa función devuelve **`(Class|BPFinale|StartExplore)`** en el sub 10 — un id mal etiquetado por
+colisión de nombres, que escrito de vuelta llamaría a la función de OTRO Blueprint. Por eso el cambio fue
+cirugía de un solo nodo y no una reescritura.

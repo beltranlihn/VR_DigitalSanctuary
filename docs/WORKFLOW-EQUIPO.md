@@ -92,3 +92,36 @@ Salida: `VR_Test/Saved/Packaged/Android_Development/VR_Test-arm64.apk` + `main.1
 2. **GameFeatures está ON** (lo arrastra el plugin `GameFeaturesToolset` del MCP) → hace falta la regla `PrimaryAssetTypesToScan` de `GameFeatureData` en `DefaultGame.ini` (ya está). Sin ella: `Error: Asset manager settings do not include a rule for GameFeatureData` y el cook sale con 1.
 3. **Con el editor abierto, el cook intenta abrir el puerto 8000 del MCP** → `Error: HttpListener unable to bind` y el cook sale con 1. El `-AdditionalCookerOptions="-ini:...bAutoStartServer=False"` lo apaga **sólo para el commandlet**; el MCP del editor sigue vivo.
 El mapa de arranque del APK es `GameDefaultMap` en `DefaultEngine.ini` (hoy `MapsV2/L_SoulCharger`).
+
+### 🏷️ Que el paquete se llame **SoulCharger** y no **VR_Test** (2026-08-28)
+UAT nombra los artefactos con el **nombre del `.uproject`** (`VR_Test-arm64.apk`, `Install_VR_Test-arm64.bat`).
+Renombrar el `.uproject` sería invasivo, así que el paso es **post-proceso del archive**:
+```
+VR_Test-arm64.apk                    ->  SoulCharger-arm64.apk
+Install_VR_Test-arm64.bat            ->  Install_SoulCharger-arm64.bat   (+ parchear la línea "install <apk>")
+Uninstall_VR_Test-arm64.bat          ->  Uninstall_SoulCharger-arm64.bat
+SymbolizeCrashDump_VR_Test-arm64.bat ->  SymbolizeCrashDump_SoulCharger-arm64.bat
+```
+🔴 **Tres cosas que NO se tocan:**
+1. **El `.obb`** — Android exige el nombre exacto `main.<versionCode>.<packageid>.obb`.
+2. La línea `rm -r %STORAGE%/UnrealGame/VR_Test` de los `.bat` — es la carpeta REAL en el dispositivo,
+   derivada del nombre del proyecto, no una etiqueta.
+3. La carpeta `VR_Test_Symbols_v1` — la referencia el bat de symbolize por su nombre.
+
+💡 **El nombre que ve el usuario en la biblioteca del visor NO es el del archivo**: sale de
+`ApplicationDisplayName` en `DefaultEngine.ini` (hoy **`Soul Charger`**), y **qué app reemplaza** lo decide
+`PackageName` (hoy **`com.almadigital.soulcharger`**). Verificable sobre el APK ya construido:
+```
+<sdk>\build-tools\<ver>\aapt2.exe dump badging <apk>
+  package: name='com.almadigital.soulcharger'
+  application-label:'Soul Charger'
+```
+⚠ Y el `Install_*.bat` empieza con un **`adb uninstall <packageid>`**: reemplaza la versión anterior de
+ESE package id, y deja intactas las apps con otro id.
+
+🔴🔴 **El renombrado hay que REHACERLO después de CADA build, y borrando el anterior primero.**
+El build siguiente vuelve a escribir `VR_Test-arm64.apk` y sus `.bat` **al lado** de los que renombraste.
+Si no limpiás, la carpeta queda con **dos juegos**: un APK viejo con el nombre bueno y un OBB nuevo — y el
+`Install_SoulCharger-arm64.bat` instala esa combinación equivocada **sin dar ningún error**.
+👉 Script listo: `.claude/skills/unreal-vr/scripts/rename_package.py <carpeta Android_ASTC>` — borra el
+renombrado previo, renombra el fresco y parchea el `.bat`.

@@ -147,3 +147,50 @@ puede agarrar por accidente una de las esferas de la melodía del vecino con el 
 `ShowSignature()` se reusa tal cual para el dibujo del vecino (lo llama `BP_Constellation_SC.DrawNow`
 después de `Canvas.RebuildFrom`). 🔴 **Por eso hay que mover `TP_signature_spot`**: hoy sigue arriba, al
 lado de `soul_pick_6`; ahora es el atril del dibujo y va junto al panel del retrato.
+
+
+---
+
+## 2026-08-28 — `DropSignature()`: al venir al corazón viaja sola la ameba
+
+**Pedido de Beltrán:** *"Cuando atraigo la ameba a mi corazón, el dibujo ya no debe estar. Debe acercarse
+solo la ameba."*
+
+```
+(fn DropSignature ()
+  (IsValid CanvasRef
+    :"Is Valid"
+      (DetachFromActor CanvasRef)     ; se queda donde está — NO viaja con la ameba
+      (FadeTo 0.0)))                  ; y se apaga con el fundido de siempre (DrawFadeTime = 2,5 s)
+```
+El **detach** es la mitad importante: sin él, el dibujo acompañaba a la ameba durante los 3 s del viaje,
+que es justo lo contrario de *"debe acercarse sola"*.
+`FadeTo` es el mismo verbo que ya usaba `FadeDrawOut` de la constelación, y **`ShowSignatureAt` lo revierte**
+con `FadeTo(1)`, así que la exploración posterior vuelve a mostrarlo sin nada extra.
+
+### 🔴 Quién lo llama, y por qué NO se llama desde el gesto
+Lo dispara **`BP_ProtoSoul_SC.ArmCarry`** (que corre en cada `StartCarry`) a través de `DropMyDraw`, pero
+**sólo si el alma tiene `HasDraw = true`** — bandera que enciende `SoulPlaceDrawing` y apaga el propio
+`ArmCarry`.
+👉 **La guarda no es un lujo: durante Surrounding el `CanvasRef` del sensor es el dibujo VIVO del usuario.**
+Si `ArmCarry` apagara el canvas sin condición, agarrar la ameba con la mano en esa etapa **borraría de la
+vista el dibujo que la persona está haciendo**. La bandera distingue exactamente el caso que importa: sólo
+el alma que recibió una firma anclada la suelta.
+
+### ✅ Verificado en PIE (cero `Accessed None`)
+Con `bDebugShowOnPlay` del retrato en +14 s (después de que el modo dibujo cree el canvas) y
+`bDebugShareOnPlay` del picker en +23 s, todo en el mismo frame:
+```
+PROTO: agarrada con la DERECHA
+PROTO: soltada del ancla
+SENSOR: el dibujo se queda atras y se apaga - viaja sola la ameba
+PICKER: enganchada por gesto con la DERECHA
+RETRATO: se apaga
+...  6,0 s después  →  PROTO: compartida    (3 s de viaje + 3 s de ShareHold)
+```
+💡 Y una corrida previa comprobó la **rama negativa**: con el retrato mostrado **antes** de que existiera el
+canvas (`SENSOR: no hay canvas para anclar`), el gesto **no** imprimió la línea del drop. La guarda funciona
+en los dos sentidos.
+
+💡 Las **esferas del secuenciador ya desaparecían solas**: `HidePortrait` → `Hide` → `StopMelody` →
+`VanishOrbs`. Por eso Beltrán sólo vio quedarse el dibujo.
