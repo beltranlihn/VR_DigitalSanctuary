@@ -2033,3 +2033,13 @@ Mostró `Class|BPSensorSoul|DrawPress` y `Spline|AddPoint` para llamadas locales
 291. ⚠ **`Rendering|Material|SetVectorParameterValue` / `SetScalarParameterValue` existen DOS VECES**: la versión de `MaterialParameterCollection` (la que se usa para las MPC, del `KismetMaterialLibrary`) y la de `MaterialInstanceDynamic`. `write_graph_dsl` puede resolver a la equivocada, y el error aparece recién al compilar: *"This blueprint (self) is not a MaterialInstanceDynamic, therefore 'Target' must have a connection"*.
     ✅ La salida es `create_node` pasando **`declaring_class`** para desambiguar. 📌 `BP_LightShaft_SC:PushMPC` tiene la versión buena ya cableada — copiar de ahí en vez de pelear con el DSL.
     🚩 Es la §"colisión de nombres de función" otra vez, ahora entre dos librerías del motor: **el mismo `type_id` no garantiza la misma función.**
+
+292. 🔴🔴 **`BLEND_Modulate` no se dibuja en el renderer MÓVIL.** Es la forma "natural" de hacer oscuridad (multiplica el destino) y en PC funciona, pero en el preview de Android / en Quest **no renderiza nada** — ni error ni warning, simplemente no aparece.
+    ✅ **Para oscurecer en Quest: translúcido con color oscuro.** `Emissive = ColorOscuro`, `Opacity = la máscara`. El resultado (`dest·(1−a) + oscuro·a`) es equivalente en la práctica y sí se dibuja.
+
+293. ⚠ **Un Blueprint que crea su propio MID en el Construction Script PISA cualquier `overrideMaterials` puesto en la instancia.** `BP_LightShaft_SC` hace exactamente eso: `SetScalarParameterValueOnMaterials` genera un `MID_M_LightShaft` en el componente `Beam` cada vez que se construye, así que asignarle otro material a la instancia no sirve de nada — se revierte solo y sin aviso.
+    ✅ Para permitir variantes, el BP necesita una **variable de material** (igual que ya tiene una de `Mesh`) que se asigne **antes** de los pushes de parámetros.
+    🚩 Síntoma que despista: el material se ve bien en el detalle del componente justo después de asignarlo, y vuelve al original en cuanto algo re-corre el Construction Script.
+
+294. 🔴🔴🔴 **Cuando el usuario repite una idea con otras palabras, es porque no la entendí — no porque quiera insistir.** Beltrán dijo TRES veces que el efecto era "una versión de los haces de luz". Yo lo leí como una sugerencia de arquitectura (la MPC) y seguí construyendo una mancha pintada sobre un plano. Recién a la tercera (*"es un lightshaft negro sobre blanco"*) entendí que hablaba de la FORMA: un volumen cónico oscuro en el aire.
+    ✅ **La segunda vez que aparece la misma referencia, hay que parar y re-preguntar qué es lo que se está señalando** — en vez de seguir iterando sobre la interpretación propia. Habría ahorrado media docena de pasadas.

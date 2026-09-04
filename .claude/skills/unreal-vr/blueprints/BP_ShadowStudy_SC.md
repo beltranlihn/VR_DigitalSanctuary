@@ -55,3 +55,25 @@ Hoy, **una esfera, una sombra** (mas dos ranuras listas del lado del material). 
 - [ ] Juicio de Beltran y prueba en visor.
 - [ ] Rangos de slider a mano: SphereRadius 10-200 · SphereHeight 0-300 · GroundSize 500-8000 · ShadowStrength 0-1 · Penumbra 0-0,02 · Hard 0-1 · Falloff 0-0,005 · LightPitch 5-60 · SpinSpeed 0-30.
 - [ ] Si gusta el registro, probar con otras formas (un cilindro, un plano flotante): el material del suelo solo sabe de esferas, un caster de otra forma pide otra cuenta.
+
+
+## 🔴🔴 EL PEDIDO REAL NO ERA UNA SOMBRA EN EL PISO — es un HAZ NEGRO en el aire
+Malentendido de fondo, mio, que costo varias pasadas. Beltran lo dijo tres veces y yo lo lei mal las tres:
+1. *"¿no seria como una version adaptada de los haces de luz?"* — lo tome como arquitectura (la MPC), no como la FORMA.
+2. *"pero es un haz de luz, no una sombra en el plano"*.
+3. *"es un lightshaft negro sobre blanco en el fondo"* · *"no tiene que haber una superficie plana tampoco, esto es tridimensional"*.
+
+**Lo que quiere es un volumen conico oscuro en el aire** — el mismo `BP_LightShaft_SC` pero oscureciendo en vez de iluminar — con la esfera en su boca. **No** una mancha pintada sobre un plano. Y el barrido tambien es conico: *"la rotacion tambien es conica, partiendo desde la esfera pero siempre con una diagonal, no solo en un eje"* — o sea la direccion orbita alrededor de un eje **inclinado**, no alrededor de la vertical.
+
+### Lo que quedo construido y sirve
+- ✅ **`M_ShaftDark_SC`** — duplicado de `M_LightShaft` con **`BLEND_Translucent`**, emisivo = `DarkColor` y opacidad = la luminancia del haz original × `DarkStrength`. Es el haz, en negro, con todas sus perillas (spread, wobble, gradiente, tip soft).
+- ✅ **`M_ShadowCone_SC`** — version minima propia (Fresnel + caida por largo), tambien translucida oscura.
+- ✅ El **vacio blanco** (cupula) y la esfera mate.
+- ✅ La sombra proyectada sobre el suelo (modelo de **luz puntual**: apice en la luz, cono tangente a la esfera). Sirve si algun dia se quiere el piso; hoy Beltran lo descarto.
+
+### 🔴 Los dos obstaculos concretos, para retomarlo sin volver a tantear
+1. **`BLEND_Modulate` NO se dibuja en el renderer movil.** Fue el primer intento y no renderiza nada. Con translucido oscuro si funciona.
+2. **`BP_LightShaft_SC` crea su propio MID de `M_LightShaft` en el Construction Script**, asi que **pisa cualquier `overrideMaterials` que se le ponga a la instancia**. Para usarlo en version oscura hace falta darle una variable de material (como ya tiene `Mesh`) y asignarla ANTES de los pushes de parametros. Es un cambio chico a un asset compartido.
+3. Para el barrido conico: `Math|Vector|RotateVectorAroundAxis` con un eje inclinado autorable, no yaw sobre la vertical.
+
+⚠ **El componente `Cone` del BP quedo agregado pero SIN configurar** (su funcion `ApplyCone` se borro cuando fallo el nodo de rotator). Esta oculto para que no moleste. Al retomar: o se completa esa funcion, o se elimina el componente y se va por la via del haz.
