@@ -43,6 +43,20 @@ La causa fue un error mio al pasar el jitter a 3D: conecte el `AppendVector` de 
 
 💡 **La pista que lo desatasco fue de Beltran:** *"sucede claramente cuando pasa de un lugar a otro moviendose"*. Un corte que aparece **con el movimiento** apunta al borde de la CELDA (el patron se desliza y los puntos cruzan casillas), no a un vertice, que estaria quieto. Los sintomas que dependen del movimiento acusan al sistema de coordenadas, no a la geometria.
 
+## 🔴 TRANSLUCIDO, no aditivo — para que el color sea el que elegis
+Nacio aditivo, que es lo comodo sobre negro: suma y no hay que ordenar nada. Pero al encender el fondo, Beltran vio lo inevitable: *"el material de los puntos se suma con el brillo del fondo y los colores se ven muy blancos"*. **Aditivo sobre un fondo claro siempre tiende al blanco** — el color elegido se pierde.
+
+✅ Pasado a **`BLEND_Translucent`**, con la cadena partida en dos:
+- **Emisivo** = `color × Brightness` — el color puro, sin la mascara.
+- **Opacidad** = `dotm × centelleo × FarDim × alive` — la mascara, sin el brillo.
+
+Asi, donde la mascara vale 1 se ve **exactamente el color elegido**; el fondo no se suma. Verificado sobre fondo beige: el azul se ve azul, el rojo rojo y el naranja naranja.
+
+⚠ **Tres consecuencias del cambio, para no sorprenderse:**
+- `Brightness` por encima de 1 ya **no ilumina de mas**: en translucido el color se mezcla, no se suma (y sin MobileHDR no hay rango para pasarse). Sirve para bajar, no para brillar.
+- `FarDim` ahora **desvanece** las capas lejanas en vez de oscurecerlas. Es lo mismo sobre negro y mejor sobre un fondo claro.
+- Los tres cascarones son translucidos entre si, asi que se ordenan por componente. Con puntos ralos no se nota; si alguna vez molesta, la perilla es `TranslucencySortPriority`.
+
 ## 🎨 Tres colores repartidos al azar
 `DotColor`, `DotColor2` y `DotColor3` (cat. *C - Color*). El reparto usa un **hash propio e independiente** de los que ya existian (el del tamaño, el del jitter y el de la densidad) — reusar uno hubiera correlacionado color con tamaño y **se verian patrones**, que es justo lo que Beltran pidio evitar. Dos `Step` a 1/3 y 2/3 parten el azar en tres tercios iguales.
 
