@@ -37,6 +37,17 @@ Un solo componente `Fog` (StaticMeshComponent, `SM_FogSlab` por default, sin som
 
 Categorías de variables: `A - Forma` (Mesh/SlabSizeX/SlabSizeY) · `A - Color` (FogColor/Brightness) · `B - Niebla` (Density/ThicknessDist/ThicknessPow) · `C - Bruma` (HazeAmount/Start/Density) · `D - Contacto` (ContactFade/CamFadeNear/CamFadeRange) · `E - Altura` (HeightAmount/HeightOffset/HeightFalloff) · `F - Borde` (EdgeRound/EdgeSoft/EdgeAmount) · `G - Vida` (Noise*) · `H - Ola` (WaveAmount/WaveScale/WaveSpeed).
 
+## 🔴 `SortPriority` — mezclar la losa con OTRO translucido (el oceano, un velo, un haz)
+Pedido de Beltran (2026-09-04): *"quiero poner un fog slab para que el oceano se pierda en un fog etereo, pero la textura del oceano se renderiza por arriba"*.
+
+**Dos translucidos no se ordenan por profundidad de pixel, se ordenan por ACTOR**, y con la misma prioridad el motor decide por la distancia al origen de los bounds. El oceano tiene bounds enormes centrados cerca de la camara, asi que le gana siempre a la losa — **por mas lejos que este la losa**.
+
+✅ El unico lever es **`TranslucencySortPriority`**, ahora expuesto como variable **`SortPriority`** (cat. *I - Orden*, instance-editable) que el UCS empuja al componente con `ApplyFogSort`. **Mas alto = se dibuja despues = va encima.** `BP_CloudPlane_SC` tiene la misma perilla (cat. *B - Orden*).
+
+Receta para el oceano que se pierde en niebla: oceano en **0**, losa en **1**. Verificado A/B en el viewport: con 0 las crestas lejanas del oceano cortan la banda de niebla; con 1 la niebla las vela.
+
+🚩 **Vale para cualquier par de translucidos de la obra** — velos, haces, nube y losa. Si algo translucido "aparece delante de lo que no corresponde", esta es la perilla, no el material.
+
 ## Cómo se usa
 - **Capa de niebla baja** (el croquis de la derecha): losa horizontal, `HeightAmount` ~0,85 y `HeightFalloff` ~0,006 → densa abajo, se afina hacia arriba; los objetos emergen disolviéndose.
 - **Bruma de distancia** (el croquis de la izquierda): losa vertical grande delante de la escena. Lo que está pegado detrás sale limpio, lo lejano se lecha. Es el sustituto directo del Exponential Height Fog.
