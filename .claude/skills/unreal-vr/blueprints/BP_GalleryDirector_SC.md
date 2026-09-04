@@ -41,14 +41,30 @@ Tres arrays instance-editable en `GAL_DIRECTOR` (categoria *A - Galeria*), en el
 - **`BeginPlay`** → `IsValid(BtnNext)` → **`Boot`** (marca listo, **`GalCollect`** recoge por tag todos los actores de estacion, y llama `GoTo(StartAt)`). **`StartAt`** (cat. *A - Galeria*, instance-editable, default 0) es la perilla para **arrancar directo en una estacion** mientras se afina — el equivalente al `DebugStartRoom` del director de la obra. Dejarla en 0. Si los botones no estan asignados, imprime *"GALERIA: los botones no estan asignados en la instancia"* en vez de fallar en silencio.
 - **`GoTo(Idx)`** — guarda el indice, **`GalHideAll`** esconde TODO lo tagueado `GALSTATION`, **`GalShow(Idx)`** prende todo lo que tenga el tag de esa estacion, y mueve **al director Y al pawn** al transform del anchor (`bTeleport = true`). Despues pone el nombre en el rotulo y llama `ReArm`.
 - **`GalStep(Dir)`** — suma y **envuelve con modulo**, asi la ultima vuelve a la primera.
-- **`Tick`** → `Poll`: el **primer** Tick arma los botones (ver abajo); de ahi en mas `GalPoll` mira el `bDone` de cada uno. **No usa el dispatcher `OnPressed`.**
+- **`Tick`** → `Poll`, que es una maquina de dos estados sobre `bWaitRelease`. **No usa el dispatcher `OnPressed`.**
 
-### 🔴🔴 Por que los botones se arman en el primer TICK y no en BeginPlay
+### 🔴🔴🔴 Un paso por apretada: `bWaitRelease`
+Sintoma reportado por Beltran: *"si mantengo el trigger sobre el boton cambio infinito de lugares y queda la cagada"*. Y tenia razon, era un bug de diseño mio.
+
+Con `HoldTime = 0` el boton dispara **el primer frame en que hay gatillo + mano cerca**. El `ReArm` limpiaba `bDone` y rearmaba en el mismo frame, asi que con el gatillo sostenido volvia a disparar al frame siguiente, y al siguiente: **una estacion por frame**.
+
+✅ **La maquina correcta:**
+```
+Poll:        si bWaitRelease -> GalRelease     si no -> GalPoll
+GalPoll:     si BtnNext.bDone -> GalStep(+1)   elif BtnPrev.bDone -> GalStep(-1)
+GalStep:     bWaitRelease = true ; DESARMA los dos botones ; GoTo(...)
+GalRelease:  si NINGUN gatillo esta sostenido -> bWaitRelease = false ; ReArm
+```
+O sea: **despues de una apretada no se vuelve a armar hasta que el gatillo se suelta.** `Boot` arranca con `bWaitRelease = true`, asi que tambien cubre el caso de empezar la sesion con el gatillo apretado — y de paso reemplaza al viejo one-shot de `bArmedOnce`, que existia solo por el problema de orden de BeginPlay.
+
+🔴 **Por que se puede confiar en `bTrigHeld` aunque el boton este desarmado:** se verifico leyendo el grafo de `BP_MenuButton` — los eventos de input lo escriben **directo** (`IA_Shoot_*` `Started` → `true`, `Completed` → `false`), sin pasar por `bArmed`. Si pasara por `bArmed`, desarmar dejaria `bTrigHeld` congelado en true y la galeria quedaria **trabada para siempre** despues de la primera apretada. Valia la pena mirarlo antes.
+
+### 🔴🔴 Por que los botones NO se arman en BeginPlay
 Sintoma reportado por Beltran: *"puse play, aparezco en el lugar 1, pero no veo los botones"*. Medido en PIE: `bArmed = true` pero **`bHidden = true`**.
 
 La causa esta en `BP_MenuButton`: **su propio `EventBeginPlay` termina con `SetActorHiddenInGame true`** — se esconde a proposito, porque en la obra el boton no existe hasta que la intro lo arma. El `ReArm` del director corria dentro del BeginPlay del director, o sea **antes** del BeginPlay del boton, y el boton se volvia a esconder despues.
 
-✅ La solucion: `Poll` hace un **one-shot en el primer Tick** (`bArmedOnce`) que llama a `ReArm`. Para entonces todos los `BeginPlay` ya corrieron. No depende de un `Delay` ni del orden de inicializacion entre actores.
+✅ La solucion: el armado vive en `Poll`, o sea en el **Tick**, cuando todos los `BeginPlay` ya corrieron. No depende de un `Delay` ni del orden de inicializacion entre actores. (Hoy lo hace `GalRelease`; al principio fue un one-shot con `bArmedOnce`, que quedo absorbido por la maquina de `bWaitRelease`.)
 🚩 **La forma general de la trampa:** *cualquier* cosa que el director le haga a otro actor desde su `BeginPlay` puede ser pisada por el `BeginPlay` de ese otro actor. Si el efecto tiene que sobrevivir, va en el primer Tick.
 
 ### Por que se poleé el boton en vez de bindear su dispatcher
