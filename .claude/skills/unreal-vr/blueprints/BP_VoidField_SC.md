@@ -36,6 +36,20 @@ Asi `JitterAmount` es un **maximo deseado**, no una promesa: si los puntos crece
 
 ⚠ **El precio, y el criterio para elegir:** cuanto mas grandes los puntos, menos jitter les queda y **mas se nota la retícula**. Medido: `DotSize` 0,16 → jitter efectivo 0,16 (se insinua la grilla); `DotSize` **0,11 → jitter efectivo 0,43** (se lee como estrellas). El default quedo en **0,11** con `Density` 0,5.
 
+## 🔴🔴 El corte de los puntos: era MI cableado, no la malla
+Beltran reporto puntos cortados y lo atribuyo a los vertices de la esfera (*"en el cubo no pasaba"*). **La malla era inocente.** Lo que lo probo en una corrida: con `JitterAmount = 0` y puntos GRANDES no se cortaba **ninguno** — si fuera la teselacion, se cortarian igual.
+
+La causa fue un error mio al pasar el jitter a 3D: conecte el `AppendVector` de tres hashes **directo al multiplicador, salteando el `− 0,5`**. Sin esa resta el desplazamiento era siempre **positivo y del doble del rango** (`[0, amt]` en vez de `[−amt/2, +amt/2]`), asi que la cuenta del margen que hace el recorte quedaba corta y los puntos se pasaban de su celda.
+
+💡 **La pista que lo desatasco fue de Beltran:** *"sucede claramente cuando pasa de un lugar a otro moviendose"*. Un corte que aparece **con el movimiento** apunta al borde de la CELDA (el patron se desliza y los puntos cruzan casillas), no a un vertice, que estaria quieto. Los sintomas que dependen del movimiento acusan al sistema de coordenadas, no a la geometria.
+
+## 🎨 Tres colores repartidos al azar
+`DotColor`, `DotColor2` y `DotColor3` (cat. *C - Color*). El reparto usa un **hash propio e independiente** de los que ya existian (el del tamaño, el del jitter y el de la densidad) — reusar uno hubiera correlacionado color con tamaño y **se verian patrones**, que es justo lo que Beltran pidio evitar. Dos `Step` a 1/3 y 2/3 parten el azar en tres tercios iguales.
+
+## 🌑 Fondo solido opcional
+Un cuarto cascaron `Back` (mismo `SM_GanzShell`) con **`M_VoidBack_SC`** — unlit, two-sided, emisivo plano. Cat. *F - Fondo*: **`bBackground`** (on/off), `BackColor`, `BackBrightness` y `BackRadius` (9.000 por default, o sea por fuera de las tres capas de puntos). Es opaco, asi que dibuja primero y los puntos aditivos se suman encima.
+⚠ Al agregar el componente a un BP que ya tenia una instancia colocada, la instancia lo recibio con los **defaults de fabrica** (§164): hubo que escribirle malla y material tambien a la instancia.
+
 ## El material `M_VoidDots_SC` — unlit · **aditivo** · two-sided
 Aditivo a proposito: sobre negro suma sin problemas de orden, y las tres capas se acumulan solas.
 
