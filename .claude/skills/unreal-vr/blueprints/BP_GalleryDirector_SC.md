@@ -1,7 +1,7 @@
 # BP_GalleryDirector_SC — el recorrido de la galeria de efectos (Gallery/)
 
 > Creado 2026-09-04, pedido de Beltran: *"Puedes armar el sistema ordenado en el world, donde yo pueda ir avanzando entre los distintos efectos? Ahora se me hace dificil porque estan todas las cosas puestas en cualquier parte."*
-> **Estado: 🟢 arranque verificado en PIE** (el pawn se teletransporta solo a la estacion 0 y se esconden las demas). ⬜ Falta apretar los botones — eso necesita manos, o sea visor / PIE con mandos.
+> **Estado: 🟢 arranque verificado en PIE.** Medido con la galeria en la estacion 0: el pawn en su anchor, `GAL_0_LightShaft` VISIBLE y los otros nueve actores (incluidos los 4 cubos de la niebla) OCULTOS. ⬜ Falta apretar los botones — eso necesita manos, o sea visor / PIE con mandos.
 
 ## Donde vive: en `/Game/TestMeshes`, NO en un nivel nuevo
 El plan decia "nivel nuevo `L_EffectGallery`". Se hizo **en el nivel de pruebas que ya se usa**, por dos razones:
@@ -26,11 +26,19 @@ Seis estaciones cada **300 m** sobre el eje X, en `y = 100000`. Cada una tiene u
 
 💡 **La niebla necesita algo detras o no se lee.** Sin los cubos era una pared blanca lisa. Con ellos se ve lo que hace: el cercano nitido, el segundo lechoso, los lejanos comidos. Para eso se creo `M_GalleryProp_SC` (unlit emisivo, `PropColor` + `Brightness`), porque en esta obra **no hay luces** y un cubo con material de fabrica sale negro.
 
-## Como funciona
-Tres arrays instance-editable en el actor `GAL_DIRECTOR` (categoria *A - Galeria*): **`Anchors`**, **`Stations`** y **`Names`**, en el mismo orden. Agregar una estacion es **colocar el efecto, colocar un anchor y sumar una fila a los tres arrays** — no hay que tocar el Blueprint.
+## Como funciona — 🔴 POR TAGS, para no reprogramar nada
+Pedido explicito de Beltran: *"hazlo con tags para cada etapa, asi yo puedo agregar o duplicar elementos para armar cada espacio y no tenemos que volver a programar cada una"*.
 
-- **`BeginPlay`** → `IsValid(BtnNext)` → **`Boot`** (marca listo y llama `GoTo(0)`). Si los botones no estan asignados, imprime *"GALERIA: los botones no estan asignados en la instancia"* en vez de fallar en silencio.
-- **`GoTo(Idx)`** — guarda el indice, **`GalHideAll`** esconde todas las estaciones, muestra la activa, y mueve **al director Y al pawn** al transform del anchor (`bTeleport = true`). Despues pone el nombre en el rotulo y llama `ReArm`.
+**Cada actor de una estacion lleva dos tags de actor: `GALSTATION` y `GAL_<n>`.** Eso es todo lo que hace falta para que pertenezca a esa estacion — una estacion puede tener **un actor o veinte**, y sumar uno es duplicarlo y ponerle los dos tags. No se toca ni el Blueprint ni ningun array de actores.
+
+Tres arrays instance-editable en `GAL_DIRECTOR` (categoria *A - Galeria*), en el mismo orden: **`Anchors`** (el punto de vista de cada estacion), **`StationTags`** (`GAL_0` … `GAL_5`) y **`Names`** (el rotulo). El cuarto array, `Stations`, **se llena solo en `BeginPlay`** con todo lo tagueado `GALSTATION` — no se autora.
+
+**Agregar una estacion:** colocar sus actores con los tags `GALSTATION` + `GAL_6`, colocar un `BP_Anchor`, y sumar una fila a `Anchors` / `StationTags` / `Names`.
+
+⚠ **Un actor sin el tag `GALSTATION` no se apaga nunca** — es la unica forma de que algo quede visible en todas las estaciones (util para un piso comun, si alguna vez hace falta).
+
+- **`BeginPlay`** → `IsValid(BtnNext)` → **`Boot`** (marca listo, **`GalCollect`** recoge por tag todos los actores de estacion, y llama `GoTo(0)`). Si los botones no estan asignados, imprime *"GALERIA: los botones no estan asignados en la instancia"* en vez de fallar en silencio.
+- **`GoTo(Idx)`** — guarda el indice, **`GalHideAll`** esconde TODO lo tagueado `GALSTATION`, **`GalShow(Idx)`** prende todo lo que tenga el tag de esa estacion, y mueve **al director Y al pawn** al transform del anchor (`bTeleport = true`). Despues pone el nombre en el rotulo y llama `ReArm`.
 - **`GalStep(Dir)`** — suma y **envuelve con modulo**, asi la ultima vuelve a la primera.
 - **`Tick`** → `Poll`: mira el `bDone` de cada boton. **No usa el dispatcher `OnPressed`.**
 
@@ -44,7 +52,6 @@ Tres arrays instance-editable en el actor `GAL_DIRECTOR` (categoria *A - Galeria
 
 ## Limitaciones conocidas
 - **El rig de botones no rota con el anchor.** Los anchors de la galeria estan todos en yaw 0. Si alguna estacion necesitara otra orientacion, el pawn si rota (usa el transform entero del anchor) pero el offset de los botones esta pensado para yaw 0.
-- **Los 4 cubos de la niebla estan siempre visibles** (no son parte del array `Stations`). A 300 m de las demas estaciones no molestan y son 4 cubos unlit.
 - El rotulo dice **"Text"** en el editor: los nombres se aplican en `GoTo`, o sea recien al dar Play.
 
 ## TODO
