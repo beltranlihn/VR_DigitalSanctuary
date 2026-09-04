@@ -72,9 +72,13 @@ Va **antes** del `floor`/`frac` a proposito: asi se mueve el campo entero (celda
 | 1 | × 0,62 | + 137° |
 | 2 (lejos) | × 0,38 | + 251° |
 
-La capa cercana se mueve **mas rapido** que las lejanas, que es como se comporta el paralaje real. Perillas en *E - Deriva*: `DriftSpeed` (0,03 = una celda cada ~33 s, contemplativo) y `DriftAngle` (orientacion global del conjunto).
+La capa cercana se mueve **mas rapido** que las lejanas, que es como se comporta el paralaje real. Perillas en *E - Deriva*: **`DriftSpeed` (0,12 = una celda cada ~8 s)** y `DriftAngle` (orientacion global del conjunto).
+
+⚠ **El default arranco en 0,03 y hubo que subirlo: era una celda cada 33 segundos, o sea invisible.** Medido: a 0,03 el material SI animaba (dos capturas seguidas del editor ya salian distintas), pero el movimiento no se percibe. Para un campo procedural lento, **"se mueve" y "se ve que se mueve" son dos cosas distintas** — el numero hay que elegirlo mirando, no razonando.
 
 ✅ **Verificado con control positivo** (2026-09-04): apagando el centelleo, dos capturas con `DriftSpeed = 0` salen **byte a byte identicas**, y con `DriftSpeed = 4` salen distintas. Sin apagar el centelleo el test no probaba nada, porque el centelleo ya animaba solo.
+
+🔴 **Se anima en el EDITOR, no hace falta Play** — el nodo `Time` corre en el viewport. Si se ve congelado, lo que esta apagado es **Realtime** del viewport (el reloj de la barra, o `Ctrl+R`): con Realtime off no se anima ningun material de la obra, ni este ni los haces ni la nube.
 ⚠ El campo del nivel tenia `TwinkleAmount = 0,58` autorado por Beltran: se leyo y se restauro despues del test, no se piso con el default.
 
 ## 🔴 Lo que NO se puede juzgar en una captura
