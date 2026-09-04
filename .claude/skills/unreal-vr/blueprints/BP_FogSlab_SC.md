@@ -37,6 +37,15 @@ Un solo componente `Fog` (StaticMeshComponent, `SM_FogSlab` por default, sin som
 
 Categorías de variables: `A - Forma` (Mesh/SlabSizeX/SlabSizeY) · `A - Color` (FogColor/Brightness) · `B - Niebla` (Density/ThicknessDist/ThicknessPow) · `C - Bruma` (HazeAmount/Start/Density) · `D - Contacto` (ContactFade/CamFadeNear/CamFadeRange) · `E - Altura` (HeightAmount/HeightOffset/HeightFalloff) · `F - Borde` (EdgeRound/EdgeSoft/EdgeAmount) · `G - Vida` (Noise*) · `H - Ola` (WaveAmount/WaveScale/WaveSpeed).
 
+## 🔴🔴🔴 LA LOSA NO PUEDE VER UN TRANSLUCIDO. Nunca. Y no es orden de dibujo
+Beltran quiso que el oceano de nubes se perdiera en la niebla de una losa, y el resultado fue que **la losa se dibujaba opaca encima del oceano**. Se probo con `SortPriority` y no cambio nada — con razon.
+
+**La causa:** el espesor de esta losa sale de dos nodos **`DepthFade`**, que leen el **buffer de profundidad**. Un material `BLEND_Translucent` **no escribe profundidad**. Entonces, donde esta el oceano, la losa lee "no hay nada atras hasta el infinito" → acumula espesor maximo → se pone **completamente opaca**. No esta tapando al oceano por orden: esta reaccionando a un vacio.
+
+🚩 **La regla general, que vale para todo el toolkit:** `DepthFade`, `SceneDepth` y cualquier efecto que "reaccione a lo que hay detras" **solo ve geometria OPACA**. Los velos, la nube, los haces y la propia losa son invisibles entre si. Si un efecto tiene que responder a un translucido, **la cuenta hay que hacerla dentro del material de ESE translucido** — no hay truco de orden que lo arregle.
+
+✅ Para el oceano se eligio la via directa: `M_CloudPlane_SC` tiene ahora **su propia niebla por distancia** (cat. *C - Niebla* en `BP_CloudPlane_SC`). La losa y el oceano siguen siendo objetos separados y combinables; simplemente cada uno calcula su niebla. (La alternativa evaluada y descartada por ahora era una MPC donde la losa publica sus parametros y el oceano los lee — el patron de `MPC_LightShaft` + `M_BeamReceiver_SC`.)
+
 ## 🔴 `SortPriority` — mezclar la losa con OTRO translucido (el oceano, un velo, un haz)
 Pedido de Beltran (2026-09-04): *"quiero poner un fog slab para que el oceano se pierda en un fog etereo, pero la textura del oceano se renderiza por arriba"*.
 
