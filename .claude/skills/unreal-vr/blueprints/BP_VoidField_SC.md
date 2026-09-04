@@ -54,6 +54,29 @@ Escala del componente = `Radio / 50` (el cubo del motor mide 100). `bLayer1` / `
 
 Categorias: `A - Capas` (Radius0/1/2, bLayer1, bLayer2) · `B - Puntos` (Tiling 20, DotSize 0,09, Density 0,25, JitterAmount 0,7, Brightness 2,2) · `C - Color` (DotColor, FarDim 0,35) · `D - Vida` (TwinkleAmount 0,3, TwinkleSpeed 0,4).
 
+## 🌊 Deriva animada — cada capa a su velocidad y en su direccion
+Pedido de Beltran (2026-09-04): *"siento que no funciona si no esta animado y cada capa se mueve en una direccion o una velocidad distinta; lo interesante de ese efecto es cuando las cosas se mueven"*. Y es correcto: sin animacion el paralaje **solo existe si movés la cabeza**, asi que quieto se lee como una textura.
+
+En el material, la UV tileada se desplaza antes de partirse en celdas:
+```
+dir = (cos(DriftAngle), sin(DriftAngle))
+uv  = TexCoord × Tiling + dir × Time × DriftSpeed        // y RECIEN AHI floor/frac
+```
+Va **antes** del `floor`/`frac` a proposito: asi se mueve el campo entero (celdas incluidas) y no solo el punto dentro de su celda — si fuera despues, los puntos rebotarian dentro de su casilla en vez de viajar.
+
+**Los multiplicadores por capa** (en `ApplyVoidDrift`) usan razones y angulos **no enteros** para que las tres nunca se sincronicen:
+
+| Capa | Velocidad | Angulo |
+|---|---|---|
+| 0 (cerca) | `DriftSpeed` × 1,00 | `DriftAngle` + 0° |
+| 1 | × 0,62 | + 137° |
+| 2 (lejos) | × 0,38 | + 251° |
+
+La capa cercana se mueve **mas rapido** que las lejanas, que es como se comporta el paralaje real. Perillas en *E - Deriva*: `DriftSpeed` (0,03 = una celda cada ~33 s, contemplativo) y `DriftAngle` (orientacion global del conjunto).
+
+✅ **Verificado con control positivo** (2026-09-04): apagando el centelleo, dos capturas con `DriftSpeed = 0` salen **byte a byte identicas**, y con `DriftSpeed = 4` salen distintas. Sin apagar el centelleo el test no probaba nada, porque el centelleo ya animaba solo.
+⚠ El campo del nivel tenia `TwinkleAmount = 0,58` autorado por Beltran: se leyo y se restauro despues del test, no se piso con el default.
+
 ## 🔴 Lo que NO se puede juzgar en una captura
 **El paralaje.** Una imagen fija muestra puntos; el efecto entero esta en que al mover la cabeza las capas se desplazan a distinta velocidad. En el editor se intuye moviendo la camara, pero **el veredicto real es el visor**. Si al probarlo no se siente profundidad, la palanca es separar mas los radios (por ejemplo 1000 / 3500 / 9000), no agregar puntos.
 
