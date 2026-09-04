@@ -8,12 +8,19 @@ Dos o tres cascarones concentricos a radios distintos con puntos resueltos **en 
 
 El documento maestro ya lo habia decidido — *"la profundidad la van a dar las PARTICULAS, no el fondo"* — y esto da el mismo efecto con **3 draw calls** en vez de un sistema Niagara. Ademas, como es el mismo actor al principio y al final de la obra, es tambien la firma que cierra el arco.
 
-## 🔴 Cascarones CUBICOS, no esfericos
-Se usa el `Cube` del motor, no una esfera. Motivo: los puntos se distribuyen por **UV**, y una esfera UV **amontona todo en los polos** — justo donde mirás en un vacio. El cubo no tiene polos: cada cara lleva su UV 0..1 y la densidad queda pareja.
+## 🔴 ESFERAS, y el patron sacado de la DIRECCION en 3D (no de la UV)
+**Historia, porque el camino importa.** La v1 usaba **cubos** con el patron sobre la UV, para evitar que una esfera UV amontonara los puntos en los polos. Beltran lo probo y dijo lo obvio: *"se nota mucho la esquina"*. Y tenia razon — sobre un cubo la densidad angular no es pareja (hacia las esquinas la cara abarca mas angulo), asi que la esquina se dibuja sola aunque el material solo pinte puntos.
 
-Y la forma del cubo es **invisible**: el material solo dibuja puntos sobre negro, no hay gradiente ni superficie que delate la geometria.
+✅ **La salida no es elegir entre polos o esquinas: es no usar UV.** El patron ahora se calcula sobre **`normalize(LocalPosition)` × Tiling**, o sea una grilla de celdas **en 3D** muestreada por la superficie de la esfera:
+- **Sin polos** (no hay lat/long), **sin costuras** (no hay caras), **sin esquinas** (no hay cubo).
+- La distribucion es uniforme porque una esfera corta una grilla 3D de forma pareja.
+- 💡 De regalo: el tamaño aparente de cada punto varia solo, segun que tan cerca del centro de su celda pasa la superficie. Es variacion organica que antes habia que fabricar.
 
-⚠ **La contra:** el patron es por cara, asi que en las 12 aristas del cubo el dibujo no continua. No se nota salvo que mires fijo una arista, y con tres cascarones a escalas distintas las costuras no coinciden. Si algun dia molesta, la salida es una proyeccion tipo cubemap desde `LocalPosition` (mas nodos, misma idea).
+⚠ **Dos consecuencias medidas al hacer el cambio:**
+1. **Los puntos se achican**, porque ahora el punto es la interseccion de una bola 3D con la superficie, no un disco 2D. Hubo que compensar `DotSize` (0,098 → **0,16**) y `Density` (0,266 → **0,45**).
+2. 🔴 **La malla tiene que ser DENSA.** Con el `Sphere` del motor se veian **facetas triangulares y anillos concentricos**: la grilla 3D revela la teselacion. Se usa **`SM_GanzShell`** (96×48, 9.024 tris, radio 50 — la misma del Ganzfeld). El `Sphere` del motor NO sirve para este material.
+
+Escala del componente = `Radio / 50`, igual que antes.
 
 ## El material `M_VoidDots_SC` — unlit · **aditivo** · two-sided
 Aditivo a proposito: sobre negro suma sin problemas de orden, y las tres capas se acumulan solas.
