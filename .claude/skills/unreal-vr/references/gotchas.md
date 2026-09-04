@@ -2020,3 +2020,12 @@ Mostró `Class|BPSensorSoul|DrawPress` y `Spline|AddPoint` para llamadas locales
     | 1.625 | 2,4 | 3.900 | limpio, con olas enormes |
     🚩 O sea: **olas grandes SÍ se pueden — con `NoiseScale` bajo.** Lo que este material no puede dar es **amplitud y detalle a la vez**. Es un límite de la técnica, no un bug pendiente.
     💡 Lección de proceso: cuando un arreglo técnicamente correcto cambia la INTENCIÓN de la pieza, no es un arreglo. Vale más una regla que el autor pueda respetar que una solución que le saca el control.
+
+289. 🔴🔴🔴 **TODO umbral sobre un campo suave dibuja una LÍNEA DE CONTORNO.** `Step`, rampa de tres paradas, tienda, `smoothstep`: da igual la forma — si el color se elige comparando **un** ruido contra un valor, en el cruce aparece una línea, y es más fina cuanto más rápido cruza el ruido. Perseguí ese artefacto con tres construcciones distintas antes de entender que las tres eran la misma función.
+    ✅ **Para mezclar N colores sin líneas: un campo de ruido INDEPENDIENTE por color, usado como PESO, y normalizar.**
+    `color = (C1·w1 + C2·w2 + C3·w3) / (w1+w2+w3)` — los N colores están presentes en todos lados en distinta proporción y no hay ningún punto de corte.
+    💡 **Bonus que resuelve otro problema clásico:** al dividir por la suma es una **combinación convexa**, o sea el resultado **no puede salirse del triángulo de los colores elegidos**. Es imposible que se queme a blanco. Lo único que puede arruinarlo es un `Brightness > 1` multiplicando después.
+    ⚠ Poner `outputMin` de los ruidos en ~0,3, no en 0: si un peso se acerca a cero la división lo amplifica y reaparecen filamentos.
+    🚩 Vale para cualquier mezcla de paleta: nubes, velos, ganzfeld, campos de puntos.
+
+290. ⚠ **Antes de hacer cirugía en un material grande, RECORRER la cadena desde `MP_EmissiveColor` hacia atrás y anotar los nombres.** Cuesta una llamada. Sin eso, identificar nodos "por el nombre que me parece que le tocó" termina reescribiendo la rama equivocada: así rompí el modo Turrell de `M_Ganzfeld_SC` sin darme cuenta, y el síntoma (`Softness` dejó de responder) apareció mucho después y en otro lado.

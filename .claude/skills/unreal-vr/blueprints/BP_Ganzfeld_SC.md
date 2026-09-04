@@ -81,3 +81,26 @@ Los tres usan **`ColorTop`, `ColorBottom` y el nuevo `ColorMid`** (2 o 3 colores
 
 ## ⚠ La variable que efectivamente no hace nada: `BreathAmount`
 Está conectada y empuja al material, pero **desde adentro de un cascarón uniforme no se percibe**: mover el radio hacia afuera y hacia adentro no cambia lo que ve el usuario, porque no hay referencia contra la cual medir el cambio. Si se quiere una respiración perceptible, tiene que modular **el color o el gradiente**, no la geometría.
+
+
+## 🔴🔴🔴 El modo FLUIDO: por qué salían líneas, y la construcción correcta
+Beltrán pasó una referencia (gradient-noise multicolor, tipo Freepik) y con eso se entendió el error de fondo.
+
+**Lo que yo hacía mal:** elegir el color con un **umbral sobre un solo ruido** — un `Step`, una rampa de tres paradas, una tienda. Da igual la forma: **todo umbral sobre un campo suave dibuja una línea de contorno.** El color del medio queda atado al cruce, y donde el ruido cruza rápido, esa banda se ve como una línea fina. Probé rampa, tienda y tienda normalizada; las tres son la misma función y las tres dan línea. En la referencia **no hay ningún umbral**.
+
+✅ **La construcción correcta: un campo de ruido INDEPENDIENTE por color, como PESO.**
+```
+w1 = Noise(p)            w2 = Noise(p + off2)        w3 = Noise(p + off3)
+color = (C1·w1 + C2·w2 + C3·w3) / (w1 + w2 + w3)
+```
+Los tres colores están presentes **en todos lados** en distinta proporción, y no hay ningún punto de corte. Nunca aparece una línea, con ninguna combinación de perillas.
+
+💡 **Y de regalo, resuelve el otro pedido: "que nunca se quemen a blanco".** Al dividir por la suma de los pesos, el resultado es una **combinación convexa** — matemáticamente no puede salirse del triángulo que forman los tres colores. **Es imposible que se vaya a blanco.**
+⚠ **Lo único que sí puede quemarlo es `Brightness > 1`**, que multiplica después. Estaba en **2,65** y por eso todo tendía al blanco. Con la mezcla convexa, `Brightness` tiene que quedarse **en 1 o menos**: sirve para bajar, nunca para subir.
+⚠ `outputMin` de los tres ruidos en **0,3** (no 0): si un peso se acerca a cero, la división lo amplifica y reaparecen filamentos.
+
+## 🔢 `Mode` es un ENTERO
+0 = Horizonte · 1 = Turrell · 2 = Fluido. La variable del BP es `int` y se convierte a float al empujarla al material (`* 1.0`, porque `Conv_IntToFloat` no existe como nodo del DSL).
+
+## ⚠ Cicatriz de proceso, para no repetirla
+Este material se enredó por **reusar nodos identificándolos por nombre** (`LinearInterpolate_5`, `_6`…) en vez de mapear la cadena antes de tocar. Reescribí sin querer los nodos del modo Turrell, y por eso `Softness` dejó de responder. **Antes de cirugía sobre un material grande: recorrer la cadena desde `MP_EmissiveColor` hacia atrás y anotar los nombres.** Cuesta una llamada.
