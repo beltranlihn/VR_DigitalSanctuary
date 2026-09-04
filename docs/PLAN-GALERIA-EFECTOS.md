@@ -270,6 +270,20 @@ Son ~12 instrucciones. Con `LightDir` girando por reloj, la sombra **barre** com
 
 # FASE 2 — La galería
 
+## ✅ CONSTRUIDA el 2026-09-04 — y NO en un nivel nuevo
+
+Beltrán la pidió antes de tiempo (*"ahora se me hace difícil porque están todas las cosas puestas en cualquier parte"*), y se armó **dentro de `/Game/TestMeshes`**, en `y = 100000`, en la carpeta de outliner `Galeria`.
+
+🔴 **Por qué no se hizo el nivel nuevo:** un nivel nuevo hay que amueblarlo (GameMode, PlayerStart, pawn) y `TestMeshes` ya arranca con el pawn VR posesionado y probado. Y ordenar lo que ya estaba habría significado **mover actores de Beltrán**, que es justo lo que no se hace: la fila se armó lejos, sin tocar nada de lo existente.
+
+**Seis estaciones** (haz · océano de nubes · niebla · Ganzfeld · campo de puntos · campo de líneas) cada 300 m. Detalle canónico en [`blueprints/BP_GalleryDirector_SC.md`](../.claude/skills/unreal-vr/blueprints/BP_GalleryDirector_SC.md). Verificado en PIE: el pawn se teletransporta solo a la estación 0, los botones viajan con él y las demás estaciones nacen ocultas. Falta apretar los botones en visor.
+
+**Para sumar una estación:** colocar el efecto, colocar un `BP_Anchor`, y agregar una fila a los tres arrays del actor `GAL_DIRECTOR` (`Anchors` / `Stations` / `Names`). No se toca el Blueprint.
+
+---
+
+### La propuesta original (se conserva por el razonamiento)
+
 **`L_EffectGallery`** (nivel nuevo en `Content/SoulCharger/Gallery/`). No es parte de la obra: es la herramienta para mirar.
 
 ## El diseño, decidido con Beltrán el 2026-09-04
