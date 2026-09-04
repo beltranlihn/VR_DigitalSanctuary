@@ -26,6 +26,16 @@ Son ~12 instrucciones y **cero luces**. La esfera lleva su propio material (`M_S
 
 ⚠ **La direccion de la luz se calcula DOS VECES, una en cada material** (misma formula yaw/pitch/spin). Es a proposito: asi el giro se anima **en el material**, se ve en el editor sin darle Play, y no hace falta un Tick que sincronice a los dos.
 
+## 🔴 La CUPULA — sin ella hay linea de horizonte, y eso mata lo eterio
+Pedido de Beltran apenas lo vio: *"armalo en un lugar completamente blanco, un lugar completamente abstracto; no quiero ver una linea de corte de horizonte"*.
+
+El problema es geometrico y obvio una vez dicho: **un plano termina**, y donde termina se ve el negro del vacio. Esa arista es una linea de horizonte, y una linea de horizonte **ancla la escena** — deja de ser un espacio abstracto y pasa a ser "un piso en una habitacion".
+
+✅ Un tercer componente **`Sky`**: el mismo `SM_GanzShell` con `M_VoidBack_SC` (unlit, two-sided, color plano), envolviendo todo. Con **`SkyColor` igual a `GroundColor`** el borde del suelo **desaparece**: los dos son colores planos unlit identicos, asi que la transicion no existe. Queda un blanco infinito donde la unica informacion es la esfera y su sombra.
+
+💡 **Es la receta para cualquier estacion "clara" de la obra**, no solo para esta: si el efecto vive sobre claro, necesita su propia cupula. Las estaciones oscuras no la necesitan porque el vacio ya es negro.
+⚠ `SkyRadius` 9.000 y `GroundSize` 16.000 por default: **el suelo tiene que ser mas grande que la cupula** en su plano, o se ve el borde del plano por dentro de la esfera.
+
 ## Perillas
 `A - Forma` (SphereRadius 70, SphereHeight 110, GroundSize 5000) · `B - Color` (GroundColor, SphereColor, AmbientFloor 0,45, Brightness) · `C - Sombra` (ShadowStrength 0,72, Penumbra 0,007, Hard 0,25, Falloff 0,00035) · `D - Luz` (LightYaw, **LightPitch 11**, SpinSpeed 5).
 
