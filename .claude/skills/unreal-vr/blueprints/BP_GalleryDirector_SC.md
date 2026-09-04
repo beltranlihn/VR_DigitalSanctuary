@@ -77,6 +77,9 @@ La causa esta en `BP_MenuButton`: **su propio `EventBeginPlay` termina con `SetA
 
 ⚠ **Trampa que costo tres intentos:** con el actor ya emparentado, escribir `relativeLocation` por `set_properties` **aplica X y Z pero NO Y** (se recalcula desde la posicion de mundo). La via que si funciona es **`ActorTools.set_actor_transform` con el transform de MUNDO**: el relativo sale bien solo.
 
+## Lo que el nivel de la galeria tiene que tener para que los botones anden
+`GAL_AudioHub` y `GAL_HapticHub` (instancias de `BP_AudioHub` y `BP_HapticHub`) estan colocadas en `x = -1200, y = 100000`. **No son decorado: sin ellas el boton no hace haptica ni suena, y no avisa** — ver la tabla de requisitos en [`BP_MenuButton.md`](BP_MenuButton.md). Y los dos botones tienen **`Ring.bVisible = false`** porque el aro es el indicador del modo timbre y estos son de gatillo.
+
 ## Limitaciones conocidas
 - **El rig de botones no rota con el anchor.** Los anchors de la galeria estan todos en yaw 0. Si alguna estacion necesitara otra orientacion, el pawn si rota (usa el transform entero del anchor) pero el offset de los botones esta pensado para yaw 0.
 - El rotulo dice **"Text"** en el editor: los nombres se aplican en `GoTo`, o sea recien al dar Play.

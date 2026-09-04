@@ -19,6 +19,22 @@ El menú es la **primera** interacción. Si arrancara con beam, se enseñaría e
 
 💡 **`HoldTime` hace que el mismo Blueprint sirva para el timbre.** En **0** confirma al apretar el gatillo (los botones del menú). En **> 0** hay que sostener — que es lo que Beltrán definió para el timbre: *"el timbre que sea con esperar, los otros botones con hover más trigger"*.
 
+## 🔴🔴🔴 REQUISITOS DE NIVEL — sin esto el botón NO falla: se CALLA
+Descubierto el 2026-09-04 llevando el botón a `/Game/TestMeshes` para la galería. Andaba a medias y nadie sabía por qué.
+
+| Necesita en el nivel | Para qué | Qué pasa si no está |
+|---|---|---|
+| **`BP_AudioHub`** (`Core/Audio/`) | `CacheBtnFeedback` lo busca con `GetActorOfClass` y lo guarda en `AudioRef` | **Sin sonido de hover ni de select.** Silencio, cero warnings |
+| **`BP_HapticHub`** (`Core/Audio/`) | idem, en `HapticRef` | **Sin háptica al entrar ni al confirmar** |
+| **Un pawn que sea `BP_VRPawn_SC`** | `CacheHands` castea `GetPlayerPawn(0)` y saca `MotionControllerLeft/RightGrip` | `HandL`/`HandR` nulos → **el botón nunca detecta la mano**, no hoverea nunca |
+| **`IMC_MenuTrigger` + `IA_Shoot_*`** | el gatillo | no confirma |
+
+🚩 **Por qué se calla:** `HoverIn`/`HoverOut` envuelven el sonido en `Utilities|IsValid` y la háptica en `HoverHaptic`. Si la referencia es nula, **la rama simplemente no corre**. Es la forma correcta de no crashear y la peor forma de avisar. Al llevar este BP a un nivel nuevo, **lo primero es verificar en PIE que `AudioRef`, `HapticRef`, `HandL` y `HandR` no sean nulos** — cuatro `get_properties` y se acabó el misterio.
+
+## 🔵 El componente `Ring` es SOLO para el modo timbre
+`Ring` es un plano de 34 cm con `M_SoulRing`, 1 cm detrás del plato, y `RingProgress` le empuja `Progress = HoldT / HoldTime`: **es el indicador de "seguí sosteniendo"**. 🔴 **En un botón de gatillo (`HoldTime = 0`) no tiene nada que mostrar y hay que apagarlo** (`Ring.bVisible = false` en la instancia; no se toca el BP, que sigue sirviendo para el timbre).
+Visto de costado el aro se lee como **una línea azul recta saliendo por detrás del botón** — así lo reportó Beltrán en la galería, y parecía un láser de la nada. Son dos tipos de botón distintos compartiendo un Blueprint: el de gatillo apaga el aro, el timbre lo usa.
+
 ## Componentes
 | Componente | Qué es |
 |---|---|
