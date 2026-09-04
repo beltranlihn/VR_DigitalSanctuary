@@ -1987,3 +1987,13 @@ Mostró `Class|BPSensorSoul|DrawPress` y `Spline|AddPoint` para llamadas locales
 284. 🔴 **`EdgeFadeDist` del plano-nube es una distancia ABSOLUTA, así que hay que subirla cuando se escala el plano — si no, el rectángulo se ve.** Beltrán: *"todavía a veces se ven geometrías o cosas cuadradas en la nube, es muy de repente"*. El plano estaba en escala 65 (6.500 cm) con `EdgeFadeDist` en **150** — un 2 % del ancho, o sea un corte a cuchillo. Al girar la cámara el borde entra en cuadro de golpe y se lee como una cuña o una diagonal recta.
     ✅ **Regla: `EdgeFadeDist` ≈ 1/4 del lado del plano.** Con 6.500 cm de lado, ~1.500-2.500. Verificado A/B: con 150 se ven cuñas rectas, con 2.500 la nube se lee continua desde cualquier ángulo.
     🚩 Es el mismo patrón de error que el `WaveScale` de la losa: **un parámetro pensado en centímetros deja de tener sentido cuando el actor se escala ×65**. Ante "se ve un borde recto donde no debería", mirar primero qué parámetros absolutos quedaron chicos frente a la escala del actor.
+
+285. 🔴🔴🔴 **`WorldPosition` en el PIXEL SHADER viene ya DESPLAZADA por el WPO. Si alimentás un ruido con eso, el ruido "nada" sobre la ola — y el `VertexInterpolator` NO es la solución, es el siguiente bug.**
+    Historia completa, en dos actos, sobre `M_CloudPlane_SC`:
+    - **Acto 1** (mañana): Beltrán ve *"píxeles o recortes"* en la nube. Causa: el ruido del color se sampleaba en la posición POST-WPO. Lo resolví metiendo un **`VertexInterpolator`** entre el `Noise` y el color → el ruido pasó a evaluarse por vértice. El artefacto se fue.
+    - **Acto 2** (tarde): *"a veces se ve una malla cuadrada que sigue la ondulación, cuadrados grandes, no píxeles"*. Eso **era mi propio arreglo**: un valor por vértice se interpola bilinealmente por quad, y con el plano escalado ×65 cada quad mide ~50 cm en pantalla. Cambié un artefacto por otro.
+    ✅ **El arreglo real: darle al ruido una coordenada SIN DESPLAZAR, y evaluarlo por píxel.** La UV no la toca el WPO, así que:
+    `posSinDesplazar = ObjectPositionWS + append((TexCoord − 0,5) × TamañoDelPlano, 0)`
+    con el tamaño empujado desde el Construction Script (`GetActorScale3D × 100`, porque la malla mide 100 uu). Sin interpolador, sin nadar, sin cuadros.
+    🚩 **La familia entera de este error:** todo lo que en el PS dependa de `WorldPosition` está viendo la geometría deformada. Si el efecto tiene que ser solidario con la malla SIN deformar, la coordenada tiene que venir de la **UV** (o de `ObjectPositionWS`), nunca de la posición de mundo.
+    ⚠ Efecto lateral esperado: la nube queda **más suave**, porque antes la propia ola le agregaba detalle falso al lookup. `NoiseScale` / `Erode` son las perillas para recuperar el grano.
