@@ -41,8 +41,15 @@ El problema es geometrico y obvio una vez dicho: **un plano termina**, y donde t
 
 💡 **`LightPitch` es la perilla que decide todo el caracter.** Alto (30°+) da una sombra corta y pegada al objeto; **bajo (10-15°) da la sombra larga del video**. Y `Falloff` decide hasta donde llega antes de disolverse: bajarlo alarga, subirlo la corta.
 
+## 🔜 VARIOS CASTERS — la mitad hecha, y por que quedo a medias
+Observacion de Beltran, y es la correcta: *"no seria como una version adaptada de los haces de luz? quizas ahi podemos poner varios"*. **Es exactamente la misma arquitectura** que ya existe para que el haz bañe meshes — `MPC_LightShaft` + `M_BeamReceiver_SC` — y la MPC hasta usa el prefijo **`Beam0`**, o sea nacio pensada para varias ranuras.
+
+✅ **Hecho:** la MPC gano `Caster1Pos/Radius` y `Caster2Pos/Radius`, y **`M_FakeShadow_SC` ya las lee**: calcula la sombra de las dos ranuras y la combina con la local por `max` (las sombras no se suman, se solapan). Una ranura con radio 0 no aporta nada. **Total: 3 sombras.**
+
+⬜ **Falta:** que un BP publique su posicion en su ranura. El obstaculo es concreto y esta identificado: **`Rendering|Material|SetVectorParameterValue` existe DOS veces** — la version de `MaterialParameterCollection` y la de `MaterialInstanceDynamic` — y `write_graph_dsl` resolvio a la de MID, que exige un target y no compila. `BP_LightShaft_SC:PushMPC` **usa la buena**, asi que la salida es cirugia con `create_node` pasando **`declaring_class`** para desambiguar, copiando los pines de ese grafo. Son ~10 nodos.
+
 ## Limite honesto
-**Una esfera, una sombra.** El costo es lineal por caster, asi que esto **no es un sistema de sombras**: es *una* sombra bien hecha. Si alguna vez hace falta que varios objetos proyecten, ahi si conviene una Material Parameter Collection con la lista de casters — y ahi el costo empieza a importar.
+Hoy, **una esfera, una sombra** (mas dos ranuras listas del lado del material). El costo es lineal por caster, asi que esto **no es un sistema de sombras**: es *una* sombra bien hecha. Si alguna vez hace falta que varios objetos proyecten, ahi si conviene una Material Parameter Collection con la lista de casters — y ahi el costo empieza a importar.
 
 ## TODO
 - [ ] Juicio de Beltran y prueba en visor.

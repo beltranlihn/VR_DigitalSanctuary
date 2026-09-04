@@ -2029,3 +2029,7 @@ Mostró `Class|BPSensorSoul|DrawPress` y `Spline|AddPoint` para llamadas locales
     🚩 Vale para cualquier mezcla de paleta: nubes, velos, ganzfeld, campos de puntos.
 
 290. ⚠ **Antes de hacer cirugía en un material grande, RECORRER la cadena desde `MP_EmissiveColor` hacia atrás y anotar los nombres.** Cuesta una llamada. Sin eso, identificar nodos "por el nombre que me parece que le tocó" termina reescribiendo la rama equivocada: así rompí el modo Turrell de `M_Ganzfeld_SC` sin darme cuenta, y el síntoma (`Softness` dejó de responder) apareció mucho después y en otro lado.
+
+291. ⚠ **`Rendering|Material|SetVectorParameterValue` / `SetScalarParameterValue` existen DOS VECES**: la versión de `MaterialParameterCollection` (la que se usa para las MPC, del `KismetMaterialLibrary`) y la de `MaterialInstanceDynamic`. `write_graph_dsl` puede resolver a la equivocada, y el error aparece recién al compilar: *"This blueprint (self) is not a MaterialInstanceDynamic, therefore 'Target' must have a connection"*.
+    ✅ La salida es `create_node` pasando **`declaring_class`** para desambiguar. 📌 `BP_LightShaft_SC:PushMPC` tiene la versión buena ya cableada — copiar de ahí en vez de pelear con el DSL.
+    🚩 Es la §"colisión de nombres de función" otra vez, ahora entre dos librerías del motor: **el mismo `type_id` no garantiza la misma función.**
