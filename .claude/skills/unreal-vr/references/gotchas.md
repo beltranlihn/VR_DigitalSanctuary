@@ -1967,3 +1967,8 @@ Mostró `Class|BPSensorSoul|DrawPress` y `Spline|AddPoint` para llamadas locales
     ⚠ **Dos costos que hay que pagar y conviene saber de antemano:**
     - Los puntos **se achican** (la intersección de una bola 3D con una superficie es menor que un disco 2D del mismo radio): en `M_VoidDots_SC` hubo que subir `DotSize` 0,098 → 0,16 y `Density` 0,266 → 0,45.
     - 🔴 **La malla tiene que ser densa.** Con el `Sphere` del motor aparecieron **facetas triangulares y anillos concéntricos**: la grilla 3D revela la teselación. Con `SM_GanzShell` (96×48, 9k tris) desaparecen.
+
+280. 🔴🔴 **En un patrón de celdas, un "punto" que se pasa de su celda NO se continúa: se corta con un borde recto.** La celda vecina tiene otro hash y otro jitter, así que dibuja otra cosa. El síntoma se lee como geometría rota — Beltrán lo reportó como *"los puntos cortan en los vértices de la geometría"* — pero no tiene nada que ver con la malla: es el borde de la **celda**, y solo les pasa a los puntos grandes.
+    La condición es aritmética: **`JitterAmount/2 + RadioDelPunto ≤ 0,5`** (celda = 1). Y si el punto late, hay que usar su radio en el **pico** del pulso, no el de reposo.
+    ✅ **No se arregla bajando números a ojo: se acota en el material.** `jitterEfectivo = max(0, min(JitterAmount, (0,5 − Rmax) × 2))`, con `Rmax` incluyendo el pico del pulso. Así el parámetro pasa a ser un *máximo deseado* y nunca hay cortes con ninguna combinación de perillas.
+    ⚠ El precio: puntos más grandes → menos jitter disponible → **más se nota la retícula**. Es el trade-off real y conviene elegirlo mirando (medido en `M_VoidDots_SC`: DotSize 0,16 deja jitter 0,16 y se insinúa la grilla; 0,11 deja 0,43 y se lee como estrellas).

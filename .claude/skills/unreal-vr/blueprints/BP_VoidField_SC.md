@@ -22,6 +22,20 @@ El documento maestro ya lo habia decidido — *"la profundidad la van a dar las 
 
 Escala del componente = `Radio / 50`, igual que antes.
 
+## 🔴 El punto NUNCA puede salirse de su celda — el jitter se acota solo
+Sintoma reportado por Beltran: *"los puntos cortan en los vertices de la geometria"*. **No eran los vertices**: eran los bordes de la **celda**. Un punto grande y muy jitereado se pasaba de su casilla, y el pedazo que asomaba pertenece a la celda vecina — que tiene otro hash y otro jitter — asi que no continua: **se corta con un borde recto**. Por eso se veian cuadrados y medias lunas, y solo en los puntos grandes.
+
+La cuenta es simple: el punto llega hasta `DotSize × 1,8` de su centro, el centro puede estar a `JitterAmount / 2` del centro de celda, y la celda mide 1 → **`JitterAmount/2 + DotSize×1,8 ≤ 0,5`**. Con el pulso el radio crece hasta `×(1 + PulseAmount)`, asi que hay que contarlo tambien.
+
+✅ El material lo resuelve solo: calcula el **radio maximo posible** (incluyendo el pico del pulso) y acota el jitter a lo que sobra:
+```
+Rmax = DotSize × 1,8 × (1 + PulseAmount)
+jitterEfectivo = max(0, min(JitterAmount, (0,5 − Rmax) × 2))
+```
+Asi `JitterAmount` es un **maximo deseado**, no una promesa: si los puntos crecen, el jitter cede. Nunca hay cortes, con cualquier combinacion de perillas.
+
+⚠ **El precio, y el criterio para elegir:** cuanto mas grandes los puntos, menos jitter les queda y **mas se nota la retícula**. Medido: `DotSize` 0,16 → jitter efectivo 0,16 (se insinua la grilla); `DotSize` **0,11 → jitter efectivo 0,43** (se lee como estrellas). El default quedo en **0,11** con `Density` 0,5.
+
 ## El material `M_VoidDots_SC` — unlit · **aditivo** · two-sided
 Aditivo a proposito: sobre negro suma sin problemas de orden, y las tres capas se acumulan solas.
 
