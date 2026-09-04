@@ -2,6 +2,7 @@
 
 > Creado 2026-09-04, pedido de Beltran: *"Puedes armar el sistema ordenado en el world, donde yo pueda ir avanzando entre los distintos efectos? Ahora se me hace dificil porque estan todas las cosas puestas en cualquier parte."*
 > **Estado: 🟢 arranque verificado en PIE.** Medido con la galeria en la estacion 0: el pawn en su anchor, `GAL_0_LightShaft` VISIBLE y los otros nueve actores (incluidos los 4 cubos de la niebla) OCULTOS. ⬜ Falta apretar los botones — eso necesita manos, o sea visor / PIE con mandos.
+> 🔴 **Si los botones no se ven, leer la seccion "por que se arman en el primer Tick"**: es el modo de fallo conocido de este BP.
 
 ## Donde vive: en `/Game/TestMeshes`, NO en un nivel nuevo
 El plan decia "nivel nuevo `L_EffectGallery`". Se hizo **en el nivel de pruebas que ya se usa**, por dos razones:
@@ -37,16 +38,26 @@ Tres arrays instance-editable en `GAL_DIRECTOR` (categoria *A - Galeria*), en el
 
 ⚠ **Un actor sin el tag `GALSTATION` no se apaga nunca** — es la unica forma de que algo quede visible en todas las estaciones (util para un piso comun, si alguna vez hace falta).
 
-- **`BeginPlay`** → `IsValid(BtnNext)` → **`Boot`** (marca listo, **`GalCollect`** recoge por tag todos los actores de estacion, y llama `GoTo(0)`). Si los botones no estan asignados, imprime *"GALERIA: los botones no estan asignados en la instancia"* en vez de fallar en silencio.
+- **`BeginPlay`** → `IsValid(BtnNext)` → **`Boot`** (marca listo, **`GalCollect`** recoge por tag todos los actores de estacion, y llama `GoTo(StartAt)`). **`StartAt`** (cat. *A - Galeria*, instance-editable, default 0) es la perilla para **arrancar directo en una estacion** mientras se afina — el equivalente al `DebugStartRoom` del director de la obra. Dejarla en 0. Si los botones no estan asignados, imprime *"GALERIA: los botones no estan asignados en la instancia"* en vez de fallar en silencio.
 - **`GoTo(Idx)`** — guarda el indice, **`GalHideAll`** esconde TODO lo tagueado `GALSTATION`, **`GalShow(Idx)`** prende todo lo que tenga el tag de esa estacion, y mueve **al director Y al pawn** al transform del anchor (`bTeleport = true`). Despues pone el nombre en el rotulo y llama `ReArm`.
 - **`GalStep(Dir)`** — suma y **envuelve con modulo**, asi la ultima vuelve a la primera.
-- **`Tick`** → `Poll`: mira el `bDone` de cada boton. **No usa el dispatcher `OnPressed`.**
+- **`Tick`** → `Poll`: el **primer** Tick arma los botones (ver abajo); de ahi en mas `GalPoll` mira el `bDone` de cada uno. **No usa el dispatcher `OnPressed`.**
+
+### 🔴🔴 Por que los botones se arman en el primer TICK y no en BeginPlay
+Sintoma reportado por Beltran: *"puse play, aparezco en el lugar 1, pero no veo los botones"*. Medido en PIE: `bArmed = true` pero **`bHidden = true`**.
+
+La causa esta en `BP_MenuButton`: **su propio `EventBeginPlay` termina con `SetActorHiddenInGame true`** — se esconde a proposito, porque en la obra el boton no existe hasta que la intro lo arma. El `ReArm` del director corria dentro del BeginPlay del director, o sea **antes** del BeginPlay del boton, y el boton se volvia a esconder despues.
+
+✅ La solucion: `Poll` hace un **one-shot en el primer Tick** (`bArmedOnce`) que llama a `ReArm`. Para entonces todos los `BeginPlay` ya corrieron. No depende de un `Delay` ni del orden de inicializacion entre actores.
+🚩 **La forma general de la trampa:** *cualquier* cosa que el director le haga a otro actor desde su `BeginPlay` puede ser pisada por el `BeginPlay` de ese otro actor. Si el efecto tiene que sobrevivir, va en el primer Tick.
 
 ### Por que se poleé el boton en vez de bindear su dispatcher
 `Default|AssignOnPressed` existe, pero el nodo **auto-genera un evento custom** cuyo cuerpo no se puede escribir en la misma pasada de `write_graph_dsl`. Leer `bDone` una vez por frame es una comparacion de bool, cuesta nada, y **se auto-recupera**: si algo queda a medias, el siguiente frame lo corrige. `ReArm` pone `bDone = false` y llama `Arm` en los dos botones — hace falta porque **`BP_MenuButton` se desarma solo al dispararse** y si no, anda una sola vez.
 
 ### Los botones viajan solos
 `GAL_BTN_NEXT` y `GAL_BTN_BACK` estan **emparentados al director** (spawneados con el `parent` de `add_to_scene_from_asset`), a 48 cm adelante, ±24 cm a los lados y 100 cm de alto, con **yaw 180** para que el texto mire al usuario. Al mover el director, los botones y el rotulo van con el. **Cero codigo de posicionamiento.**
+
+✅ **Verificado en PIE que viajan** (2026-09-04, con `StartAt = 3`): pawn en `x = 90.000`, botones en `x = 90.048` con `y = ±24` — se movieron los 90 metros con el director, visibles y armados, y con solo `GAL_3_Ganzfeld` prendido. El test anterior no probaba nada porque la estacion 0 **es** el lugar donde estaba puesto el director.
 
 ⚠ **Trampa que costo tres intentos:** con el actor ya emparentado, escribir `relativeLocation` por `set_properties` **aplica X y Z pero NO Y** (se recalcula desde la posicion de mundo). La via que si funciona es **`ActorTools.set_actor_transform` con el transform de MUNDO**: el relativo sale bien solo.
 
