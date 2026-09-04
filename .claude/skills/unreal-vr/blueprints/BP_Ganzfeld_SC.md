@@ -60,3 +60,24 @@ ShellRadius/Height 300–8000 · Brightness 0–3 · GradientBias 0,2–4 · Dit
 - [ ] Juicio de Beltran y prueba en visor. **El riesgo real es el fill**: es una superficie que ocupa la pantalla entera. Al ser opaca deberia ser barata, pero hay que medirlo.
 - [ ] Ver si el banding aguanta en el visor. En el editor hay tonemapper y en el APK no (`r.MobileHDR=False`), asi que la cuantizacion final es distinta — puede hacer falta subir `DitherAmount`.
 - [ ] Probar si la esfera es la forma correcta o conviene un domo con paredes mas rectas. La variable `Mesh` permite cambiarla sin tocar nada mas.
+
+
+## 🎨 TRES MODOS (2026-09-04) — porque un degradado fijo se lee como "una esfera con textura"
+Beltrán, mirándolo en la galería: *"se nota demasiado que estoy en una esfera con una textura; debe sentirse como un espacio etéreo"*. El degradado por altura, por limpio que sea, **delata la geometría**: el ojo encuentra el eje y el horizonte, y desde ahí lee la esfera.
+
+La perilla **`Mode`** (cat. *F - Modo*) elige entre tres campos, todos calculados sobre `normalize(LocalPosition)` — o sea sobre la DIRECCIÓN, nunca sobre UV:
+
+| `Mode` | Qué es | Perillas propias |
+|---|---|---|
+| **0 · Horizonte** | lo que había: degradado por altura + banda de horizonte | `GradientBias`, `HorizonPos/Width/Glow` |
+| **1 · Turrell** | resplandor **radial** desde una dirección: centro brillante que se abre hacia afuera en 3 colores. Sin eje vertical y sin horizonte, que es lo que hacía obvia la esfera | `CenterYaw`, `CenterPitch`, `InnerStop`, `OuterStop`, `Softness` |
+| **2 · Fluido** | dos ruidos analíticos que se mueven lento y **mezclan los tres colores** como una tinta en agua. Es el que más borra la geometría: no hay ninguna dirección privilegiada | `FlowScale`, `FlowSpeed`, `FlowMix` |
+
+Los tres usan **`ColorTop`, `ColorBottom` y el nuevo `ColorMid`** (2 o 3 colores según el modo). La mezcla entre modos son dos `Step` sobre `Mode`, así que se puede animar el cambio si algún día hace falta.
+
+💡 **`VeilAmount` / `VeilScale` (cat. *C - Gradiente*) actúan en LOS TRES modos**: un ruido muy suave y muy lento que rompe la uniformidad perfecta. Es lo que saca la sensación de "textura pegada a una esfera" incluso en el modo horizonte. En 0 se apaga.
+
+⚠ **Ruido analítico (`GradientALU`), no de textura** — acá se puede porque no alimenta ningún WPO. En la nube, ese mismo ruido de textura era el que hacía terrazas al desplazar vértices (ver `gotchas` §287-288).
+
+## ⚠ La variable que efectivamente no hace nada: `BreathAmount`
+Está conectada y empuja al material, pero **desde adentro de un cascarón uniforme no se percibe**: mover el radio hacia afuera y hacia adentro no cambia lo que ve el usuario, porque no hay referencia contra la cual medir el cambio. Si se quiere una respiración perceptible, tiene que modular **el color o el gradiente**, no la geometría.
