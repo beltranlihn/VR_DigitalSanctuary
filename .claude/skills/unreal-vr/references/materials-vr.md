@@ -299,3 +299,25 @@ No es un problema de VR sino de composición, pero aparece siempre con estos deg
 ⚠ Efecto lateral que hay que avisarle al autor: **el `Brightness` deja de hacer efecto** pasado ese punto. La intensidad se lleva con los colores.
 
 ⚠ **Y encima de todo esto sigue el piso de 13/255 del panel** (arriba): el extremo oscuro de cualquier degradado **se aplasta a negro plano** en el visor aunque en el monitor se vea perfecto. Autorar el color exterior más arriba de lo que pide el ojo en el editor.
+
+---
+
+## 🔎 Revisión de Content Examples 5.8 (2026-09-04) — veredicto: NO hay nada que migrar
+
+Beltrán abrió el proyecto Content Examples (`Misc/ContentExamples 5.8`) para ver si había técnicas que nos abrieran posibilidades. Se revisaron los 10 mapas de `Maps/Material`, `Math_Hall` y los 4 de `Maps/VFX` (484 materiales en total). **Conclusión: lo valioso son NODOS, no assets** — ya están en el motor, no hay nada que traer, y migrar arrastraría dependencias (la misma regla que aplica a `Recursos/`).
+
+### Lo que SÍ vale la pena adoptar (tres nodos)
+- 🔴 **`SphereMask`** (pines A, B, Radius, **Hardness**) — caída esférica suave entre dos posiciones de mundo, en UN nodo. Reemplaza la cadena `Distance → Subtract → Divide → Saturate` que venimos escribiendo a mano, y regala la perilla de dureza. Es el primitivo limpio para: superficies que reaccionan a la mano/cabeza, el orbe con volumen falso, y afinar las puntas de una tira. Visto en `M_MathHall_Mats_SphereMask` y usado también en `PlexusLine_Mat`.
+- **`ObjectPositionWS` / `ActorPositionWS` + `Normalize(CameraPositionWS − ObjectPositionWS)`** (`M_CameraVector_to_Object`) — cómo orientar un plano hacia la cámara **dentro del material**, sin Tick de Blueprint. Útil para el campo de puntos del exterior y para orbes.
+- **`Rotator → Panner`** (`M_Scanlines`) — la receta mínima de la máscara que viaja por una superficie. Nosotros la haríamos sin textura.
+
+### Lo que valida lo que ya hacemos (sin acción)
+- `M_MathHall_Mats_PlayerDistance` es solo `Distance(VectorParameter, VectorParameter)` con un BP empujando las posiciones. **Nuestro `MPC_LightShaft` es estrictamente mejor**: una colección que leen todos los materiales, sin push por-MID.
+- `M_MathHall_Mats_ExponentialDensity_01` usa la función de densidad exponencial del motor con la misma fórmula que implementamos en `M_FogSlab_SC`. `HeightLerp` es nuestra caída por altura.
+- `PlexusLine_Mat` (la estética de "luz dibujada con líneas") es material trivial: `ParticleColor × DepthFade` + `SphereMask` para afinar las puntas. **El look es barato; lo caro es su implementación** — el sistema Plexus corre sobre `NeighborGrid3D` con simulación GPU por etapas, inviable en Quest. Nuestra versión sería una malla de líneas estática con WPO.
+
+### Lo que hay que ignorar (la mayoría)
+POM (10 materiales), subsurface/skin, Substrate, decals, `M_Heat_Distortion` (refracción), post-process blendables, motion blur radial, PivotPainter 1 y 2 (pipeline de texturas propio + lit) y wireframe (soporte dudoso en móvil). Todo eso vive del lado deferred/PC.
+
+### Niagara
+De los 4 mapas de VFX, **Niagara Fluids (2D/3D Gas y Liquid) queda descartado**: simulación GPU de escritorio. Los sistemas `*_Lightweight` no son lo que sugiere el nombre para nuestro caso — se inspeccionó `NS_FollowActor_Lightweight` y es un emisor CPU **sin renderer** (`rendererClasses: []`), o sea una técnica para calcular datos baratos que alimentan otra cosa, no un campo de partículas barato. Para el campo del exterior siguen valiendo `NS_VoidDust` (ya funciona) o la propuesta de cascarones con puntos en el material.

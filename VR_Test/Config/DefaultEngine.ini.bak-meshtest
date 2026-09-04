@@ -1,0 +1,298 @@
+﻿[/Script/EngineSettings.GameMapsSettings]
+GlobalDefaultGameMode=/Game/XRFramework/Blueprints/BP_XRGameMode.BP_XRGameMode_C
+; El GameInstance sobrevive a los cambios de nivel: es donde vive la eleccion
+; de Proto Soul del usuario (seccion 9.3). No cambiar sin avisar: es config compartida.
+GameInstanceClass=/Game/SoulCharger/Core/Flow/BP_SoulState.BP_SoulState_C
+EditorStartupMap=/Game/SoulCharger/MapsV2/L_SoulCharger.L_SoulCharger
+GameDefaultMap=/Game/SoulCharger/MapsV2/L_SoulCharger.L_SoulCharger
+
+[/Script/Engine.RendererSettings]
+r.ForwardShading=True
+r.MobileHDR=False
+vr.MobileMultiView=True
+vr.InstancedStereo=True
+r.DefaultFeature.AutoExposure=False
+r.DefaultFeature.AmbientOcclusion=False
+r.DefaultFeature.AmbientOcclusionStaticFraction=False
+r.DefaultFeature.MotionBlur=False
+r.Mobile.UseHWsRGBEncoding=True
+
+r.Shadow.Virtual.Enable=0
+
+r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange=True
+r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange=True
+r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange=True
+
+r.DefaultFeature.LocalExposure.HighlightContrastScale=0.8
+r.DefaultFeature.LocalExposure.HighlightContrastScale=0.8
+r.DefaultFeature.LocalExposure.HighlightContrastScale=0.8
+
+r.DefaultFeature.LocalExposure.ShadowContrastScale=0.8
+r.DefaultFeature.LocalExposure.ShadowContrastScale=0.8
+r.DefaultFeature.LocalExposure.ShadowContrastScale=0.8
+
+r.GenerateMeshDistanceFields=False
+
+r.DynamicGlobalIlluminationMethod=0
+
+r.ReflectionMethod=0
+r.Mobile.AntiAliasing=3
+r.AntiAliasingMethod=3
+r.AllowStaticLighting=True
+r.Mobile.PropagateAlpha=True
+r.Mobile.ShadingPath=0
+; 🔴 2026-08-21: 'r.MobileMSAA' NO EXISTE. El log del visor lo cantaba:
+;   "LogConfig: CVar [[r.MobileMSAA:4]] deferred - dummy variable created"
+; ('dummy variable created' = el cvar no esta registrado; la linea no hacia NADA).
+; En todo Engine/Source 'MobileMSAA' solo aparece como nombre de variables C++ internas.
+; El cvar REAL del sample count es 'r.MSAACount' (SceneTextures.cpp:48, default 4), leido por
+; GetDefaultMSAACount() en SceneUtils.cpp:184. Nos salvo que el default ya era 4.
+; Se deja explicito: es el project setting "MSAA Sample Count" (RendererSettings.h:869).
+r.MSAACount=4
+
+; Multi-pass mobile deferred does not currently support mobile multi-view
+r.Mobile.AllowFramebufferFetch=1
+
+r.SkinCache.CompileShaders=True
+
+r.RayTracing=False
+
+r.RayTracing.RayTracingProxies.ProjectEnabled=False
+
+r.Substrate=False
+
+r.Substrate.ProjectGBufferFormat=0
+
+[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]
+; Calibracion: guarda SaveGames/logs en /sdcard/Android/data/<pkg>/files/ (accesible por USB, sin permisos, persiste tras apagar). Empaquetar Development.
+bUseExternalFilesDir=True
+bBuildForES31=False
+ExtraApplicationSettings=<meta-data android:name="com.oculus.supportedDevices" android:value="quest2|questpro|quest3|quest3s" />\n<uses-native-library android:name="libopenxr.google.so" android:required="false" />
+bPackageForMetaQuest=True
+bPackageForOpenXRImmersive=True
+MinSDKVersion=32
+TargetSDKVersion=32
+; Soul Charger con identidad propia (2026-08-26): paquete y nombre propios para
+; convivir en la Quest con otros builds de VR_Test sin pisarse.
+PackageName=com.almadigital.soulcharger
+ApplicationDisplayName=Soul Charger
+
+[/Script/WindowsTargetPlatform.WindowsTargetSettings]
+DefaultGraphicsRHI=DefaultGraphicsRHI_DX12
+DefaultGraphicsRHI=DefaultGraphicsRHI_Default
+-D3D12TargetedShaderFormats=PCD3D_SM5
++D3D12TargetedShaderFormats=PCD3D_SM6
+-D3D11TargetedShaderFormats=PCD3D_SM5
++D3D11TargetedShaderFormats=PCD3D_SM5
+Compiler=Default
+AudioSampleRate=48000
+AudioCallbackBufferFrameSize=1024
+AudioNumBuffersToEnqueue=1
+AudioMaxChannels=0
+AudioNumSourceWorkers=4
+SpatializationPlugin=
+SourceDataOverridePlugin=
+ReverbPlugin=
+OcclusionPlugin=
+CompressionOverrides=(bOverrideCompressionTimes=False,DurationThreshold=5.000000,MaxNumRandomBranches=0,SoundCueQualityIndex=0)
+CacheSizeKB=65536
+MaxChunkSizeOverrideKB=0
+bResampleForDevice=False
+MaxSampleRate=48000.000000
+HighSampleRate=32000.000000
+MedSampleRate=24000.000000
+LowSampleRate=12000.000000
+MinSampleRate=8000.000000
+CompressionQualityModifier=1.000000
+AutoStreamingThreshold=0.000000
+SoundCueCookQualityIndex=-1
+
+[/Script/NavigationSystem.NavigationSystemV1]
+bAllowClientSideNavigation=True
+
+[/Script/LinuxTargetPlatform.LinuxTargetSettings]
+-TargetedRHIs=SF_VULKAN_SM5
++TargetedRHIs=SF_VULKAN_SM6
+
+[/Script/Engine.CollisionProfile]
+-Profiles=(Name="NoCollision",CollisionEnabled=NoCollision,ObjectTypeName="WorldStatic",CustomResponses=((Channel="Visibility",Response=ECR_Ignore),(Channel="Camera",Response=ECR_Ignore)),HelpMessage="No collision",bCanModify=False)
+-Profiles=(Name="BlockAll",CollisionEnabled=QueryAndPhysics,ObjectTypeName="WorldStatic",CustomResponses=,HelpMessage="WorldStatic object that blocks all actors by default. All new custom channels will use its own default response. ",bCanModify=False)
+-Profiles=(Name="OverlapAll",CollisionEnabled=QueryOnly,ObjectTypeName="WorldStatic",CustomResponses=((Channel="WorldStatic",Response=ECR_Overlap),(Channel="Pawn",Response=ECR_Overlap),(Channel="Visibility",Response=ECR_Overlap),(Channel="WorldDynamic",Response=ECR_Overlap),(Channel="Camera",Response=ECR_Overlap),(Channel="PhysicsBody",Response=ECR_Overlap),(Channel="Vehicle",Response=ECR_Overlap),(Channel="Destructible",Response=ECR_Overlap)),HelpMessage="WorldStatic object that overlaps all actors by default. All new custom channels will use its own default response. ",bCanModify=False)
+-Profiles=(Name="BlockAllDynamic",CollisionEnabled=QueryAndPhysics,ObjectTypeName="WorldDynamic",CustomResponses=,HelpMessage="WorldDynamic object that blocks all actors by default. All new custom channels will use its own default response. ",bCanModify=False)
+-Profiles=(Name="OverlapAllDynamic",CollisionEnabled=QueryOnly,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="WorldStatic",Response=ECR_Overlap),(Channel="Pawn",Response=ECR_Overlap),(Channel="Visibility",Response=ECR_Overlap),(Channel="WorldDynamic",Response=ECR_Overlap),(Channel="Camera",Response=ECR_Overlap),(Channel="PhysicsBody",Response=ECR_Overlap),(Channel="Vehicle",Response=ECR_Overlap),(Channel="Destructible",Response=ECR_Overlap)),HelpMessage="WorldDynamic object that overlaps all actors by default. All new custom channels will use its own default response. ",bCanModify=False)
+-Profiles=(Name="IgnoreOnlyPawn",CollisionEnabled=QueryOnly,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="Pawn",Response=ECR_Ignore),(Channel="Vehicle",Response=ECR_Ignore)),HelpMessage="WorldDynamic object that ignores Pawn and Vehicle. All other channels will be set to default.",bCanModify=False)
+-Profiles=(Name="OverlapOnlyPawn",CollisionEnabled=QueryOnly,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="Pawn",Response=ECR_Overlap),(Channel="Vehicle",Response=ECR_Overlap),(Channel="Camera",Response=ECR_Ignore)),HelpMessage="WorldDynamic object that overlaps Pawn, Camera, and Vehicle. All other channels will be set to default. ",bCanModify=False)
+-Profiles=(Name="Pawn",CollisionEnabled=QueryAndPhysics,ObjectTypeName="Pawn",CustomResponses=((Channel="Visibility",Response=ECR_Ignore)),HelpMessage="Pawn object. Can be used for capsule of any playerable character or AI. ",bCanModify=False)
+-Profiles=(Name="Spectator",CollisionEnabled=QueryOnly,ObjectTypeName="Pawn",CustomResponses=((Channel="WorldStatic",Response=ECR_Block),(Channel="Pawn",Response=ECR_Ignore),(Channel="Visibility",Response=ECR_Ignore),(Channel="WorldDynamic",Response=ECR_Ignore),(Channel="Camera",Response=ECR_Ignore),(Channel="PhysicsBody",Response=ECR_Ignore),(Channel="Vehicle",Response=ECR_Ignore),(Channel="Destructible",Response=ECR_Ignore)),HelpMessage="Pawn object that ignores all other actors except WorldStatic.",bCanModify=False)
+-Profiles=(Name="CharacterMesh",CollisionEnabled=QueryOnly,ObjectTypeName="Pawn",CustomResponses=((Channel="Pawn",Response=ECR_Ignore),(Channel="Vehicle",Response=ECR_Ignore),(Channel="Visibility",Response=ECR_Ignore)),HelpMessage="Pawn object that is used for Character Mesh. All other channels will be set to default.",bCanModify=False)
+-Profiles=(Name="PhysicsActor",CollisionEnabled=QueryAndPhysics,ObjectTypeName="PhysicsBody",CustomResponses=,HelpMessage="Simulating actors",bCanModify=False)
+-Profiles=(Name="Destructible",CollisionEnabled=QueryAndPhysics,ObjectTypeName="Destructible",CustomResponses=,HelpMessage="Destructible actors",bCanModify=False)
+-Profiles=(Name="InvisibleWall",CollisionEnabled=QueryAndPhysics,ObjectTypeName="WorldStatic",CustomResponses=((Channel="Visibility",Response=ECR_Ignore)),HelpMessage="WorldStatic object that is invisible.",bCanModify=False)
+-Profiles=(Name="InvisibleWallDynamic",CollisionEnabled=QueryAndPhysics,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="Visibility",Response=ECR_Ignore)),HelpMessage="WorldDynamic object that is invisible.",bCanModify=False)
+-Profiles=(Name="Trigger",CollisionEnabled=QueryOnly,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="WorldStatic",Response=ECR_Overlap),(Channel="Pawn",Response=ECR_Overlap),(Channel="Visibility",Response=ECR_Ignore),(Channel="WorldDynamic",Response=ECR_Overlap),(Channel="Camera",Response=ECR_Overlap),(Channel="PhysicsBody",Response=ECR_Overlap),(Channel="Vehicle",Response=ECR_Overlap),(Channel="Destructible",Response=ECR_Overlap)),HelpMessage="WorldDynamic object that is used for trigger. All other channels will be set to default.",bCanModify=False)
+-Profiles=(Name="Ragdoll",CollisionEnabled=QueryAndPhysics,ObjectTypeName="PhysicsBody",CustomResponses=((Channel="Pawn",Response=ECR_Ignore),(Channel="Visibility",Response=ECR_Ignore)),HelpMessage="Simulating Skeletal Mesh Component. All other channels will be set to default.",bCanModify=False)
+-Profiles=(Name="Vehicle",CollisionEnabled=QueryAndPhysics,ObjectTypeName="Vehicle",CustomResponses=,HelpMessage="Vehicle object that blocks Vehicle, WorldStatic, and WorldDynamic. All other channels will be set to default.",bCanModify=False)
+-Profiles=(Name="UI",CollisionEnabled=QueryOnly,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="WorldStatic",Response=ECR_Overlap),(Channel="Pawn",Response=ECR_Overlap),(Channel="Visibility",Response=ECR_Block),(Channel="WorldDynamic",Response=ECR_Overlap),(Channel="Camera",Response=ECR_Overlap),(Channel="PhysicsBody",Response=ECR_Overlap),(Channel="Vehicle",Response=ECR_Overlap),(Channel="Destructible",Response=ECR_Overlap)),HelpMessage="WorldStatic object that overlaps all actors by default. All new custom channels will use its own default response. ",bCanModify=False)
++Profiles=(Name="NoCollision",CollisionEnabled=NoCollision,bCanModify=False,ObjectTypeName="WorldStatic",CustomResponses=((Channel="Visibility",Response=ECR_Ignore),(Channel="Camera",Response=ECR_Ignore)),HelpMessage="No collision")
++Profiles=(Name="BlockAll",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="WorldStatic",CustomResponses=,HelpMessage="WorldStatic object that blocks all actors by default. All new custom channels will use its own default response. ")
++Profiles=(Name="OverlapAll",CollisionEnabled=QueryOnly,bCanModify=False,ObjectTypeName="WorldStatic",CustomResponses=((Channel="WorldStatic",Response=ECR_Overlap),(Channel="Pawn",Response=ECR_Overlap),(Channel="Visibility",Response=ECR_Overlap),(Channel="WorldDynamic",Response=ECR_Overlap),(Channel="Camera",Response=ECR_Overlap),(Channel="PhysicsBody",Response=ECR_Overlap),(Channel="Vehicle",Response=ECR_Overlap),(Channel="Destructible",Response=ECR_Overlap)),HelpMessage="WorldStatic object that overlaps all actors by default. All new custom channels will use its own default response. ")
++Profiles=(Name="BlockAllDynamic",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="WorldDynamic",CustomResponses=,HelpMessage="WorldDynamic object that blocks all actors by default. All new custom channels will use its own default response. ")
++Profiles=(Name="OverlapAllDynamic",CollisionEnabled=QueryOnly,bCanModify=False,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="WorldStatic",Response=ECR_Overlap),(Channel="Pawn",Response=ECR_Overlap),(Channel="Visibility",Response=ECR_Overlap),(Channel="WorldDynamic",Response=ECR_Overlap),(Channel="Camera",Response=ECR_Overlap),(Channel="PhysicsBody",Response=ECR_Overlap),(Channel="Vehicle",Response=ECR_Overlap),(Channel="Destructible",Response=ECR_Overlap)),HelpMessage="WorldDynamic object that overlaps all actors by default. All new custom channels will use its own default response. ")
++Profiles=(Name="IgnoreOnlyPawn",CollisionEnabled=QueryOnly,bCanModify=False,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="Pawn",Response=ECR_Ignore),(Channel="Vehicle",Response=ECR_Ignore)),HelpMessage="WorldDynamic object that ignores Pawn and Vehicle. All other channels will be set to default.")
++Profiles=(Name="OverlapOnlyPawn",CollisionEnabled=QueryOnly,bCanModify=False,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="Pawn",Response=ECR_Overlap),(Channel="Vehicle",Response=ECR_Overlap),(Channel="Camera",Response=ECR_Ignore)),HelpMessage="WorldDynamic object that overlaps Pawn, Camera, and Vehicle. All other channels will be set to default. ")
++Profiles=(Name="Pawn",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="Pawn",CustomResponses=((Channel="Visibility",Response=ECR_Ignore)),HelpMessage="Pawn object. Can be used for capsule of any playerable character or AI. ")
++Profiles=(Name="Spectator",CollisionEnabled=QueryOnly,bCanModify=False,ObjectTypeName="Pawn",CustomResponses=((Channel="WorldStatic"),(Channel="Pawn",Response=ECR_Ignore),(Channel="Visibility",Response=ECR_Ignore),(Channel="WorldDynamic",Response=ECR_Ignore),(Channel="Camera",Response=ECR_Ignore),(Channel="PhysicsBody",Response=ECR_Ignore),(Channel="Vehicle",Response=ECR_Ignore),(Channel="Destructible",Response=ECR_Ignore)),HelpMessage="Pawn object that ignores all other actors except WorldStatic.")
++Profiles=(Name="CharacterMesh",CollisionEnabled=QueryOnly,bCanModify=False,ObjectTypeName="Pawn",CustomResponses=((Channel="Pawn",Response=ECR_Ignore),(Channel="Vehicle",Response=ECR_Ignore),(Channel="Visibility",Response=ECR_Ignore)),HelpMessage="Pawn object that is used for Character Mesh. All other channels will be set to default.")
++Profiles=(Name="PhysicsActor",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="PhysicsBody",CustomResponses=,HelpMessage="Simulating actors")
++Profiles=(Name="Destructible",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="Destructible",CustomResponses=,HelpMessage="Destructible actors")
++Profiles=(Name="InvisibleWall",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="WorldStatic",CustomResponses=((Channel="Visibility",Response=ECR_Ignore)),HelpMessage="WorldStatic object that is invisible.")
++Profiles=(Name="InvisibleWallDynamic",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="Visibility",Response=ECR_Ignore)),HelpMessage="WorldDynamic object that is invisible.")
++Profiles=(Name="Trigger",CollisionEnabled=QueryOnly,bCanModify=False,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="WorldStatic",Response=ECR_Overlap),(Channel="Pawn",Response=ECR_Overlap),(Channel="Visibility",Response=ECR_Ignore),(Channel="WorldDynamic",Response=ECR_Overlap),(Channel="Camera",Response=ECR_Overlap),(Channel="PhysicsBody",Response=ECR_Overlap),(Channel="Vehicle",Response=ECR_Overlap),(Channel="Destructible",Response=ECR_Overlap)),HelpMessage="WorldDynamic object that is used for trigger. All other channels will be set to default.")
++Profiles=(Name="Ragdoll",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="PhysicsBody",CustomResponses=((Channel="Pawn",Response=ECR_Ignore),(Channel="Visibility",Response=ECR_Ignore)),HelpMessage="Simulating Skeletal Mesh Component. All other channels will be set to default.")
++Profiles=(Name="Vehicle",CollisionEnabled=QueryAndPhysics,bCanModify=False,ObjectTypeName="Vehicle",CustomResponses=,HelpMessage="Vehicle object that blocks Vehicle, WorldStatic, and WorldDynamic. All other channels will be set to default.")
++Profiles=(Name="UI",CollisionEnabled=QueryOnly,bCanModify=False,ObjectTypeName="WorldDynamic",CustomResponses=((Channel="WorldStatic",Response=ECR_Overlap),(Channel="Pawn",Response=ECR_Overlap),(Channel="Visibility"),(Channel="WorldDynamic",Response=ECR_Overlap),(Channel="Camera",Response=ECR_Overlap),(Channel="PhysicsBody",Response=ECR_Overlap),(Channel="Vehicle",Response=ECR_Overlap),(Channel="Destructible",Response=ECR_Overlap)),HelpMessage="WorldStatic object that overlaps all actors by default. All new custom channels will use its own default response. ")
++DefaultChannelResponses=(Channel=ECC_GameTraceChannel1,DefaultResponse=ECR_Ignore,bTraceType=True,bStaticObject=False,Name="3DWidget")
+-ProfileRedirects=(OldName="BlockingVolume",NewName="InvisibleWall")
+-ProfileRedirects=(OldName="InterpActor",NewName="IgnoreOnlyPawn")
+-ProfileRedirects=(OldName="StaticMeshComponent",NewName="BlockAllDynamic")
+-ProfileRedirects=(OldName="SkeletalMeshActor",NewName="PhysicsActor")
+-ProfileRedirects=(OldName="InvisibleActor",NewName="InvisibleWallDynamic")
++ProfileRedirects=(OldName="BlockingVolume",NewName="InvisibleWall")
++ProfileRedirects=(OldName="InterpActor",NewName="IgnoreOnlyPawn")
++ProfileRedirects=(OldName="StaticMeshComponent",NewName="BlockAllDynamic")
++ProfileRedirects=(OldName="SkeletalMeshActor",NewName="PhysicsActor")
++ProfileRedirects=(OldName="InvisibleActor",NewName="InvisibleWallDynamic")
+-CollisionChannelRedirects=(OldName="Static",NewName="WorldStatic")
+-CollisionChannelRedirects=(OldName="Dynamic",NewName="WorldDynamic")
+-CollisionChannelRedirects=(OldName="VehicleMovement",NewName="Vehicle")
+-CollisionChannelRedirects=(OldName="PawnMovement",NewName="Pawn")
++CollisionChannelRedirects=(OldName="Static",NewName="WorldStatic")
++CollisionChannelRedirects=(OldName="Dynamic",NewName="WorldDynamic")
++CollisionChannelRedirects=(OldName="VehicleMovement",NewName="Vehicle")
++CollisionChannelRedirects=(OldName="PawnMovement",NewName="Pawn")
+
+[/Script/OpenXRHMD.OpenXRHMDSettings]
+xr.OpenXRInvertAlpha=True
+
+; 🔴🔴 EL FFR Y LA RESOLUCION DE RENDER SE MUDARON A Config/Android/AndroidEngine.ini
+; (2026-08-12). Estaban aca, o sea en la config COMPARTIDA, y por lo tanto se
+; aplicaban tambien al VR Preview por Meta Link, que es PC.
+;
+; Lo que estaba aca y ahora es solo-device:
+;   bIsFBFoveationEnabled  ·  xr.SecondaryScreenPercentage.HMDRenderTarget=125
+;   xr.OpenXRFBFoveationLevel=1  ·  xr.OpenXRFBFoveationDynamic=1  ·  r.VRS.Enable=1
+;
+; Por que: XR_FB_foveation es una extension de META implementada DENTRO de
+; LibOVRRTImpl64_1.dll, y los crashes de Link del 2026-08-12 son un access
+; violation dentro de esa misma DLL, en el primer frame presentado. Pedirle
+; foveacion por Link no aporta nada (el FFR necesita el VRS por hardware del
+; Quest) y ademas el 125% provocaba una DOBLE asignacion del swapchain al
+; arrancar (en el log: 4368x2400 -> 3488x1920).
+;
+; ⚠ NO devolverlas aca. Si hay que tocar la resolucion o el FFR del visor,
+; se toca en Config/Android/AndroidEngine.ini.
+
+[/Script/AndroidFileServerEditor.AndroidFileServerRuntimeSettings]
+bEnablePlugin=True
+bAllowNetworkConnection=True
+SecurityToken=28DADB7345C4867967CFD59E4A1A48A2
+bIncludeInShipping=False
+bAllowExternalStartInShipping=False
+bCompileAFSProject=False
+bUseCompression=False
+bLogFiles=False
+bReportStats=False
+ConnectionType=USBOnly
+bUseManualIPAddress=False
+ManualIPAddress=
+
+
+[/Script/Engine.Engine]
++ActiveGameNameRedirects=(OldGameName="TP_VirtualRealityBP",NewGameName="/Script/VR_Test")
++ActiveGameNameRedirects=(OldGameName="/Script/TP_VirtualRealityBP",NewGameName="/Script/VR_Test")
+; Mata TODOS los mensajes de debug en pantalla (PrintString con "print to screen", warnings del motor).
+; Desconcentran dentro del visor. Los logs siguen escribiendose normal -> no se pierde diagnostico.
+; Para depurar en pantalla temporalmente: poner True, o en consola "DisableAllScreenMessages"/"EnableAllScreenMessages".
+bEnableOnScreenDebugMessages=False
+
+
+[/Script/Engine.StreamingSettings]
+; El default del motor es 5.0 ms de registro de actores por frame (BaseEngine.ini).
+; Contra el presupuesto de 13.9 ms de Quest eso es el 36% del frame: un frame
+; perdido garantizado en cada carga. Epic embarca ese numero para juegos de
+; pantalla a 30/60 fps y nadie lo tuneo para VR. Lo bajamos y aceptamos que la
+; carga tarde mas frames, porque igual la escondemos detras del fade a negro.
+s.LevelStreamingActorsUpdateTimeLimit=1.5
+; El gemelo del lado de descarga.
+s.UnregisterComponentsTimeLimit=0.5
+; NO tocar: en 0 todo el level loading bloquea el game thread (CoreSettings.cpp).
+s.UseBackgroundLevelStreaming=True
+
+; ---- 2026-08-21: CERO SALTOS DE FRAME (pedido de Beltran: "que nunca haya un salto,
+; si hay que compilar/cargar todo en el arranque, perfecto"). Verificado leyendo el
+; codigo del motor (CoreSettings.cpp / World.cpp), no de memoria. ----
+;
+; 1) EL CULPABLE DE LOS SALTOS AL CRUZAR PUERTAS. La ayuda del motor dice literal:
+;    "reclaim memory immediately at the expense of a hitch". Al descargar la sala
+;    anterior forzaba un GC completo en un frame. Apagado: la memoria se recupera
+;    goteando por los GC incrementales de abajo.
+s.ForceGCAfterLevelStreamedOut=0
+s.ContinuouslyIncrementalGCWhileLevelsPendingPurge=1
+s.ContinuouslyIncrementalGCWhileActorsPendingPurge=1
+;
+; 2) Los "extra time" de prioridad se SUMAN al presupuesto y anulan el tuneo de arriba
+;    justo cuando mas importa (carga de alta prioridad). A cero.
+s.PriorityLevelStreamingActorsUpdateExtraTime=0.0
+s.PriorityAsyncLoadingExtraTime=0.0
+;
+; 3) El time limit solo se chequea CADA N COMPONENTES: con granularidad 10 se pasa del
+;    presupuesto igual. Bajarla es lo que hace que el 1.5 ms de arriba se respete.
+s.LevelStreamingComponentsRegistrationGranularity=2
+s.LevelStreamingComponentsUnregistrationGranularity=2
+s.LevelStreamingRouteActorInitializationGranularity=2
+; Este venia en 0 = TODO EN UNA PASADA -> pico garantizado al sacar un nivel.
+s.LevelStreamingRouteActorEndPlayForRemoveFromWorldGranularity=4
+; Que la inicializacion de actores no se sume al registro en el mismo frame.
+s.ForceRouteActorInitializeNextFrame=1
+;
+; 4) La carga de assets con el mismo criterio, y que no queme el presupuesto entero
+;    esperando I/O.
+s.AsyncLoadingTimeLimit=2.0
+s.AsyncLoadingUseFullTimeLimit=False
+
+[/Script/Engine.UserInterfaceSettings]
+; VR-only: no hay UI de pantalla, asi que la curva de DPI se deja PLANA en 1.0.
+; Sin esto el WidgetComponent maqueta a una resolucion logica distinta a la del
+; Designer y todo lo definido en pixeles (fuentes, corner radius) sale escalado.
+RenderFocusRule=NavigationOnly
+ApplicationScale=1.000000
+UIScaleRule=ShortestSide
+UIScaleCurve=(EditorCurveData=(PreInfinityExtrap=RCCE_Constant,PostInfinityExtrap=RCCE_Constant,Keys=((InterpMode=RCIM_Linear,TangentMode=RCTM_Auto,TangentWeightMode=RCTWM_WeightedNone,Time=0.000000,Value=1.000000,ArriveTangent=0.000000,ArriveTangentWeight=0.000000,LeaveTangent=0.000000,LeaveTangentWeight=0.000000)),DefaultValue=1.000000),ExternalCurve=None)
+
+
+[/Script/Engine.GarbageCollectionSettings]
+; ---- 2026-08-21: el GC repartido en el tiempo, para que nunca produzca un pico ----
+; El purge incremental baja de 2 ms a 1 ms por frame (7% del frame de Quest), y la
+; granularidad baja para que ese milisegundo se respete de verdad (el limite se
+; chequea cada N destroys).
+gc.IncrementalGCTimePerFrame=0.001
+gc.IncrementalBeginDestroyEnabled=True
+gc.IncrementalBeginDestroyGranularity=4
+; La fase de MARCADO (reachability) es la que produce el pico grande. Estos dos la
+; reparten en frames. Marcados como EXPERIMENTAL en el codigo del motor: si aparece
+; comportamiento raro, son los primeros dos que se apagan.
+gc.AllowIncrementalReachability=True
+gc.IncrementalReachabilityTimeLimit=0.002
+gc.AllowIncrementalGather=True
+; Clusters: Epic los embarca en False en BaseEngine.ini. En True el GC recorre MENOS
+; objetos (menos trabajo total, no solo mejor repartido) a cambio de algo mas de tiempo
+; en la carga: exactamente el trade que queremos.
+; OJO: el motor tiene un typo en el nombre, es "AssetClustrering".
+gc.AssetClustreringEnabled=True
+gc.ActorClusteringEnabled=True
+gc.MinGCClusterSize=5
+; El GC periodico de Epic cae cada 61,1 s: en una obra de 15-20 min eso son ~18 dados
+; tirados a ver si uno cae en un momento sensible. Subido por encima de la duracion de
+; la pieza (se mantiene la costumbre de Epic de usar un numero fraccionario para
+; desfasar colisiones con otros timers).
+gc.TimeBetweenPurgingPendingKillObjects=1201.3

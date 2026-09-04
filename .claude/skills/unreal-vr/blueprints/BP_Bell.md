@@ -188,3 +188,35 @@ Y 3 variables internas: `bHandsNear` se funde en `bTouching`, `bDone`/`bLeaving`
 
 ## Relacionados
 - [[BP_Door_SC]] — a quién abre · [[BP_Sensor]] y [[BP_TouchSensor]] — de donde sale el patrón de proximidad · [[BP_SaveButton]] — el otro hold de 3 s (ese sí por gatillo) · [[BP_MenuButton]] — de donde salió el `CheckHand` que sí funcionaba.
+
+## ✋📦 2026-09-01 — zona de toque en CAJA + tope visual de la mano (igual que el botón)
+Pedido de Beltrán después de validar el botón en visor: *"aplica lo mismo del gizmo y las manos al
+timbre"*. Se replicó **exactamente** la mecánica de [[BP_InstructionsPanel_SC]] (sección *"la zona de
+toque del botón es una CAJA"* y *"la mano no atraviesa el botón"*), porque este BP y
+`BP_InstrButton_SC` son el mismo linaje.
+
+- **Zona en caja orientada**: `TouchRadius` (cm, el tamaño) × 🆕 `TouchShape` (Vector, proporciones)
+  define las semi-extensiones en ejes **locales**; 🆕 `TouchOffset` (Vector, cm) corre el **centro**.
+  `AnyHandClose` compara `|x|,|y|,|z|` tras pasar la mano a ejes locales con `UnrotateVector`
+  (rotación sola, sin escala). Gizmo nuevo **`TouchGizmoBox`** (BoxComponent verde, hidden in game,
+  `NoCollision`) que el Construction Script dimensiona y posiciona → **se autora en el viewport**.
+  La esfera `TouchGizmo` queda con radio 0, no se borró.
+- **Tope visual de la mano**: `HandPen` / `PushOne` / `StopHandStep` / `StopHand` / `ResetHands`,
+  idénticas a las del botón. El plano de tope es **el frente de la caja + cuánto se hundió el `Body`
+  + `HandStopBias`**, así que la mano se congela justo donde empieza el contacto (sin tirón) y
+  acompaña al timbre sus `PressDepth` cm. Se mueve el mesh `HandRight`/`HandLeft` del pawn, que
+  **cuelga del MotionController** → la posición trackeada no se toca y **`BP_VRPawn_SC` sigue
+  intacto**.
+- **Enganches**: `StopHand` entra en `TickBell` **antes** del branch (cirugía de nodos, para no
+  reescribir la llamada a `TickLeave` y arriesgar la colisión de nombres del DSL); `Fire()` llama a
+  **`ResetHands()`** justo después de `bLeaving = true`, porque el timbre **se autodestruye** al
+  terminar y sin eso podía dejar la mano corrida para el resto de la obra.
+- **Valores en la instancia del Hall** (nacen en cero, hay que escribirlos): `TouchShape (1,1,1.6)` ·
+  `TouchOffset (0,0,−14.5)` con `TouchRadius` 10 → zona de **+1,5 a −30,5 cm** en Z local ·
+  `bStopHand` ✔ · `HandStopBias` 0 · `HandReturnSpeed` 200. **Los mismos números que los botones de
+  la partida**, por pedido explícito.
+- ⚠ Antes la zona era una **esfera de radio 10 centrada en el actor**; ahora el plano de contacto
+  está en **+1,5 cm**, más cerca. Si el timbre se siente distinto de disparar, la perilla es
+  `TouchOffset.z` (mueve a la vez el contacto y el freno, y el gizmo lo muestra).
+
+**Estado: ⬜ sin probar en visor.** Compila limpio; falta la pasada de Beltrán.

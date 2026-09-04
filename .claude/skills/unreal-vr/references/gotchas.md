@@ -1685,3 +1685,226 @@ que se ve en la captura** — medí la posición en el mundo y calculá el ángu
      lujo. Y va **con un retardo**: en el frame del BeginPlay la pose del HMD puede no ser válida todavía.
      Pista para detectarlo sin gafas: si el proyecto tiene un botón "Reset Orientation" en un menú, es que
      alguien ya lo necesitó a mano.
+
+
+## 🔁 Nunca gatear un filtro con su propia salida (2026-09-01, `BP_Sensor_Soul.UpdateLevel`)
+Para que la esfera de la respiracion no se desinflara al sostener el aire, se freno la linea de base del
+band-pass **cuando la senal estaba lejos del centro** — usando `|HorizBP|`, que **es la salida de ese mismo
+band-pass**. Resultado: lazo de realimentacion positiva. Lejos del centro → base lenta → sigue lejos del
+centro → la base sigue lenta. El sistema se **traba** en el regimen lento; el sintoma que reporto Beltran
+fue *"ya no se achica, pero perdio sensibilidad... quedo un poco mas terco"*.
+
+**El arreglo fue cambiar la ENTRADA del gate, no sus numeros:** la condicion pasa a ser el **movimiento**
+(`|GeomHoriz − HFast|`, que solo depende del EMA rapido, aguas arriba del filtro modulado). Sin lazo.
+
+👉 **Dos reglas que quedan:**
+1. **La condicion que modula un filtro tiene que venir de aguas ARRIBA de ese filtro.** Si sale de su
+   salida, hay lazo — compila, corre, y se manifiesta como "quedo terco" o "se traba", no como un error.
+2. **Un umbral sobre una magnitud fisica del usuario va relativo a esa magnitud, no en unidades absolutas.**
+   Acá el umbral de "quieto" es `MovAvg × K` (el movimiento tipico del propio usuario) en vez de un valor en
+   cm. Es la misma leccion de `MinHAmp` (§ *"un umbral sobre un estadistico derivado se fija midiendo ESE
+   estadistico"*), llevada un paso mas: cuando se puede, **eliminar el numero magico** en vez de medirlo.
+
+
+## 🌫️ Un BP de marketplace puede re-crear su Material Dinamico CADA TICK (2026-09-01, `BP_EasyFog`)
+Revisando `BP_EasyFog` (asset de Fab, usado en `/Game/TestMeshes`) para llevarlo a Quest, el hallazgo caro no
+estaba en el material sino en el **EventGraph**:
+
+```
+(event EventTick (DeltaSeconds)
+  (SetActorTickInterval ...) (SetActorTickEnabled ...)
+  (|Raster_Translucency))          ; <-- y esta funcion hace:
+                                   ;     CreateDynamicMaterialInstance(FogCard, 0, M_BP_EasyFog)
+                                   ;     + ~25 Set*ParameterValue
+```
+O sea: **un MID nuevo por actor y por tick** (a `systemTickRatePerSecond` 60 = 60 MIDs/s por card), mas 25
+seteos de parametros que **nunca cambian**. Es el patron tipico de un asset pensado para **editar en vivo en
+el editor**: comodo ahi, basura pura en runtime — y en Quest se paga en CPU y en churn de memoria.
+
+✅ **El arreglo no toca el BP ni el material**: poner **`systemTickRatePerSecond = 0`** en la instancia. El
+propio grafo hace `SetActorTickEnabled(rate != 0)`, y `EventBeginPlay` + el ConstructionScript ya aplican todo
+una vez. Cero cambio visual.
+
+👉 **Regla:** ante cualquier BP de marketplace que se vaya al APK, **leer su `EventTick` antes de colocarlo**.
+Buscar `CreateDynamicMaterialInstance`, `SpawnActor`, `GetAllActorsOfClass` y cadenas largas de
+`Set*ParameterValue`: los assets de tienda los ponen en Tick para que el panel de detalles responda en vivo.
+
+### Y lo que SI es del material, para Quest
+- `M_BP_EasyFog` es **`BLEND_Translucent` + `MSM_DefaultLit` + `TLM_VolumetricDirectional`**. En movil no hay
+  volumenes de iluminacion translucida, y una escena sin direccional ni skylight no le aporta **nada** al lado
+  lit → en el dispositivo el fog se ve **solo por su Emissive** (que si esta cableado, via el param
+  `Emissive Intensity`). 👉 Si hace falta bajar costo, **`MSM_Unlit` es casi gratis visualmente** y quita el
+  sombreado translucido, que es lo mas caro que se puede poner en pantalla completa. **No se aplico**: cuando
+  el objetivo es *juzgar el efecto*, cambiarle el shading model es hacerle juzgar otro efecto.
+- ✅ **`floatPrecisionMode = MFPM_Full_MaterialExpressionOnly`** SI se aplico: el material anima con `Time`
+  (wind + flowmap) y en fp16 el movimiento se corta a los minutos (ver la seccion de degradados animados de
+  `materials-vr.md`). Cero cambio visual, protege la sesion larga.
+- ⚠ Lo que domina el costo no es el shading model sino el **overdraw**: cards translucidos grandes en pantalla.
+  Meta mide *"translucent rendering adds almost 80% more GPU time per frame vs masked"*. Presupuestar por
+  **capas superpuestas**, no por cantidad de actores.
+
+
+## 📺 "Estatica de lineas" en VR = una textura SIN MIPMAPS (2026-09-01, `T_mountainFog_01_mask`)
+Beltran probo `BP_EasyFog` en el visor: *"veo como algo de estatica de lineas al mirar al fog. No se si sera
+la textura."* Era la textura, y el defecto venia **del asset de fabrica**:
+
+| | `T_mountainFog_01_mask` (Opacity) | `T_normalProxy_N` y `T_Flowmap_01_Directional` |
+|---|---|---|
+| `MipGenSettings` | 🔴 **`TMGS_NoMipmaps`** | `TMGS_FromTextureGroup` |
+| `NeverStream` | 🔴 **true** | false |
+| `CompressionSettings` | `TC_EditorIcon` (sin comprimir) | `TC_Normalmap` / `TC_VectorDisplacementmap` |
+
+**La de opacidad era la unica sin mips de las tres** — o sea un descuido del vendor, no una decision de arte.
+
+**Por que se lee como estatica y no como aliasing comun:** sin mips, una textura grande minificada sobre un
+card a angulo rasante samplea un texel distinto por pixel, sin filtrar. En un monitor eso titila; en VR
+**repta con cada micro-movimiento de cabeza Y cada ojo samplea distinto**, asi que el patron no fusiona y el
+cerebro lo lee como ruido de television.
+
+✅ **Arreglo:** `MipGenSettings = TMGS_FromTextureGroup` + `NeverStream = false`.
+🔴 **Lo que NO se toco, a proposito:** `CompressionSettings` y `SRGB`. En una mascara de opacidad esos dos
+definen **la curva de densidad** del efecto: cambiarlos "para dejarlo prolijo" le cambia el look al artista.
+(Y sin comprimir es lo mejor contra el bandeo de 8 bits en un degradado suave — ver la seccion de degradados
+animados de `materials-vr.md`.)
+
+⚠ **Costo aceptado:** con mips el efecto se ablanda a distancia. Ese es el intercambio del antialiasing.
+
+👉 **Regla al traer cualquier asset de tienda a Quest: auditar las texturas ANTES de culpar al material o al
+shader.** El chequeo barato es comparar las texturas del MISMO asset entre si — la que difiere del resto es
+la sospechosa. `MipGenSettings`, `NeverStream`, `LODGroup` y `CompressionSettings` en una sola llamada de
+`get_properties`.
+
+💡 **Si la estatica sobrevive a los mips**, las dos palancas siguientes, en orden:
+1. **`View Angle Fade`** (parametro de `BP_EasyFog`, hoy en 0): desvanece el card a medida que se pone de
+   canto — que es justo donde un fog card muestra su propia geometria y peor aliasea.
+2. **Dither**, si al mirarlo de cerca son **bandas anchas y suaves** en vez de ruido fino: ahi el problema es
+   cuantizacion a 8 bits, no sampleo, y la receta esta en `materials-vr.md` (secuencia R2, ~6 instrucciones,
+   sin textura). Son diagnosticos distintos con la misma queja: **ruido fino = sampleo · bandas anchas = bits.**
+
+---
+
+## Orientar un mesh nuevo: la silueta MIENTE sobre la palma (2026-09-02)
+
+Al montar `Hand_Low` en el pawn hubo que calcular la rotacion que lleva el marco local del mesh
+nuevo al del que ya estaba bien (`SKM_MannyXR_*`). El metodo fue: colocar cada mesh en el nivel,
+fotografiarlo con `CaptureViewport` desde ejes conocidos, leer de ahi **direccion de los dedos**,
+**normal de la palma** y **lado del pulgar**, y componer las matrices.
+
+**El eje de los dedos salio bien. La normal de la palma salio al reves, y la mano quedo con el
+pulgar hacia abajo.** Lo cazo Beltran en un segundo mirando el editor.
+
+🔴 **La causa:** los meshes se fotografiaron **en negro contra el cielo** (una malla dinamica lejos
+de cualquier volumen de lightmass recibe una muestra de luz negra). Y **una silueta no tiene
+profundidad**: la palma y el dorso de una mano dan **exactamente el mismo contorno**. Todo lo que
+se dedujo del "lado hacia donde sobresale el pulgar" era una interpretacion de una imagen que no
+contenia ese dato.
+
+✅ **El metodo que si funciona, y cuesta lo mismo:**
+1. Poner **el mesh nuevo y el que ya esta bien** en el nivel, con **la misma rotacion que van a
+   tener en su componente**.
+2. Ponerles a los dos **un material que deje ver el volumen** (unlit emisivo sirve: no depende de
+   que haya luces). Con siluetas negras no se puede.
+3. Mirar **donde cae el pulgar** en cada uno. Si coinciden, la rotacion es correcta.
+
+👉 **La silueta sirve para el eje longitudinal (dedos, largo, "hacia donde apunta") y para nada mas.**
+Cualquier eje que dependa de saber que cara estamos viendo necesita sombreado.
+
+💡 Y el corolario de composicion: cuando la orientacion sale girada **180° sobre el eje largo**, la
+correccion es **un giro de 180° sobre ese eje ANTES del align** (para una mano: `Yaw 180` local, que
+mueve palma y pulgar juntos). No se arregla tocando el Roll final — eso tambien gira los dedos.
+
+### 🔴 Y la lateralidad tampoco se lee mirando: se MIDE
+La segunda pasada tambien salio mal — con el pulgar arriba, pero **las dos manos cambiadas de
+lado**: `Hand_Low` era una mano **DERECHA** y se la habia dado por izquierda. Mirandola no se
+resolvia, porque una vez que alineas los dedos y el pulgar de un mesh de quiralidad equivocada,
+lo unico que delata el error es **la palma**, que es justo lo que peor se ve.
+
+✅ **Se mide con el producto mixto de tres vectores del propio esqueleto** (en un frame
+**right-handed**: Blender sirve, Unreal NO — es left-handed y el signo se invierte):
+```
+f = punta_del_medio − palma          (direccion de los dedos)
+w = nudillo_menique → nudillo_indice (a lo ancho, hacia el lado del pulgar)
+t = punta_del_pulgar − palma
+det[f, w, t] = f · (w × t)        →   NEGATIVO = mano DERECHA · POSITIVO = izquierda
+```
+🔴 **Correr siempre un control positivo primero** (una mano sintetica de lateralidad conocida,
+tres vectores a mano), porque el signo depende de la convencion del frame y equivocarse es gratis:
+```
+control DERECHA   det = −0.2000
+control IZQUIERDA det = +0.2000
+Hand_Low          det = −1.13e−07   → DERECHA
+```
+Los huesos se leen sin tocar la sesion del usuario: `blender.exe --background --factory-startup
+--python <script>` sobre el FBX de origen, imprimiendo `armature.matrix_world @ bone.head_local`.
+⚠ El MCP de Blender tiene una variante `_for_cli`, pero **falla si `BLENDER_PATH` no esta seteado**
+(el caso de esta maquina) — invocar el `.exe` directo desde Bash sale igual y es mas controlable.
+
+⚠ **Y ojo con transferir angulos de Blender a Unreal:** los dos importadores de FBX aplican
+conversiones de ejes distintas, asi que el marco local **no coincide**. Lo unico que sobrevive el
+viaje es la **quiralidad** (ningun importador espeja la geometria). Medi la lateralidad en Blender;
+los angulos, en Unreal.
+
+## 🔴🔴 Cosecha 2026-09-03 — cuatro errores de cirugía que COMPILAN LIMPIO (banco de pruebas de mandos)
+Una jornada entera perdida; ninguno de los cuatro dio error ni warning. El patrón común: **el `read_graph_dsl` los muestra como si estuvieran bien.**
+
+### §A. Un argumento posicional en una función MIEMBRO cae en el pin `self`
+`(Input|EnableInput pc)` → el PlayerController quedó en el pin **`self`** (que espera el *Actor*) y el pin `PlayerController` **vacío**. Tipa porque un PlayerController *es* un Actor. Efecto: el actor nunca entra en la pila de input, y el gatillo no llega jamás.
+→ La regla del DSL *"sobre el propio actor: OMITIR el target"* **no aplica cuando la función tiene su propio parámetro de objeto**. Para estos casos, escribir el target explícito: `(Input|EnableInput self pc)`, como hace `BP_Sensor_Soul.EnsureInput`.
+
+### §B. Un pin de exec de ENTRADA acepta varias conexiones — reconectar no desconecta
+Al mover una llamada de lugar dejé el cable viejo puesto y el `BeginPlay` se cerró en **bucle infinito** (cada 0,2 s por el Delay que tenía en medio). El `read_graph_dsl` lo imprimió como una **cadena lineal**. Se vio en el log: el print de init repitiéndose ~5 veces por segundo, y cada vuelta re-spawneaba el actor que el init crea.
+→ Al reubicar un nodo en una cadena: `break_pins` del cable viejo **explícito**, y después `get_node_infos` de los dos extremos. Un `connect_pins` sobre un exec de entrada **suma**, no reemplaza. (Sobre un pin de DATOS sí reemplaza — son reglas distintas.)
+
+### §C. En una llamada a función propia, el pin 1 es `self`: el primer parámetro es el **2**
+`set_pin_value(index 1)` escribió sobre `self` y el parámetro quedó en su default. El síntoma fue una compuerta por mano que nunca se abría.
+→ Nunca adivinar el índice: `get_node_infos` del nodo creado y leer el `name` de cada pin.
+
+### §D. El `read_graph_dsl` atribuye funciones PROPIAS a otros Blueprints
+Mostró `Class|BPSensorSoul|DrawPress` y `Spline|AddPoint` para llamadas locales perfectamente correctas (`self` = *Self Object Reference*). Es el gemelo benigno de la colisión real de nombres (§ colisión de nombres de función) — y obliga a chequear: **el que decide es el TIPO del pin `self`**, no la etiqueta del read.
+
+### ➕ Y dos sobre INSTANCIAS del nivel (complementan la regla del struct)
+- Sobre un **componente** de una instancia, un struct completo aplica **solo el primer campo** (`relativeScale3D` quedó en `(0.02, 1, 1)`: 2 cm de ancho, 1 m de alto). Campo por campo.
+- Sobre una **variable del actor**, campo por campo **CORROMPE** el struct (`LinearColor` con `b = -nan`). Ahí va el struct **completo de una vez**.
+- **`BodyInstance.collisionEnabled` no entra por ninguna de las dos vías en una instancia** (devuelve éxito, sigue en `QueryAndPhysics`). La salida limpia y de un solo nodo: **`SetActorEnableCollision(false)` en el `BeginPlay`**, que además cubre todos los componentes del actor — útil para cumplir §239 (todo lo que viaja pegado al pawn nace `NoCollision`).
+
+
+## Cosecha 2026-09-03 — templates SCS vs instancias (nació de hornear los offsets de BP_ControllerRig)
+- **Escribir el template de un componente del BP SÍ funciona y persiste** (`ObjectTools.set_properties` sobre `/Game/BP_X.BP_X_C:<Comp>_GEN_VARIABLE`, sobrevive al compile). Es LA vía para que un valor autorado pase a ser default de fábrica.
+- 🔴 **Pero una instancia YA COLOCADA captura los valores del template en el momento del spawn**: cambiar el template después no la actualiza, y `reset_properties` sobre la instancia vuelve a **lo capturado al colocarse**, no al template nuevo. Para que una instancia adopte el template actualizado: **reemplazar el actor** (borrar el propio y re-colocarlo — jamás borrar actores de Beltrán sin preguntar).
+- 🔴 **`set_properties` multi-campo sobre el componente de una INSTANCIA registra el delta a medias**: escribimos loc+rot completos y tras el rerun del Construction Script solo sobrevivió la `x`. Offsets de instancia se autoran con el gizmo (el editor sí registra bien), o se hornean en template/CS.
+- **El literal de un pin Rotator es "Pitch, Yaw, Roll"** (verificado con el espejo del rig: "90, 10, 0" → pitch 90, yaw 10).
+
+### ➕ Cosecha 2026-09-03 bis — semántica real de execute_tool_script + transform de actores BP (sesión de light shafts)
+- 🔴 **Un error de TOOL dentro de `execute_tool_script` NO es atrapable con `try/except BaseException`** — el wrapper de `safe_script.py` solo atrapa errores de PYTHON. Medido: un `connect_expressions` con pin inexistente hizo que el resultado entero del script se reemplazara por ese error… pero **el script siguió corriendo hasta el final** (los materiales creados DESPUÉS del error existían). Consecuencias: (a) un script "fallido" puede haber hecho TODO su trabajo → **inspeccionar el estado antes de re-correrlo**, o se duplica; (b) el `ERRS` del wrapper nunca llega si falla un tool → verificar por lecturas separadas; (c) los errores de VALIDACIÓN de parámetros (p.ej. refPath sin `.Nombre`) también matan el reporte. Un error de Python (p.ej. `.get()` con default, que el sandbox no soporta) SÍ corta la ejecución en esa línea.
+- ✅ **`ActorTools.set_actor_transform` SÍ funciona sobre instancias de Blueprint** (verificado 2026-09-03 con read-back de los 9 valores). La nota del 2026-08-11 ("devuelve true y no mueve nada") se midió sobre StaticMeshActors crudos. Para actores BP es LA vía limpia de poner el transform completo — y esquiva la trampa del struct multi-campo sobre el root component (que en un actor BP aplica solo el primer campo: loc `(x, 0, 0)`, scale `(x, 1, 1)`).
+- 💡 **Escribir una variable instance-editable de una instancia con `set_properties` SÍ re-corre el Construction Script** (verificado: `BeamColor` y `WobbleAmount` de `BP_LightShaft_SC` cambiaron el render en la captura siguiente). Es la forma barata de ajustar knobs de instancias colocadas — el struct de la variable va COMPLETO de una vez (regla de la cosecha anterior).
+
+### ➕ Cosecha 2026-09-03 ter — sesión de light shafts v7 (DSL, overloads, MPC)
+- 🔴 **CORRECCIÓN de la cosecha bis:** el `try/except BaseException` del wrapper SÍ atrapa los errores de tool y la ejecución SÍ continúa — lo que pasa es que **el plugin REEMPLAZA el resultado del script con el primer error de tool aunque Python lo haya atrapado**. Consecuencias prácticas iguales (el `ERRS` nunca se ve si hubo error; el trabajo se hizo; inspeccionar antes de re-correr), pero los `if not ok` de fallback SÍ funcionan.
+- 🔴 **`remove_function_graph` + `add_function_graph` del MISMO nombre devuelve `Nombre_0` si el nodo de llamada sigue vivo** — y a veces incluso sin él. Receta que funciona: `delete_node` del CallFunction en el UCS → `remove_function_graph` → **`compile_blueprint` (purga el nombre)** → `add_function_graph` → nombre limpio. Sin el compile intermedio puede volver sufijado.
+- **Los `elif` del DSL se ENCADENAN ANIDADOS**, no como hermanos: `(if c0 s0 (elif c1 s1 (elif c2 s2)))`. Dos elif hermanos fallan con *"(elif) must be the last form"*.
+- ✅ **El overload exacto de una función duplicada SÍ sale con `create_node` + `declaring_class`** (la salida que promete la trampa #3 del DSL, ahora VERIFICADA): `create_node {type_id: 'Rendering|Material|SetScalarParameterValue', declaring_class: '/Script/Engine.KismetMaterialLibrary'}` crea el **K2Node_CallMaterialParameterCollectionFunction** correcto (pins: Collection/ParameterName/ParameterValue). El pin `Collection` se llena con `set_pin_value` y el path del asset. Así se construyó `PushMPC` de [[BP_LightShaft_SC]]. ⚠ El write DSL elige overload al azar entre los dos ids idénticos — para MPC siempre cirugía.
+- ✅ **Los parámetros de un MaterialParameterCollection se escriben por `ObjectTools.set_properties`** con los arrays completos: `{"scalarParameters": [{"parameterName": ..., "defaultValue": ...}]}` y `vectorParameters` (defaultValue = LinearColor). Verificado leyendo de vuelta (los GUID los pone el motor).
+- 🎨 **Un emisivo aditivo MUY sobresaturado vira a ROSA/violeta en el tonemapper** (color cálido (1.5, 0.8, 0.4) × brightness 5 → los canales clipean desparejo). Si un disco/glow cálido sale rosa, la palanca es BAJAR la intensidad, no tocar el color. Rango sano del `SourceGlowIntensity` del haz: ≤0,8.
+- 🐚 **PowerShell 5.1: `$r` como nombre de variable dentro de un bloque con arrays se corrompió a Object[]** en un script de generación de OBJ (op_Multiply sobre array). No se diagnosticó; la salida fue reescribirlo en Python (`python` 3.12 SÍ está en el PATH de esta máquina). Para generar mallas por OBJ: `scratchpad/gen_shaftbox.py` es la plantilla (28 puntos × 21 anillos, vn suaves, vt con costura).
+- 🌀 **`MaterialExpressionSine` multiplica la entrada por 2π** (su `period` default = 1 significa "un ciclo por unidad de entrada", NO radianes). Toda frecuencia calculada en rad/cm sale ~6,28× más rápida: un anillo láser procedural se rompió en PUNTITOS/dientes por esto (el síntoma engaña — parece precisión o aliasing). Fix: `period = 6.283185` en el nodo y las entradas quedan en radianes. Vale para Sine y Cosine.
+- 💡 **La línea de láser sobre un objeto receptor = distancia al CASCO del cono, no banda de altura**: `|d_radial − r(t)| < ancho` dibuja la curva de intersección sobre CUALQUIER superficie (tapa, cara, piso) con la perspectiva correcta gratis — la banda por world-Z solo sirve para el plano del piso. Implementado en `M_BeamReceiver_SC` con wobble propio (2 senos world-space, `RingWidth/RingWobble/RingFreq`).
+- 🧱 **Un line trace que NACE dentro de un basic shape del motor devuelve el punto de arranque** (el colisionador simple es una CAJA SÓLIDA — un "cuarto" hecho de un cubo escala 60× tiene todo su interior como overlap inicial). Fix: **`bTraceComplex=true`** — traza contra los triángulos del render mesh y el interior queda hueco. Medido 2× en `ResolveFloor` de [[BP_LightShaft_SC]] (primero pescó el techo a 650, después el arranque a 602).
+- 🔁 **Para re-correr el Construction Script de una instancia por MCP: toggle de un bool instance-editable** (`set_properties` false → true). Setear el MISMO valor no dispara el rerun; mover OTRO actor tampoco.
+- 🪞 **El importador de OBJ ESPEJA el eje Y: las normales `vn` llegan con la Y invertida.** Un tubo con normales analíticas outward llegó con caras negras — y el culpable río abajo es que **el nodo Fresnel SATURA el dot ANTES del 1−x**: con la normal volteada, dot<0 → saturate→0 → 1−0=1 → OneMinus=0 EXACTO, y un Abs posterior no rescata nada (la información murió en el saturate). Fix en el origen: emitir el OBJ con `vn (nx, −ny, nz)`. Verificado A/B con dos variantes importadas lado a lado (la de −nx quedó con normales totalmente hacia adentro = confirma espejo Y, no X).
+- 🧵 **Malla para haz con caras planas: SUBDIVIDIR los flats.** Sin vértices intermedios en las caras, el WPO del wobble solo dobla en las esquinas (pliegue negro duro entre caras) — la sección del `SM_ShaftBox` v2 lleva 6 segmentos por lado + 31 anillos. En Quest los polígonos extra son gratis (fill-bound).
+- ℹ️ **Precisión sobre los errores de tool en `execute_tool_script`**: "Unknown tool" (y otros errores de RESOLUCIÓN) sí llegan al `except` y al `ERRS`; los errores de EJECUCIÓN del tool (pin inexistente, refPath malo) son los que pisan el reporte. Distinguirlos: si `errores` volvió poblado, el reporte es confiable.
+- 🚫 **No hay tool para metadata de variables BP (UIMin/UIMax/sliders)** — `set_variable_metadata` no existe en BlueprintTools. Los rangos de sliders se fijan a mano en el editor; documentarlos en el tracker del BP.
+
+### ➕ Cosecha 2026-09-04 — MIDs rancios, capturas rancias y noise post-WPO
+- 🔴🔴🔴 **Un MID creado ANTES de que su material ganara un parámetro NUNCA lo honra.** `SetScalarParameterValueOnMaterials` (y `SetScalarParameterValue`) guardan el valor en `scalarParameterValues` del MID —**se lee de vuelta perfecto**— pero el render proxy lo ignora, porque el set de expresiones cacheado del MID es el que tenía el padre en el momento de crearse. `CreateDynamicMaterialInstance` **reutiliza** el MID existente en cada rerun del Construction Script, así que el toggle de un bool NO lo renueva. Síntoma exacto: *"el BP empuja el valor correcto, el MID lo tiene, y en pantalla no cambia nada"*, mientras que **un actor recién colocado SÍ funciona**. Diagnóstico barato: colocar un actor de prueba nuevo — si en él funciona, es esto. **Fix: recargar el nivel (`SceneTools.load_level`) o reabrir el editor.** Costó media sesión con `AspectX`/`BoxAngle` de `M_ApertureGlow_SC`.
+- 🔴 **`CaptureViewport` con `captureTransform: false` devuelve un FRAME RANCIO**: `SetCameraTransform` + capturar da la imagen ANTERIOR (dos encuadres distintos salieron píxel-idénticos). **Pasar el transform DENTRO de `captureTransform`** (`{location, rotation, scale}`) y ahí sí redibuja. Tras `load_level` hay que esperar (~25 s) o la captura sale negra/marrón uniforme (shaders compilando).
+- ⚠ **`CaptureAssetImage` devuelve `{data, mimeType}` en la raíz**, no `{image: {data}}` como `CaptureViewport`.
+- 🔴 **`read_graph_dsl` imprime los getters de bool sin categoría y con la `b`: `(|GetbFloorFollowsBeam)` — pero el type_id que acepta `write_graph_dsl` es `Variables|D-Piso|GetFloorFollowsBeam`** (con categoría y SIN la `b`). Copiar el token del read falla con *"El nodo no pudo crearse / X does not exist"*. Confirmarlo siempre con `find_node_types`.
+- 💡 **Agregar una función nueva + un solo `create_node` al final de la cadena del UCS es MUCHO más barato que rehacer una función existente** (`write_graph_dsl` duplica; el ciclo remove/compile/add es frágil). Si el cambio es *aditivo*, escribirlo en un grafo nuevo y engancharlo al `then` del último nodo.
+- 🌊 **En el pixel shader `WorldPosition` es POST-WPO.** Un material que desplaza por `noise(WorldPosition)` y además colorea por el mismo `noise(WorldPosition)` está coloreando en la posición YA desplazada → el campo de color se pliega y aparecen **parches/pliegues con borde duro** en las pendientes. Fix: **`VertexInterpolator`** entre el noise y el consumo de píxel — mismo valor que usó el vértice, interpolado suave, y de paso el noise pasa a ser **por-vértice** (regalo enorme en Quest). El `DepthFade` de la opacidad tiene que quedarse por píxel.
+- ⚠ **`find_node_types` con filtros genéricos (`"Max"`) devuelve MILES de líneas** — un solo filtro flojo se comió ~18k tokens. Filtrar por el nombre exacto o por prefijo de categoría.
+- ⚠ **`bHiddenEdTemporary` no es escribible por `set_properties`.** Para sacar un actor de en medio en una captura sin tocar el nivel, apagarlo por un parámetro suyo (p.ej. `Density = 0` en la nube) y restaurarlo en el mismo script.
+- ⚠ **`mcp__unreal__call_tool` usa el campo `arguments`** (recordatorio: con `parameters` la llamada llega VACÍA y el error parece un problema de schema del tool destino).
+- 🔴🔴 **Nunca identificar actores por substring de su NOMBRE DE CLASE.** `add_to_scene_from_asset(name=...)` NO nombra el actor: el nombre interno queda `StaticMeshActor_N` (con índices reciclados de actores borrados), y el `name` que se pasó va al **label**. Filtrar por `"StaticMeshActor" in refPath` para "encontrar mis cubos de prueba" agarró también los del usuario y les movió el transform. **La identificación segura es `ActorTools.get_label`** (o guardar el refPath que devolvió el spawn, que es lo más seguro de todo). Pasó el 2026-09-04 y desplazó un actor de Beltrán.
+- 🔴 **`SceneTools.load_level` se NIEGA si el nivel tiene cambios sin guardar** (*"the level has unsaved changes"*) y **no existe ningún tool de Undo** (probados `Undo`/`UndoTransaction`/`EditorUndo`/`ExecuteConsoleCommand`: ninguno existe). O sea: **por MCP no hay forma de revertir un cambio de nivel.** El único remedio es que el usuario reabra el nivel descartando cambios, o Ctrl+Z a mano. Corolario práctico: **guardar los ASSETS por ruta explícita apenas estén listos** — así, si hay que descartar el nivel entero, el trabajo de materiales/BPs sobrevive.

@@ -267,3 +267,251 @@ tocó. Para que despeje tendría que estar en **≤ 0,9**.
 ## ⚠ Lo que NO viaja todavía
 Las **esferas de la melodía** siguen naciendo relativas al transform de [[BP_Portrait_SC]], o sea en el
 atril viejo, mientras la ameba, su tarjeta y su dibujo están en otro lado.
+
+
+---
+
+## 2026-09-02 — la tarjeta del vecino pasó a la CARTA física
+
+El panel por-ameba (`ShowCard`/`HideCard` dentro de [[BP_ProtoSoul_SC]]) se reemplazó por **una sola
+carta física** [[BP_Card]], que se re-alimenta con la entrada del archivo de cada vecino.
+
+| Función | Antes | Ahora |
+|---|---|---|
+| `CardFrom(ArchIdx, Soul)` | `Soul.ShowCard(calma, ritmo, respiración, `CardTitle`)` | **`Card.ShowFor(Soul, ArchIdx)`** |
+| `DrawNeighbour(ArchIdx)` | `DrawNow` reconstruía el dibujo y `PlaceSign` lo ponía al lado de la ameba | **vaciada** — el dibujo va al hueco de la carta |
+| (en `Focus`) `PortRef.FeedMelody` | sembraba las esferas del vecino | **vaciada en `BP_Portrait_SC`** — las siembra la carta |
+
+🔑 **`Focus` NO se tocó.** Su cuerpo tiene un `AI|Navigation|MovetoActor` que **puede ser un rótulo
+equivocado del read** (el `MoveToActor` de la ameba colisiona de nombre con el de IA — verificado ese
+mismo día en otro Blueprint, donde el DSL sí cableó el de IA en silencio). Reescribir `Focus` desde el
+`read` habría cambiado esa llamada. La cirugía se hizo en las tres funciones hoja.
+
+✅ **Verificado en PIE (Simulate)**: 12 vecinos sembrados (`bDebugSeedFakes`), **19 estrellas**
+construidas, y con `bDebugCycle` la carta recorre `vecino 0 → 1 → 2 → 3 → 4 → 5…` re-alimentando curvas,
+ameba, dibujo y melodía en cada salto.
+
+⬜ **Composición pendiente**: la carta queda **dentro de la nube de estrellas** (ella en X=7640, las
+estrellas a radio 983 del ojo en 7151), así que varias amebas se cruzan por delante del panel.
+
+🧹 Barrido de huérfanos: 90 nodos borrados en este BP (`SpawnStar`, `DressStar`, `ForceHover`,
+`DrawNow`, `CardFrom`, `DrawNeighbour`) con `identical: true` — la lógica viva quedó intacta.
+
+
+---
+
+## 2026-09-02 (tarde) — el hover, hecho SIMPLE de una vez
+
+Beltrán: *"cada vez que apunto a una ameba se agranda más y más y más. Incluso una se empezó a mover.
+Esa mecánica debe ser super simple: hover → se agranda y muestra tarjeta; no hover → vuelve a su tamaño
+normal, no muestra tarjeta."*
+
+### 🔴 El crecimiento infinito: escala RELATIVA en vez de ABSOLUTA
+`GrowHovered` hacía `nueva = escala_actual_del_spot × HoverGrow`. Al re-entrar el hover sobre la misma
+ameba, leía la escala **ya agrandada** y volvía a multiplicar → **1,35 → 1,82 → 2,46 → …** sin techo.
+✅ **Arreglo: nunca leer la escala viva.** `SpotScales` (array de float) guarda la escala **original** de
+cada spot **una sola vez** (`EnsureSpotScales`, llenado perezoso en el primer hover, cuando todos están
+todavía en su valor autorado). A partir de ahí:
+```
+hover    →  spot.Scale = SpotScales[i] × HoverGrow      (absoluto, nunca acumula)
+sin hover→  spot.Scale = SpotScales[i]                  (RestoreSpot)
+```
+`GrownIdx` (int) reemplaza al `GrownSpot` (Actor): se guarda **el índice**, no el actor, para poder
+restaurar siempre por la tabla.
+👉 **Regla: un efecto reversible (hover, énfasis, selección) se calcula SIEMPRE desde un valor base
+guardado, jamás leyendo el estado actual — si no, cada repetición se compone sobre la anterior.**
+
+### La que "se empezó a mover": `SendHome` usaba el índice EQUIVOCADO
+`SendHome` hacía `MoveToActor(HoverRef, Spots[HoverIdx])` leyendo **`HoverIdx` en el momento de salir**,
+que para entonces **ya podía ser el de otra ameba** → mandaba la que se estaba soltando al spot de la
+nueva.
+✅ Como en la mecánica nueva **ninguna ameba viaja nunca**, `SendHome` quedó reducida a `ShrinkPrev()`.
+Sumado a que en `Focus` ya se había borrado el `MoveToActor` y a `FocusPull = 0`, **no queda un solo
+nodo que mueva una estrella**.
+
+### El contrato, ahora en una línea
+| Evento | Qué pasa |
+|---|---|
+| **Hover** | `GrowHovered` (escala base × 1,35, en su sitio) + `CardFrom` → `Card.ShowCopyFor(...)` |
+| **Sin hover** | `ShrinkPrev` (vuelve a la base) + `HideCardPanel` → `Card.Hide()` |
+Nada se mueve, nada se acumula, y sirve igual para las 20.
+
+
+---
+
+## 2026-09-02 (noche) — el hover, por fin correcto
+
+Dos fallos que quedaban: *"al quitar el hover nunca vuelven a su tamaño; se quedan todas agrandadas"* y
+*"el radio de hover está muy grande, debe ser sólo el contorno del mesh"*.
+
+### 🔴 No restauraban: restauraba por ÍNDICE, y los índices no están alineados
+`ShrinkPrev` hacía `Spots[GrownIdx].Scale = SpotScales[GrownIdx]`. Pero **`Spots` tiene los 20
+TargetPoints y `Spawned` sólo las estrellas creadas (19, porque `bSkipMine` saltea la propia)**: el índice
+del hover no indexa la misma cosa en las dos listas, así que se agrandaba una y se "restauraba" otra —
+o ninguna.
+✅ **Arreglo: restaurar POR REFERENCIA, nunca por índice.** El spot se le pide **a la propia ameba**
+(`GetTargetRef(HoverRef)`), se guarda esa referencia en `GrownSpotRef` junto con su escala en
+`GrownBase`, y `ShrinkPrev` restaura exactamente ese actor. Sin tablas paralelas que puedan desalinearse.
+🗑 Se borraron `SpotScales`, `GrownIdx`, `GrownSpot`, `GrownScale` y las funciones `EnsureSpotScales`,
+`RestoreSpot`, `ApplyGrow` — el andamiaje del intento por índice.
+
+👉 **Regla: cuando dos listas describen "lo mismo" pero se llenan en momentos o con filtros distintos,
+no se pueden indexar cruzado.** Si hay una referencia directa al objeto, usarla.
+
+### 🔴 El radio: la INSTANCIA tenía 14°, no los 9° del Blueprint
+A los ~9,8 m de radio de la constelación, **14° son 2,4 m de radio de enganche** — de ahí que
+"cualquier lado" activara el hover. (Y otra vez: el valor de la instancia le ganaba al del Blueprint.)
+✅ **`AimConeDeg = 6°`** en CDO **e instancia** → ~1,0 m a esa distancia, del orden del tamaño de la
+ameba. Es la perilla si hay que afinarlo: menos grados = más preciso.
+⚠ La detección es **por ángulo**, no por trace contra el mesh (las amebas no tienen colisión, por eso se
+eligió así). "El contorno exacto del mesh" requeriría darles colisión; 6° es la aproximación fiel.
+
+### El contrato, ya sin excepciones
+| Evento | Qué pasa |
+|---|---|
+| **Hover** | esa ameba crece **en su sitio** (`base × 1,35`) + aparece su carta |
+| **Sin hover** | vuelve a su base exacta + se va la carta |
+Ninguna se mueve, ninguna acumula, y vale igual para las 20.
+
+
+---
+
+## 2026-09-02 (cierre) — por qué el arreglo anterior NO podía funcionar
+
+El log de Beltrán tiene una **ausencia** que vale más que cualquier mensaje:
+```
+CONSTELACION: miro al vecino 0 → 8 → 16 → 3 → 2      (Focus corre, y mucho)
+...y NUNCA aparece "CONST: hover fuera, tamano restaurado"
+```
+Ese print vive **dentro** del `IsValid` de `ShrinkPrev`. Que no salga ni una vez prueba que la referencia
+guardada **siempre fue inválida** — o sea que mis dos intentos (por índice y por referencia al spot)
+**nunca tocaron nada**: agrandaban y restauraban un objeto que no existía.
+
+### La causa de fondo: le estaba escribiendo al objeto equivocado
+Los dos intentos escalaban **el `TargetPoint`** de la estrella. Pero `GetTargetRef(HoverRef)` devuelve
+**null** para las estrellas de la constelación: se colocan y dimensionan **en el spawn**
+(`CONSTELACION: estrellas = 19 | escala del cuerpo = 0.5`), no siguiendo un ancla. Sin `TargetRef` no hay
+`AnchorStep`, y escalar el spot no mueve ni una aguja.
+✅ **Arreglo: escribirle el tamaño A LA AMEBA.** `GrowHovered` guarda `GrownSoul` (la ameba, no el spot)
+y su `GrownBase = GetSize(alma)`, y aplica `SetSize(base × HoverGrow)`. `ShrinkPrev` hace
+`SetSize(base)` sobre esa misma referencia. Verificado que ambos nodos apuntan a
+**`BP Proto Soul SC Object Reference`** (el `read` los rotula mal como `Widget|SetSize` / `SharedImage|GetSize`).
+🔑 Y es seguro que persista: en la constelación **nada pisa `Size`**, porque el único que lo haría
+(`AnchorStep`) está detrás del guard `IsValid(TargetRef)` que aquí nunca pasa.
+
+### 🔴 La lección de método (tres intentos fallidos seguidos)
+Los tres arreglos partieron de **suponer** por dónde se controla el tamaño, sin medir. La medición que lo
+resolvió fue **mirar qué print NO aparecía** — una ausencia en el log vale tanto como una presencia.
+👉 **Antes de escribir el arreglo: un print que confirme que la rama se ejecuta y con qué valores.**
+Ahora los hay en las dos funciones (`CONST: hover, de X` / `CONST: hover fuera, vuelve a X`), así que la
+próxima corrida dice el número en vez de dejarnos adivinar.
+
+
+---
+
+## 2026-09-02 (final) — el hover como ESTADO, no como pulso
+
+Beltrán: *"mientras el hover está activo debe mantenerse en la escala grande. Ahora hace un pulso rápido
+y vuelve. Apuntarla es como que la tuviera seleccionada, esa es la idea."*
+
+### 🔴 `Resolve` no tenía caso "dejé de apuntar"
+```
+if (BestDot > cos(cone)) AND (BestIdx != HoverIdx):   → Unfocus + timer a Focus
+```
+**Sólo actuaba al CAMBIAR de ameba.** Si dejabas de apuntar, `BestDot` no superaba el umbral, la condición
+fallaba y **no pasaba nada**: `HoverIdx` seguía apuntando a la última y nadie la achicaba. Eso explica
+*"quedan todas agrandadas"*. Y el achicado que sí se veía venía del `Unfocus` **del cambio**, que
+restauraba antes de que el timer volviera a agrandar → **el pulso**.
+
+### ✅ Ahora es una máquina de dos estados
+| | |
+|---|---|
+| **`ResolveHit`** (hay algo apuntado) | sólo si `BestIdx != HoverIdx`: fija el nuevo índice y arma `FocusDelayed`. **No achica nada** — de eso se encarga `GrowNow` en el mismo frame en que agranda, así **no hay instante en tamaño chico**. |
+| **`ResolveMiss`** (no hay nada apuntado) | **este caso no existía**: suelta el hover — `ShrinkPrev` + `HideCardPanel` + `HoverIdx = -1`. |
+
+Y **`GrowHovered` es idempotente**: `if (HoverRef != GrownSoul) → GrowNow`. Aunque `Focus` se dispare de
+más, la ameba ya seleccionada **no se vuelve a tocar**. Se agranda una vez y **se queda**.
+
+🗑 `FadeDrawOut` volvió a su única tarea (apagar el dibujo) y `SendHome` quedó como traza. Ninguna de las
+dos toca la escala ni la carta: el cambio de vecino ya no apaga y prende nada.
+
+👉 **La lección (la dijo Beltrán y es de manual): un hover es un ESTADO con entrada y salida**, no un
+efecto que se re-aplica. Si el código sólo sabe reaccionar al *cambio*, le falta justamente la mitad —
+el momento en que el estado se **suelta**.
+
+
+---
+
+## 2026-09-02 (cierre real) — el pulso era el SCAN, y el hover ya estaba hecho
+
+Beltrán, después de tres intentos míos: *"es el mismo estado que al principio, cuando el usuario elige su
+ameba: mientras está en hover está más grande y si la suelta vuelve. Esa lógica es super simple."*
+**Tenía razón en las dos cosas** — el diagnóstico y la solución.
+
+### 🔴 El pulso: yo soltaba al PRIMER frame sin detección
+El log lo muestra sin ambigüedad:
+```
+miro al vecino 12  →  CONST: SELECCIONADA  →  CONST: sin hover - se suelta   ← el mismo suspiro
+```
+`PollHover` corre **cada frame** y reinicia `BestDot = -2`. Con el cono en 6°, **un temblor de mano basta
+para no superar el umbral en un frame**, y mi `ResolveMiss` soltaba de inmediato. Al frame siguiente
+volvía a enganchar → **parpadeo**. No era un problema de escala: era el **scan sin histéresis**.
+
+✅ **Histéresis, la solución de manual**: se **entra** con `AimConeDeg` (7°) y sólo se **sale** con
+`AimConeOut` (14°, blindado con `Max(10,…)`). Entre los dos umbrales **no se toca nada** y el hover
+**se mantiene**. Un cono de entrada preciso, uno de salida indulgente.
+
+### 🔴 Y la escala ya estaba resuelta en el proyecto
+`BP_ProtoSoul_SC` **ya tiene su hover nativo**, el mismo que usa la elección del alma:
+`bHovering` → `StepHover` interpola `HoverT` (con `HoverTime` 0,25 s) → `ApplyHoverScale` aplica
+`Size × (1 + (HoverScale−1) × HoverT)` con **`HoverScale` 1,425 ya autorada**.
+✅ **La constelación ahora sólo dice `SetHovering(true/false)`.** Nada de tocar `Size`, ni guardar
+escalas base, ni restaurar a mano: el suavizado, la escala y la reversibilidad **ya existían**.
+
+🗑 Se fue todo lo que había construido de más: `SetSize` manual, `GrownBase`, `GrowTmp`, escalado de
+spots, tablas de escalas y funciones auxiliares.
+
+### 👉 La lección, que es la regla #1 de este repo y me la salté cuatro veces
+**Antes de construir una interacción, buscar si ya existe y está probada.** El hover con escala llevaba
+meses funcionando a dos Blueprints de distancia. Construí tres versiones propias —por índice, por spot,
+por `Size`— y las tres eran peores que llamar a **una función de una línea**. El síntoma de que estaba
+en el camino equivocado estuvo desde el principio: **cada arreglo necesitaba más andamiaje que el
+anterior**.
+
+
+---
+
+## 2026-09-02 (definitivo) — ADIÓS CONO: el hover es el BEAM, el mismo de Attracting
+
+Beltrán, después de que yo hiciera **cuatro** versiones propias del hover:
+> *"Olvidate del cono. Estamos usando el beam, es el mismo sistema que en Attracting.
+> Para qué inventamos cosas. Todo esto está construido, llevamos 1 mes armándolo.
+> Las mecánicas siempre se repiten, no es nada tan complejo."*
+
+**Tenía razón en todo.** El mecanismo ya existía, probado en visor, y es de dos líneas.
+
+### El sistema real (`BP_Sensor_Soul` + `BP_SoundOrb_SC`)
+```
+Sensor.TickBeamR/L :  LineTraceByChannel desde el Aim  →  BeamHitActor / BeamHitActorL
+Orbe.RefreshHover  :  Hovered = (BeamHitActor == self) OR (BeamHitActorL == self)
+```
+Eso es **todo**. El objeto pregunta *"¿el beam me apunta a mí?"* — sin conos, sin dot products, sin
+histéresis, sin umbrales de entrada y salida.
+
+### Lo que quedó en la constelación
+| Función | Ahora |
+|---|---|
+| `ScanOne(Idx)` | `if (BeamHitActor == estrella) OR (BeamHitActorL == estrella) → BestIdx = Idx` |
+| `Resolve` | `if BestIdx != -1 → ResolveHit ; else → ResolveMiss`. **Sin conos.** |
+| `GrowNow` / `ShrinkPrev` | `SetHovering(true/false)` — el **hover nativo de la ameba**, con su `HoverScale` 1,425 y su suavizado de 0,25 s, el mismo que en la elección del alma |
+| `MakeHittable(Soul)` (nueva, la llama `DressStar`) | le da colisión al `Body` de cada estrella (`BlockAll` + `QueryOnly`) para que el `LineTrace` la golpee — **exactamente lo que tienen las esferas de Attracting** (`QueryAndPhysics` + `BlockAll`) y le faltaba a la ameba (`NoCollision`) |
+
+🗑 Se borró todo lo que había inventado: escaneo por ángulo, `AimConeDeg`/`AimConeOut`, `BestDot`,
+`SetSize` manual, `GrownBase`, tablas de escalas base, escalado de spots.
+
+### 🔴🔴 La lección, que es la REGLA #1 del repo y la ignoré cinco veces seguidas
+**Antes de construir una interacción: buscar si ya existe y está probada** (`assets-existentes.md`,
+`_INDEX.md`). El hover con beam llevaba un mes andando en Attracting y el hover con escala en la
+elección del alma. Yo hice cuatro implementaciones propias, cada una con **más andamiaje que la
+anterior** — y ese crecimiento era, en sí mismo, la señal de que iba por el camino equivocado.
+👉 **Si un arreglo necesita más piezas que el anterior, parar y buscar el que ya existe.**

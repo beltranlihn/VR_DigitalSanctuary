@@ -231,3 +231,123 @@ Parámetros: `GlassColor` · `Emissive` · `Opacity` · `CornerRadius` · `EdgeS
 - 🆕 **`bShowGlass` + `SetGlassVisible(On)`**: interruptor del fondo, por instancia y también en runtime. **El panel del título va con `bShowGlass = false`** (pedido de Beltrán: ahí sólo se ve la imagen).
 - **`GlassOffset` = 1 cm de mundo por detrás** del widget, para no tapar texto ni imagen: en unidades de widget son **−9,6** en las salas (escala 200/1920) y **−7,68** en la partida (250/1920). Negativo = atrás; si en visor apareciera delante, invertir el signo.
 - El `Bg` del `WBP_Instructions` quedó **`visibility = Hidden`**: afecta a los 5 paneles de una vez.
+
+### ⏳ 2026-09-01 — el panel del título espera antes de aparecer (`ShowDelay`)
+Beltrán: *"Al iniciar nivel, espera unos 3-4 segundos antes de que aparezca animado los dos botones
+y el widget con el título"*. El panel de la partida tenía `bStartHidden = false`, así que nacía a
+tamaño completo en el frame 0, y con él los dos botones.
+
+- 🆕 **`ShowDelay`** (float, cat. *1 - Aspecto*, instance-editable, **default 0 = comportamiento de
+  siempre**). Nueva función **`DelayShow`**, llamada al final del `BeginPlay`: si `ShowDelay > 0`
+  fuerza el estado oculto (`bVisible=false`, `bEntering=false`, `AppearT=0`, `Panel` a escala 0) y
+  programa **`SetTimerByFunctionName("Show", ShowDelay)`**. Al cumplirse, entra por el **mismo
+  `Show()`** que ya usaban los paneles de sala → crece con `StepShow` y `ReApply` refresca colores.
+- 🔴 **Los dos botones no necesitaron nada**: su `bShown` ya es `(página) AND PanelRef.bVisible`
+  (§161), así que se quedan ocultos y a escala 0 hasta que el panel aparece, y entonces **crecen**.
+  Un solo número gobierna los tres. Ese es el rédito del enlace por tag que ya estaba hecho.
+- **Puesto sólo en la instancia del título** (`L_SoulCharger`, `ShowDelay = 3.5`). Verificado que las
+  4 instancias de sala siguen en 0.
+- ⚠ **La entrada dura `ExitTime`**, que en esa instancia está en **0,1 s** (el CDO tiene 0,5) y los
+  botones tienen `AppearTime` **0,1 s**: después de la espera aparecen casi de golpe. No lo toqué
+  porque son valores autorados y `ExitTime` gobierna **también la salida**. Si Beltrán quiere que se
+  note la animación, esos son los dos números.
+
+### 📦 2026-09-01 — la zona de toque del botón es una CAJA, no una esfera
+Beltrán: *"prefiero ajustar las zonas de tocar a superficies planas"*. La detección era una esfera de
+`TouchRadius` alrededor del origen del actor; ahora es una **caja orientada** que gira con el botón,
+así se puede aplastar contra la cara del panel.
+
+**Dos perillas, con roles separados** (decisión de Beltrán al revisar: *"la variable de touch radius
+debiera afectar al box"*):
+
+| Variable | Qué es | Ejemplo |
+|---|---|---|
+| **`TouchRadius`** (float, ya existía) | **el tamaño, en cm**: es el semi-lado de la caja en el eje cuya proporción vale 1 | 10 |
+| 🆕 **`TouchShape`** (Vector, cat. *A - Timbre*, instance-editable) | **las proporciones, adimensionales** — no son centímetros | `(1, 1, 0.3)` = una placa fina en profundidad |
+
+`semi-extensión de cada eje = TouchRadius × TouchShape.eje`, en los **ejes locales** del botón.
+Con `TouchShape = (1,1,1)` la caja alcanza exactamente lo mismo que la esfera vieja de radio
+`TouchRadius` sobre los ejes — por eso la migración **no volvió más difícil de tocar ningún botón**.
+Puesto así en el CDO y en las 4 instancias colocadas (persistente ×2, Recognizing, Entering), todas
+con `TouchRadius` 10 → gizmo de 10 × 10 × 10 verificado en las cuatro.
+
+- **`AnyHandClose`** reescrito: por mano hace `delta = manoW − actorLoc`, lo pasa a ejes locales con
+  **`UnrotateVector`** (rotación sola, **sin escala**: así `TouchRadius` son cm de mundo aunque el
+  actor esté escalado o animando su aparición) y compara `|x|,|y|,|z|` contra las semi-extensiones.
+  `bTouchRight` sigue eligiendo la mano por distancia euclídea, igual que antes.
+- **El gizmo del editor**: componente nuevo **`TouchGizmoBox`** (`BoxComponent`, verde, hidden in
+  game) colgado del `DefaultSceneRoot`. El **Construction Script** le escribe el `BoxExtent` con la
+  misma cuenta **÷ escala del actor** (la compensación que tenía la esfera) → **se ve y se ajusta en
+  el viewport, sin darle Play**. La esfera vieja `TouchGizmo` **no se borró**: el Construction Script
+  le pone radio 0. Beltrán preguntó por los dos componentes y se decidió dejarla.
+- 🔴 **Verificado que la caja NO tapa line traces**: el `BodyInstance` de la instancia quedó con
+  `collisionEnabled` serializado en `QueryOnly`, pero **las respuestas de los 18 canales son todas
+  `ECR_Overlap`, ninguna `Block`** → un line trace de un solo hit nunca la para. Además el
+  Construction Script llama `SetCollisionEnabled(NoCollision)`. Se midió, no se supuso.
+- 🪤 La trampa de siempre: `TouchShape` **nace en (0,0,0) en los actores ya colocados** → caja de
+  volumen cero → botón muerto. Por eso se escribió a mano en las 4 instancias. **Cualquier botón
+  nuevo que se coloque hay que llenarle `TouchShape`.**
+
+### ✋ 2026-09-01 — la mano no atraviesa el botón (tope visual) + `TouchOffset`
+Pedido de Beltrán: *"que si yo empujo con la mano, mi mano no pueda avanzar y traspasar el mesh
+cuando este llega a su máximo movimiento. Manteniendo por lo tanto el touch"*. Son **dos problemas
+distintos** y se resolvieron por separado.
+
+#### 1. Que no se pierda el contacto al empujar de más — `TouchOffset`
+La caja está centrada en el origen del actor: empujando fuerte la mano **salía por atrás** y el touch
+se cortaba. 🆕 **`TouchOffset`** (Vector, cat. *A - Timbre*, instance-editable, **en cm de mundo**,
+ejes locales) corre el **centro** de la caja. Con la caja poco profunda por delante y el centro
+corrido hacia −Z se consigue "poco alcance antes de tocar, mucho margen después". Lo usa
+`AnyHandClose` (resta el offset antes de comparar) y el Construction Script lo aplica al gizmo, así
+que **se ve en el viewport**. Default (0,0,0) = como antes.
+
+#### 2. El tope visual de la mano
+🔴 **No se frena la mano real, se frena la DIBUJADA** (la técnica de Alyx). La jerarquía del pawn lo
+permite sin tocar nada compartido: **`HandRight`/`HandLeft` son hijos de sus
+`MotionController…Grip`**, así que se mueve el mesh y **la posición trackeada queda intacta** — el
+touch, el dibujo y el grab siguen leyendo la mano verdadera. **`BP_VRPawn_SC` no se modificó.**
+
+- **`HandPen(Right) → float`**: pasa la mano a ejes locales del botón y devuelve
+  `max(0, (Body.Z + HandStopBias) − mano.Z)`. Como `UpdatePress` hunde el `Body` hasta `PressDepth`,
+  **el plano de tope baja con el botón y ahí se queda** — que es exactamente lo pedido.
+- **`PushOne(Right, Target, DT)`**: interpola el empuje de esa mano con `FInterpToConstant` y aplica
+  la **diferencia** con `AddRelativeLocation`. 🔴 **Trabaja por incrementos a propósito**: así no hace
+  falta cachear la pose base, y **dos botones no se pelean** — el que no toca suma cero.
+- **`StopHandStep` / `StopHand`**: una cuenta **por mano** (no una compartida) → si cambiás de mano a
+  mitad de la pulsación, la primera vuelve sola y la segunda entra; no queda residuo.
+- **Cierre**: `StopHand` se llama desde `TickBell` **antes** del branch, así también corre durante la
+  salida; y `Leave()` llama a **`ResetHands()`**, que fuerza el retorno instantáneo pasando
+  `DT = 999` al interp constante. Sin eso, un botón destruido a mitad de empuje **dejaba la mano
+  torcida para toda la obra**.
+- ⚠ **§18 (pure + variable escrita en el mismo grafo)**: en `PushOne` los `Set` van **después** del
+  `AddRelativeLocation` justamente por eso. Si alguien reordena y los sube, el delta se calcula con el
+  valor ya escrito y el empuje se duplica.
+
+**Perillas nuevas** (cat. *C - Mano*, todas puestas en las 4 instancias porque nacen en cero):
+
+| Variable | Default | Rol |
+|---|---|---|
+| `bStopHand` | true | interruptor del efecto, por botón |
+| `HandStopBias` | 0 cm | 🔴 **la perilla que hay que afinar en visor.** La penetración se mide desde el **grip** (la palma), no desde la punta del dedo → con 0 la mano frena cuando la palma llega a la superficie y los dedos ya la atravesaron. **Subirlo** frena antes. |
+| `HandReturnSpeed` | 200 cm/s | velocidad del retorno (constante). Rápido a propósito: `LeaveTime` son 0,2 s |
+
+**Estado: ⬜ sin probar.** Compila limpio y las 4 instancias tienen valores, pero no se pudo correr
+(el `DebugStartRoom` está en 5 y no se toca). Falta visor: sobre todo `HandStopBias`.
+
+#### 🐛 Primera pasada en visor: *"la mano sigue pasando hacia el otro lado"* — y por qué
+Medido, no supuesto: el botón de la partida tenía `TouchShape.z = 0.15` → la caja medía **±1,5 cm en
+Z, 3 cm de fondo total**. En cuanto la mano empujaba más de 1,5 cm **salía de la zona**, `bTouching`
+caía, el empuje se cancelaba y la mano se soltaba. Es el problema que `TouchOffset` existía para
+resolver y que se había dejado en (0,0,0) — el arreglo estaba construido y sin aplicar.
+
+**Dos cambios:**
+1. **Fondo real en las 4 instancias**, preservando **exacto** el frente que Beltrán ya había
+   autorado: partida `+1,5 → −30,5` cm · Recognizing y Entering `+10 → −30`.
+2. 🔴 **El plano de tope pasó a ser el FRENTE DE LA CAJA**, no el origen del `Body`:
+   `stop = (TouchOffset.z + TouchShape.z × TouchRadius) + (cuánto se hundió el Body) + HandStopBias`.
+   Con `HandStopBias = 0` la mano **se congela exactamente donde estaba cuando empezó el contacto**
+   (penetración 0 en ese instante → **nunca hay tirón**) y de ahí acompaña al botón sus `PressDepth`
+   centímetros. Antes el tope estaba en el origen del `Body`, más de un centímetro **por detrás** de
+   donde arranca el contacto, así que el empuje ni siquiera podía activarse dentro de la zona.
+   👉 Corolario para autorar: **mover `TouchOffset.z` mueve a la vez dónde empieza el contacto y dónde
+   frena la mano**, y el gizmo verde lo muestra. `HandStopBias` queda sólo como retoque fino.

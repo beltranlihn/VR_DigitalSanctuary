@@ -285,3 +285,52 @@ En el Content Browser de Neural Canvas: botón derecho → **Migrate**, y elegir
    handle del timer guardado.
 3. La paleta como **`PickBrush(Index)` / `PickColor(Index)`**, en su propio BP, **fuera del pawn**.
 4. Medir fill-rate en el APK antes de dar por buena la mezcla aditiva sobre la escena de Soul Charger.
+
+---
+
+# 🔑 EL MECANISMO DE LA PUNTA (2026-08-31) — leído del material, no inferido
+
+Todo el día se buscó la punta fina en la geometría. **No está ahí.** El censo de nodos de
+`PincelA_AddPoint` (130 nodos, 19 de ellos reroutes) confirma que **no hay rampa de ancho ni taper**:
+`GetStrokeWidth` aparece 2 veces y hay un solo `vector*float` para el lateral. Las variables
+`WidthMultiplier`, `FinalWidth`, `Desapreto`, `IsFadingOut` **no se usan en ningún grafo** — son restos.
+
+## `M_Emissive`, cableado completo
+```
+V   = ComponentMask(TextureCoordinate).g          ; la V de UV0 = el ARCO en cm
+
+tip = saturate( V / Divide )  ×  saturate( (StrokeLength − V) / Divide )
+      ; 0 en las dos puntas, 1 en el medio, con `Divide` cm de transición
+
+MP_EmissiveColor       = EmissiveColor × EmissiveBrightness
+MP_Opacity             = tip × Opacity
+MP_WorldPositionOffset = (1 − tip) × VertexNormalWS × ShrinkAmount     <-- LA PUNTA
+```
+
+### 🔴 La punta es WORLD POSITION OFFSET
+En los extremos `(1 − tip) = 1`, y **cada vértice se desplaza a lo largo de su propia normal** por
+`ShrinkAmount`. Con las normales en **`+side` / `−side`** y `ShrinkAmount` **negativo**, los dos cantos
+de la cinta se juntan y **la geometría se cierra en punta**. En el medio `tip = 1`, el offset es 0 y la
+cinta tiene su ancho pleno.
+
+**Consecuencias que hay que respetar al portarlo:**
+1. **Las normales ±lateral son ESTRUCTURALES, no cosméticas.** Con las dos normales iguales (o con `Up`),
+   los dos cantos se desplazan al mismo lado: la cinta se corre entera en vez de pinzarse, y las puntas
+   salen **planas**.
+2. **`ShrinkAmount` tiene que ser NEGATIVO** y del orden del medio ancho — es cuánto se juntan los cantos.
+3. **`Divide` es el LARGO de la punta en cm** (6 en `M_Emissive_Inst`, 15 en las de spray). No es un
+   tiling de textura, como se había supuesto.
+4. **La V de la UV tiene que ser el arco ABSOLUTO en cm**, porque se compara contra `StrokeLength`, que
+   viaja en cm. Cualquier normalización previa (nuestro viejo `TexScale`) rompe la comparación.
+5. **`StrokeLength` se empuja en cada punto** al material dinámico. Si el material que está en la sección
+   no es un MID, o el MID se pierde, **`StrokeLength` queda en su default y las puntas no aparecen**.
+
+## Valores del original
+| | `M_Emissive_Inst` (la cinta) | `M_Spray_Inst*` (estampas) |
+|---|---|---|
+| `EmissiveBrightness` | **1** | 1 |
+| `Divide` (largo de punta) | **6** | 15 |
+| `Opacity` | 0,7 | 0,7 |
+| `ShrinkAmount` (default) | −1 | −1 |
+
+⚠ **`M_Emissive_Inst_2` tiene `EmissiveBrightness` = 29,5** — satura todo a blanco. No es la de la cinta.

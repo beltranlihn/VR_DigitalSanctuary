@@ -14,6 +14,10 @@ El **consumidor visual** de la mecánica de respiración de Entering: la esfera 
 ## Cómo respira (v2, 2026-08-24 noche)
 `CurScale` interpola hacia **`lerp(BaseScale, InhaleScale, nivel)`** donde nivel = **`Sensor.BreathLevel`** (la señal continua 0-1, con auto-signo) si `bBreathing`, o 0.5 (neutro 0.35) si no. Ya **no** usa el `bInhaling` binario — se acabó el "baja solo al sostener". Escala final = `CurScale × RevealT`. Log de flanco `ORB: true/false`.
 
+🆕 **2026-09-01 — el sostenido**: Beltran validó el control en visor (*"funciona super"*) pero la esfera **se achicaba sola al sostener el aire arriba**. No se toco nada de este BP: la causa y el arreglo viven en la senal ([[BP_Sensor_Soul]] §`HoldSlow`/`HoldMovK`) — la linea de base del band-pass ahora se frena **cuando el sensor deja de moverse**, asi el nivel (y con el la escala) aguanta el sostenido sin perder la sensibilidad mientras se respira.
+
+🆕 **2026-09-01 (2ª) — el reenganche**: al volver a entrar al umbral la esfera saltaba a otro tamaño. Tampoco se tocó este BP: el `select(bBreathing, BreathLevel, 0.5)` de `TickOrb` está bien — el problema era que `BreathLevel` seguía evolucionando a ciegas mientras el umbral estaba cerrado. Ahora el sensor **resiembra la señal y pone el nivel en 0.5 en el flanco IN**, que es el mismo valor que este BP ya usaba como neutro → salto cero por construcción. ⚠ Si alguna vez se cambia ese `0.5` literal del `select`, hay que cambiar el del sensor también: **los dos numeros tienen que ser el mismo**.
+
 ## Registro de variables
 | Cat | Variable | Default | Rol |
 |---|---|---|---|

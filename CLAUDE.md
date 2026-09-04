@@ -48,6 +48,8 @@ Todo lo operativo de Unreal está en la skill **`unreal-vr`** (`.claude/skills/u
 - **`blueprints/`** — 🗺️ **`_INDEX.md` = mapa de TODOS los Blueprints** (qué es cada uno, dónde, para qué, estado) + un **tracker por Blueprint** con el detalle (variables, estructura de grafos, qué palanca ajusta qué). 🔴 **Obligatorio: leé el índice para ubicarte y el tracker del BP ANTES de tocarlo; actualizá ambos DESPUÉS.** Modelo de tracker: `BP_BreathSensor_V2.md`.
 - **`scripts/clean_orphans.py`** — limpieza de nodos huérfanos.
 
+**Para modelado 3D existe la skill hermana `blender-3d`** (`.claude/skills/blender-3d/`): opera Blender 5.2 por el MCP oficial (server `blender`) para crear los assets de la obra — el bucle plan→partes→render→crítica, los patrones seguros de `bpy`, los presupuestos de geometría Quest y el checklist de export FBX a Unreal. ⚠ El MCP `blender` está registrado a nivel usuario (path absoluto de la máquina de Beltrán); la skill en sí es conocimiento compartido.
+
 ### 🔴 Dos reglas de oro (de la skill, no olvidar)
 1. **Tokens: nunca traigas un output MCP gigante al contexto.** `describe_toolset`=72k, `find_nodes` sin filtro=146k, `get_connected_subgraph`=1.7M. Filtrá siempre (`type_id_filter`, `node_class`). Si ya está en archivo → PowerShell/Grep. Si hay que leerlo entero → subagente. Detalle en `references/workflow.md`.
 2. **No re-`write_graph_dsl` un grafo que ya existe → lo DUPLICA.** Grafo nuevo/vacío = `write_graph_dsl`. Grafo existente = cirugía de nodos (`create_node`/`connect_pins`/`set_pin_value`). Y **leé el grafo antes de tocarlo.**

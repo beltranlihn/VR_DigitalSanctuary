@@ -403,3 +403,25 @@ usuario **no es parte de `Spawned`** — viajó sola a `soul_pick_6` y la conste
 El read de esa función devuelve **`(Class|BPFinale|StartExplore)`** en el sub 10 — un id mal etiquetado por
 colisión de nombres, que escrito de vuelta llamaría a la función de OTRO Blueprint. Por eso el cambio fue
 cirugía de un solo nodo y no una reescritura.
+
+
+---
+
+## 2026-09-02 — `ShowPortrait()` ahora abre la CARTA, no el panel viejo
+
+El cierre pasó a la **carta física** [[BP_Card]] (mesh con seis huecos: ameba, dibujo, calma, ritmo,
+respiración y melodía). El sub 6 de `RunEnding` no cambió de forma — sigue siendo
+`Say(VOEnd1) → ShowPortrait() → WaitFor "timer"` con `PortraitHold` — pero **adentro** de `ShowPortrait`:
+
+```
+antes:  GetActorOfClass(BP_Portrait_SC) → PortraitRef → Show(WinnerRef)
+ahora:  GetActorOfClass(BP_Portrait_SC) → PortraitRef        (se conserva por si algo más lo usa)
+        GetActorOfClass(BP_Card)        → Card.Show()
+```
+
+🔑 **La carta NO recibe `WinnerRef` por parámetro**: resuelve la ameba ganadora por su cuenta
+(`SoulFromPicker`, con caída a la primera del nivel). Es una dependencia menos.
+✅ Verificado que el nodo apunta a la carta: `self = BP Card Object Reference`. ⚠ El `read_graph_dsl`
+lo rotula como `Class|BPSeqSlotSC|Show` — colisión de nombres, no un bug.
+
+⬜ **`BP_Portrait_SC` quedó sin llamador** en el final. Se retira cuando Beltrán lo apruebe.

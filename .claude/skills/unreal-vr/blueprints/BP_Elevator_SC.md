@@ -26,6 +26,27 @@ cortafuegos por tiempo convive sin doble cierre — mismo patrón que [[BP_Breat
   `M_RoomInterior` → multiplica por `MPC_Room.RoomLight`). Todo mesh nuevo del nivel debe usar un
   material de esa familia para fundir con la sala.
 
+## 🆕 Lo de abajo no se ve hasta llegar al centro (2026-09-01)
+Beltrán en visor: *"el resto de los meshes que van por debajo deberían volverse visibles una vez que
+ya llegamos al centro de la sala. Sino se están viendo antes y rompe la magia de empezar a bajar"* —
+desde el corredor se veía la torre de muros bajando por el hueco, y eso delata el truco antes de que
+empiece.
+
+- **`ElvHide`** (llamada desde `Event BeginPlay`, antes del boot): esconde con
+  `SetActorHiddenInGame(true)` **todo actor `rise` cuya Z esté por debajo del marcador `rise_top`**
+  (margen de 1 cm). El piso y el muro de la sala quedan visibles; los 5 de abajo (Z −1400, −2900,
+  −4300 y los dos de −5732) se van. **La regla es por altura, no por lista**: un mesh nuevo tagueado
+  `rise` que se coloque abajo se esconde solo.
+- **`ElvReveal`** (llamada desde el `Event Tick`, después de `ElvStep`): cuando la **distancia 2D del
+  pawn al ascensor** baja de **`RevealDist`** los muestra todos de una y apaga el chequeo
+  (`bRevealed`). Como el piso de la sala es opaco, el usuario ya no puede ver hacia abajo cuando
+  ocurre → el pop es invisible.
+- 🔴 **Red de seguridad**: `ElvReveal` también dispara si `bStarted` es true. Si por lo que fuera el
+  pawn nunca entrara en el radio, la subida jamás pasaría con los muros invisibles.
+- El chequeo vive **fuera** de la guarda `bStarted` de `ElvStep` — por eso es una función aparte
+  colgada del Tick y no un agregado a `ElvStep`.
+- Esconder es **solo en juego**: en el viewport Beltrán los sigue viendo y los sigue autorando.
+
 ## La física del pulso
 `Velocity` (cm/s), una sola variable:
 - **Beat** (`ElvBeat`, bindeado a `OnBeatPulse`): si `bArmed && !bDone` → `bStarted=true` y
@@ -54,10 +75,11 @@ cortafuegos por tiempo convive sin doble cierre — mismo patrón que [[BP_Breat
 | A - Ascensor | `CoastSpeed` | **20** cm/s | La velocidad lenta constante fuera del umbral (y el piso del decay). |
 | A - Ascensor | `DecaySpeed` | **1.0** | Velocidad del `FInterpTo` del decay (mayor = el kick muere antes). |
 | A - Ascensor | 🆕 `LandRate` | **6.0** | La pendiente del freno √ de llegada: **más chico = frena desde más lejos y más suave**; más grande = frena más tarde y llega más rápido. (Reemplazó a `LandTime`, eliminada con la v1.) |
+| A - Ascensor | 🆕 `RevealDist` | **500** cm | Radio (distancia 2D al ascensor) al que aparecen los meshes de abajo. La puerta está a 765 cm del centro, así que con 500 el reveal cae **265 cm después de cruzarla**, ya con el piso tapando el hueco. Subirlo = revelar antes. |
 | A - Ascensor | `RiseTag` / `TopTag` / `BottomTag` | rise / rise_top / rise_bottom | Los tags del sistema. |
-| Z (Default) | `RiseActors` · `TravelDist` · `Traveled` · `Velocity` · `bArmed` · `bStarted` · `bDone` · `bRefsOk` · `SensorRef` · `StoryRef` | | Estado interno. `bRefsOk` guarda el `StepTimeDone` (sin IsValid — los `Utilities|IsValid` del catálogo son ambiguos). |
+| Z (Default) | `RiseActors` · `TravelDist` · `Traveled` · `Velocity` · `bArmed` · `bStarted` · `bDone` · 🆕 `bRevealed` · `bRefsOk` · `SensorRef` · `StoryRef` | | Estado interno. `bRefsOk` guarda el `StepTimeDone` (sin IsValid — los `Utilities|IsValid` del catálogo son ambiguos). |
 
-## Estructura (7 grafos)
+## Estructura (9 grafos)
 - **EventGraph**: `BeginPlay → SetTimer("ElvBoot", 0.5)` · `Tick → ElvStep(DT)` ·
   `ElvBeat` (el handler del beat) · `ElvBind` (el `BindEventtoOnBeatPulse`, llamado desde `ElvBoot`
   cuando `SensorRef` ya está cacheado; **el pin Delegate se conectó por cirugía** al `OutputDelegate`
@@ -71,6 +93,7 @@ cortafuegos por tiempo convive sin doble cierre — mismo patrón que [[BP_Breat
 - **`ElvArm`** (API pública): la llama `BP_Director_Story.ElevatorCue()` al terminar las
   instrucciones (dentro de `StartStepTime`, solo `Room==2`).
 - **`ElvStep`** / **`ElvMove(Dz)`** / **`ElvFinish`**.
+- 🆕 **`ElvHide`** / **`ElvReveal`** — ver la sección de arriba.
 
 ## 🔴 Trampa pagada: el offset DOBLE por actores attacheados
 El muro de abajo estaba **attacheado al de arriba** (Beltrán lo duplicó como hijo) → recibía el
@@ -92,6 +115,7 @@ la mano queda a la altura de la cámara → VDrop=0 y la zona real nunca abre; l
   cerró solo la corrida sin beats, a los 240.0 s exactos ✓ · cero `Accessed None` ✓
 
 ## TODO
+- [ ] 🔴 **Visor**: confirmar que el hueco de abajo ya no se ve desde el corredor y que el reveal a `RevealDist`=500 no se nota. Si se sigue viendo la torre al acercarse, **bajar** `RevealDist`.
 - [ ] 🔴 **Visor**: sentir el ritmo del kick (ajustar `PulseKick`/`DecaySpeed`/`CoastSpeed` en la
   instancia), el zumbido + pulso + audio del sensor en zona, el círculo de la página, y si los muros
   intermedios alcanzan como referencia de paso.
