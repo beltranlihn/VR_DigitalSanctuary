@@ -77,6 +77,13 @@ La causa esta en `BP_MenuButton`: **su propio `EventBeginPlay` termina con `SetA
 
 ⚠ **Trampa que costo tres intentos:** con el actor ya emparentado, escribir `relativeLocation` por `set_properties` **aplica X y Z pero NO Y** (se recalcula desde la posicion de mundo). La via que si funciona es **`ActorTools.set_actor_transform` con el transform de MUNDO**: el relativo sale bien solo.
 
+## 🔴 La mecanica de DIBUJO esta apagada en este nivel, a proposito
+`ControllerRig_L` y `ControllerRig_R` (`BP_ControllerRig`) viven en `/Game/TestMeshes` desde la jornada del rig de mandos. Comparten el **mismo gatillo** que los botones, asi que cada apretada de NEXT tambien **empezaba un trazo** — y como el pawn se teletransporta 300 m en medio del trazo, la cinta se estiraba de una estacion a la otra y se veia como **un laser azul saliendo por detras del boton**.
+
+✅ Apagada con **`bCanDraw = false`** en las dos instancias. No se borro nada: `bShowHand` sigue en true (las manos se ven) y alcanza con volver a marcar la casilla para recuperar el dibujo.
+
+🚩 **La leccion, que es la misma de siempre:** dos mecanicas que comparten el gatillo **se disparan juntas**. Antes de traer una mecanica a un nivel donde ya hay otra, mirar quien mas escucha ese input.
+
 ## Lo que el nivel de la galeria tiene que tener para que los botones anden
 `GAL_AudioHub` y `GAL_HapticHub` (instancias de `BP_AudioHub` y `BP_HapticHub`) estan colocadas en `x = -1200, y = 100000`. **No son decorado: sin ellas el boton no hace haptica ni suena, y no avisa** — ver la tabla de requisitos en [`BP_MenuButton.md`](BP_MenuButton.md). Y los dos botones tienen **`Ring.bVisible = false`** porque el aro es el indicador del modo timbre y estos son de gatillo.
 
