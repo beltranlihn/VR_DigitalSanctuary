@@ -2008,3 +2008,15 @@ Mostró `Class|BPSensorSoul|DrawPress` y `Spline|AddPoint` para llamadas locales
     ⚠ La frecuencia de ALU y la de Tex **no son comparables**: para una onda parecida, `HeightNoiseScale` ronda 1/16 del `NoiseScale` equivalente en textura. Cambiar la función sobre el nodo compartido hace desaparecer la nube — hay que darle su propio parámetro.
     🚩 **Lo que me hizo perder el rastro tres veces:** el artefacto se ve como geometría rota, así que busqué en la malla (densidad, vértices, costuras) y en el orden de dibujo. El test que lo cerró en una corrida fue **poner `CloudHeight = 0`**: sin desplazamiento no había ni una faceta → el problema estaba en lo que alimenta el WPO, no en la malla ni en el sombreado.
     ⚠ Y dos hipótesis que descarté con datos, para que nadie las repita: **no era `Full Precision`** (el material ya lo tenía, igual que `M_Alma`), y **no era la densidad de la malla** (pasar de 129² a 257² lo empeoró, porque más vértices resuelven mejor las terrazas del ruido).
+
+288. ⬆️ **CORRECCIÓN a la §287: separar el ruido de la altura del ruido del color NO sirve — se probó y se revirtió.**
+    Técnicamente elimina las terrazas, pero **rompe la obra**: la forma deja de coincidir con el color, y la nube pasa a ser *"unas ondas enormes, nada que ver con el material"* (Beltrán). Y usar ruido analítico (`GradientALU`) para AMBOS **hace desaparecer la nube** con los valores autorados — la frecuencia de ALU no es comparable con la de Tex y habría que reautorar el look entero. Dos intentos, los dos descartados por el autor.
+    ✅ **Lo que queda en su lugar es una REGLA, medida sobre sus propios números: `CloudHeight × NoiseScale ≲ 4.000`.**
+    | CloudHeight | NoiseScale | producto | resultado |
+    |---|---|---|---|
+    | 309 | 12,7 | 3.900 | limpio (el look original) |
+    | 334 | 10 | 3.345 | limpio |
+    | 1.625 | 31 | **50.000** | geometría hecha pedazos |
+    | 1.625 | 2,4 | 3.900 | limpio, con olas enormes |
+    🚩 O sea: **olas grandes SÍ se pueden — con `NoiseScale` bajo.** Lo que este material no puede dar es **amplitud y detalle a la vez**. Es un límite de la técnica, no un bug pendiente.
+    💡 Lección de proceso: cuando un arreglo técnicamente correcto cambia la INTENCIÓN de la pieza, no es un arreglo. Vale más una regla que el autor pueda respetar que una solución que le saca el control.
