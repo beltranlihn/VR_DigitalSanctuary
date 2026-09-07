@@ -4,6 +4,7 @@
 - **Propósito**: el **banco de pruebas de los mandos** (2026-09-03). Beltrán importó meshes propios de mando (`/Game/ControllerL|R`) y sensores (`/Game/BreathL|R`) y los había colgado del `BP_XRPawn`; al hacerlo **desaparecía todo** en Play. Este BP los saca del pawn: los tiene en el mundo, donde se autoran mirándolos, y **se los engancha a la mano en `BeginPlay`**.
 - **Y es el examen de portabilidad del sistema de dibujo** (pedido de Beltrán: las mecánicas tienen que poder montarse en cualquier pawn). Ver `docs/` y la memoria del mandato.
 - **Estado**: 🟢 **DIBUJA EN VISOR** (Beltrán, 2026-09-03 tarde: "Funciona") — anclaje + trazo desde el Marker con el gatillo, ambas manos. 🟡 Háptica continua agregada el mismo día (clon de `DrawHaptic` del sensor), **sin probar en visor todavía**.
+- 🆕 **2026-09-04 — el dibujo se MIGRÓ al componente [[BPC_DrawTool]]** (paso 1 de `docs/MECANICAS-PORTABLES.md`). Ver la sección "Refactor 2026-09-04" abajo. El rig quedó como **primer consumidor** de la herramienta portable: ya no tiene el filtro/calma/canvas/háptica propios, solo pasa su config al componente y le rutea el gatillo. Compila estricto; **falta el visor de confirmación** (debería reproducir lo de 2026-09-03 más el One-Euro y la calma que el rig no tenía).
 - 🐛 **Bug encontrado y corregido (2026-09-03, la revisión pedida por Beltrán)**: `BeginStroke` tiene un 5º parámetro **`Mat`** desde el port de Neural Canvas (2026-08-31) — en la obra lo entrega la paleta (`Palette.CurBrushMat`). El rig lo llamaba **sin material** → `OpenSection` hacía `SetMaterial(None)` y el trazo habría salido con el material gris por defecto (o invisible). Fix: perilla **`DrawMat`** (ver abajo) cableada al pin `Mat`.
 
 ## Componentes
@@ -25,14 +26,29 @@ Se selecciona el actor, se abre el árbol de componentes en el Details y se muev
 - **Uso en un nivel nuevo**: arrastrar 2 rigs, marcar `bRightHand=false` en uno. Listo — perillas y offsets vienen solos. Colocados así en **`/Game/TestMeshes`** (2026-09-03).
 - 🔴 **Tres trampas MCP pagadas en esta pasada**: (1) `set_properties` multi-campo sobre el componente de una INSTANCIA registra el delta a medias (quedó solo la x; el rerun del CS se comió el resto) — para offsets de instancia, mejor gizmo o template; (2) una instancia **captura los valores del template AL COLOCARSE**: cambiar el template después no la actualiza, y (3) `reset_properties` vuelve a lo capturado en el spawn, no al template nuevo → la vía para "re-capturar" es **reemplazar el actor** (borrar el propio y re-colocarlo).
 
-## Grafos
+## Grafos (tras el refactor 2026-09-04)
 ```
 BeginPlay: SetActorEnableCollision(false) → Delay 0.2 → _hand = FindHand(bRightHand)
            → AttachComponentToComponent × 3 (Controller · Breath · Marker) a _hand, KeepRelative
-           → InitDraw()
-EventTick: DrawTick()
+           → SetVisibility(_hand, bShowHand) → InitDraw()
+InitDraw:  EnableInput + AddMappingContext(IMC_MenuTrigger,1000,...)
+           → DrawTool.Setup(Marker, ??, bRightHand, DrawWidth, DrawColor, DrawMat, HapticAmp)  ⚠ ver nota Hand
+           → PrintString "RIGDRAW INIT"
+EventTick: (vacío — el Tick del dibujo vive ahora en el componente)
 IA_Shoot_Right / IA_Shoot_Left  (Started → DrawPress(bRight) · Completed → DrawRelease(bRight))
+DrawPress(bRight):  if (bRight==bRightHand && bCanDraw) → DrawTool.Press()
+DrawRelease(bRight): if (bRight==bRightHand)           → DrawTool.Release()
 ```
+
+### 🆕 Refactor 2026-09-04 — el dibujo migró a [[BPC_DrawTool]]
+El rig dejó de tener lógica de dibujo propia. Ahora **agrega el componente `DrawTool`** (`BPC_DrawTool_C`, sobre el DefaultSceneRoot del CDO) y actúa de anfitrión:
+- **`InitDraw`**: se le quitó el spawn del canvas y el `SetCanvasRef`; en su lugar llama **`DrawTool.Setup(...)`** pasándole `Marker` (Tip), `bRightHand`, `DrawWidth`, `DrawColor`, `DrawMat`, `HapticAmp`. Conserva el `EnableInput` + `AddMappingContext` (el input es del anfitrión, correcto por contrato).
+- **`DrawPress`/`DrawRelease`**: reducidas a rutear el gatillo — `if mano correcta → DrawTool.Press()/.Release()`. El `BeginStroke`/`EndStroke`/`bDrawHeld` viven ahora en el componente.
+- **Borrado**: `DrawTick`, `DrawHaptic`, `DrawHapOff`, `DrawEdge`, `DrawMaybeRelease` (grafos) + la llamada de `EventTick` + las variables `CanvasRef`/`bDrawHeld`/`bWasDrawHap`. El componente las tiene.
+- ✅ **Deuda cerrada el mismo día — `FindHandMC(Right)`**: función nueva que devuelve el `MotionControllerComponent` de esa mano **sin castear al pawn**: `FindHand(bRight)` → `GetAttachParent` → `CastToMotionControllerComponent`. Se apoya en que las manos (`HandRight`/`HandLeft`) son **hijas de su MotionController Grip**, así que el contrato del anclaje sirve también para la señal. Va en la cadena de exec de `InitDraw`, entre el `AddMappingContext` y el `Setup`, alimentando el pin `Hand`.
+  **Verificado en PIE (2026-09-04)** leyendo el valor efectivo en las instancias vivas: rig con `bRightHand=false` → `BP_VRPawn_SC_C_0.MotionControllerLeftGrip`; rig con `true` → `MotionControllerRightGrip`. Con eso la **calma real** del One-Euro/EMA queda enchufada (en PIE de escritorio da `CalmVal=1` porque los mandos no se mueven, que es lo correcto).
+- Se conservan `DrawWidth`/`DrawColor`/`DrawMat`/`HapticAmp`/`bCanDraw` como variables del rig (son la config que el rig autora y pasa al componente).
+🔴 **Trampa de instancia vigente**: los 2 `BP_ControllerRig_C_*` de `/Game/TestMeshes` tienen `bCanDraw=false` en la instancia (§212). Beltrán las escribe a mano al probar; el componente `DrawTool` sí hereda bien sus defaults del CDO.
 ### 🆕 2026-09-03 — `FindHand(bRight)`: el anclaje es AGNÓSTICO DEL PAWN (pedido de Beltrán: "deben sumarse a cualquier pawn")
 El `CastToBP_XRPawn` se eliminó. `FindHand` recorre `GetComponentsByClass(GetPlayerPawn, SceneComponent)` y devuelve el componente cuyo **`GetObjectName` == "HandRight"/"HandLeft"**; si no encuentra, print `RIGDRAW NOHAND` y devuelve null. **El contrato del Controller: cualquier pawn cuyo componente de mano se llame `HandRight`/`HandLeft`** — lo cumplen `BP_XRPawn` (template) y `BP_VRPawn_SC` (verificado por log con el SC en TestMeshes, 15:31).
 🔴 **Trampa pagada: `GetDisplayName` de un componente devuelve el nombre DECORADO** (`BP_VRPawn_SC0.HandRight SKM_MannyXR_right`) — una comparación exacta contra "HandRight" jamás matchea. Para nombre pelado de componente: **`Utilities|GetObjectName`**.

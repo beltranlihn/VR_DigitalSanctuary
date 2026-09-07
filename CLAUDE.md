@@ -106,6 +106,8 @@ VR Unreal/                      ← raíz del repo (abrí Claude Code acá)
 
 🗺️ **`references/assets-existentes.md` = el inventario de lo que YA EXISTE y es reusable** (input, audio, VFX, materiales, accesores del pawn, persistencia), con el estado de cada cosa: qué está probado en visor y qué no. El `_INDEX.md` mapea Blueprints; ese archivo mapea **assets**, que es justo lo que faltaba. **Mantenerlo vivo:** cuando descubras algo reusable o valides algo en visor, agregalo ahí.
 
+📦 **Y para TRANSPLANTAR una mecánica a un nivel o proyecto nuevo: [`docs/MECANICAS-PORTABLES.md`](docs/MECANICAS-PORTABLES.md)** (2026-09-04) — la ficha de empaque de cada mecánica (dibujo, respiración, latido, señal, attracting, beam, botones, panel, hubs): qué se copia, qué necesita el nivel, la receta de instalación probada y qué falta para que sea instantáneo. Incluye la matriz de dependencias medida con el MCP y el plan de extracción acordado (Drawing → Breath → Heart/Mind). **Ante "traé X a este nivel", se empieza por ahí.**
+
 ## 8. Git, deploy y trabajo en paralelo (2 devs)
 Reglas completas en [`docs/WORKFLOW-EQUIPO.md`](docs/WORKFLOW-EQUIPO.md). Resumen:
 - **Repo:** `github.com/beltranlihn/VR_DigitalSanctuary`, rama base `main`.

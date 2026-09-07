@@ -1,5 +1,25 @@
 # Gotchas & hard rules (hard-won — don't relearn these)
 
+## ⚠ `get_dependencies` NO se actualiza al compilar — hay que GUARDAR el asset (2026-09-04)
+Se le sacó a `BP_BrushPalette` el único cast a `BP_VRPawn_SC` y se compiló: `get_dependencies` **seguía listando el pawn**. Parecía que quedaba otra referencia escondida y se empezó a buscarla por todos los grafos. **No había ninguna**: el registro de dependencias se recalcula **al guardar el paquete**, no al compilar. Un `save_assets` y el pawn desapareció de la lista.
+👉 **Regla: para verificar que sacaste una dependencia, `save_assets` y RECIÉN AHÍ `get_dependencies`.** Es la variante de "declarado ≠ aplicado" para el registro de assets.
+
+## 🛑 `BlueprintTools.create` con parent `BlueprintFunctionLibrary` COLGÓ el servidor MCP (2026-09-04)
+La llamada `create(folder_path, asset_name, asset_type=/Script/Engine.BlueprintFunctionLibrary)` **nunca devolvió** (timeout de 300 s) y a partir de ahí **todas** las llamadas MCP timeoutearon, en la misma sesión del editor.
+
+**El diagnóstico, medido (sirve como receta para cualquier cuelgue del MCP):**
+| Chequeo | Resultado | Lectura |
+|---|---|---|
+| `Get-Process UnrealEditor*` → `Responding` | **True** | el editor NO está colgado: bombea mensajes → compatible con un **diálogo modal abierto** |
+| memoria en dos tomas | 2,93 → 2,97 GB, estable | no hay fuga ni bucle infinito (si creciera, no se recupera solo) |
+| `Test-NetConnection -Port 8000` | **True** | el socket sigue escuchando — **el puerto abierto NO prueba que el MCP viva** |
+| `Invoke-WebRequest http://127.0.0.1:8000/mcp -TimeoutSec 6` | timeout | el servidor **acepta TCP y no responde HTTP** = está bloqueado adentro |
+
+👉 **Sondear el endpoint con `-TimeoutSec 6` en vez de reintentar por MCP**: cada reintento por MCP cuesta 5 minutos de espera, el sondeo HTTP cuesta 6 segundos.
+👉 **Qué hacer**: mirar el editor y cerrar el diálogo si lo hay; si no, reiniciar Claude **dejando Unreal abierto** (el enlace no auto-recupera).
+✅ **No se creó ningún asset a medias** (verificado en disco) y **no se perdió trabajo**, porque se venía haciendo `save_assets` después de cada tanda. Es exactamente para esto que la regla dice guardar seguido.
+⚠ Hasta que se pruebe de nuevo con cuidado: **crear una Blueprint Function Library a mano en el editor**, no por MCP.
+
 ## 🔴🔴🔴 Un nodo PURO se re-evalúa UNA VEZ POR CONSUMIDOR — si lee una variable que el mismo grafo escribe, cada consumidor ve un valor distinto
 **El caso real (2026-08-16, costó todo un día en dos frentes).** `BP_AttractDirector.OnBeat` calculaba el paso del secuenciador así:
 
@@ -2043,3 +2063,23 @@ Mostró `Class|BPSensorSoul|DrawPress` y `Spline|AddPoint` para llamadas locales
 
 294. 🔴🔴🔴 **Cuando el usuario repite una idea con otras palabras, es porque no la entendí — no porque quiera insistir.** Beltrán dijo TRES veces que el efecto era "una versión de los haces de luz". Yo lo leí como una sugerencia de arquitectura (la MPC) y seguí construyendo una mancha pintada sobre un plano. Recién a la tercera (*"es un lightshaft negro sobre blanco"*) entendí que hablaba de la FORMA: un volumen cónico oscuro en el aire.
     ✅ **La segunda vez que aparece la misma referencia, hay que parar y re-preguntar qué es lo que se está señalando** — en vez de seguir iterando sobre la interpretación propia. Habría ahorrado media docena de pasadas.
+
+## Cosecha 2026-09-04 quater — el haz negro (BP_ShadowShaft_SC) y el barrido cónico
+
+295. 🔴🔴 **`ObjectTools.set_properties` sobre un STRUCT anidado escribe SOLO su primer campo.** Medido: `{"relativeScale3D":{"x":3,"y":3,"z":14}}` devuelve `true` y deja `(3,1,1)`; repetir la misma llamada no arregla nada. Reordenando las claves (`{"z":14,"y":3,"x":3}`) se aplica **z** y nada más. Es el caso más puro de *declarado ≠ aplicado* del proyecto porque el valor de retorno es `true` y el resto de campos ni siquiera es tocado.
+    ✅ **Una llamada por campo, con el campo deseado primero, y `get_properties` después.** Vale para `relativeLocation` / `relativeRotation` / `relativeScale3D` y para cualquier struct.
+    ⚠ **Trampa de segundo orden en `relativeRotation`:** un pitch > 90 se re-normaliza a `(180−pitch, yaw+180, roll+180)`, así que un `get` posterior devuelve una terna distinta a la escrita **y parece que se aplicaron varios campos cuando solo se aplicó uno**. Setear `roll` (aunque sea a 0) devuelve la lectura a la forma sin normalizar.
+
+296. 🔴🔴 **`add_variable` con `category` crea la variable pero su getter queda INVISIBLE para el DSL.** La variable aparece en `list_variables`, su default se escribe en el CDO, y `find_node_types` la lista como `Variables|Default|GetX` — pero `write_graph_dsl` responde `AssertionError: Variables|Default|GetX does not exist`. Confirmado con un control positivo: la misma variable creada **sin** `category` funciona al primer intento.
+    ✅ **Crear sin `category`; la categoría se pone después** (`set_variable_category`, que además no siempre aplica — verificar). Costó 6 round-trips creyendo que el problema era el prefijo de categoría en el id.
+
+297. 🔴🔴 **`Math|Rotator|MakeRotator` toma los pines en orden `(Roll, Pitch, Yaw)`.** Escrito con posicionales, `(MakeRotator _pitch _yaw 0.0)` mete el pitch en **Roll** y el yaw en **Pitch** — compila, no advierte nada, y el síntoma es mudo: el `GetForwardVector` de ese rotator queda clavado en `(1,0,0)` haga lo que haga la perilla de pitch (porque el roll no afecta al forward). Un barrido "cónico" así gira siempre alrededor de +X.
+    ✅ **Siempre con nombres de pin: `(MakeRotator :Roll 0.0 :Pitch p :Yaw y)`.** Y el `read_graph_dsl` delata el problema: imprime solo los argumentos que enganchó (`(MakeRotator _a _b)` — el tercero se perdió).
+
+298. **`SM_ShaftCone` tiene el origen en su CENTRO y la punta en `+Z` local.** Calibrado con el caso sin ambigüedad (pitch 90 / yaw 0 → cono horizontal con la punta en −X). De ahí las dos fórmulas que colocan un haz con la punta en un punto `P` y abriéndose en la dirección `u`:
+    - `rotación = MakeRotFromZ(−u)`
+    - `location = P + u · (50 × escalaZ)`
+    Sin esto se tantea a ciegas: es la diferencia entre "el cono sale de la esfera" y "la esfera queda en medio del cono".
+
+299. **`BP_LightShaft_SC` NO crea un MID propio** — usa `SetXParameterValueOnMaterials` sobre el componente `Beam`, que **respeta el `overrideMaterials` del componente**. Por lo tanto una variante (p. ej. el haz negro) se hace **duplicando el BP y cambiando el material del componente en el duplicado**, sin tocar el asset compartido ni agregarle variables. La nota anterior que decía lo contrario era falsa y costó un intento de cirugía sobre un BP compartido.
+    ⚠ Al borrar una función de un BP **con nodos que la llaman**, el duplicado hereda el nodo colgante y ambos dejan de compilar (*"In use pin no longer exists"*). Borrar primero el nodo (reconectando el exec), después la función.

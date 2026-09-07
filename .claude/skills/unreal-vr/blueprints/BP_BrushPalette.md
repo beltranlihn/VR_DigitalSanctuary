@@ -4,6 +4,24 @@
 - **Propósito**: la **paleta de configuración** del stage Movement. Grilla plana de **9 celdas (3×3)** sobre la mano no hábil: 3 colores · 3 grosores · 3 pinceles. Se selecciona tocando con la punta del pincel. El pincel lee color/ancho/material de acá al empezar cada trazo. Plan: [`docs/stages/movement-surrounding.md`](../../../../docs/stages/movement-surrounding.md) §5.3 y §8.b.
 - **Estado**: 🟢 **Fases 4.1 + 4.2 + 4.3 construidas y VALIDADAS en visor (2026-08-03).** La paleta aparece en la mano contraria; **color y grosor funcionan end-to-end** (el grosor tras arreglar el bug del pin `Width`, ver abajo). El pincel todavía no se nota porque los 3 apuntan al mismo material → **falta 4.4**.
 
+## 🆕 2026-09-04 — DESATADA DEL PAWN (paso 2 de `docs/MECANICAS-PORTABLES.md`)
+`AcquireControllers` **casteaba a `BP_VRPawn_SC`** y sacaba los grips con sus accesores — el único acople duro que impedía llevar la paleta a otro proyecto. Ahora resuelve igual que el rig, sin conocer la clase del pawn:
+
+```
+AcquireControllers:  LeftGrip  = PalGrip(false)
+                     RightGrip = PalGrip(true)
+PalGrip(Right) → MotionControllerComponent:
+   PalHand(Right) → GetAttachParent → CastToMotionControllerComponent
+PalHand(Right) → SceneComponent:
+   for c in GetComponentsByClass(GetPlayerPawn, SceneComponent):
+       if GetObjectName(c) == (Right ? "HandRight" : "HandLeft") → return c
+   else PrintString "PALETA NOHAND"
+```
+🔴 **Verificado por medición, no por lectura: `get_dependencies` de la paleta YA NO LISTA `BP_VRPawn_SC`.** (Ojo: la dependencia sigue apareciendo hasta que se **guarda** el asset — el registro se recalcula al guardar, no al compilar.)
+💡 **Por qué funciona sin cast**: las manos (`HandRight`/`HandLeft`) son **hijas de su MotionController Grip**, así que subir un nivel con `GetAttachParent` da el mando. Mismo contrato que ya usaba `FindHand`.
+⬜ **Sin ejercitar todavía**: no hay paleta colocada en `/Game/TestMeshes` (la spawnea el sensor en la obra), así que no se pudo ver en PIE. La lógica es el **clon exacto** de `BP_ControllerRig.FindHandMC`, que sí se verificó en PIE resolviendo `MotionControllerLeftGrip`/`RightGrip`.
+📌 **Deuda de diseño anotada**: esta lógica está ahora en **3 lugares** (rig ×2 funciones, paleta ×2). Debe colapsar en la function library `Core/Pawn/BPFL_XRHands` — ver la sección "El resolvedor de manos" del doc de mecánicas portables. ⚠ Crearla por MCP colgó el editor (gotcha nuevo); hacerla a mano.
+
 ## ✅ RESUELTO (2026-08-03) — era `ComputeWidth` inline en el pin `Width`
 **Confirmado por `get_node_infos`:** el pin `Width` del `AddPoint` estaba `"value":"0.0", "connected_pins":[]` — **desconectado**. Los demás pines (`NewLoc`, `ControllerUp`, `Calm`) sí tenían cable. Causa: **una función impura inline como argumento de datos** (ver `gotchas.md`, sección destacada). El ancho llegaba **0** → todos los trazos con el grosor mínimo (sólo el piso de `MinThickness`), sin importar la selección.
 **Fix aplicado:** `ComputeWidth` **borrada** (ya no aportaba nada: el ancho dejó de venir de la presión) y `:Width` cableado con el getter puro `GetBrushWidth`. Verificado en visor: **"ahora sí, muy perceptible"**. Prints de debug removidos de `UpdateTouch` y `UpdateStroke`.

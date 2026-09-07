@@ -1,5 +1,7 @@
 # 🗺️ Inventario de lo que YA EXISTE y es reusable
 
+> 📦 **Para TRANSPLANTAR una mecánica entera a un nivel/proyecto nuevo: [`docs/MECANICAS-PORTABLES.md`](../../../../docs/MECANICAS-PORTABLES.md)** (2026-09-04) — ficha de empaque por mecánica (paquete, enchufe, API, receta, deuda), matriz de dependencias medida por MCP y el plan de extracción. Este archivo mapea assets sueltos; aquel mapea mecánicas completas.
+
 > 🎧 **La lista de entrega de audio vive en [`docs/AUDIO-QUE-PIDE-EL-MOTOR.md`](../../../../docs/AUDIO-QUE-PIDE-EL-MOTOR.md)** (2026-08-15): las claves exactas de `SfxMap` y `AmbientMap`, los índices 0-based de `VoClips` y el banco de notas, leídos de los valores efectivos de los Blueprints. Si vas a tocar audio, empezá por ahí.
 
 > **Leé esto ANTES de construir cualquier interacción, efecto o sonido.** El `_INDEX.md` mapea los Blueprints; este archivo mapea **assets** (input, audio, VFX, materiales, accesores del pawn). Se creó el 2026-08-03 después de perder horas construyendo desde cero cosas que ya estaban resueltas y **probadas en visor** en otra parte del proyecto.
