@@ -125,3 +125,22 @@ Si no limpiás, la carpeta queda con **dos juegos**: un APK viejo con el nombre 
 `Install_SoulCharger-arm64.bat` instala esa combinación equivocada **sin dar ningún error**.
 👉 Script listo: `.claude/skills/unreal-vr/scripts/rename_package.py <carpeta Android_ASTC>` — borra el
 renombrado previo, renombra el fresco y parchea el `.bat`.
+
+### 📲 Instalar el APK en la Quest (2026-09-04) — el `.bat` de Epic falla en el OBB
+`Install_<proyecto>-arm64.bat` hace bien la primera mitad (desinstala, `adb install`, permisos) pero **el push del OBB falla**: usa `UnrealAndroidFileTool.exe`, que responde `Did not find package with activity` / `Unable to connect to <serial>` aunque el `pm list packages` justo arriba confirme que la app SÍ quedó instalada. El `.bat` corta ahí con "There was an error installing the game or the obb file" y **deja la app instalada pero sin datos** — arranca y muere.
+
+✅ **El OBB se sube a mano con adb y funciona** (5 s a 24 MB/s):
+```
+adb shell mkdir -p /sdcard/Android/obb/<PACKAGE>
+adb push main.1.<PACKAGE>.obb /sdcard/Android/obb/<PACKAGE>/main.1.<PACKAGE>.obb
+adb shell ls -l /sdcard/Android/obb/<PACKAGE>/     # verificar el TAMAÑO exacto en bytes
+```
+`<PACKAGE>` sale del propio log de UAT (`GetPackageInfo ReturnValue: com.almadigital.TESTMESHES`). El `adb` de la máquina de Beltrán está en `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe` (no está en el PATH).
+⚠ `Failure [DELETE_FAILED_INTERNAL_ERROR]` en el `adb uninstall` del principio es **normal e ignorable** (no había versión previa).
+
+### ⚠ Lanzar RunUAT: PowerShell con `--%`, NO la herramienta Bash
+Desde la herramienta Bash, `"C:/Program Files/Epic Games/..."` se rompe con `"C:\Program" no se reconoce como un comando` — y **sale con código 0**, así que parece que empaquetó cuando en realidad murió en el primer segundo. La forma que funciona es PowerShell con el token de stop-parsing, que además protege los `[` `]` `:` del `-AdditionalCookerOptions`:
+```powershell
+& "C:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\RunUAT.bat" --% BuildCookRun -project="..." ...
+```
+Señal de que corrió de verdad: el log termina en `BUILD SUCCESSFUL` + `AutomationTool exiting with ExitCode=0` y la carpeta de archive tiene el `.apk` y el `.obb`.

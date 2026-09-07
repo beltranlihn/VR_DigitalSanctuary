@@ -97,3 +97,34 @@ Captura de Beltrán desde el visor: **franjas horizontales** y el noise casi des
 - **Franjas = banding de 8 bits** (sin HDR móvil, el degradado aditivo se cuantiza — la MISMA queja que `M_TurrellGradient`). Fix igual: **dither R2 en espacio de pantalla** (`frac(dot(pixel, (0.7549, 0.5698))) − 0.5`) multiplicando el emisivo. Perilla **`DitherAmt`** (0,08); `DitherTemporalAA` NO sirve (no hay TAA en Quest).
 - **Noise lavado = los MIPS**: a distancia/ángulo VR la textura cae a mips chicos y las octavas finas mueren. Fix: **mip 0 forzado en las dos muestras** (`mipValueMode = TMVM_MipLevel, constMipValue = 0` — `mipGenSettings` de la textura no se puede escribir por MCP). 256² suave → el aliasing es imperceptible.
 ⚠ `DitherAmt` es la palanca si el grano se nota: 0,05 fino · 0,12 grueso. El dither NO se aprecia en el editor (ahí no hay banding): se juzga en el visor.
+
+## 🆕 2026-09-04 — `BP_ShadowShaft_SC`: el haz NEGRO, y el barrido cónico del estudio de sombra
+
+**El haz oscuro es un DUPLICADO del BP, no una variante por parámetro.** `BP_ShadowShaft_SC` (mismo folder) = `BP_LightShaft_SC` duplicado, con `M_ShaftDark_SC` en el `overrideMaterials` de su componente `Beam` y `bShowFloorGlow` / `bShowSourceGlow` / `bDriveMPC` en false. Funciona porque el BP **no crea un MID propio**: empuja parámetros con `SetXParameterValueOnMaterials`, que honra el material asignado al componente (ver gotcha 299).
+
+`M_ShaftDark_SC` = duplicado de `M_LightShaft` con `BLEND_Translucent`, `Emissive = DarkColor` (negro) y `Opacity = saturate(dot(Add_14,(0.34,0.34,0.34)) × DarkStrength)` — o sea la misma cadena de densidad del haz, pero pintando oscuridad. `Intensity` sigue siendo la perilla de densidad.
+
+**Valores que dieron la lectura de la refe** (contraluz/eclipse, negro sobre blanco, sin plano ni horizonte):
+`EdgeSoft 0.55` (⚠ la perilla decisiva — arriba de ~1.5 el cono se vuelve niebla y se pierde el borde duro que hace la refe) · `Intensity 2.6` · `LengthFade 3.0` · `TipSoft 0` · `Spread 0` · `SmokeAmount 0` · escala `(3,3,9)`.
+
+**Colocación con la punta clavada en un objeto** (fórmulas en gotcha 298): `rot = MakeRotFromZ(−u)`, `loc = punta + u·(50×escalaZ)`.
+
+### El barrido cónico — vive en `BP_ShadowStudy_SC`, no en el haz
+El haz sigue siendo un actor tonto; quien lo apunta es el estudio de sombra, que lo toma por referencia. Categoría **H - Barrido** en `BP_ShadowStudy_SC`:
+
+| Variable | Default | Qué hace |
+|---|---|---|
+| `Shaft` | — | referencia al `BP_ShadowShaft_SC` del nivel |
+| `SweepAxisPitch` / `SweepAxisYaw` | 38 / 0 | **la diagonal**: eje central del cono de barrido |
+| `SweepAngle` | 22 | apertura del barrido (cuánto se separa del eje) |
+| `SweepPhase` | — | posición en el círculo; **perilla de previsualización en el editor** |
+| `SweepSpeed` | 5 | grados/s cuando corre |
+| `bSweep` | true | on/off de la animación |
+| `ShaftHalf` | 450 | semi-largo del haz = 50 × su escala Z (si cambiás la escala del haz, actualizar) |
+
+- **`AimShaft`** (llamada al final del UCS **y** desde el Tick): arma el eje con `MakeRotator`, saca `eje = ForwardVector` y `perp = UpVector` (perpendicular garantizado, sin Cross ni Normalize), abre `SweepAngle` alrededor de `perp` y gira `SweepPhase` alrededor de `eje` → dirección `u`. Después coloca y orienta el haz con las dos fórmulas de arriba.
+- **`StepSweep(DT)`** (Tick): avanza `SweepPhase` y llama a `AimShaft`. Se enganchó al `EventTick` con **un solo nodo** (cirugía), no re-escribiendo el EventGraph.
+- Como `AimShaft` también corre en el Construction Script, **mover `SweepPhase` en el detalle mueve el haz en el viewport** — se autora mirando, sin Play.
+- Verificación de que el cono es real y no un giro plano: con `SweepAxisPitch 38`, las fases 0/90/180/270 caen en `(329,169,257) (225,0,390) (329,−169,257) (433,0,124)` — las cuatro a 450 cm de la esfera, alrededor del eje inclinado, y ninguna bajo el suelo.
+
+🟡 Sin probar en visor.
