@@ -77,3 +77,38 @@ Malentendido de fondo, mio, que costo varias pasadas. Beltran lo dijo tres veces
 3. Para el barrido conico: `Math|Vector|RotateVectorAroundAxis` con un eje inclinado autorable, no yaw sobre la vertical.
 
 ⚠ **El componente `Cone` del BP quedo agregado pero SIN configurar** (su funcion `ApplyCone` se borro cuando fallo el nodo de rotator). Esta oculto para que no moleste. Al retomar: o se completa esa funcion, o se elimina el componente y se va por la via del haz.
+
+
+## 🔴🔴 2026-09-07 — EL CONO DE SOMBRA SE FUSIONO ADENTRO: un solo actor, un solo panel
+Pedido de Beltran, dos veces, y tenia razon las dos: *"junta la esfera y el cono en el BP; quiero controlar el efecto y todos sus parametros desde el mismo lugar"*. `BP_ShadowShaft_SC` ya NO se usa aca: el cono es ahora el componente **`Cone`** (SM_ShaftCone + M_ShaftDark_SC) de ESTE Blueprint, fiel al principio que este BP ya declaraba ("autocontenido a proposito").
+
+### La arquitectura
+CS: `ApplyShadow → ApplySky → ApplyLightDist → ApplyCone → AimCone`. Tick: `StepSweep(DT) → AimCone`.
+- **`ApplyCone`** — escala del cono + TODOS los params de material, incluidos los neutralizadores de lo heredado del haz: `SmokeAmount 0`, `WobbleAmount 0`, y 🔴 **`LaserFloorZ = −100000`** (el material madre corta el haz en el piso; sin ese push, el default Z=0 rebana la sombra en horizontal — "como si hubiera un piso blanco").
+- **`AimCone`** — TODO derivado de variables propias, sin cast ni referencias externas:
+```
+k       = 100·SphereRadius / ((50 + ConeSpread) · ConeScaleXY)   // Spread SUMA al radio base del WPO: radio efectivo = 50+Spread
+punta   = esfera − u·(k·ConeScaleZ)                              // tangencia automatica
+corte   = plano de MUNDO por el centro de la esfera, normal u    // params CutPlanePos/CutPlaneDir de M_ShaftDark_SC
+```
+Cambia `ConeSpread`, `ConeScaleXY/Z` o `SphereRadius` y colocacion+corte se reacomodan solos. Era EL requisito.
+
+### Perillas (cat. *I - Cono*)
+`ConeScaleXY` 3 · `ConeScaleZ` 9 · `ConeSpread` 56 · `ConeIntensity` 2,6 · `ConeEdgeSoft` 0,55 · `ConeLengthFade` 1,59 · `ConeTipSoft` 0. `DepthFadeDist` quedo horneada en 55,5 (literal en ApplyCone).
+
+### Las 3 mordidas del COMPONENTE NUEVO en un BP con instancia colocada (gotcha §320)
+1. La instancia lo recibe **sin malla** (§164 clasico) → escribirle staticMesh directo.
+2. Nace **`bVisible = false`** → "no se ve ningun haz" con todo lo demas perfecto.
+3. El material madre trae **terminos que OTRO BP neutralizaba** (piso, humo, wobble) → al migrar, empujar los neutralizadores explicitos.
+
+### Limpieza (pedido: "el BP esta lleno de variables muertas")
+Fuera: `Shaft`, `ShaftSpread`, `ShaftHalf`, la funcion `AimShaft`, el actor `BP_ShadowShaft_SC_C_0` del nivel, el componente huerfano `StaticMesh`, y 7 variables sin consumidor: `ConeLength/ConeWidth/ConeStrength/ConeColor/bShowCone` (un cono ANTERIOR abandonado — el `ApplyCone` vacio era suyo) y **`CasterSlot`/`bDriveMPC`** (la mitad hecha de "varios casters"; el plan sigue en la seccion de arriba, las perillas se recrean cuando se retome). Quedan **30 variables, todas consumidas**.
+⚠ El asset `BP_ShadowShaft_SC` sigue en disco sin uso — preguntar a Beltran si se borra. `SetCut`/`SetCutPlane` en el son vestigios.
+🟡 Sin visor. `castShadow` de la instancia se resiste a false (inocuo en unlit translucido, anotado).
+
+
+## 2026-09-07 (cierre) — fuera el GROUND: la estacion es esfera + cono + cupula, nada mas
+Beltran: *"elimina el ground ademas del BP, no sirve"*. Con `ShadowStrength` ya en 0 y la cupula igualada al suelo, el plano no aportaba nada. **Se fue: el componente `Ground`, la funcion `ApplyLightDist` entera, y 7 variables** (`GroundSize`, `GroundColor`, `ShadowStrength`, `Penumbra`, `Hard`, `Falloff`, `LightDist`) — o sea TODO el test rayo-esfera del suelo, que era la seccion "Como se hace una sombra sin una sola luz" de arriba. 🔴 Esa receta queda documentada aca por si vuelve, pero **ya no esta en el BP**; `M_FakeShadow_SC` queda como asset sin uso (preguntar si se borra, junto con `BP_ShadowShaft_SC`).
+
+**Estado final:** CS = `ApplyShadow` (solo la esfera) → `ApplySky` → `ApplyCone` → `AimCone`. **23 variables, todas vivas**: A-Forma (SphereRadius/Height) · B-Color (SphereColor/Brightness/AmbientFloor/SkyColor) · A-Forma (SkyRadius) · D-Luz (LightYaw/Pitch/SpinSpeed — el lambert de la esfera) · H-Barrido (SweepAngle/Speed/Phase/AxisPitch/AxisYaw/bSweep) · I-Cono (las 7 del cono).
+⚠ Quedaron getters huerfanos sueltos en ApplyShadow (no compilan, costo cero) — pasar `clean_orphans.py` en alguna sesion tranquila, no ahora.
