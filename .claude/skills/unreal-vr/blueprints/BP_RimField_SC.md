@@ -28,6 +28,20 @@ Un `InstancedStaticMeshComponent` (**un solo draw call**) con N formas repartida
 
 🔴🔴 **La trampa que costo una pasada: `Math|Float|Fraction` de Unreal CONSERVA EL SIGNO** (`frac(-2.3) = -0.3`). Como `sin()` es negativo la mitad del tiempo, el hash devolvia negativos y **las instancias salian con escala negativa** (malla invertida) y radios menores que `InnerRadius`. Se detecto **leyendo `perInstanceSMData` y mirando los numeros**, no mirando el viewport. Fix: envolver en `Math|Float|Absolute(Float)`. **Regla general: cualquier hash `frac(sin(x)*k)` portado de shaders necesita `abs` en Blueprint.**
 
+## 🆕 2026-09-04 (tarde) — las burbujas, tras el juicio de Beltran
+Vio el campo y dijo: ***"las bubbles estan lindas"*** — es lo unico de los tres efectos que le gusto. Pidio tres cosas, y las tres se resolvieron **en el material**, sin custom data ni logica de Blueprint:
+
+**Un hash POR INSTANCIA**, sacado de `ObjectPositionWS` (en un ISM devuelve la posicion de cada instancia): `frac(sin(dot(pos, (12.9898, 78.233, 37.719))) · 43758.5453)`. Un solo valor 0-1 distinto por burbuja, que alimenta las dos cosas de abajo.
+💡 A diferencia del hash de Blueprint, **aca NO hace falta `abs`**: el `frac` de HLSL ya devuelve positivo.
+
+| Pedido | Como se hizo | Perillas |
+|---|---|---|
+| *"distintos colores dentro de paletas de azulados"* | `lerp(RimColor, RimColorB, hash · ColorVariation)` — cada burbuja cae en un punto distinto entre los dos azules | `RimColorB` (azul claro) · `ColorVariation` (1 = variacion total, **0 = todas iguales**, que es el default del material para no cambiarle nada a `BP_RimShape_SC`) |
+| *"hazlas pulsar suavemente"* | **WPO**: `VertexNormalWS · PulseAmount · sin(Time·PulseSpeed + hash·2π)` — la esfera se infla y desinfla de verdad, y **la fase sale del hash**, asi que cada una respira a su tiempo | `PulseAmount` (4 cm) · `PulseSpeed` (0.22 Hz) |
+| *"aleatorio de tamaño"* | rango ampliado | `SizeMin` 60 → `SizeMax` 420 |
+
+⚠ **El material es de Nico y lo usa tambien `BP_RimShape_SC`.** Los tres parametros nuevos tienen **default 0** (o sea: sin variacion y sin pulso), asi que sus tres formas sueltas siguen viendose exactamente igual. Solo el campo los enciende.
+
 ## Como se usa
 Se coloca donde deba estar el centro del campo y se ajusta `AreaRadius`/`Count`. Para la obra:
 - **Surrounding**: el cascaron que se insinua al acercarse.
