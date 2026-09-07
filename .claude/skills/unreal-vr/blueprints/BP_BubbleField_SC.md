@@ -91,3 +91,30 @@ Perillas (cat. *E - Pulso*): `WobbleAmount` 3 cm · `WobbleScale` 0.045 (tamaño
 
 ## Lo que hay que preservar
 🔴 **La gracia del efecto es el REVELADO** (dicho por Beltran). Cualquier ajuste futuro — colores, pulso, wobble, cantidad — no debe competir con eso: las esferas tienen que seguir naciendo al acercarse y apagandose al alejarse. `RevealAmount` en 1 y `RevealRadius` acorde al tamaño del campo.
+
+
+## 🪼 Deriva y estiramiento: el espacio surreal (2026-09-04, cierre)
+La intencion que fijo Beltran: ***"armar un entorno como si estuvieramos bajo el agua en un entorno de medusas, que es un ambiente muy agradable"***, y despues: *"que las esferas tengan deriva, alguna deformacion distinta, algo que lo haga sentir que estamos en un espacio muy surreal"*.
+
+🔑 **La idea que lo resuelve: lo surreal no es el movimiento, es que CADA ESFERA OBEDEZCA UNA LEY DISTINTA.** Las dos cosas nuevas sacan su direccion del **mismo `PerInstanceRandom`**, asi que ninguna se mueve ni se deforma como su vecina, y no hace falta ni un dato extra por instancia.
+
+**El eje propio de cada esfera** (se calcula una vez y sirve para las dos):
+```
+ang = PerInstanceRandom · 2π                      ← ya existia, es la fase del pulso
+dir = ( cos(ang), sin(ang), cos(ang·2.7) )        ← un vector distinto por instancia
+```
+
+| Efecto | Formula | Perillas (cat. *E - Pulso*) |
+|---|---|---|
+| **Deriva** — la esfera viaja despacio en SU direccion y vuelve | `WPO += dir · sin(Time·DriftSpeed + ang) · DriftAmount` | `DriftAmount` 90 cm · `DriftSpeed` 0.09 |
+| **Estiramiento** — se alarga a lo largo de SU eje, oscilando entre gota y esfera | `WPO += dir · dot(Normal, dir) · sin(Time·StretchSpeed + ang) · StretchAmount` | `StretchAmount` 0.35 · `StretchSpeed` 0.13 |
+
+El `dot(Normal, dir)` es lo que convierte una traslacion en una **deformacion**: los vertices del lado del eje se van hacia afuera y los del lado opuesto hacia adentro. Con el signo oscilando, la esfera pasa de estirada a achatada por el mismo eje.
+
+**El WPO completo del material queda:**
+```
+WPO = Normal · (pulso + wobble)   +   dir · deriva   +   dir · estiramiento
+```
+Las tres capas tienen periodos distintos y sin relacion entera (0.35 / 0.6 / 0.09 / 0.13 Hz), asi que **el conjunto no repite** — es la misma idea de las frecuencias no enteras de Alma, llevada al campo entero.
+
+⚠ **Costo**: son 4 senos/cosenos mas **por vertice**, sobre ~123 instancias × 5.120 tris. Los defaults son suaves a proposito. Si en visor pesa: bajar `Count` antes que apagar efectos, porque el numero de vertices es el multiplicador de todo esto.
