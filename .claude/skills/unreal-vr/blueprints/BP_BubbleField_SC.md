@@ -1,4 +1,4 @@
-# BP_RimField_SC — el campo de siluetas que nace alrededor (Core/Light/)
+# BP_BubbleField_SC — el ESPACIO de esferas flotantes (Core/Light/)
 
 > Creado 2026-09-04. Nace de una critica de Beltran a los tres efectos de Nico: *"los encuentro bastante fomes… la idea de estos materiales es armar entornos"*. `BP_RimShape_SC` es **una** forma; esto es **un campo** de N formas envolviendo al usuario, que es lo que lo convierte de prop en entorno.
 > **Estado: 🟡 compila estricto, 48 instancias sembradas y verificadas en editor + PIE (visible/oculto por tags). Falta el juicio de Beltran y el visor.**
@@ -55,3 +55,18 @@ Se coloca donde deba estar el centro del campo y se ajusta `AreaRadius`/`Count`.
 - [ ] Juicio de Beltran + visor (el paralaje y el revelado son de visor).
 - [ ] Exponer `DissolveThreshold`/`DissolveEdge` si se quiere el campo que se quema.
 - [ ] Medir fill en APK: son N siluetas translucidas; el ISM ahorra draw calls, no fill.
+
+
+## 🫧 2026-09-04 (noche) — pasa a ser EL BP de los espacios de esferas
+Beltran, mirando el campo: ***"lo que me gusto es armar espacios de esferas aleatorias, asi que ese es el BP que queremos lograr, no solo el material"***. El BP ya existia (yo lo habia presentado desde el material, que confundio); lo que faltaba era que se **llamara** y se **autoreara** como lo que es. Tres cambios:
+
+1. **Renombrado** `BP_RimField_SC` → **`BP_BubbleField_SC`** (`AssetTools.move`, la instancia de la galeria siguio enganchada sola).
+2. **Las 20 perillas quedaron en categorias y todas instance-editable**, que es lo que hace autorable el BP desde el panel: *A - Campo* (Count · Seed · AreaRadius · InnerRadius · VerticalScale) · *B - Esferas* (Mesh · SizeMin · SizeMax) · *C - Color* (RimColor · RimColorB · ColorVariation · Brightness) · *D - Borde* · *E - Pulso* · *F - Revelado* · *G - Contacto*.
+3. 🔴 **La distribucion pasa de ANILLO a ESFERA COMPLETA**, a pedido suyo: *"quiero ver esferas por arriba, lados, delante, atras, dejando un espacio al centro que es donde va el pawn"*. El CS ahora siembra en una **cascara esferica**: azimut `u·2π`, y **`cosPhi = 2v−1` uniforme** (que es lo que reparte parejo sobre la esfera; usar el angulo directo amontona en los polos), `sinPhi = sqrt(1−cosPhi²)`, radio entre `InnerRadius` y `AreaRadius`. `VerticalScale` achata el campo (1 = esfera, <1 = lenteja).
+   `AreaHeight` quedo sin uso y se reemplazo por `VerticalScale`.
+   ✅ **Medido por bounds**: 32 m en X, 32 m en Y y **27 m en Z** (antes Z era 4 m: un disco).
+
+### 🔴 Y el bug del color que reporto ("estas orbes deben ser de distintos colores")
+Las burbujas salian **todas del mismo color** y pulsando al unisono. Causa: **`ObjectPositionWS` en un InstancedStaticMesh devuelve la posicion del COMPONENTE, no la de cada instancia** — asi que el hash daba el mismo numero para las 48. Fix: **`PerInstanceRandom`**, el nodo del motor hecho exactamente para esto (un aleatorio por instancia de ISM/foliage). Se borro toda la cadena del hash de posicion.
+💡 En un mesh NO instanciado `PerInstanceRandom` devuelve 0 → `BP_RimShape_SC` sigue viendose igual, sin variacion ni pulso. El default se mantiene sano solo.
+⚠ **Regla general: para variar POR INSTANCIA en un ISM, `PerInstanceRandom`. `ObjectPositionWS` NO sirve.**
