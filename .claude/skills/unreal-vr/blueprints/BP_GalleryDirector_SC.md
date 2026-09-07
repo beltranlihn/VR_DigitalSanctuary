@@ -27,6 +27,8 @@ Seis estaciones cada **300 m** sobre el eje X, en `y = 100000`. Cada una tiene u
 | 8 | x = 239.100 | **`BP_RimShape_SC` ×3 (Nico)** | cascaron entero / disuelto a 0,5 / cubo. 1 m, a `y = ±150`, `z = 110` |
 | 9 | x = 269.100 | **`BP_LightPanel_SC` ×4 (Nico)** | los 4 modos en grilla 2×2 de 2 m (`y = ±110`, `z = 120/340`), **pitch 90** para que miren al usuario |
 
+> ⚠ **2026-09-07: esta tabla quedó DESACTUALIZADA respecto de los arrays vivos del director** (al armar la estación del túnel, los arrays reales tenían 9 filas `GAL_0`..`GAL_8` — el panel de Nico no figuraba y la numeración corrió). **Creerle al nivel** (`get_properties` de `Anchors`/`StationTags`/`Names`), no a esta tabla. Fila agregada ese día: **tag `GAL_9`, "10  Ring Tunnel", anchor en x = 269.100** → [`BP_RingTunnel_SC`](BP_RingTunnel_SC.md). Dos lecciones de esa alta: los arrays de la instancia se crecen **replicando el último elemento y seteando la fila nueva en una segunda llamada**; y **el anchor NO se taguea** (`GalShow` des-esconde su marcador y aparece una esfera gris en la estación). ⚠ `StartAt` quedó en **9** para iterar el túnel — volver a 0 antes de empaquetar.
+
 ### 🆕 2026-09-04 — las 3 estaciones de los efectos de Nico (7, 8, 9)
 Se sumaron tras mergear `fx/nico-efectos`. **No hizo falta tocar una sola linea del director**: solo colocar los actores con `GALSTATION` + `GAL_<n>`, un `BP_Anchor` por estacion y tres filas en `Anchors`/`StationTags`/`Names`. Es exactamente lo que el diseño por tags prometia.
 

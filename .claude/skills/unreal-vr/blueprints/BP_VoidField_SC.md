@@ -1,7 +1,8 @@
 # BP_VoidField_SC + M_VoidDots_SC — profundidad sin geometria (Core/Light/)
 
 > Creado 2026-09-04. Efecto 1.2 del [plan de la galeria](../../../../docs/PLAN-GALERIA-EFECTOS.md).
-> **Estado: 🟡 compilado y colocado en `/Game/TestMeshes` (`VoidField_Test`, en 0/20000/200). Juzgado en el viewport. Falta el visor — y el visor es el unico lugar donde se puede juzgar de verdad, ver abajo.**
+> **Estado: 🟡 compilado y colocado en `/Game/TestMeshes` (dos instancias; la autorada esta en 120000/100000/0). Juzgado en el viewport. Falta el visor — y el visor es el unico lugar donde se puede juzgar de verdad, ver abajo.**
+> **2026-09-07: la deriva se reemplazo por GIRO por esfera** (`E - Giro`, 6 perillas) — ver esa seccion; la deriva vieja tenia un bug que hacia que las tres capas se movieran en la misma direccion.
 
 ## Que es
 Dos o tres cascarones concentricos a radios distintos con puntos resueltos **en el material**, sin textura y sin particulas. Al mover la cabeza las capas se desplazan a distinta velocidad, y **ese paralaje es lo unico que vende una escala infinita**: un gradiente de fondo, por lindo que sea, se lee plano.
@@ -101,39 +102,51 @@ Tres `StaticMeshComponent` (`Shell0/1/2`) con el `Cube` del motor. `ApplyVoid` p
 
 Escala del componente = `Radio / 50` (el cubo del motor mide 100). `bLayer1` / `bLayer2` apagan las capas de atras.
 
-Categorias: `A - Capas` (Radius0/1/2, bLayer1, bLayer2) · `B - Puntos` (Tiling 20, DotSize 0,09, Density 0,25, JitterAmount 0,7, Brightness 2,2) · `C - Color` (DotColor, FarDim 0,35) · `D - Vida` (TwinkleAmount 0,3, TwinkleSpeed 0,4).
+Categorias: `A - Capas` (Radius0/1/2, bLayer1, bLayer2) · `B - Puntos` (Tiling 20, DotSize 0,09, Density 0,25, JitterAmount 0,7, Brightness 2,2) · `C - Color` (DotColor/2/3, FarDim 0,35) · `D - Vida` (TwinkleAmount 0,3, TwinkleSpeed 0,4) · **`E - Giro` (SpinSpeed0/1/2 + SpinAxis0/1/2)** · `F - Fondo` (bBackground, BackColor, BackBrightness, BackRadius).
 
-## 🌊 Deriva animada — cada capa a su velocidad y en su direccion
-Pedido de Beltran (2026-09-04): *"siento que no funciona si no esta animado y cada capa se mueve en una direccion o una velocidad distinta; lo interesante de ese efecto es cuando las cosas se mueven"*. Y es correcto: sin animacion el paralaje **solo existe si movés la cabeza**, asi que quieto se lee como una textura.
+Funciones, en el orden en que las llama el Construction Script: `ApplyVoid` → `ApplyVoidDensity` → **`ApplyVoidSpin`** → `ApplyVoidPulse` → `ApplyVoidColors` → `ApplyVoidBack`.
 
-En el material, la UV tileada se desplaza antes de partirse en celdas:
+## 🌀 GIRO por esfera — cada cascaron rota en su sentido, a su velocidad y sobre su eje
+Pedido de Beltran (2026-09-07): *"debemos tener control para animar las esferas con los puntitos; cada esfera debe poder animarse para girar en sentidos y velocidades distintas para lograr el efecto parallax"*. Reemplaza a la **deriva** anterior, que se borro entera.
+
+🔴 **Por que la deriva vieja no servia, con dos causas medidas:**
+1. **Era una TRASLACION, no una rotacion.** Sumaba `dir2D × Time × DriftSpeed` a la direccion 3D antes del `floor`/`frac`. El campo entero se corria en una sola direccion — se lee como "avanzar entre la nieve", no como un cielo que gira. Ademas el offset **crece sin cota** con `Time`, asi que a sesiones largas la precision float se degrada.
+2. 🔴 **Las tres capas derivaban en la MISMA direccion.** El BP sumaba `+137` y `+251` al `DriftAngle` "en grados", pero el nodo `Cosine`/`Sine` del material toma su entrada en **vueltas** (`Period = 1`), no en grados: 137 y 251 son **enteros**, o sea vuelta completa → `frac = 0` → el mismo angulo que la capa 0. La unica diferencia real entre capas era la velocidad. **El paralaje direccional nunca existio.**
+
+✅ **Ahora el material rota el campo con `RotateAboutAxis`**, que es el nodo del motor pensado justo para esto:
 ```
-dir = (cos(DriftAngle), sin(DriftAngle))
-uv  = TexCoord × Tiling + dir × Time × DriftSpeed        // y RECIEN AHI floor/frac
+dir  = normalize(LocalPosition)
+ang  = Time × SpinSpeed / 360        // SpinSpeed en GRADOS/seg; RotateAboutAxis toma vueltas (Period=1)
+dir' = dir + RotateAboutAxis(normalize(SpinAxis), ang, pivot=(0,0,0), dir)
+uv   = dir' × Tiling                 // y RECIEN AHI floor/frac
 ```
-Va **antes** del `floor`/`frac` a proposito: asi se mueve el campo entero (celdas incluidas) y no solo el punto dentro de su celda — si fuera despues, los puntos rebotarian dentro de su casilla en vez de viajar.
+`RotateAboutAxis` devuelve el **desplazamiento** (`R·dir − dir`), por eso se le vuelve a sumar `dir`: la suma da `R·dir`, un vector unitario rotado. Al ser una rotacion pura no hay deriva acumulada ni perdida de precision: `Time` crece, el angulo da vueltas, y el campo nunca se aleja.
 
-**Los multiplicadores por capa** (en `ApplyVoidDrift`) usan razones y angulos **no enteros** para que las tres nunca se sincronicen:
+💡 **Por que la rotacion si da paralaje y la traslacion no:** con tres cascarones girando a velocidades distintas, mirando en cualquier direccion se ven tres capas de puntos cruzando el campo visual a ritmos distintos — exactamente la señal que el cerebro lee como distancia. Y con **ejes distintos** ninguna capa comparte polo con otra, asi que no hay una zona del cielo donde las tres se queden quietas juntas.
 
-| Capa | Velocidad | Angulo |
+### Las perillas — cat. *E - Giro* (6 variables, instance-editable)
+| Variable | Default | Rol |
 |---|---|---|
-| 0 (cerca) | `DriftSpeed` × 1,00 | `DriftAngle` + 0° |
-| 1 | × 0,62 | + 137° |
-| 2 (lejos) | × 0,38 | + 251° |
+| `SpinSpeed0` | **1,2** | Grados/seg de la capa CERCANA. **El signo es el sentido de giro.** |
+| `SpinSpeed1` | **−0,7** | Idem capa media — negativa a proposito: gira al reves que la 0. |
+| `SpinSpeed2` | **0,35** | Idem capa lejana. Mas lenta = se lee mas lejos. |
+| `SpinAxis0` | (0, 0, 1) | Eje de giro de la capa cercana (se normaliza en el material). Z = gira como un cielo. |
+| `SpinAxis1` | (0,25, 0,1, 1) | Eje inclinado — polo distinto al de la capa 0. |
+| `SpinAxis2` | (−0,15, 0,3, 1) | Otro eje inclinado. |
 
-La capa cercana se mueve **mas rapido** que las lejanas, que es como se comporta el paralaje real. Perillas en *E - Deriva*: **`DriftSpeed` (0,12 = una celda cada ~8 s)** y `DriftAngle` (orientacion global del conjunto).
+🔴 **Ya NO hay multiplicadores hardcodeados por capa.** Antes el BP inventaba las razones (×0,62, ×0,38) y los angulos (+137°, +251°) adentro de `ApplyVoidDrift`. Ahora **cada esfera tiene su propia perilla**, que es lo que se pidio: se autora mirando, no se deduce de una tabla. La funcion es `ApplyVoidSpin` y solo empuja los seis valores a los tres cascarones.
 
-⚠ **El default arranco en 0,03 y hubo que subirlo: era una celda cada 33 segundos, o sea invisible.** Medido: a 0,03 el material SI animaba (dos capturas seguidas del editor ya salian distintas), pero el movimiento no se percibe. Para un campo procedural lento, **"se mueve" y "se ve que se mueve" son dos cosas distintas** — el numero hay que elegirlo mirando, no razonando.
+**Ordenes de magnitud, para no perder tiempo:** una celda del patron subtiende ≈ `360/Tiling` grados (con `Tiling` 29 ≈ **2°**). O sea `SpinSpeed = 1,2` ≈ media celda por segundo — visible pero calmo. Por debajo de **0,2 °/s** deja de percibirse (es el mismo error que costo la deriva: *"se mueve" y "se ve que se mueve" son dos cosas distintas*). Arriba de ≈5 °/s empieza a parecer un protector de pantalla.
 
-✅ **Verificado con control positivo** (2026-09-04): apagando el centelleo, dos capturas con `DriftSpeed = 0` salen **byte a byte identicas**, y con `DriftSpeed = 4` salen distintas. Sin apagar el centelleo el test no probaba nada, porque el centelleo ya animaba solo.
+✅ **Verificado (2026-09-07)** con la camara dentro del campo, dos capturas del viewport a ~9 s: el patron esta **completamente reordenado** (25,2 % de los pixeles distintos, diferencia media 10,3/765), los puntos siguen dibujandose bien y una captura al cenit (pitch 89°) confirma que **no hay pinchazo de polo ni costura**. Falta el visor.
 
-🔴 **Se anima en el EDITOR, no hace falta Play** — el nodo `Time` corre en el viewport. Si se ve congelado, lo que esta apagado es **Realtime** del viewport (el reloj de la barra, o `Ctrl+R`): con Realtime off no se anima ningun material de la obra, ni este ni los haces ni la nube.
-⚠ El campo del nivel tenia `TwinkleAmount = 0,58` autorado por Beltran: se leyo y se restauro despues del test, no se piso con el default.
+🔴 **Se anima en el EDITOR, no hace falta Play** — el nodo `Time` corre en el viewport. Si se ve congelado, lo que esta apagado es **Realtime** del viewport (el reloj de la barra, o `Ctrl+R`).
 
 ## 🔴 Lo que NO se puede juzgar en una captura
 **El paralaje.** Una imagen fija muestra puntos; el efecto entero esta en que al mover la cabeza las capas se desplazan a distinta velocidad. En el editor se intuye moviendo la camara, pero **el veredicto real es el visor**. Si al probarlo no se siente profundidad, la palanca es separar mas los radios (por ejemplo 1000 / 3500 / 9000), no agregar puntos.
 
 ## TODO
-- [ ] Juicio de Beltran y prueba en visor, sobre todo el paralaje.
+- [ ] Juicio de Beltran y prueba en visor, sobre todo el paralaje (ahora por GIRO, no por deriva).
+- [ ] Elegir mirando los seis valores de `E - Giro`: los defaults (1,2 / −0,7 / 0,35 °/s) son un punto de partida, no una decision autoral.
 - [ ] **Medir el fill**: son tres capas aditivas que ocupan la pantalla entera. Es el riesgo real de este efecto. Si aprieta, `bLayer2` off es lo primero.
 - [ ] Rangos de slider a mano: Radius 300–20000 · Tiling 8–80 · DotSize 0,01–0,3 · Density 0–1 · JitterAmount 0–1 · Brightness 0–6 · FarDim 0–1 · Twinkle* 0–2.

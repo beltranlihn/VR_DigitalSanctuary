@@ -1,7 +1,8 @@
 # BP_Ganzfeld_SC + M_Ganzfeld_SC — el cascaron sin borde (Core/Light/)
 
 > Creado 2026-09-04. Efecto 1.1 del [plan de la galeria](../../../../docs/PLAN-GALERIA-EFECTOS.md).
-> **Estado: 🟡 compilado, colocado en `/Game/TestMeshes` (`Ganzfeld_Test`, en 0/12000/200) y juzgado en el viewport. Falta el visor.**
+> **Estado: 🟡 compilado y colocado en `/Game/TestMeshes` en dos estaciones (`GAL_3_Ganzfeld` en 90000/100000/0, autorado; `GAL_9_Ganzfeld` en 270000/100000/0). Juzgado en el viewport. Falta el visor.**
+> **2026-09-07: solo se usa el MODO 2 (fluido)** — las perillas de los modos 0 y 1 estan ocultas; el codigo de los tres sigue entero. Ver la seccion al final.
 
 ## Que es
 Una superficie grande y curva con un gradiente emisivo continuo: **sin esquina, sin borde, sin textura que de escala**. El ojo se queda sin referencia de profundidad y el cuarto deja de leerse como cuarto. Es el *Ganzfeld* de Turrell, y se hace con un material, no con luces.
@@ -51,7 +52,9 @@ Un componente `Shell` (StaticMeshComponent, `SM_GanzShell`, sin sombras, sin col
 
 **El tamaño se autora en centimetros:** `ShellRadius` y `ShellHeight` (cat. *A - Forma*, default 1500 = 15 m de radio, 30 m de lado a lado), traducidos a `escala = cm / 50`. Separar radio de altura permite achatarlo en domo o estirarlo en tubo.
 
-Categorias: `A - Forma` (Mesh/ShellRadius/ShellHeight) · `B - Color` (ColorTop/ColorBottom/Brightness) · `C - Gradiente` (GradientBias/DitherAmount) · `D - Horizonte` (HorizonPos/Width/Glow) · `E - Respiracion` (BreathAmount/BreathSpeed).
+Categorias: `A - Forma` (Mesh/ShellRadius/ShellHeight) · `B - Color` (ColorTop/ColorMid/ColorBottom/Brightness) · `C - Gradiente` (GradientBias/DitherAmount/VeilAmount/VeilScale) · `D - Horizonte` (HorizonPos/Width/Glow) · `E - Respiracion` (BreathAmount/BreathSpeed) · `F - Modo` (Mode) · `G - Fluido` (FlowScale/FlowSpeed/FlowMix).
+
+🔴 **Desde 2026-09-07 varias de esas perillas estan OCULTAS** (solo queda el modo 2) — ver la seccion "SOLO QUEDA EL MODO 2" mas abajo.
 
 ## Rangos sugeridos para los sliders (a mano en el editor; el MCP no expone esa metadata)
 ShellRadius/Height 300–8000 · Brightness 0–3 · GradientBias 0,2–4 · DitherAmount 0–8 · HorizonPos 0–1 · HorizonWidth 1–40 · HorizonGlow 1–3 · BreathAmount 0–200 · BreathSpeed 0–1.
@@ -102,5 +105,95 @@ Los tres colores están presentes **en todos lados** en distinta proporción, y 
 ## 🔢 `Mode` es un ENTERO
 0 = Horizonte · 1 = Turrell · 2 = Fluido. La variable del BP es `int` y se convierte a float al empujarla al material (`* 1.0`, porque `Conv_IntToFloat` no existe como nodo del DSL).
 
+## 🔴 SOLO QUEDA EL MODO 2 (2026-09-07) — decision autoral de Beltran
+*"Ya no tendremos 3 opciones, solo dejaremos el mode 2. Dejar solo las perillas de variables que afectan al mode 2. No elimines del codigo los otros, simplemente quita las perillas de esos otros modos."*
+
+🔴 **El CODIGO de los tres modos sigue INTACTO** — material y `ApplyGanzfeld` no se tocaron. Lo unico que cambio es la **superficie de autoria**: las perillas de los modos 0 y 1 se pasaron a **Instance Editable = false**, asi que desaparecen del panel del actor (y del de Class Defaults). Volver atras es un click por variable, sin reconstruir nada.
+
+| Estado | Variables |
+|---|---|
+| **Ocultas** (modo 0) | `GradientBias` · `HorizonPos` · `HorizonWidth` · `HorizonGlow` |
+| **Ocultas** (modo 1) | `CenterYaw` · `CenterPitch` · `InnerStop` · `OuterStop` · `Softness` |
+| **Oculta** (ya no se elige) | `Mode` — el default del CDO paso a **2** |
+| **Visibles** (afectan al fluido) | `Mesh` · `ShellRadius` · `ShellHeight` · `ColorTop` · `ColorMid` · `ColorBottom` · `Brightness` · `DitherAmount` · `VeilAmount` · `VeilScale` · `FlowScale` · `FlowSpeed` · `FlowMix` · `BreathAmount` · `BreathSpeed` |
+
+💡 **Por que ocultar y no borrar es lo correcto aca:** la mezcla entre modos son dos `Step` sobre `Mode`, o sea que las tres ramas se **calculan igual** y se pesan; con `Mode = 2` las ramas 0 y 1 pesan 0 y sus perillas no pueden afectar nada. No hay riesgo de que una perilla oculta este haciendo algo por atras. (Costo de shader: las tres ramas siguen compilando — si algun dia aprieta el fill en el visor, ahi si conviene podar el material de verdad.)
+
+⚠ **Las dos instancias colocadas quedaron en `Mode = 2`.** `GAL_3_Ganzfeld` ya estaba autorado en 2; **`GAL_9_Ganzfeld` estaba en 0 con todos los demas valores en default** y paso a 2 al recompilar (no tenia override propio, heredaba del CDO). O sea: **el aspecto de la estacion 9 cambio** — si ahi se queria el degradado por horizonte, hay que decidirlo de nuevo.
+⚠ Consecuencia tecnica: una variable con Instance Editable en false **tampoco se puede escribir por `ObjectTools.set_properties`** sobre la instancia (falla con *"could not be set"*). Es el modo barato de VERIFICAR que quedo oculta — y el aviso de que para cambiarla hay que volver a habilitarla.
+
 ## ⚠ Cicatriz de proceso, para no repetirla
 Este material se enredó por **reusar nodos identificándolos por nombre** (`LinearInterpolate_5`, `_6`…) en vez de mapear la cadena antes de tocar. Reescribí sin querer los nodos del modo Turrell, y por eso `Softness` dejó de responder. **Antes de cirugía sobre un material grande: recorrer la cadena desde `MP_EmissiveColor` hacia atrás y anotar los nombres.** Cuesta una llamada.
+
+
+## 🔴🔴 2026-09-07 — las perillas `Flow*` no hacian NADA, y por que
+Beltran: *"las perillas de flow no hacen nada"*. Tenia razon, y la causa es exactamente la **cicatriz** que este tracker ya avisaba: al reconstruir el modo fluido con los tres ruidos como peso, la cadena NUEVA (`Noise_4/5/6`) se enchufo a los nodos equivocados y quedo asi:
+
+| Entrada del fluido | Estaba conectada a | Deberia ser |
+|---|---|---|
+| escala del ruido (`Multiply_46`) | **`VeilScale`** | `FlowScale` |
+| deriva temporal (`Multiply_47`) | **una `Constant` = 0,25** | `FlowSpeed` |
+| separacion de los 3 campos | nada (offsets fijos) | `FlowMix` |
+
+`FlowScale` y `FlowSpeed` seguian alimentando la cadena VIEJA (`Noise_3`), que ya no llega a la salida. Por eso los tres parametros **existian, compilaban y el BP los empujaba bien** — y no pasaba nada. 💡 Y explica el sintoma raro que se venia arrastrando: lo que hacia mover el fluido era **`VeilScale`**, o sea se estaba autorando el efecto con la perilla equivocada.
+
+✅ **Arreglado:** `Multiply_46.B` ← `FlowScale`, `Multiply_47.B` ← `FlowSpeed`, y `FlowMix` ahora **escala los dos vectores de offset** entre los tres campos de ruido (`FlowMix = 0` → los tres ruidos coinciden → color plano; `= 1` → separacion completa, marmolado). Es el rol que le faltaba desde la reconstruccion.
+
+⚠ **Los valores que estaban en la instancia (`FlowScale` 626,7 · `FlowSpeed` 15,7 · `FlowMix` 1,46) eran de arrastrar sliders a ciegas** — con las perillas ya conectadas hubieran dado ruido puro. Se reemplazaron por los que **reproducen lo que se venia viendo**: `FlowScale` 1,537 (el `VeilScale` que lo estaba manejando), `FlowSpeed` 0,25 (la constante), `FlowMix` 1,0 (los offsets estaban a full). Defaults del CDO: 1,6 / 0,25 / 1,0.
+
+🔴🔴 **La leccion de proceso, que es mas cara que el bug:** Beltran reporto el sintoma en cuatro palabras y yo gaste una tanda entera de capturas y ~130k tokens **demostrando que tenia razon** antes de ir a arreglarlo. El A/B solo confirmo lo que el ya sabia; lo que resolvio el caso fueron **seis `get_expression_inputs`** recorriendo la cadena hacia atras desde `MP_EmissiveColor`. Ver `gotchas.md` §316.
+
+
+## 🔴🔴 2026-09-07 (cierre) — el modo fluido REESCRITO: simplex 4D + el Veil como contorno
+Jornada larga y cara. Queda esto, y conviene leerlo antes de tocar nada del modo 2.
+
+### 1. Lo que estaba roto de verdad
+| Sintoma que reporto Beltran | Causa real |
+|---|---|
+| *"las perillas de flow no hacen nada"* | La cadena NUEVA del fluido (`Noise_4/5/6`) estaba enchufada a **`VeilScale`** para la escala y a una **`Constant`** para el tiempo. `FlowScale`/`FlowSpeed` alimentaban la cadena VIEJA (`Noise_3`), que ya no llegaba a la salida. Los tres parametros existian, compilaban y el BP los empujaba bien — y no hacian nada. |
+| *"se mueve para un lado"* | El patron se calcula sobre `normalize(LocalPosition)`, que gasta **las tres dimensiones** del ruido. Sin dimension libre, todo movimiento es tangencial → se desliza. Ver §2. |
+| *"sigue como un pulso"* | Dos causas encadenadas: (a) un crossfade entre dos campos de ruido INDEPENDIENTES **disuelve, no deforma**; (b) despues, el **Veil** quedo muestreando una posicion que **saltaba de golpe** cada vez que `Floor(Time·FlowSpeed)` avanzaba, y con `VeilAmount = 3,13` ese termino tapaba todo lo demas. |
+
+### 2. 🔴 La restriccion de fondo (no es un bug, es geometria)
+TouchDesigner anima un Noise TOP moviendo `Translate Z` porque el plano usa `(u,v)` y **deja el eje Z libre**. Nuestro cascaron usa las tres coordenadas para describir la superficie: **no queda ninguna libre para el tiempo**. Y no se arregla reduciendo a una carta 2D — una esfera no admite una sin costura ni polos, es topologico (por eso el material abandono las UV en su dia).
+
+Consecuencia, y explica por que fallaron CINCO intentos seguidos:
+- Traslacion / vaiven / rotacion del dominio → **tangencial** → se ve ir hacia un lado.
+- Marcha **radial** → es la unica no tangencial (es la normal de la superficie, el analogo real del Z del plano), pero el radio **es** la escala tangencial → las manchas se achican y no se puede sostener un flujo grande.
+
+✅ **Con escala fija + evolucion en el lugar + sin direccion, las cuatro dimensiones NO son opcionales.**
+
+### 3. La solucion: simplex 4D de Ashima/Gustavson en un nodo `Custom`
+`MaterialExpressionCustom_0`, `OutputType = CMOT_Float3`, entradas `P` (= `dir × FlowScale`), `W` (= `Time × FlowSpeed`), `O1`/`O2` (los offsets × `FlowMix`). Devuelve los **tres pesos de color de una sola vez**.
+
+🔴 **Por que simplex y no el value noise que escribi primero:** la literatura es explicita — *"gradient noise provides enhanced smoothness and **temporal stability**, making it preferable for animations"*, y del de valor: *"the **lattice is still quite obvious**"*. El ruido de VALOR pulsa por construccion. Ese fue el pulso que Beltran vio en la version 4D hecha a mano. Ademas simplex evalua **5 esquinas en vez de 16** → salio mas barato que el parche.
+
+💡 De paso: bajo de **6 muestras de ruido a 3**.
+
+### 4. 🔴 El Veil ahora es EL CONTORNO del propio degradado (pedido de Beltran)
+*"El veil deberia ser el contorno animado de la misma gradiente."* Ya no hay ruido aparte: se derivan de los **pesos que el fluido ya calculo**.
+```
+m     = max(w1, w2, w3)          // 1/3 = frontera entre colores · 1 = color puro
+borde = (1 − saturate(m·1,5 − 0,5)) ^ VeilScale
+Veil  = lerp(1, 1 + borde, saturate(VeilAmount))
+```
+Se anima solo (los bordes se mueven con el simplex) y **no cuesta ninguna muestra de ruido nueva**.
+
+| Perilla | Rol | Rango util |
+|---|---|---|
+| `VeilAmount` | cuanto se nota el contorno | **0–1** (ahora acotado con `saturate`) |
+| `VeilScale` | ancho del borde: bajo = banda difusa, alto = linea fina | 1–12 |
+| `FlowScale` | tamaño de mancha (independiente del tiempo) | — |
+| `FlowSpeed` | velocidad del hervor (0 congela) | — |
+| `FlowMix` | separacion entre los tres colores | 0–1,5 |
+
+⚠ **`VeilAmount` era el ALPHA CRUDO de un lerp.** Un alpha solo tiene sentido en 0–1; el `3,13` que tenia la instancia **extrapolaba** muy afuera y dominaba la imagen. No era un valor mal elegido: era una perilla que no servia para lo que se le pedia. Leccion generalizable en `gotchas.md` §318.
+
+⚠ **Valores que se pisaron** (los de la instancia se autoraron sobre un sistema roto): `FlowScale` 626,7 → 1,537 · `FlowSpeed` 15,7 → 0,06 · `FlowMix` 1,46 → 1,0 · `VeilAmount` 3,13 → 0,5 · `VeilScale` 1,537 → 4,0.
+
+### 5. Nodos huerfanos que quedaron
+Las seis `Noise` viejas, los `LinearInterpolate_12/13/14`, los `RotateAboutAxis_0/1/2` y la cadena Lissajous ya **no llegan a la salida** (no compilan al shader, no cuestan). Se pueden limpiar con `delete_unused_expressions`, pero **conviene hacerlo recien despues del visor**, por si hay que volver atras.
+
+### 6. TODO
+- [ ] 🔴 **Visor**, y sobre todo **medir el fill**: es una superficie opaca a pantalla completa con 3 muestras de simplex 4D. Es el riesgo real de este material.
+- [ ] Beltran elige `VeilAmount`/`VeilScale`/`Flow*` mirando; los valores de arriba son punto de partida mio, no decision autoral.
