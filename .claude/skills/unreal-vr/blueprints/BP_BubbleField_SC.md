@@ -118,3 +118,19 @@ WPO = Normal · (pulso + wobble)   +   dir · deriva   +   dir · estiramiento
 Las tres capas tienen periodos distintos y sin relacion entera (0.35 / 0.6 / 0.09 / 0.13 Hz), asi que **el conjunto no repite** — es la misma idea de las frecuencias no enteras de Alma, llevada al campo entero.
 
 ⚠ **Costo**: son 4 senos/cosenos mas **por vertice**, sobre ~123 instancias × 5.120 tris. Los defaults son suaves a proposito. Si en visor pesa: bajar `Count` antes que apagar efectos, porque el numero de vertices es el multiplicador de todo esto.
+
+
+## 🌊 El medio submarino de la estacion 8 (2026-09-04)
+Las tres capas que faltaban para que se lea **agua** y no vacio. **Ninguna necesito codigo nuevo**: son actores que ya existian, colocados con `GALSTATION` + `GAL_8` y configurados desde sus propias perillas — que es justo lo que pidio Beltran (*"que tengan perillas para yo jugar con ellos"*).
+
+| Capa | Que se uso | Perillas para jugar |
+|---|---|---|
+| **Motas suspendidas** (marine snow) | **`BP_VoidField_SC`** — 3 cascarones de puntos procedurales, 3 draw calls, **sin Niagara**. Tiene deriva propia | `density` 0.45 · `dotSize` 0.13 · `driftSpeed` 0.05 · `driftAngle` · `twinkleAmount` 0.35 · `brightness` 0.7 · `farDim` 0.55 · los **3 dotColor** · `radius0/1/2` (700/1500/2600) |
+| **Luz desde la superficie** | **3 × `BP_LightShaft_SC`** verticales, muy anchos (`Spread` 11-17) y tenues (`Intensity` 0.22-0.35), a distinta altura y grosor | `Intensity` · `Spread` · `SmokeAmount` (0.5-0.6, es lo que da el polvo en el haz) · `SmokeSpeed` · `BeamColor` · `EdgeSoft` · `LengthFade` |
+| **Gradiente de profundidad** | el `BP_Ganzfeld_SC` de la estacion | `colorTop` (celeste de superficie) → `colorMid` → `colorBottom` (casi negro), `gradientBias` 1.15, `horizonPos` 0.72 |
+
+🔴 **`bBackground = false` en las motas**: el VoidField trae su propio fondo esferico y taparia al Ganzfeld. Se apaga y manda el cascaron de la estacion.
+🔴 Los haces van con **`bShowFloorGlow` y `bShowSourceGlow` en false**: no hay piso ni ventana que justifique el pozo de luz ni el disco fuente; aca el haz es solo el volumen de luz en el agua.
+✅ **Verificado en PIE**: motas y haces de la 8 visibles, y el `BP_VoidField_SC` de la estacion 4 (el de Beltran) **oculto** — las dos instancias del mismo BP no se contaminan porque la pertenencia es por tag.
+
+⚠ **Fill-rate**: se sumaron 3 haces translucidos + 3 cascarones de puntos a un campo que ya tiene ~123 esferas translucidas. **Es la combinacion mas cara de la galeria y solo se juzga en el visor.** Si hay que recortar, el orden sugerido: primero un haz, despues `Count` de las esferas, y las motas al final (son las mas baratas y las que mas "agua" aportan).
