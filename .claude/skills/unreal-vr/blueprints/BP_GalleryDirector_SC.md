@@ -35,6 +35,23 @@ Valores de instancia elegidos (los defaults del CDO de Nico ya son buenos; solo 
 - **Rim**: la 2ª con `DissolveThreshold` 0,5 (para que se vea el filo encendido), la 3ª con `Mesh` = Cube.
 - **Panel**: `Mode` 0/1/2/3, `PanelSizeX/Y` 200. 🔴 El modo 3 (cercania) lleva **`TouchRadius` 500** en vez de 180: con el panel a 3,5 m del anchor, la esfera de 180 cm no llega y el panel no se enciende nunca. Es el mismo ajuste que hizo Nico para su captura.
 
+### 🔴 2026-09-04 (tarde) — el criterio que fijo Beltran: LOS ENTORNOS ENVUELVEN
+Juzgo las tres estaciones de Nico y fue tajante: *"las encuentro bastante fomes… **tenemos que lograr que estos entornos nos envuelvan. No que sean solo frente. Y si hay uno que debe ser solo frente, que igual este envuelto en alguna esfera con color**"*. El diagnostico de fondo: sus efectos (Ganzfeld, VoidField, oceano) son **espacio**; los de Nico eran **props que se miran de frente**. Y parte de la culpa era de la composicion: el panel viene con 20 m de default y se habia achicado a 2 m para que entrara en la estacion — convertido en un cuadrito.
+
+**Las tres reglas que quedan para armar CUALQUIER estacion de aca en mas:**
+1. **Nada se compone solo al frente.** Si el efecto es direccional, se lo rodea igual.
+2. **Cada estacion lleva su `BP_Ganzfeld_SC` de color** como cascaron — es el "envuelto en una esfera con color" que pidio, y ya existia en la biblioteca (no se construyo nada nuevo).
+3. **Escala de sala, no de objeto.** Un panel de 2 m es un cuadro; a 10 m es una pared.
+
+**Como quedaron reorganizadas:**
+| # | Antes | Ahora |
+|---|---|---|
+| 7 Orbe | 3 orbes al frente | los 3 orbes + **cascaron violeta** (`shellRadius` 1400) |
+| 8 Rim | 3 formas al frente | las 3 de muestra en el centro + **[[BP_RimField_SC]]: 48 siluetas en anillo de 14 m** que nacen al acercarse + **cascaron verde-azul** (2400) |
+| 9 Panel | pared frontal de 25 m | **sala cerrada**: 4 paneles de 10 m a 5 m del centro, uno por lado (yaw 0/90/180/270, `pitch 90`) + **cascaron ambar** (1600) |
+
+⚠ El `TouchRadius` del modo cercania volvio a 400: dentro de una sala de 5 m, los 900 que se habian puesto para la pared frontal encendian todo.
+
 ✅ **Verificado en PIE con `StartAt = 7`**: el pawn aparece en `x = 209.100` (el anchor de la 7), el orbe de esa estacion **visible** y el panel de la 9 y la sombra de la 6 **ocultos**. El recogido por tags tomo los actores nuevos sin tocar el BP.
 ⚠ **Los Construction Scripts NO se re-ejecutan al escribir valores de instancia por MCP** — hay que **recargar el nivel** (`load_level` del mismo nivel) o los MID quedan con los valores viejos. Se hizo, y se verifico despues que los MID existen y las escalas se aplicaron (orbe a 0,4).
 
