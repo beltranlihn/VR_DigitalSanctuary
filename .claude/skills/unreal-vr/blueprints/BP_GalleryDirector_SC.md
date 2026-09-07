@@ -22,6 +22,21 @@ Seis estaciones cada **300 m** sobre el eje X, en `y = 100000`. Cada una tiene u
 | 3 | x = 90.000 | `BP_Ganzfeld_SC` | el anchor va **adentro** del cascaron |
 | 4 | x = 120.000 | `BP_VoidField_SC` | idem, adentro |
 | 5 | x = 149.050 | `BP_LineField_SC` | la superficie 50 cm bajo el piso del anchor |
+| 6 | x = 179.100 | `BP_ShadowStudy_SC` + `BP_ShadowShaft_SC` | la sombra falsa (oscuridad sobre claro) |
+| 7 | x = 209.100 | **`BP_Orb_SC` ×3 (Nico)** | los 3 looks lado a lado a 2 m: volumen / iridiscente / matcap. 40 cm, a `y = ±70`, `z = 130` |
+| 8 | x = 239.100 | **`BP_RimShape_SC` ×3 (Nico)** | cascaron entero / disuelto a 0,5 / cubo. 1 m, a `y = ±150`, `z = 110` |
+| 9 | x = 269.100 | **`BP_LightPanel_SC` ×4 (Nico)** | los 4 modos en grilla 2×2 de 2 m (`y = ±110`, `z = 120/340`), **pitch 90** para que miren al usuario |
+
+### 🆕 2026-09-04 — las 3 estaciones de los efectos de Nico (7, 8, 9)
+Se sumaron tras mergear `fx/nico-efectos`. **No hizo falta tocar una sola linea del director**: solo colocar los actores con `GALSTATION` + `GAL_<n>`, un `BP_Anchor` por estacion y tres filas en `Anchors`/`StationTags`/`Names`. Es exactamente lo que el diseño por tags prometia.
+
+Valores de instancia elegidos (los defaults del CDO de Nico ya son buenos; solo se varia el selector):
+- **Orbe**: `Look` 0/1/2, `SizeCM` 40, y el matcap 2 (vidrio frio) en la tercera.
+- **Rim**: la 2ª con `DissolveThreshold` 0,5 (para que se vea el filo encendido), la 3ª con `Mesh` = Cube.
+- **Panel**: `Mode` 0/1/2/3, `PanelSizeX/Y` 200. 🔴 El modo 3 (cercania) lleva **`TouchRadius` 500** en vez de 180: con el panel a 3,5 m del anchor, la esfera de 180 cm no llega y el panel no se enciende nunca. Es el mismo ajuste que hizo Nico para su captura.
+
+✅ **Verificado en PIE con `StartAt = 7`**: el pawn aparece en `x = 209.100` (el anchor de la 7), el orbe de esa estacion **visible** y el panel de la 9 y la sombra de la 6 **ocultos**. El recogido por tags tomo los actores nuevos sin tocar el BP.
+⚠ **Los Construction Scripts NO se re-ejecutan al escribir valores de instancia por MCP** — hay que **recargar el nivel** (`load_level` del mismo nivel) o los MID quedan con los valores viejos. Se hizo, y se verifico despues que los MID existen y las escalas se aplicaron (orbe a 0,4).
 
 🔴 **Los efectos 0, 1 y 2 son instancias NUEVAS, no las de la composicion de Beltran** — las suyas quedaron intactas donde estaban. Y como una instancia nueva nace con los **defaults del CDO**, se le copiaron los valores autorados de las suyas (el haz salia azul y chiquito, y el oceano invisible porque el suyo esta en **escala 65**). Es la misma leccion de siempre: **lo de la instancia le gana al Blueprint**.
 
