@@ -70,3 +70,24 @@ Beltran, mirando el campo: ***"lo que me gusto es armar espacios de esferas alea
 Las burbujas salian **todas del mismo color** y pulsando al unisono. Causa: **`ObjectPositionWS` en un InstancedStaticMesh devuelve la posicion del COMPONENTE, no la de cada instancia** — asi que el hash daba el mismo numero para las 48. Fix: **`PerInstanceRandom`**, el nodo del motor hecho exactamente para esto (un aleatorio por instancia de ISM/foliage). Se borro toda la cadena del hash de posicion.
 💡 En un mesh NO instanciado `PerInstanceRandom` devuelve 0 → `BP_RimShape_SC` sigue viendose igual, sin variacion ni pulso. El default se mantiene sano solo.
 ⚠ **Regla general: para variar POR INSTANCIA en un ISM, `PerInstanceRandom`. `ObjectPositionWS` NO sirve.**
+
+
+## 🌊 Wobble y esfera densa (2026-09-04, cierre)
+Beltran: ***"el entorno de esferas ya esta hermoso y me gusta asi como esta"***, con dos pedidos y una definicion de que es lo importante: *"agreguemosle un poco de wobble suave como ya lo tenia el material de alma, y le dejamos una esfera con mas poligonos. Pero **la gracia de este entorno es el develado. Eso es lo rico**"*.
+
+**El wobble** es la receta de [[BP_Alma_SC]] portada al `M_RimOnly_SC`: **suma de dos senos con frecuencias no enteras** sobre la posicion local del vertice, desplazando por la normal. Nada de `Noise` (la leccion de Alma: 16-80 instrucciones por octava).
+```
+d  = dot(LocalPosition, (1, 0.73, 1.37)) · WobbleScale
+t  = Time · WobbleSpeed
+w  = ( sin(d + t) + sin(d·1.9 − t·0.7) ) · WobbleAmount
+WPO = VertexNormalWS · ( pulso + w )        ← el pulso y el wobble SUMAN sobre la misma normal
+```
+💡 Se suman los dos **escalares** y se multiplica **una sola vez** por la normal: un multiply vectorial menos.
+Perillas (cat. *E - Pulso*): `WobbleAmount` 3 cm · `WobbleScale` 0.045 (tamaño de la onda sobre la superficie) · `WobbleSpeed` 0.6.
+
+**La malla**: pasa del `Sphere` del motor a **`SM_AlmaSphere`** (la icoesfera de Alma, **5.120 tris, sin polos pinchados**) — el wobble necesita densidad y esa malla ya existia en el proyecto, no se creo nada.
+
+🔴 **Presupuesto a vigilar**: con `Count` 110 son **~563.000 triangulos** en un solo draw call, y cada vertice corre el WPO. Es un numero alto para Quest aunque el proyecto sea fill-rate bound. Si en visor pesa, las palancas en orden: bajar `Count`, o hacer una copia de la esfera con LODs (**no tocar `SM_AlmaSphere`, que es de Alma**).
+
+## Lo que hay que preservar
+🔴 **La gracia del efecto es el REVELADO** (dicho por Beltran). Cualquier ajuste futuro — colores, pulso, wobble, cantidad — no debe competir con eso: las esferas tienen que seguir naciendo al acercarse y apagandose al alejarse. `RevealAmount` en 1 y `RevealRadius` acorde al tamaño del campo.
