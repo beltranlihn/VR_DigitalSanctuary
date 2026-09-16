@@ -128,3 +128,35 @@ El haz sigue siendo un actor tonto; quien lo apunta es el estudio de sombra, que
 - Verificación de que el cono es real y no un giro plano: con `SweepAxisPitch 38`, las fases 0/90/180/270 caen en `(329,169,257) (225,0,390) (329,−169,257) (433,0,124)` — las cuatro a 450 cm de la esfera, alrededor del eje inclinado, y ninguna bajo el suelo.
 
 🟡 Sin probar en visor.
+
+## 💓 2026-09-08 — `bPulse`: el haz se prende y se apaga, y el pozo del piso con el
+Pedido de Beltran sobre su composicion de ~20 haces: *"que la intensidad vaya de 0 al valor que tiene cada actor, para que se vayan prendiendo y apagando en distintas velocidades. Que tambien afecte a la intensidad de la iluminacion del piso, asi se prende y apaga suavemente junto con el cono"*.
+
+### Perillas (cat. *C - Vida*)
+| Perilla | Rol | Default |
+|---|---|---|
+| **`bPulse`** | enciende la animacion. **Off = comportamiento anterior exacto** | false |
+| **`PulseSpeed`** | **pulsos por segundo** (0,06 ≈ 16 s por ciclo · 0,22 ≈ 4,5 s) | 0,25 |
+| **`PulsePhase`** | 0–1, corrimiento — es lo que evita que 20 haces respiren al unisono | 0 |
+
+### Como esta hecho
+Funcion **`StepPulse`** llamada desde `EventTick`:
+```
+k = MakePulsatingValue(GetGameTimeInSeconds, PulseSpeed, PulsePhase)   // 0..1
+if (bPulse):
+    Beam.Intensity      = Intensity * k
+    FloorGlow.GlowColor = Lerp(Negro, BeamColor, FloorGlowIntensity * k)
+```
+💡 **`Math|Float|MakePulsatingValue` es un nodo del motor** que hace justo esto (tiempo, pulsos/seg, fase) → 0..1. Evito armar seno + escalado a mano.
+💡 **El piso se apaga junto con el cono sin tocar su material**: `GlowColor` ya era `BeamColor × FloorGlowIntensity`, asi que basta con escalar ese producto por la misma `k`. `Lerp(Negro, C, x)` **es** `C·x` exactamente (el lerp extrapola, sirve tambien con x>1).
+⚠ Se dejo **fuera el `SourceGlow`** (el disco de la fuente): Beltran pidio cono + piso. Si al verlo el disco queda encendido mientras el haz se apaga, es **una linea mas** en `StepPulse` con `SourceGlowIntensity`.
+
+### 🔩 Dos trampas del MCP que costaron intentos (y quedan como receta)
+1. 🔴 **El getter de un bool NO lleva la `b`**: `bPulse` se llama **`Variables|C-Vida|GetPulse`** en el `type_id` (Unreal usa el nombre de display). `GetbPulse` no existe. **Descubrirlo es `find_node_types` con filtro**, no adivinar.
+2. 🔴 **`write_graph_dsl` SI puede crear operadores promotables (`*`, `+`) que `create_node` NO puede** — pero no todos: `Math|Color|LinearColor*LinearColor` fallo igual. Salida: `Math|Color|Lerp(LinearColor)`, que si es creable.
+💡 **Y la leccion de metodo:** el grafo se armo con **`add_function_graph` + `write_graph_dsl` en UNA llamada**, en vez de ~45 llamadas de cirugia sobre el EventGraph. **Un grafo NUEVO es exactamente el caso donde el DSL esta permitido** (la regla de oro prohibe reescribir uno existente, no crear uno).
+
+### Estado
+Los **20 haces** de la composicion quedaron con `bPulse = true` y velocidad/fase **repartidas de forma determinista**: `speed = 0,06 + 0,16·frac(i·0,381966)` y `phase = frac(i·0,618034)` — el mismo truco de razon aurea que usa `BP_RingTunnel_SC` para desincronizar sus anillos. Rango: **4,5 a 16 segundos por ciclo**.
+⚠ Los tres valores **nacieron en 0** en las instancias (la trampa de siempre) — por eso hubo que escribirlos actor por actor; con `PulseSpeed = 0` el pulso no se mueve aunque `bPulse` este en true.
+✅ Canario **103 → 103** en las dos tandas de script, cero errores.

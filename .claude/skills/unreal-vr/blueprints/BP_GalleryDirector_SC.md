@@ -129,3 +129,97 @@ La causa esta en `BP_MenuButton`: **su propio `EventBeginPlay` termina con `SetA
 - [ ] Apretar los botones en visor (es lo unico sin verificar del recorrido).
 - [ ] Sumar las estaciones que faltan: el estudio de sombra y los tres de Nico → colocar, anclar y agregar la fila a los tres arrays.
 - [ ] Afinar la composicion de cada estacion (es trabajo de autor, de Beltran): distancias, tamanos y paleta.
+
+## 🔴 2026-09-08 — "avanzo con el boton y no llego a la estacion nueva": los TRES arrays tienen que crecer juntos
+Beltran taguo los actores nuevos con `GALSTATION` + `GAL_10`, coloco `GAL_10_Anchor`, y aun asi el boton no llegaba. **Nada de lo que hizo estaba mal.** Lo que faltaba estaba en la instancia del director:
+
+| Array | Filas antes |
+|---|---|
+| `StationTags` | **11** ✅ (la agrego el) |
+| `Anchors` | **10** ❌ |
+| `Names` | **10** ❌ |
+
+👉 **Sin `Anchors[10]` el director no tiene a donde llevar al pawn**, asi que la estacion existe como tag pero es inalcanzable. Arreglado: los tres arrays quedaron en 11, con la fila 10 = tag `GAL_10` · anchor `GAL_10_Anchor` (`BP_Anchor_C_9`, x = 303.604) · nombre `"11  Ring Tunnel Rect"`.
+
+🚩 **La regla, que este tracker prometia pero no gritaba:** *"agregar una estacion"* son **cuatro** cosas, no tres — tags en los actores, el `BP_Anchor`, **y una fila en CADA UNO de los tres arrays**. Los tres son paralelos por indice; si quedan de largos distintos **no hay error, no hay log, simplemente esa estacion no se puede alcanzar**. Es el modo de fallo mas facil de repetir de este BP.
+💡 **Diagnostico de 10 segundos:** `get_properties` de `Anchors`/`StationTags`/`Names` y **contar**. Si los tres no miden lo mismo, ese es el bug — no hay que mirar ni tags ni botones.
+- [ ] Candidato de robustez (no hecho, decide Beltran): que `Boot` compare los tres largos y, si no coinciden, imprima *"GALERIA: Anchors/StationTags/Names tienen largos distintos (N/M/K)"*. Convierte un fallo mudo en un mensaje.
+
+⚠ `StartAt` esta en **6** (perilla de debug de Beltran, no se toca). Para caer directo en la estacion nueva, ponerlo en **10**.
+
+## 🗂️ 2026-09-08 — el outliner ordenado por estacion
+Pedido de Beltran: *"puedes ordenarme el outliner en carpetas, con lo que va en cada estacion, para poder trabajar mas limpio"*.
+
+**12 carpetas bajo `Galeria`**, con prefijo de dos digitos **igual al numero de tag** (asi `StartAt = 6` corresponde literal a la carpeta `06`):
+```
+Galeria/00 - Light Shaft        2 actores + anchor
+Galeria/01 - Cloud Ocean        6
+Galeria/02 - Fog Slab          19
+Galeria/03 - Ganzfeld           2
+Galeria/04 - Void Field         1
+Galeria/05 - Line Field         5
+Galeria/06 - Sombra falsa       1
+Galeria/07 - Orbe Nico          2
+Galeria/08 - Burbujas Nico      6
+Galeria/09 - Ring Tunnel        9
+Galeria/10 - Ring Tunnel Rect   4
+Galeria/_Sistema                director + AudioHub + HapticHub + 2 MenuButton
+```
+**Como se armo (y por que es re-ejecutable):** el reparto sale del **tag `GAL_<n>`**, que es la misma fuente de verdad que usa el director — no de una lista escrita a mano. Si Beltran duplica un actor y le pone los tags, vuelve a correr y cae solo en su carpeta.
+🔴 **Los anchors NO estan tagueados** (a proposito, ver la nota de arriba: taguearlos hace aparecer su marcador). Se repartieron **leyendo el array `Anchors` del director por indice**, que es el mapeo exacto. De paso quedo documentado que **el nombre no es uniforme**: las estaciones 0-6 usan `GAL_ANCHOR_<n>` y las 7-10 `GAL_<n>_Anchor`. Buscar por label habria dejado 7 anchors afuera — y de hecho el primer intento los dejo.
+
+⚠ **Verificacion de seguridad:** los dos scripts corrieron con la plantilla `safe_script.py` (try/except BaseException + canario). **Canario 84 → 84 actores en las dos tandas, cero errores.** Nada se perdio.
+💡 Mover carpetas del outliner **no toca transforms ni referencias**: es puramente organizativo y reversible arrastrando.
+⚠ El nivel quedo **sin guardar** (lo guarda Beltran).
+
+## 📉 2026-09-08 — PRIMERA MEDICION EN EL VISOR, y el Tick que no se apagaba
+Primer APK de la galeria instalado en la Quest 3. Beltran: *"hay varias partes donde dropeó frames"*. Se saco el log del dispositivo y se reconstruyo la curva de fps.
+
+### Como se lee el rendimiento sin OVR Metrics (receta reusable)
+El build **Development** escribe el log en el dispositivo, en **almacenamiento privado de la app** (no en `/sdcard/UnrealGame/`, que es donde uno lo busca):
+```
+/sdcard/Android/data/<PACKAGE>/files/UnrealGame/<Proyecto>/<Proyecto>/Saved/Logs/<Proyecto>.log
+```
+🔴 **Desde la herramienta Bash de Git, `adb pull /sdcard/...` se rompe**: Git Bash convierte la ruta a `C:/Program Files/Git/sdcard/...`. Va con **`export MSYS_NO_PATHCONV=1`** y **el destino en ruta Windows**.
+
+💡 **El numero entre corchetes de cada linea del log es el contador de frames** — y con eso se saca fps sin ninguna herramienta: `Δframes / Δtiempo` entre dos lineas. 🔴 **Va modulo 1000**: hay que desenrollarlo (si baja de golpe, sumar 1000) o el promedio sale absurdo (dio "8 fps" sobre una sesion que corria a 70).
+💡 **Y los `PrintString` sirven de marcadores temporales**: los `BOTON apretado: NEXT` del menu marcan cada cambio de estacion, asi que la curva de fps se puede **cortar por estacion** sin instrumentar nada.
+
+### El resultado (sesion de 65 s, 11 estaciones, `StartAt = 0`)
+| # | Estacion | fps |
+|---|---|---|
+| 0 | Light Shaft (20 haces) | ~62 |
+| 1 | Cloud Ocean | ~66 |
+| 2 | Fog Slab | ~69 |
+| **3** | **Ganzfeld** | **~30** 🔴 |
+| 4 | Void Field | ~70 |
+| 5 | Line Field | ~59-70 |
+| 6 | Sombra falsa | ~72 |
+| **7** | **Orbe (Nico)** | **~26** 🔴 |
+| **8** | **Burbujas (Nico)** | **~33** 🔴 |
+| 9 | Ring Tunnel | ~67 |
+| 10 | Ring Tunnel Rect | ~72 |
+
+✅ **El Ganzfeld se midio DOS veces** (Beltran dio la vuelta completa y volvio a pasar): ~30 fps las dos. No es ruido.
+⚠ Ademas hay un **paron de ~0,7 s al entrar a una estacion** (2 frames en 0,69 s), junto con `LogRenderer: Forcing update for all mesh draw commands`.
+
+### 🔴 La hipotesis de Beltran, confirmada con numeros
+> *"a mi me tinca que los elementos si estan gastando recursos aunque no sean de la estación activa. Porque son tags del actor de mundo."*
+
+**Tenia razon.** `GalHideAll` y `GalShow` solo llamaban **`SetActorHiddenInGame`**, que saca el dibujo pero **NO apaga el Tick**. Medido en el nivel: **101 actores con Tick activo**, entre ellos `BP_LightShaft_SC` ×23, `BP_VoidField_SC` ×11, `BP_RingTunnel_SC` ×11, `BP_FogSlab_SC` ×10, `BP_Ganzfeld_SC` ×3 — todos tickeando siempre, en todas las estaciones. El `StepPulse` que se le agrego al haz ese mismo dia corria en 23 actores invisibles.
+
+**Arreglo (cirugia de 2 nodos, uno por funcion):**
+```
+GalHideAll: ... (Rendering|SetActorHiddenInGame el true)  (Actor|Tick|SetActorTickEnabled el)        <- false
+GalShow   : ... (Rendering|SetActorHiddenInGame el)       (Actor|Tick|SetActorTickEnabled el true)
+```
+⚠ Solo toca los actores **tagueados `GALSTATION`** — el director, los botones, los rigs y los anchors no se tagean, asi que siguen tickeando.
+⚠ `SetActorTickEnabled` apaga el tick **del actor**, no el de sus componentes (Niagara, movimiento). Si algo sigue costando escondido, ese es el siguiente sospechoso.
+
+### 🔴 Pero son DOS causas distintas, no una
+El Tick de los escondidos es un **impuesto constante** — identico en las 11 estaciones. Por lo tanto **no explica** que la 3, la 7 y la 8 caigan a 26-33 mientras la 6 y la 10 dan 72. Eso es **coste de la estacion visible** (fill rate). Quedan pendientes por separado:
+- **Ganzfeld**: 6 muestras de simplex 4D por pixel sobre un cascaron que llena la pantalla. El doble desde que se le agregaron las olas (el loop paso de `k<3` a `k<6`).
+- **Orbe / Burbujas (Nico)**: sin diagnosticar.
+
+### ⚠ Lo que NO se pudo medir, y como evitarlo la proxima
+El log de Unreal da fps, **no dice si el cuello es CPU o GPU**. Eso lo da `VrApi` por `adb logcat` (`App=x.xx ms`, `GPU%`, `CPU%`), **pero el buffer de logcat ya habia rotado** cuando se fue a buscar. 👉 Hay que capturarlo **durante** la pasada. Script listo al lado del APK: **`CAPTURAR_RENDIMIENTO.bat`** (hace `logcat -c` y vuelca `VrApi:I` a `perf_quest.log` hasta que se corta con Ctrl+C).

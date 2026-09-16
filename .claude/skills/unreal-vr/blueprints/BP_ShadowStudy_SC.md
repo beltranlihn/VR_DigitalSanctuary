@@ -112,3 +112,103 @@ Beltran: *"elimina el ground ademas del BP, no sirve"*. Con `ShadowStrength` ya 
 
 **Estado final:** CS = `ApplyShadow` (solo la esfera) → `ApplySky` → `ApplyCone` → `AimCone`. **23 variables, todas vivas**: A-Forma (SphereRadius/Height) · B-Color (SphereColor/Brightness/AmbientFloor/SkyColor) · A-Forma (SkyRadius) · D-Luz (LightYaw/Pitch/SpinSpeed — el lambert de la esfera) · H-Barrido (SweepAngle/Speed/Phase/AxisPitch/AxisYaw/bSweep) · I-Cono (las 7 del cono).
 ⚠ Quedaron getters huerfanos sueltos en ApplyShadow (no compilan, costo cero) — pasar `clean_orphans.py` en alguna sesion tranquila, no ahora.
+
+## 🎨 2026-09-08 — `ConeColor` (el color de la sombra) + la esfera SIEMPRE por encima
+Beltran: *"no tengo ninguna variable para seleccionar el color del shadow"* y *"a la esfera dale prioridad principal para que se vea siempre por encima del shadow"*.
+
+### 1. `ConeColor` — la perilla que faltaba
+El material **`M_ShaftDark_SC` YA tenia `DarkColor`** (y `DarkStrength`); lo que faltaba era que el BP los empujara. `ApplyCone` no tocaba ninguno de los dos, asi que el cono usaba el **default del material**.
+✅ Variable **`ConeColor`** (LinearColor, cat. *I - Cono*) → `SetVectorParameterValueOnMaterials Cone "DarkColor"` al final de `ApplyCone`.
+💡 **Sembrada en NEGRO (0,0,0) a proposito**: se leyo el default del material antes de tocar nada (`get_property_input(MP_EmissiveColor)` → `VectorParameter_2` → `defaultValue`) y era **exactamente negro**, asi que exponer la perilla **no cambio nada de lo que se veia**. 🚩 Regla: al exponer un parametro que hasta ahora corria con el default del material, **leer ese default y sembrar la variable con el** — si no, exponer la perilla es un cambio visual disfrazado.
+⚠ `DarkStrength` (cuanto oscurece, o sea la opacidad) **sigue sin perilla**. Es un nodo mas si se quiere; no se agrego porque no se pidio y su default no se verifico.
+
+### 2. 🔴 La esfera por encima: `TranslucencySortPriority` SOLA no alcanzaba
+La esfera era **`BLEND_Opaque`** y el cono **`BLEND_Translucent`**. `TranslucencySortPriority` **solo ordena translucidos entre si** — sobre un objeto opaco no hace absolutamente nada. El orden entre los dos lo decidia la profundidad, y como el cono nace en la esfera, la mitad del cono queda geometricamente delante y la tapaba.
+
+✅ **Para que la esfera participe de esa ordenacion hay que meterla en la pasada translucida:**
+1. `M_ShadowSphere_SC` → **`BLEND_Translucent`** con **`MP_Opacity` = Constante 1** (conectada explicita, para no depender del default del compilador).
+2. Componente `Sphere` → **`TranslucencySortPriority = 100`** (el cono queda en 0). Mas alto = se dibuja despues = va encima.
+
+Con opacidad 1 y unlit, se ve **igual** que opaca; lo unico que se pierde es la escritura de profundidad, que aca no la necesita nadie (el `Sky` y el `Backdrop` son opacos y estan detras).
+🚩 **La regla general, que ya mordio con la losa de niebla:** *"que se vea encima"* se resuelve con `TranslucencySortPriority` **solo si los dos objetos son translucidos**. Si uno es opaco, primero hay que decidir en que pasada vive.
+
+⬜ **Sin verificar en viewport** — juicio de Beltran.
+
+### 🔴 Correccion (misma jornada): el cambio en el CDO NO llego al actor ya colocado
+Tras poner `TranslucencySortPriority = 100` en el componente `Sphere` del **CDO**, el cono seguia tapando la esfera. La causa, **leida del actor y no supuesta**: `BP_ShadowStudy_SC_C_0.Sphere` seguia en **`translucencySortPriority = 0`**. Un actor que ya estaba en el nivel tiene sus componentes **serializados**, y tocar la plantilla del CDO no reescribe esos valores.
+✅ Hubo que escribirlo **tambien en la instancia** (`.../BP_ShadowStudy_SC_C_0.Sphere`). Estado verificado al cierre: instancia 100 · `Cone` 0 · material `BLEND_Translucent` con `MP_Opacity` = Constante 1.
+⚠ El corte del cono por el plano **no era un bug**: Beltran confirmo que era un error suyo de composicion. `CutPlanePos/Dir/Radius` siguen sin empujarse desde el BP y corren con los defaults del material (`CutPlaneDir` = (0,0,1), `CutRadius` = 0, `CutSharp` = 0,6) — **funciona asi**, no tocar sin motivo.
+💡 Alternativa mas "correcta" que quedo sin usar, por si el sphere translucido molesta algun dia: el material tiene **`CutRadius`** con un test `saturate((distancia − CutRadius) · CutSharp)`, o sea que empujando `CutRadius = SphereRadius` el cono se **recorta** dentro de la esfera en vez de reordenarse. Quita el solape en vez de taparlo.
+
+### 🔴 `BackdropOffset` — el Construction Script le pisaba la posicion al telon
+Beltran: *"el backdrop plane lo estoy tratando de mover (...) lo pongo en −20,0,0, pero al poner play vuelve a 0,0,0. Entonces nunca veo mi arreglo"*.
+**Causa:** `AimCone` (que corre en el CS) hacia `SetRelativeLocation(Backdrop, MakeVector(0, 0, SphereHeight))` — o sea **reescribia X/Y en 0 en cada construccion**. Mover el actor a mano no servia de nada.
+
+✅ Variable **`BackdropOffset`** (Vector, cat. *J - Telon*, default 0,0,0). Ahora:
+```
+SetRelativeLocation(Backdrop, MakeVector(Offset.X, Offset.Y, SphereHeight))
+```
+⚠ **La Z del offset se ignora a proposito**: el telon tiene que quedarse a la altura de la esfera (`SphereHeight`), que es lo que lo alinea con el corte. Si algun dia hace falta moverlo en Z, es sumarle otra variable a ese pin.
+⚠ El offset es **relativo al actor y previo a la rotacion**, asi que "−20 en X" es lo mismo que Beltran estaba escribiendo a mano.
+
+🚩 **El patron, que en este proyecto ya mordio con `FloorZ` de `BP_LightShaft_SC`:** si el Construction Script **escribe** una transform, esa transform **no se puede autorar con el gizmo** — el CS gana siempre y en silencio. La salida es la misma de aquella vez: **el CS calcula, y una variable aparte guarda lo que el humano quiere**; nunca los dos sobre el mismo valor.
+💡 Sintoma que lo delata: *"lo muevo y al dar Play vuelve"*. No es un bug de Unreal ni del gizmo: es que alguien lo esta escribiendo.
+
+⚠ 🔩 **Trampa del MCP encontrada de paso:** `create_node` **no puede crear operadores promotables** (`Math|Vector|vector+vector` y compañia) — devuelve *"does not exist"* aunque `get_node_infos` sobre uno existente reporte exactamente ese `type_id`, e incluso pasando `declaring_class`. Salida: armar la cuenta con funciones normales (`Math|Vector|BreakVector` + `Math|Vector|MakeVector`), que si se crean. `find_node_types` con un filtro es la forma de confirmar que un id es creable **antes** de intentarlo.
+
+### ✅ El corte del cono, ahora en el SHADER y siguiendo al telon
+Beltran: *"le puse play y se ve toda la parte de atras"* → *"lo que haga que se vea el haz girando y que no se vea la parte de atras del cono"*.
+
+**Diagnostico (con evidencia, no con hipotesis):**
+```
+EventTick → StepSweep(DT):  if (bSweep) SweepPhase += SweepSpeed*DT;  AimCone()
+```
+Con `bSweep = true` y `SweepSpeed = 19,97`/s, **en Play el cono GIRA**. Pero en `AimCone` cada cosa se orientaba con algo distinto:
+| | Se orientaba con |
+|---|---|
+| Cono | el vector barrido — incluye `SweepAngle` **y `SweepPhase`** → **gira** |
+| Telon | `MakeRotFromZ(forward de SweepAxisYaw)` → **estatico** |
+👉 En el editor la fase esta congelada y el telon tapaba bien **en esa fase**; al dar Play el cono se le escapaba. Por eso *"nunca veo mi arreglo"*: el arreglo era correcto para un solo instante.
+
+✅ **Solucion: no rotar el telon (le giraria la pared al espectador) sino CORTAR el cono en el shader con el plano del telon** — usando los parametros `CutPlanePos`/`CutPlaneDir` que el material **ya tenia y nadie empujaba**. `AimCone` ahora termina con:
+```
+SetVectorParameterValueOnMaterials(Cone, "CutPlanePos", Backdrop.GetWorldLocation())
+SetVectorParameterValueOnMaterials(Cone, "CutPlaneDir", -forward(SweepAxisYaw))
+```
+Como `AimCone` corre en cada Tick, **el corte sigue al telon siempre**: el telon queda fijo, el haz gira, y lo que cruza detras del plano deja de dibujarse. Cero mallas, cero rotacion extra.
+
+💡 **`GetWorldLocation` del propio componente evito toda la cuenta**: `CutPlanePos` tiene que ser MUNDO (el material lo resta de `WorldPosition`), y sumar `ActorLocation + offset` habria necesitado un `vector+vector`, **que `create_node` no puede crear** (ver la trampa de los operadores promotables). Preguntarle su posicion al componente **despues** de moverlo es exacto y es un nodo.
+⚠ **El signo se dedujo de la geometria, no se adivino**: el anchor de la estacion esta en `x = 179.100` y el actor en `x = 179.833`, o sea **la camara mira desde −X**, y el plano tiene normal ~+X → hay que **negar** para conservar el lado visible. Si se ve al reves (desaparece la mitad de adelante), el arreglo es quitar el `NegateVector`: un nodo.
+⚠ `CutSharp` sigue en su default 0,6; como el `dot` esta en cm, el corte es duro (transicion de ~1,7 cm). Si se quiere un borde suave, esa es la perilla — hoy sin exponer.
+
+### ✂️ `ConeCutRadius` — la "cola" que asomaba detras de la esfera
+Beltran: *"sigo viendo esa cola justo atras"*. No era el angulo de rotacion: era el **segundo termino de corte** del material, que tambien estaba sin usar.
+
+`M_ShaftDark_SC` multiplica la opacidad por **DOS** cortes, y los dos comparten `CutPlanePos`:
+```
+plano  : saturate( dot(WP − CutPlanePos, CutPlaneDir) · CutSharp )   ← ya conectado (v anterior)
+esfera : saturate( (distance(WP, CutPlanePos) − CutRadius) · CutSharp )  ← estaba en CutRadius = 0 → inactivo
+```
+El segundo **carva una esfera** alrededor de `CutPlanePos`: es exactamente el corte por tangencia que hace que el cono nazca en la superficie de la esfera y no la desborde. Con `CutRadius = 0` no hacia nada, y por eso el vertice del cono asomaba por el borde.
+
+✅ Variable **`ConeCutRadius`** (float, cat. *I - Cono*) → `SetScalarParameterValueOnMaterials(Cone, "CutRadius", ...)` en `ApplyCone`. Default del CDO **0** (= comportamiento anterior); en la instancia se sembro en **66,37**, que es su `SphereRadius`.
+⚠ **Los dos cortes comparten el centro**, y `CutPlanePos` es la posicion del TELON (esfera + `BackdropOffset`). Con el offset actual de −14,5 cm el carve queda descentrado esa misma cantidad respecto de la esfera. Con radio 66 no se nota, pero **si sube mucho el `BackdropOffset` la cola puede volver de un lado**: ahi la salida es subir un poco `ConeCutRadius`, o separar los dos centros (hoy es un solo parametro en el material).
+
+### 🔴🔴 La causa de fondo de la "cola": los DOS cortes compartian un solo centro
+Beltran, despues de tres arreglos parciales: *"sigue apareciendo por detras jajaja. Porque sera tan dificil?"*. **Porque yo estaba tratando sintomas sin mirar el acoplamiento.**
+
+`M_ShaftDark_SC` usaba **`CutPlanePos` para las dos cosas**:
+```
+plano  : dot(WP − CutPlanePos, CutPlaneDir)          ← tiene que estar en el TELON
+esfera : distance(WP, CutPlanePos) − CutRadius       ← tiene que estar en la ESFERA
+```
+Con `BackdropOffset = (−14,5 · 0 · 0)` el centro del carve quedaba **14,5 cm corrido** de la esfera: del lado corto llegaba a `66,37 − 14,5 = 51,9` cm contra una esfera de `66,37` → **una banda de 14,5 cm de cono sin cortar**. Exactamente la cola de la captura. Cada arreglo previo era correcto **y parcial**, porque el error no estaba en el valor sino en que **un parametro servia a dos geometrias distintas**.
+
+✅ **Se separaron:** parametro vectorial nuevo **`CutSpherePos`** en el material (el `Distance` ahora mide contra el, no contra `CutPlanePos`), y `AimCone` empuja:
+```
+CutPlanePos  = Backdrop.GetWorldLocation()   (sigue el BackdropOffset)
+CutSpherePos = Sphere.GetWorldLocation()     (el carve, siempre centrado en la esfera)
+```
+Ahora `ConeCutRadius = SphereRadius` corta **exacto y simetrico**, y mover el telon ya no descentra el carve.
+
+🚩 **La leccion (y la respuesta a "por que era tan dificil"):** cuando un arreglo correcto deja un residuo, y el siguiente tambien, **el problema no es el valor: es que dos requisitos distintos estan atados al mismo parametro**. Sintoma tipico: "lo arreglo de un lado y aparece del otro". Antes del tercer intento hay que ir a mirar **quien mas usa ese parametro**. Es la misma familia que gotchas §324 (material compartido) y §316b (el pulso que venia de otro subsistema).
