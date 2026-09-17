@@ -1,0 +1,6224 @@
+{
+ "level": "/Game/TestMeshes",
+ "date": "2026-09-17",
+ "note": "Valores de instancia ANTES de la mecanica de respiracion",
+ "actors": [
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.StaticMeshActor_11",
+   "label": "GAL_2_Ref_0",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 61707.82797241211,
+     "y": 99750,
+     "z": -760
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 9.342499791178852,
+     "y": 9.342499791178852,
+     "z": 9.342499791178852
+    }
+   },
+   "class": "/Script/Engine.StaticMeshActor"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.StaticMeshActor_12",
+   "label": "GAL_2_Ref_1",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 61600,
+     "y": 100300,
+     "z": 870
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 20.00000000000001,
+     "roll": 0
+    },
+    "scale": {
+     "x": 4,
+     "y": 4,
+     "z": 4
+    }
+   },
+   "class": "/Script/Engine.StaticMeshActor"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.StaticMeshActor_13",
+   "label": "GAL_2_Ref_2",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 62800,
+     "y": 99550,
+     "z": 140
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 40.00000000000003,
+     "roll": 0
+    },
+    "scale": {
+     "x": 5,
+     "y": 5,
+     "z": 5
+    }
+   },
+   "class": "/Script/Engine.StaticMeshActor"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.StaticMeshActor_14",
+   "label": "GAL_2_Ref_3",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 64500,
+     "y": 101450,
+     "z": 220
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 59.99999999999999,
+     "roll": 0
+    },
+    "scale": {
+     "x": 7,
+     "y": 7,
+     "z": 7
+    }
+   },
+   "class": "/Script/Engine.StaticMeshActor"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LineField_SC_C_3",
+   "label": "GAL_5_LineField",
+   "tags": [
+    "GALSTATION",
+    "GAL_5"
+   ],
+   "transform": {
+    "location": {
+     "x": 150000,
+     "y": 72605,
+     "z": -350
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LineField_SC.BP_LineField_SC_C",
+   "vars": {
+    "FieldSizeX": 5819.176746,
+    "FieldSizeY": 1711.715229,
+    "LineCount": 120,
+    "LineColor": {
+     "r": 0.949999988079071,
+     "g": 0.8600000143051147,
+     "b": 0.7200000286102295,
+     "a": 1
+    },
+    "Brightness": 2.5,
+    "LineSharp": 2.149476,
+    "LineVary": 0.5,
+    "TipFade": 0.12,
+    "ContactFade": 60,
+    "WaveAmount": 180,
+    "WaveScale": 0.0035,
+    "WaveSpeed": 0.27,
+    "FarFade": 2400,
+    "FarFadeRange": 1500
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.StaticMeshActor_15",
+   "label": "GAL_2_Ref_4",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 61915,
+     "y": 98450,
+     "z": 1070
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 46.36021770229304,
+     "y": 3,
+     "z": 3
+    }
+   },
+   "class": "/Script/Engine.StaticMeshActor"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.StaticMeshActor_16",
+   "label": "GAL_2_Ref_5",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 62565,
+     "y": 101810,
+     "z": -865
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 46.360218,
+     "y": 3,
+     "z": 3
+    }
+   },
+   "class": "/Script/Engine.StaticMeshActor"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.StaticMeshActor_20",
+   "label": "GAL_2_Ref_6",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 55985,
+     "y": 98450,
+     "z": -35
+    },
+    "rotation": {
+     "pitch": 44.99999999999979,
+     "yaw": 5.269715539725676e-15,
+     "roll": 1.2722218725854007e-14
+    },
+    "scale": {
+     "x": 46.360218,
+     "y": 3,
+     "z": 3
+    }
+   },
+   "class": "/Script/Engine.StaticMeshActor"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.StaticMeshActor_21",
+   "label": "GAL_2_Ref_7",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 57995,
+     "y": 101545,
+     "z": -3055
+    },
+    "rotation": {
+     "pitch": 90,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 46.360218,
+     "y": 3,
+     "z": 10.622297576663335
+    }
+   },
+   "class": "/Script/Engine.StaticMeshActor"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.StaticMeshActor_22",
+   "label": "GAL_2_Ref_8",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 59695,
+     "y": 99450,
+     "z": -3860
+    },
+    "rotation": {
+     "pitch": 90,
+     "yaw": 99.99999999999989,
+     "roll": 0
+    },
+    "scale": {
+     "x": 46.360218,
+     "y": 3,
+     "z": 10.622298
+    }
+   },
+   "class": "/Script/Engine.StaticMeshActor"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.StaticMeshActor_23",
+   "label": "GAL_2_Ref_9",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 59695,
+     "y": 104725,
+     "z": 1315
+    },
+    "rotation": {
+     "pitch": 15.00000000000017,
+     "yaw": 90.0000000000001,
+     "roll": -10.000000000000163
+    },
+    "scale": {
+     "x": 46.360218,
+     "y": 3,
+     "z": 10.622298
+    }
+   },
+   "class": "/Script/Engine.StaticMeshActor"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.StaticMeshActor_24",
+   "label": "GAL_2_Ref_10",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 59695,
+     "y": 95785,
+     "z": -660
+    },
+    "rotation": {
+     "pitch": 14.999999999999996,
+     "yaw": 89.99999999999997,
+     "roll": -9.999999999999998
+    },
+    "scale": {
+     "x": 46.360218,
+     "y": 3,
+     "z": 10.622298
+    }
+   },
+   "class": "/Script/Engine.StaticMeshActor"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_FogSlab_SC_C_6",
+   "label": "GAL_2_FogSlab5",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 58705,
+     "y": 100290,
+     "z": -1745
+    },
+    "rotation": {
+     "pitch": 6.381931052838588e-13,
+     "yaw": -179.99999999999997,
+     "roll": -6.252776074688882e-13
+    },
+    "scale": {
+     "x": 1.1060918984132895,
+     "y": 1.0970844721282098,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_FogSlab_SC.BP_FogSlab_SC_C",
+   "vars": {
+    "FogColor": {
+     "r": 0.27467700839042664,
+     "g": 0.23455099761486053,
+     "b": 1,
+     "a": 1
+    },
+    "Brightness": 1,
+    "Density": 1,
+    "ThicknessDist": 7000,
+    "ThicknessPow": 1.4,
+    "HazeAmount": 0.359694,
+    "HazeStart": 300,
+    "HazeDensity": 0.263877,
+    "ContactFade": 130,
+    "CamFadeNear": 60,
+    "CamFadeRange": 120,
+    "HeightAmount": 0.55,
+    "HeightOffset": 250,
+    "HeightFalloff": 0.004,
+    "EdgeSoft": 0.990091,
+    "NoiseAmount": 0.58017,
+    "NoiseScale": 0,
+    "NoiseSpeed": 0.436,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_FogSlab.SM_FogSlab"
+    },
+    "SlabSizeX": 3655.965363,
+    "SlabSizeY": 5401.029781,
+    "EdgeRound": -0.186787,
+    "EdgeAmount": -2.90052,
+    "WaveAmount": 63.194028,
+    "WaveScale": 0.004,
+    "WaveSpeed": 0.4,
+    "SortPriority": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_FogSlab_SC_C_7",
+   "label": "GAL_2_FogSlab6",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 58705,
+     "y": 100290,
+     "z": 1870
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 180,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1.097084,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_FogSlab_SC.BP_FogSlab_SC_C",
+   "vars": {
+    "FogColor": {
+     "r": 0.27467700839042664,
+     "g": 0.23455099761486053,
+     "b": 1,
+     "a": 1
+    },
+    "Brightness": 1,
+    "Density": 1,
+    "ThicknessDist": 7000,
+    "ThicknessPow": 1.4,
+    "HazeAmount": 0.359694,
+    "HazeStart": 300,
+    "HazeDensity": 0.263877,
+    "ContactFade": 130,
+    "CamFadeNear": 60,
+    "CamFadeRange": 120,
+    "HeightAmount": 0.55,
+    "HeightOffset": 250,
+    "HeightFalloff": 0.004,
+    "EdgeSoft": 0.990091,
+    "NoiseAmount": 0.58017,
+    "NoiseScale": 0,
+    "NoiseSpeed": 0.436,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_FogSlab.SM_FogSlab"
+    },
+    "SlabSizeX": 3655.965363,
+    "SlabSizeY": 5401.029781,
+    "EdgeRound": -0.186787,
+    "EdgeAmount": -2.90052,
+    "WaveAmount": 108.223766,
+    "WaveScale": 0.004,
+    "WaveSpeed": 0.4,
+    "SortPriority": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_FogSlab_SC_C_2",
+   "label": "GAL_2_FogSlab",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 60400,
+     "y": 100000,
+     "z": 120
+    },
+    "rotation": {
+     "pitch": 90,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_FogSlab_SC.BP_FogSlab_SC_C",
+   "vars": {
+    "FogColor": {
+     "r": 0.27467700839042664,
+     "g": 0.23455099761486053,
+     "b": 1,
+     "a": 1
+    },
+    "Brightness": 1,
+    "Density": 1,
+    "ThicknessDist": 7000,
+    "ThicknessPow": 1.4,
+    "HazeAmount": 0.359694,
+    "HazeStart": 300,
+    "HazeDensity": 0.263877,
+    "ContactFade": 130,
+    "CamFadeNear": 60,
+    "CamFadeRange": 120,
+    "HeightAmount": 0.55,
+    "HeightOffset": 250,
+    "HeightFalloff": 0.004,
+    "EdgeSoft": 0.990091,
+    "NoiseAmount": 0.58017,
+    "NoiseScale": 0,
+    "NoiseSpeed": 0.436,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_FogSlab.SM_FogSlab"
+    },
+    "SlabSizeX": 3655.965363,
+    "SlabSizeY": 5401.029781,
+    "EdgeRound": 0.765213,
+    "EdgeAmount": -2.212966,
+    "WaveAmount": 80.79424,
+    "WaveScale": 0.004,
+    "WaveSpeed": 0.4,
+    "SortPriority": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_FogSlab_SC_C_3",
+   "label": "GAL_2_FogSlab2",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 57065,
+     "y": 100000,
+     "z": 120
+    },
+    "rotation": {
+     "pitch": 90,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_FogSlab_SC.BP_FogSlab_SC_C",
+   "vars": {
+    "FogColor": {
+     "r": 0.27467700839042664,
+     "g": 0.23455099761486053,
+     "b": 1,
+     "a": 1
+    },
+    "Brightness": 1,
+    "Density": 1,
+    "ThicknessDist": 7000,
+    "ThicknessPow": 1.4,
+    "HazeAmount": 0.359694,
+    "HazeStart": 300,
+    "HazeDensity": 0.263877,
+    "ContactFade": 130,
+    "CamFadeNear": 60,
+    "CamFadeRange": 120,
+    "HeightAmount": 0.55,
+    "HeightOffset": 250,
+    "HeightFalloff": 0.004,
+    "EdgeSoft": 0.990091,
+    "NoiseAmount": 0.58017,
+    "NoiseScale": 0,
+    "NoiseSpeed": 0.436,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_FogSlab.SM_FogSlab"
+    },
+    "SlabSizeX": 3655.965363,
+    "SlabSizeY": 5401.029781,
+    "EdgeRound": -0.186787,
+    "EdgeAmount": -2.90052,
+    "WaveAmount": 26.647862,
+    "WaveScale": 0.004,
+    "WaveSpeed": 0.4,
+    "SortPriority": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_FogSlab_SC_C_4",
+   "label": "GAL_2_FogSlab3",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 59345,
+     "y": 97660,
+     "z": 120
+    },
+    "rotation": {
+     "pitch": 90,
+     "yaw": 89.99999999999957,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_FogSlab_SC.BP_FogSlab_SC_C",
+   "vars": {
+    "FogColor": {
+     "r": 0.27467700839042664,
+     "g": 0.23455099761486053,
+     "b": 1,
+     "a": 1
+    },
+    "Brightness": 1,
+    "Density": 1,
+    "ThicknessDist": 7000,
+    "ThicknessPow": 1.4,
+    "HazeAmount": 0.359694,
+    "HazeStart": 300,
+    "HazeDensity": 0.263877,
+    "ContactFade": 130,
+    "CamFadeNear": 60,
+    "CamFadeRange": 120,
+    "HeightAmount": 0.55,
+    "HeightOffset": 250,
+    "HeightFalloff": 0.004,
+    "EdgeSoft": 0.990091,
+    "NoiseAmount": 0.58017,
+    "NoiseScale": 0,
+    "NoiseSpeed": 0.436,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_FogSlab.SM_FogSlab"
+    },
+    "SlabSizeX": 3655.965363,
+    "SlabSizeY": 5401.029781,
+    "EdgeRound": -0.186787,
+    "EdgeAmount": -2.90052,
+    "WaveAmount": 26.647862,
+    "WaveScale": 0.004,
+    "WaveSpeed": 0.4,
+    "SortPriority": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_FogSlab_SC_C_5",
+   "label": "GAL_2_FogSlab4",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 59345,
+     "y": 102715,
+     "z": 120
+    },
+    "rotation": {
+     "pitch": 90,
+     "yaw": 89.99999999999994,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_FogSlab_SC.BP_FogSlab_SC_C",
+   "vars": {
+    "FogColor": {
+     "r": 0.27467700839042664,
+     "g": 0.23455099761486053,
+     "b": 1,
+     "a": 1
+    },
+    "Brightness": 1,
+    "Density": 1,
+    "ThicknessDist": 7000,
+    "ThicknessPow": 1.4,
+    "HazeAmount": 0.359694,
+    "HazeStart": 300,
+    "HazeDensity": 0.263877,
+    "ContactFade": 130,
+    "CamFadeNear": 60,
+    "CamFadeRange": 120,
+    "HeightAmount": 0.55,
+    "HeightOffset": 250,
+    "HeightFalloff": 0.004,
+    "EdgeSoft": 0.990091,
+    "NoiseAmount": 0.58017,
+    "NoiseScale": 0,
+    "NoiseSpeed": 0.436,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_FogSlab.SM_FogSlab"
+    },
+    "SlabSizeX": 3655.965363,
+    "SlabSizeY": 5401.029781,
+    "EdgeRound": -0.186787,
+    "EdgeAmount": -2.90052,
+    "WaveAmount": 64.198641,
+    "WaveScale": 0.004,
+    "WaveSpeed": 0.4,
+    "SortPriority": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.DirectionalLight_0",
+   "label": "DirectionalLight",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 59445,
+     "y": 98725,
+     "z": 1070
+    },
+    "rotation": {
+     "pitch": -42,
+     "yaw": -28,
+     "roll": -2.1399292388400453e-15
+    },
+    "scale": {
+     "x": 2.5,
+     "y": 2.5,
+     "z": 2.5
+    }
+   },
+   "class": "/Script/Engine.DirectionalLight"
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RimField_SC_C_0",
+   "label": "GAL_8_RimField",
+   "tags": [
+    "GALSTATION",
+    "GAL_8"
+   ],
+   "transform": {
+    "location": {
+     "x": 239100,
+     "y": 100000,
+     "z": 150
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_BubbleField_SC.BP_BubbleField_SC_C",
+   "vars": {
+    "Count": 123,
+    "Seed": 10,
+    "AreaRadius": 1600,
+    "AreaHeight": 500,
+    "InnerRadius": 420,
+    "SizeMin": 22.018762,
+    "SizeMax": 182.39229,
+    "RimPower": 3,
+    "RimWidth": 1,
+    "Brightness": 2.893568,
+    "RevealAmount": 1,
+    "RevealRadius": 1191.660492,
+    "RevealHard": 0.35,
+    "ContactFade": 90,
+    "RimColor": {
+     "r": 0.949999988079071,
+     "g": 0.44626399874687195,
+     "b": 0.23941299319267273,
+     "a": 1
+    },
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Alma/SM_AlmaSphere.SM_AlmaSphere"
+    },
+    "MID": {
+     "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RimField_SC_C_0.Shapes.MID_M_RimOnly_SC_0"
+    },
+    "RimColorB": {
+     "r": 1,
+     "g": 0.13683199882507324,
+     "b": 0.2837130129337311,
+     "a": 1
+    },
+    "ColorVariation": 1,
+    "PulseAmount": 18,
+    "PulseSpeed": 0.35,
+    "VerticalScale": 1,
+    "WobbleAmount": 3,
+    "WobbleScale": 0.045,
+    "WobbleSpeed": 0.6,
+    "DriftAmount": 90,
+    "DriftSpeed": 0.09,
+    "StretchAmount": 0.35,
+    "StretchSpeed": 0.13
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_MetaBlob_SC_C_0",
+   "label": "GAL_7_MetaBlob",
+   "tags": [
+    "GALSTATION",
+    "GAL_7"
+   ],
+   "transform": {
+    "location": {
+     "x": 209615.72000027224,
+     "y": 100000,
+     "z": 135
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_MetaBlob_SC.BP_MetaBlob_SC_C",
+   "vars": {
+    "SizeCM": 428.511228,
+    "BlobRadius": 13.579144,
+    "Smoothness": 15.558945,
+    "Spread": 19.460516,
+    "AttractSpeed": 0.532,
+    "AttractMin": 0.05,
+    "AttractMax": 0.92,
+    "CurlAmount": 19.366087,
+    "CurlSpeed": 0.548,
+    "Steps": 64,
+    "Brightness": 1,
+    "ColorLight": {
+     "r": 1,
+     "g": 0.5104169845581055,
+     "b": 0.5306869745254517,
+     "a": 1
+    },
+    "ColorShadow": {
+     "r": 0.2322860062122345,
+     "g": 0.14609399437904358,
+     "b": 0.8500000238418579,
+     "a": 1
+    },
+    "MID": {
+     "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_MetaBlob_SC_C_0.Volume.MID_M_MetaBlob_SC_0"
+    },
+    "SizeVariation": 0.45,
+    "BlobCount": 6.03077
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_1",
+   "label": "GAL_4_VoidField2",
+   "tags": [
+    "GALSTATION",
+    "GAL_1"
+   ],
+   "transform": {
+    "location": {
+     "x": 36006.936767578125,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_VoidField_SC.BP_VoidField_SC_C",
+   "vars": {
+    "Radius0": 1200,
+    "Radius1": 2421.668141,
+    "Radius2": 5200,
+    "Tiling": 23.964027,
+    "DotSize": 0,
+    "JitterAmount": 0.8097,
+    "Brightness": 1.184035,
+    "FarDim": 0.308819,
+    "TwinkleAmount": 0,
+    "TwinkleSpeed": 0.604752,
+    "bLayer1": false,
+    "bLayer2": false,
+    "DotColor": {
+     "r": 0,
+     "g": 0.027011999860405922,
+     "b": 0.5625,
+     "a": 1
+    },
+    "Density": 1.039263,
+    "PulseAmount": 0.45,
+    "PulseSpeed": 0.6,
+    "bBackground": true,
+    "BackRadius": 9000,
+    "BackBrightness": 1.239323,
+    "BackColor": {
+     "r": 0.24165399372577667,
+     "g": 0.17667600512504578,
+     "b": 0.8697919845581055,
+     "a": 1
+    },
+    "DotColor2": {
+     "r": 0.949999988079071,
+     "g": 0,
+     "b": 0.017531000077724457,
+     "a": 1
+    },
+    "DotColor3": {
+     "r": 0.9800000190734863,
+     "g": 0.25251999497413635,
+     "b": 0.03614199906587601,
+     "a": 1
+    },
+    "SpinSpeed0": 0,
+    "SpinSpeed1": 0,
+    "SpinSpeed2": 0,
+    "SpinAxis0": {
+     "x": 0,
+     "y": 0,
+     "z": 0
+    },
+    "SpinAxis1": {
+     "x": 0,
+     "y": 0,
+     "z": 0
+    },
+    "SpinAxis2": {
+     "x": 0,
+     "y": 0,
+     "z": 0
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_2",
+   "label": "GAL_8_Motas_Suspendidas",
+   "tags": [
+    "GALSTATION",
+    "GAL_8"
+   ],
+   "transform": {
+    "location": {
+     "x": 239100,
+     "y": 100000,
+     "z": 100
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_VoidField_SC.BP_VoidField_SC_C",
+   "vars": {
+    "Radius0": 700,
+    "Radius1": 1500,
+    "Radius2": 2600,
+    "Tiling": 30.60726,
+    "DotSize": 0.042,
+    "JitterAmount": 0.24553,
+    "Brightness": 0.484,
+    "FarDim": 0.474027,
+    "TwinkleAmount": 0.35,
+    "TwinkleSpeed": 0.35,
+    "bLayer1": true,
+    "bLayer2": true,
+    "DotColor": {
+     "r": 0.6200000047683716,
+     "g": 0.8199999928474426,
+     "b": 0.949999988079071,
+     "a": 1
+    },
+    "Density": 0.13,
+    "PulseAmount": 0.45,
+    "PulseSpeed": 0.6,
+    "bBackground": false,
+    "BackRadius": 9000,
+    "BackBrightness": 1,
+    "BackColor": {
+     "r": 0.019999999552965164,
+     "g": 0.029999999329447746,
+     "b": 0.07000000029802322,
+     "a": 1
+    },
+    "DotColor2": {
+     "r": 0.3499999940395355,
+     "g": 0.699999988079071,
+     "b": 0.949999988079071,
+     "a": 1
+    },
+    "DotColor3": {
+     "r": 0.800000011920929,
+     "g": 0.949999988079071,
+     "b": 1,
+     "a": 1
+    },
+    "SpinSpeed0": 0,
+    "SpinSpeed1": 0,
+    "SpinSpeed2": 0,
+    "SpinAxis0": {
+     "x": 0,
+     "y": 0,
+     "z": 0
+    },
+    "SpinAxis1": {
+     "x": 0,
+     "y": 0,
+     "z": 0
+    },
+    "SpinAxis2": {
+     "x": 0,
+     "y": 0,
+     "z": 0
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_0",
+   "label": "GAL_4_VoidField",
+   "tags": [
+    "GALSTATION",
+    "GAL_4"
+   ],
+   "transform": {
+    "location": {
+     "x": 120000,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_VoidField_SC.BP_VoidField_SC_C",
+   "vars": {
+    "Radius0": 1470.50675,
+    "Radius1": 1740.672567,
+    "Radius2": 2252.542688,
+    "Tiling": 38.149727,
+    "DotSize": 0.173253,
+    "JitterAmount": 0.285752,
+    "Brightness": 1.187717,
+    "FarDim": 0.308819,
+    "TwinkleAmount": 0.818507,
+    "TwinkleSpeed": 1.102585,
+    "bLayer1": true,
+    "bLayer2": true,
+    "DotColor": {
+     "r": 0.056756000965833664,
+     "g": 0.11401800066232681,
+     "b": 0.5625,
+     "a": 1
+    },
+    "Density": 0.726092,
+    "PulseAmount": 0.950657,
+    "PulseSpeed": 1.065382,
+    "bBackground": true,
+    "BackRadius": 9000,
+    "BackBrightness": 1,
+    "BackColor": {
+     "r": 0.28418800234794617,
+     "g": 0.3543449938297272,
+     "b": 0.6875,
+     "a": 1
+    },
+    "DotColor2": {
+     "r": 0.949999988079071,
+     "g": 0.141634002327919,
+     "b": 0.21568399667739868,
+     "a": 1
+    },
+    "DotColor3": {
+     "r": 0.9800000190734863,
+     "g": 0.5917119979858398,
+     "b": 0.18511000275611877,
+     "a": 1
+    },
+    "SpinSpeed0": 1.456461,
+    "SpinSpeed1": 0.498591,
+    "SpinSpeed2": 2.185266,
+    "SpinAxis0": {
+     "x": 0,
+     "y": 0,
+     "z": 0.55
+    },
+    "SpinAxis1": {
+     "x": 0,
+     "y": 1.811912,
+     "z": 0
+    },
+    "SpinAxis2": {
+     "x": -27.025414,
+     "y": -2.673715,
+     "z": 0
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_FogSlab_SC_C_8",
+   "label": "GAL_2_FogSlab7",
+   "tags": [
+    "GALSTATION",
+    "GAL_1"
+   ],
+   "transform": {
+    "location": {
+     "x": 39447.22697978967,
+     "y": 100000,
+     "z": 120
+    },
+    "rotation": {
+     "pitch": 90,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 3.3399999253451824,
+     "y": 3.3399999253451824,
+     "z": 3.3399999253451824
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_FogSlab_SC.BP_FogSlab_SC_C",
+   "vars": {
+    "FogColor": {
+     "r": 0.27467700839042664,
+     "g": 0.23455099761486053,
+     "b": 1,
+     "a": 1
+    },
+    "Brightness": 1,
+    "Density": 1.607595,
+    "ThicknessDist": 7000,
+    "ThicknessPow": 1.082029,
+    "HazeAmount": 0.359694,
+    "HazeStart": 300,
+    "HazeDensity": 0.263877,
+    "ContactFade": 130,
+    "CamFadeNear": 60,
+    "CamFadeRange": 120,
+    "HeightAmount": 0.55,
+    "HeightOffset": 250,
+    "HeightFalloff": 0.004,
+    "EdgeSoft": 0.990091,
+    "NoiseAmount": 0.58017,
+    "NoiseScale": 0,
+    "NoiseSpeed": 0.436,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_FogSlab.SM_FogSlab"
+    },
+    "SlabSizeX": 3655.965363,
+    "SlabSizeY": 5401.029781,
+    "EdgeRound": -0.186787,
+    "EdgeAmount": -2.90052,
+    "WaveAmount": 26.647862,
+    "WaveScale": 0.004,
+    "WaveSpeed": 0.4,
+    "SortPriority": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_FogSlab_SC_C_9",
+   "label": "GAL_2_FogSlab8",
+   "tags": [
+    "GALSTATION",
+    "GAL_1"
+   ],
+   "transform": {
+    "location": {
+     "x": 35948.77504909346,
+     "y": 94283.53143185591,
+     "z": 120
+    },
+    "rotation": {
+     "pitch": 90,
+     "yaw": -89.99999999999989,
+     "roll": 0
+    },
+    "scale": {
+     "x": 3.34,
+     "y": 3.34,
+     "z": 3.34
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_FogSlab_SC.BP_FogSlab_SC_C",
+   "vars": {
+    "FogColor": {
+     "r": 0.27467700839042664,
+     "g": 0.23455099761486053,
+     "b": 1,
+     "a": 1
+    },
+    "Brightness": 1,
+    "Density": 1.684797,
+    "ThicknessDist": 7000,
+    "ThicknessPow": 1.082029,
+    "HazeAmount": 0.359694,
+    "HazeStart": 300,
+    "HazeDensity": 0.263877,
+    "ContactFade": 130,
+    "CamFadeNear": 60,
+    "CamFadeRange": 120,
+    "HeightAmount": 0.55,
+    "HeightOffset": 250,
+    "HeightFalloff": 0.004,
+    "EdgeSoft": 0.990091,
+    "NoiseAmount": 0.58017,
+    "NoiseScale": 0,
+    "NoiseSpeed": 0.436,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_FogSlab.SM_FogSlab"
+    },
+    "SlabSizeX": 3655.965363,
+    "SlabSizeY": 5401.029781,
+    "EdgeRound": -0.186787,
+    "EdgeAmount": -2.90052,
+    "WaveAmount": 26.647862,
+    "WaveScale": 0.004,
+    "WaveSpeed": 0.4,
+    "SortPriority": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_FogSlab_SC_C_10",
+   "label": "GAL_2_FogSlab9",
+   "tags": [
+    "GALSTATION",
+    "GAL_1"
+   ],
+   "transform": {
+    "location": {
+     "x": 35948.775049,
+     "y": 105902.99883922657,
+     "z": 120
+    },
+    "rotation": {
+     "pitch": 90,
+     "yaw": -90,
+     "roll": 0
+    },
+    "scale": {
+     "x": 3.34,
+     "y": 3.34,
+     "z": 3.34
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_FogSlab_SC.BP_FogSlab_SC_C",
+   "vars": {
+    "FogColor": {
+     "r": 0.27467700839042664,
+     "g": 0.23455099761486053,
+     "b": 1,
+     "a": 1
+    },
+    "Brightness": 1,
+    "Density": 1.684797,
+    "ThicknessDist": 7000,
+    "ThicknessPow": 1.082029,
+    "HazeAmount": 0.359694,
+    "HazeStart": 300,
+    "HazeDensity": 0.263877,
+    "ContactFade": 130,
+    "CamFadeNear": 60,
+    "CamFadeRange": 120,
+    "HeightAmount": 0.55,
+    "HeightOffset": 250,
+    "HeightFalloff": 0.004,
+    "EdgeSoft": 0.990091,
+    "NoiseAmount": 0.58017,
+    "NoiseScale": 0,
+    "NoiseSpeed": 0.436,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_FogSlab.SM_FogSlab"
+    },
+    "SlabSizeX": 3655.965363,
+    "SlabSizeY": 5401.029781,
+    "EdgeRound": -0.186787,
+    "EdgeAmount": -2.90052,
+    "WaveAmount": 26.647862,
+    "WaveScale": 0.004,
+    "WaveSpeed": 0.4,
+    "SortPriority": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_CloudPlane_SC_C_5",
+   "label": "GAL_1_CloudOcean",
+   "tags": [
+    "GALSTATION",
+    "GAL_1"
+   ],
+   "transform": {
+    "location": {
+     "x": 34962.55810546875,
+     "y": 100000,
+     "z": -687.6729736328125
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 71.319355,
+     "y": 71.319355,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_CloudPlane_SC.BP_CloudPlane_SC_C",
+   "vars": {
+    "Density": 1.385282,
+    "NoiseScale": 10.054817,
+    "Erode": 0,
+    "CloudHeight": 669.604317,
+    "DepthFadeDist": 300,
+    "CloudColor": {
+     "r": 0.5523539781570435,
+     "g": 0.34003201127052307,
+     "b": 1,
+     "a": 1
+    },
+    "SpeedX": 283.015263,
+    "SpeedY": 1.874261,
+    "SpeedZ": 289.642113,
+    "EdgeGlow": 0.6,
+    "EdgeFadeDist": 150,
+    "ValleyColor": {
+     "r": 0.06100400164723396,
+     "g": 0.01396500039845705,
+     "b": 0.375,
+     "a": 1
+    },
+    "CamFadeNear": 60,
+    "CamFadeRange": 120,
+    "SortPriority": 0,
+    "FogAmount": 0,
+    "FogStart": 2000,
+    "FogRange": 8000,
+    "FogFadePow": 3,
+    "FogColor": {
+     "r": 0.6200000047683716,
+     "g": 0.6000000238418579,
+     "b": 0.5799999833106995,
+     "a": 1
+    },
+    "HeightNoiseRatio": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_FogSlab_SC_C_11",
+   "label": "GAL_2_FogSlab10",
+   "tags": [
+    "GALSTATION",
+    "GAL_1"
+   ],
+   "transform": {
+    "location": {
+     "x": 28551.07433782674,
+     "y": 100000,
+     "z": 120
+    },
+    "rotation": {
+     "pitch": 90,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 3.34,
+     "y": 3.34,
+     "z": 3.34
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_FogSlab_SC.BP_FogSlab_SC_C",
+   "vars": {
+    "FogColor": {
+     "r": 0.27467700839042664,
+     "g": 0.23455099761486053,
+     "b": 1,
+     "a": 1
+    },
+    "Brightness": 1,
+    "Density": 4.817147,
+    "ThicknessDist": 7000,
+    "ThicknessPow": 1.082029,
+    "HazeAmount": 0.359694,
+    "HazeStart": 300,
+    "HazeDensity": 0.263877,
+    "ContactFade": 130,
+    "CamFadeNear": 60,
+    "CamFadeRange": 120,
+    "HeightAmount": 0.55,
+    "HeightOffset": 250,
+    "HeightFalloff": 0.004,
+    "EdgeSoft": 0.990091,
+    "NoiseAmount": 0.58017,
+    "NoiseScale": 0,
+    "NoiseSpeed": 0.436,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_FogSlab.SM_FogSlab"
+    },
+    "SlabSizeX": 3655.965363,
+    "SlabSizeY": 5401.029781,
+    "EdgeRound": -0.186787,
+    "EdgeAmount": -2.90052,
+    "WaveAmount": 26.647862,
+    "WaveScale": 0.004,
+    "WaveSpeed": 0.4,
+    "SortPriority": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_3",
+   "label": "GAL_4_VoidField3",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 3240,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_VoidField_SC.BP_VoidField_SC_C",
+   "vars": {
+    "Radius0": 1470.50675,
+    "Radius1": 1740.672567,
+    "Radius2": 2252.542688,
+    "Tiling": 38.149727,
+    "DotSize": 0,
+    "JitterAmount": 0.285752,
+    "Brightness": 1.187717,
+    "FarDim": 0.308819,
+    "TwinkleAmount": 0.818507,
+    "TwinkleSpeed": 1.102585,
+    "bLayer1": true,
+    "bLayer2": true,
+    "DotColor": {
+     "r": 0.056756000965833664,
+     "g": 0.11401800066232681,
+     "b": 0.5625,
+     "a": 1
+    },
+    "Density": 0,
+    "PulseAmount": 0.950657,
+    "PulseSpeed": 1.065382,
+    "bBackground": true,
+    "BackRadius": 9000,
+    "BackBrightness": 1,
+    "BackColor": {
+     "r": 0.11080099642276764,
+     "g": 0.0352649986743927,
+     "b": 0.26041701436042786,
+     "a": 1
+    },
+    "DotColor2": {
+     "r": 0.949999988079071,
+     "g": 0.141634002327919,
+     "b": 0.21568399667739868,
+     "a": 1
+    },
+    "DotColor3": {
+     "r": 0.9800000190734863,
+     "g": 0.5917119979858398,
+     "b": 0.18511000275611877,
+     "a": 1
+    },
+    "SpinSpeed0": 1.456461,
+    "SpinSpeed1": 0.498591,
+    "SpinSpeed2": 2.185266,
+    "SpinAxis0": {
+     "x": 0,
+     "y": 0,
+     "z": 0.55
+    },
+    "SpinAxis1": {
+     "x": 0,
+     "y": 1.811912,
+     "z": 0
+    },
+    "SpinAxis2": {
+     "x": -27.025414,
+     "y": -2.673715,
+     "z": 0
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_4",
+   "label": "GAL_4_VoidField4",
+   "tags": [
+    "GALSTATION",
+    "GAL_5"
+   ],
+   "transform": {
+    "location": {
+     "x": 149050,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_VoidField_SC.BP_VoidField_SC_C",
+   "vars": {
+    "Radius0": 1470.50675,
+    "Radius1": 1740.672567,
+    "Radius2": 2252.542688,
+    "Tiling": 14.405131,
+    "DotSize": 0.140064,
+    "JitterAmount": 0.525815,
+    "Brightness": 1.145809,
+    "FarDim": 1.540833,
+    "TwinkleAmount": 1.852392,
+    "TwinkleSpeed": 1.102585,
+    "bLayer1": true,
+    "bLayer2": true,
+    "DotColor": {
+     "r": 0.3633759915828705,
+     "g": 0.09973599761724472,
+     "b": 0.5625,
+     "a": 1
+    },
+    "Density": 2.091974,
+    "PulseAmount": 0.989602,
+    "PulseSpeed": 1.065382,
+    "bBackground": true,
+    "BackRadius": 9000,
+    "BackBrightness": 1,
+    "BackColor": {
+     "r": 0.7447919845581055,
+     "g": 0.703698992729187,
+     "b": 0.6639119982719421,
+     "a": 1
+    },
+    "DotColor2": {
+     "r": 0.2699730098247528,
+     "g": 0.23620900511741638,
+     "b": 0.949999988079071,
+     "a": 1
+    },
+    "DotColor3": {
+     "r": 0.598842978477478,
+     "g": 0.5756970047950745,
+     "b": 0.9800000190734863,
+     "a": 1
+    },
+    "SpinSpeed0": 1.456461,
+    "SpinSpeed1": 1.265762,
+    "SpinSpeed2": -1.060837,
+    "SpinAxis0": {
+     "x": 0,
+     "y": 0,
+     "z": 0.55
+    },
+    "SpinAxis1": {
+     "x": 0,
+     "y": 1.811912,
+     "z": 0
+    },
+    "SpinAxis2": {
+     "x": -27.025414,
+     "y": -2.673715,
+     "z": 0
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_8",
+   "label": "GAL_4_VoidField8",
+   "tags": [
+    "GALSTATION",
+    "GAL_9"
+   ],
+   "transform": {
+    "location": {
+     "x": 269310,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_VoidField_SC.BP_VoidField_SC_C",
+   "vars": {
+    "Radius0": 1470.50675,
+    "Radius1": 1740.672567,
+    "Radius2": 2252.542688,
+    "Tiling": 38.149727,
+    "DotSize": 0,
+    "JitterAmount": 0.285752,
+    "Brightness": 1.187717,
+    "FarDim": 0.308819,
+    "TwinkleAmount": 0.818507,
+    "TwinkleSpeed": 1.102585,
+    "bLayer1": false,
+    "bLayer2": false,
+    "DotColor": {
+     "r": 0.056756000965833664,
+     "g": 0.11401800066232681,
+     "b": 0.5625,
+     "a": 1
+    },
+    "Density": 0,
+    "PulseAmount": 0.950657,
+    "PulseSpeed": 1.065382,
+    "bBackground": true,
+    "BackRadius": 9000,
+    "BackBrightness": 1,
+    "BackColor": {
+     "r": 0.19461800158023834,
+     "g": 0.057805001735687256,
+     "b": 0.6866850256919861,
+     "a": 1
+    },
+    "DotColor2": {
+     "r": 0.949999988079071,
+     "g": 0.141634002327919,
+     "b": 0.21568399667739868,
+     "a": 1
+    },
+    "DotColor3": {
+     "r": 0.9800000190734863,
+     "g": 0.5917119979858398,
+     "b": 0.18511000275611877,
+     "a": 1
+    },
+    "SpinSpeed0": 1.456461,
+    "SpinSpeed1": 0.498591,
+    "SpinSpeed2": 2.185266,
+    "SpinAxis0": {
+     "x": 0,
+     "y": 0,
+     "z": 0.55
+    },
+    "SpinAxis1": {
+     "x": 0,
+     "y": 1.811912,
+     "z": 0
+    },
+    "SpinAxis2": {
+     "x": -27.025414,
+     "y": -2.673715,
+     "z": 0
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_9",
+   "label": "GAL_4_VoidField9",
+   "tags": [
+    "GALSTATION",
+    "GAL_2"
+   ],
+   "transform": {
+    "location": {
+     "x": 59535,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_VoidField_SC.BP_VoidField_SC_C",
+   "vars": {
+    "Radius0": 1470.50675,
+    "Radius1": 1740.672567,
+    "Radius2": 2252.542688,
+    "Tiling": 38.149727,
+    "DotSize": 0,
+    "JitterAmount": 0.285752,
+    "Brightness": 1.187717,
+    "FarDim": 0.308819,
+    "TwinkleAmount": 0.818507,
+    "TwinkleSpeed": 1.102585,
+    "bLayer1": false,
+    "bLayer2": false,
+    "DotColor": {
+     "r": 0.056756000965833664,
+     "g": 0.11401800066232681,
+     "b": 0.5625,
+     "a": 1
+    },
+    "Density": 0,
+    "PulseAmount": 0.950657,
+    "PulseSpeed": 1.065382,
+    "bBackground": true,
+    "BackRadius": 9000,
+    "BackBrightness": 1,
+    "BackColor": {
+     "r": 0.27467700839042664,
+     "g": 0.23455099761486053,
+     "b": 1,
+     "a": 1
+    },
+    "DotColor2": {
+     "r": 0.949999988079071,
+     "g": 0.141634002327919,
+     "b": 0.21568399667739868,
+     "a": 1
+    },
+    "DotColor3": {
+     "r": 0.9800000190734863,
+     "g": 0.5917119979858398,
+     "b": 0.18511000275611877,
+     "a": 1
+    },
+    "SpinSpeed0": 1.456461,
+    "SpinSpeed1": 0.498591,
+    "SpinSpeed2": 2.185266,
+    "SpinAxis0": {
+     "x": 0,
+     "y": 0,
+     "z": 0.55
+    },
+    "SpinAxis1": {
+     "x": 0,
+     "y": 1.811912,
+     "z": 0
+    },
+    "SpinAxis2": {
+     "x": -27.025414,
+     "y": -2.673715,
+     "z": 0
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_10",
+   "label": "GAL_4_VoidField10",
+   "tags": [
+    "GALSTATION",
+    "GAL_10"
+   ],
+   "transform": {
+    "location": {
+     "x": 303602.3864892655,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_VoidField_SC.BP_VoidField_SC_C",
+   "vars": {
+    "Radius0": 1470.50675,
+    "Radius1": 1740.672567,
+    "Radius2": 2252.542688,
+    "Tiling": 38.149727,
+    "DotSize": 0,
+    "JitterAmount": 0.285752,
+    "Brightness": 1.187717,
+    "FarDim": 0.308819,
+    "TwinkleAmount": 0.818507,
+    "TwinkleSpeed": 1.102585,
+    "bLayer1": false,
+    "bLayer2": false,
+    "DotColor": {
+     "r": 0.056756000965833664,
+     "g": 0.11401800066232681,
+     "b": 0.5625,
+     "a": 1
+    },
+    "Density": 0,
+    "PulseAmount": 0.950657,
+    "PulseSpeed": 1.065382,
+    "bBackground": true,
+    "BackRadius": 9000,
+    "BackBrightness": 1,
+    "BackColor": {
+     "r": 0.06662599742412567,
+     "g": 0.05126899853348732,
+     "b": 0.46207699179649353,
+     "a": 1
+    },
+    "DotColor2": {
+     "r": 0.949999988079071,
+     "g": 0.141634002327919,
+     "b": 0.21568399667739868,
+     "a": 1
+    },
+    "DotColor3": {
+     "r": 0.9800000190734863,
+     "g": 0.5917119979858398,
+     "b": 0.18511000275611877,
+     "a": 1
+    },
+    "SpinSpeed0": 1.456461,
+    "SpinSpeed1": 0.498591,
+    "SpinSpeed2": 2.185266,
+    "SpinAxis0": {
+     "x": 0,
+     "y": 0,
+     "z": 0.55
+    },
+    "SpinAxis1": {
+     "x": 0,
+     "y": 1.811912,
+     "z": 0
+    },
+    "SpinAxis2": {
+     "x": -27.025414,
+     "y": -2.673715,
+     "z": 0
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RingTunnel_SC_C_3",
+   "label": "GAL_TEST_RingTunnel_Rect3",
+   "tags": [
+    "GALSTATION",
+    "GAL_10"
+   ],
+   "transform": {
+    "location": {
+     "x": 303584.91343534866,
+     "y": 99619.7500465688,
+     "z": 117.3078082370298
+    },
+    "rotation": {
+     "pitch": 1.267380684265944e-14,
+     "yaw": -90.0000000000001,
+     "roll": 2.5444437451708055e-14
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_RingTunnel_SC.BP_RingTunnel_SC_C",
+   "vars": {
+    "PortalRadius": 300,
+    "TunnelLength": 608.759444,
+    "TunnelCurve": 2.167314,
+    "Speed": 0.04,
+    "SpiralSpeed": 0,
+    "SpiralTwist": 0,
+    "WobbleAmount": 0,
+    "WobbleSpeed": 0.4,
+    "ColorNear": {
+     "r": 0.13370999693870544,
+     "g": 0.07167699933052063,
+     "b": 1.2000000476837158,
+     "a": 1
+    },
+    "ColorMid": {
+     "r": 0.4552080035209656,
+     "g": 0.46070200204849243,
+     "b": 0.9200000166893005,
+     "a": 1
+    },
+    "ColorFar": {
+     "r": 0.2422810047864914,
+     "g": 0.1746470034122467,
+     "b": 0.8549929857254028,
+     "a": 1
+    },
+    "Brightness": 1,
+    "RingWidth": 0.363082,
+    "WidthVariation": 0,
+    "WidthFreq": 2,
+    "ContainerScale": 1,
+    "RingCount": 16,
+    "Idx": 15,
+    "BandGlow": 0.129414,
+    "BandCurve": 336.701431,
+    "TwistStart": 0,
+    "FadeInTime": 0.116,
+    "WrapCount": 0,
+    "FrameColor": {
+     "r": 0.06662599742412567,
+     "g": 0.05126899853348732,
+     "b": 0.46207699179649353,
+     "a": 1
+    },
+    "ShadowAmount": 0.828,
+    "ShadowSoft": 1.180055,
+    "BackRadius": 365.171664,
+    "BackColor": {
+     "r": 0.2422810047864914,
+     "g": 0.1746470034122467,
+     "b": 0.8549929857254028,
+     "a": 1
+    },
+    "FadeOutTime": 0.005,
+    "ShapeIndex": 1,
+    "ShapeAspect": 0.55,
+    "ShapeCorner": 0.35,
+    "ShapeCurve": -40
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RingTunnel_SC_C_2",
+   "label": "GAL_TEST_RingTunnel_Rect2",
+   "tags": [
+    "GALSTATION",
+    "GAL_10"
+   ],
+   "transform": {
+    "location": {
+     "x": 303584.9134348609,
+     "y": 100347.16137695312,
+     "z": 117.3078082370298
+    },
+    "rotation": {
+     "pitch": 1.3831033148304054e-14,
+     "yaw": 89.99999999999953,
+     "roll": 4.8411883194732926e-17
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_RingTunnel_SC.BP_RingTunnel_SC_C",
+   "vars": {
+    "PortalRadius": 300,
+    "TunnelLength": 608.759444,
+    "TunnelCurve": 2.167314,
+    "Speed": 0.04,
+    "SpiralSpeed": 0,
+    "SpiralTwist": 0,
+    "WobbleAmount": 0,
+    "WobbleSpeed": 0.4,
+    "ColorNear": {
+     "r": 0.13370999693870544,
+     "g": 0.07167699933052063,
+     "b": 1.2000000476837158,
+     "a": 1
+    },
+    "ColorMid": {
+     "r": 0.4552080035209656,
+     "g": 0.46070200204849243,
+     "b": 0.9200000166893005,
+     "a": 1
+    },
+    "ColorFar": {
+     "r": 0.2422810047864914,
+     "g": 0.1746470034122467,
+     "b": 0.8549929857254028,
+     "a": 1
+    },
+    "Brightness": 1,
+    "RingWidth": 0.363082,
+    "WidthVariation": 0,
+    "WidthFreq": 2,
+    "ContainerScale": 1,
+    "RingCount": 16,
+    "Idx": 15,
+    "BandGlow": 0.129414,
+    "BandCurve": 336.701431,
+    "TwistStart": 0,
+    "FadeInTime": 0.116,
+    "WrapCount": 0,
+    "FrameColor": {
+     "r": 0.06662599742412567,
+     "g": 0.05126899853348732,
+     "b": 0.46207699179649353,
+     "a": 1
+    },
+    "ShadowAmount": 0.828,
+    "ShadowSoft": 1.180055,
+    "BackRadius": 365.171664,
+    "BackColor": {
+     "r": 0.2422810047864914,
+     "g": 0.1746470034122467,
+     "b": 0.8549929857254028,
+     "a": 1
+    },
+    "FadeOutTime": 0.005,
+    "ShapeIndex": 1,
+    "ShapeAspect": 0.55,
+    "ShapeCorner": 0.35,
+    "ShapeCurve": -40
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RingTunnel_SC_C_1",
+   "label": "GAL_TEST_RingTunnel_Rect",
+   "tags": [
+    "GALSTATION",
+    "GAL_10"
+   ],
+   "transform": {
+    "location": {
+     "x": 303922.24319805304,
+     "y": 100000,
+     "z": 117.30780777975443
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_RingTunnel_SC.BP_RingTunnel_SC_C",
+   "vars": {
+    "PortalRadius": 300,
+    "TunnelLength": 608.759444,
+    "TunnelCurve": 2.167314,
+    "Speed": -0.09,
+    "SpiralSpeed": 0,
+    "SpiralTwist": 0,
+    "WobbleAmount": 0,
+    "WobbleSpeed": 0.4,
+    "ColorNear": {
+     "r": 0.13370999693870544,
+     "g": 0.07167699933052063,
+     "b": 1.2000000476837158,
+     "a": 1
+    },
+    "ColorMid": {
+     "r": 0.4552080035209656,
+     "g": 0.46070200204849243,
+     "b": 0.9200000166893005,
+     "a": 1
+    },
+    "ColorFar": {
+     "r": 0.2422810047864914,
+     "g": 0.1746470034122467,
+     "b": 0.8549929857254028,
+     "a": 1
+    },
+    "Brightness": 1,
+    "RingWidth": 0.363082,
+    "WidthVariation": 0,
+    "WidthFreq": 2,
+    "ContainerScale": 1,
+    "RingCount": 16,
+    "Idx": 15,
+    "BandGlow": 0.129414,
+    "BandCurve": 336.701431,
+    "TwistStart": 0,
+    "FadeInTime": 0.116,
+    "WrapCount": 0,
+    "FrameColor": {
+     "r": 0.06662599742412567,
+     "g": 0.05126899853348732,
+     "b": 0.46207699179649353,
+     "a": 1
+    },
+    "ShadowAmount": 0.828,
+    "ShadowSoft": 1.180055,
+    "BackRadius": 365.171664,
+    "BackColor": {
+     "r": 0.2422810047864914,
+     "g": 0.1746470034122467,
+     "b": 0.8549929857254028,
+     "a": 1
+    },
+    "FadeOutTime": 0.005,
+    "ShapeIndex": 1,
+    "ShapeAspect": 0.55,
+    "ShapeCorner": 0.35,
+    "ShapeCurve": -40
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RingTunnel_SC_C_0",
+   "label": "GAL_9_RingTunnel",
+   "tags": [
+    "GALSTATION",
+    "GAL_9"
+   ],
+   "transform": {
+    "location": {
+     "x": 269488.1402130127,
+     "y": 100000,
+     "z": 127.691055
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_RingTunnel_SC.BP_RingTunnel_SC_C",
+   "vars": {
+    "PortalRadius": 300,
+    "TunnelLength": 608.759444,
+    "TunnelCurve": 2.167314,
+    "Speed": 0.04,
+    "SpiralSpeed": 0.15,
+    "SpiralTwist": 49.302464,
+    "WobbleAmount": 71.378356,
+    "WobbleSpeed": 0.4,
+    "ColorNear": {
+     "r": 0.39625200629234314,
+     "g": 0.09693100303411484,
+     "b": 1.2000000476837158,
+     "a": 1
+    },
+    "ColorMid": {
+     "r": 0.31415000557899475,
+     "g": 0.5244190096855164,
+     "b": 0.9200000166893005,
+     "a": 1
+    },
+    "ColorFar": {
+     "r": 0.25415199995040894,
+     "g": 0.4735319912433624,
+     "b": 0.19461800158023834,
+     "a": 1
+    },
+    "Brightness": 1,
+    "RingWidth": 0.476,
+    "WidthVariation": 0.098803,
+    "WidthFreq": 2,
+    "ContainerScale": 1,
+    "RingCount": 16,
+    "Idx": 15,
+    "BandGlow": 0.129414,
+    "BandCurve": 50.942113,
+    "TwistStart": 0.045801,
+    "FadeInTime": 0.02,
+    "WrapCount": 0,
+    "FrameColor": {
+     "r": 0.19461800158023834,
+     "g": 0.057805001735687256,
+     "b": 0.6866850256919861,
+     "a": 1
+    },
+    "ShadowAmount": 0.828,
+    "ShadowSoft": 1.180055,
+    "BackRadius": 365.171664,
+    "BackColor": {
+     "r": 0.25415199995040894,
+     "g": 0.4735319912433624,
+     "b": 0.19461800158023834,
+     "a": 1
+    },
+    "FadeOutTime": 0.005,
+    "ShapeIndex": 0,
+    "ShapeAspect": 0,
+    "ShapeCorner": 0,
+    "ShapeCurve": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RingTunnel_SC_C_5",
+   "label": "GAL_9_RingTunnel2",
+   "tags": [
+    "GALSTATION",
+    "GAL_9"
+   ],
+   "transform": {
+    "location": {
+     "x": 269580.64132911473,
+     "y": 100000,
+     "z": -558.7359011328059
+    },
+    "rotation": {
+     "pitch": -54.99999999999964,
+     "yaw": 2.4475060364634886e-14,
+     "roll": 1.9807214196830372e-14
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_RingTunnel_SC.BP_RingTunnel_SC_C",
+   "vars": {
+    "PortalRadius": 300,
+    "TunnelLength": 864.334355,
+    "TunnelCurve": 2.167314,
+    "Speed": 0.02,
+    "SpiralSpeed": 0.15,
+    "SpiralTwist": 49.302464,
+    "WobbleAmount": 71.378356,
+    "WobbleSpeed": 0.4,
+    "ColorNear": {
+     "r": 1.2000000476837158,
+     "g": 0.6323450207710266,
+     "b": 0.631197988986969,
+     "a": 1
+    },
+    "ColorMid": {
+     "r": 0.31415000557899475,
+     "g": 0.5244190096855164,
+     "b": 0.9200000166893005,
+     "a": 1
+    },
+    "ColorFar": {
+     "r": 0.25415199995040894,
+     "g": 0.4735319912433624,
+     "b": 0.19461800158023834,
+     "a": 1
+    },
+    "Brightness": 0.909585,
+    "RingWidth": 0.476,
+    "WidthVariation": 0.098803,
+    "WidthFreq": 2,
+    "ContainerScale": 1,
+    "RingCount": 16,
+    "Idx": 15,
+    "BandGlow": 0.129414,
+    "BandCurve": 50.942113,
+    "TwistStart": 0.045801,
+    "FadeInTime": 0.02,
+    "WrapCount": 0,
+    "FrameColor": {
+     "r": 0.19461800158023834,
+     "g": 0.057805001735687256,
+     "b": 0.6866850256919861,
+     "a": 1
+    },
+    "ShadowAmount": 0.46,
+    "ShadowSoft": 0.926217,
+    "BackRadius": 365.171664,
+    "BackColor": {
+     "r": 0.2943669855594635,
+     "g": 0.40104201436042786,
+     "b": 0.25101301074028015,
+     "a": 1
+    },
+    "FadeOutTime": 0.15,
+    "ShapeIndex": 0,
+    "ShapeAspect": 0,
+    "ShapeCorner": 0,
+    "ShapeCurve": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RingTunnel_SC_C_6",
+   "label": "GAL_9_RingTunnel3",
+   "tags": [
+    "GALSTATION",
+    "GAL_9"
+   ],
+   "transform": {
+    "location": {
+     "x": 269417.3075076417,
+     "y": 100749.36101015334,
+     "z": 407.8255037523474
+    },
+    "rotation": {
+     "pitch": 18.995596481603858,
+     "yaw": 67.05038173456869,
+     "roll": 20.361205738496558
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_RingTunnel_SC.BP_RingTunnel_SC_C",
+   "vars": {
+    "PortalRadius": 300,
+    "TunnelLength": 958.186998,
+    "TunnelCurve": 2.167314,
+    "Speed": 0.06,
+    "SpiralSpeed": 0.15,
+    "SpiralTwist": 49.302464,
+    "WobbleAmount": 71.378356,
+    "WobbleSpeed": 0.4,
+    "ColorNear": {
+     "r": 0.9038439989089966,
+     "g": 0.7951580286026001,
+     "b": 1.2000000476837158,
+     "a": 1
+    },
+    "ColorMid": {
+     "r": 0.31415000557899475,
+     "g": 0.5244190096855164,
+     "b": 0.9200000166893005,
+     "a": 1
+    },
+    "ColorFar": {
+     "r": 0.4158560037612915,
+     "g": 0.42241400480270386,
+     "b": 0.4735319912433624,
+     "a": 1
+    },
+    "Brightness": 0.909585,
+    "RingWidth": 0.476,
+    "WidthVariation": 0.098803,
+    "WidthFreq": 2,
+    "ContainerScale": 1,
+    "RingCount": 16,
+    "Idx": 15,
+    "BandGlow": 0.129414,
+    "BandCurve": 50.942113,
+    "TwistStart": 0.045801,
+    "FadeInTime": 0.02,
+    "WrapCount": 0,
+    "FrameColor": {
+     "r": 0.19461800158023834,
+     "g": 0.057805001735687256,
+     "b": 0.6866850256919861,
+     "a": 1
+    },
+    "ShadowAmount": 0.46,
+    "ShadowSoft": 0.926217,
+    "BackRadius": 365.171664,
+    "BackColor": {
+     "r": 0.45473599433898926,
+     "g": 0.4735319912433624,
+     "b": 0.43277499079704285,
+     "a": 1
+    },
+    "FadeOutTime": 0.15,
+    "ShapeIndex": 0,
+    "ShapeAspect": 0,
+    "ShapeCorner": 0,
+    "ShapeCurve": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RingTunnel_SC_C_7",
+   "label": "GAL_9_RingTunnel4",
+   "tags": [
+    "GALSTATION",
+    "GAL_9"
+   ],
+   "transform": {
+    "location": {
+     "x": 269390.95909111906,
+     "y": 99376.03621551026,
+     "z": 127.69105499999765
+    },
+    "rotation": {
+     "pitch": 7.025289307926202e-14,
+     "yaw": -64.99999999999984,
+     "roll": 5.847917086805207e-14
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_RingTunnel_SC.BP_RingTunnel_SC_C",
+   "vars": {
+    "PortalRadius": 300,
+    "TunnelLength": 719.282917,
+    "TunnelCurve": 2.167314,
+    "Speed": 0.03,
+    "SpiralSpeed": 0.15,
+    "SpiralTwist": 49.302464,
+    "WobbleAmount": 71.378356,
+    "WobbleSpeed": 0.4,
+    "ColorNear": {
+     "r": 0.39625200629234314,
+     "g": 0.09693100303411484,
+     "b": 1.2000000476837158,
+     "a": 1
+    },
+    "ColorMid": {
+     "r": 0.9200000166893005,
+     "g": 0.43351098895072937,
+     "b": 0.4058220088481903,
+     "a": 1
+    },
+    "ColorFar": {
+     "r": 0.4735319912433624,
+     "g": 0.4649609923362732,
+     "b": 0.19344699382781982,
+     "a": 1
+    },
+    "Brightness": 0.909585,
+    "RingWidth": 0.476,
+    "WidthVariation": 0.098803,
+    "WidthFreq": 2,
+    "ContainerScale": 1,
+    "RingCount": 16,
+    "Idx": 15,
+    "BandGlow": 0.129414,
+    "BandCurve": 50.942113,
+    "TwistStart": 0.045801,
+    "FadeInTime": 0.02,
+    "WrapCount": 0,
+    "FrameColor": {
+     "r": 0.19461800158023834,
+     "g": 0.057805001735687256,
+     "b": 0.6866850256919861,
+     "a": 1
+    },
+    "ShadowAmount": 0.46,
+    "ShadowSoft": 2.254315,
+    "BackRadius": 365.171664,
+    "BackColor": {
+     "r": 0.4648990035057068,
+     "g": 0.4735319912433624,
+     "b": 0.28387799859046936,
+     "a": 1
+    },
+    "FadeOutTime": 0.15,
+    "ShapeIndex": 0,
+    "ShapeAspect": 0,
+    "ShapeCorner": 0,
+    "ShapeCurve": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_ShadowStudy_SC_C_0",
+   "label": "GAL_6_ShadowStudy",
+   "tags": [
+    "GALSTATION",
+    "GAL_6"
+   ],
+   "transform": {
+    "location": {
+     "x": 179833.41794586182,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_ShadowStudy_SC.BP_ShadowStudy_SC_C",
+   "vars": {
+    "SphereRadius": 66.368518,
+    "SphereHeight": 70,
+    "SphereColor": {
+     "r": 0.7354879975318909,
+     "g": 0.593326985836029,
+     "b": 0.8999999761581421,
+     "a": 1
+    },
+    "Brightness": 1,
+    "SkyRadius": 4770.415627,
+    "SkyColor": {
+     "r": 0.8069519996643066,
+     "g": 0.226965993642807,
+     "b": 0.23455099761486053,
+     "a": 1
+    },
+    "SweepAngle": 231.707912,
+    "SweepSpeed": 19.965099,
+    "SweepPhase": 6.526765,
+    "SweepAxisPitch": 16.200487,
+    "SweepAxisYaw": 4.458151,
+    "bSweep": true,
+    "ConeScaleXY": 3.195832,
+    "ConeScaleZ": 8.005606,
+    "ConeSpread": 56.048043,
+    "ConeIntensity": 2.6,
+    "ConeEdgeSoft": 0.55,
+    "ConeLengthFade": 1.589399,
+    "ConeTipSoft": 0,
+    "BackdropColor": {
+     "r": 0.8072919845581055,
+     "g": 0.2270510047674179,
+     "b": 0.23476700484752655,
+     "a": 1
+    },
+    "BackdropSize": 10443.583664,
+    "ConeColor": {
+     "r": 0.7450559735298157,
+     "g": 1,
+     "b": 0.5896919965744019,
+     "a": 1
+    },
+    "BackdropOffset": {
+     "x": -14.546031,
+     "y": 0,
+     "z": 0
+    },
+    "ConeCutRadius": 66.368518
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_27",
+   "label": "GAL_0_LightShaft18",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": -852.6313624804689,
+     "y": 99744.3366707402,
+     "z": -1434.8869102748993
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 179.9999999999998
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 0.9320390224456787,
+     "g": 1,
+     "b": 0.39881300926208496,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": -852.63134765625,
+     "g": 99744.3359375,
+     "b": -1884.886962890625,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0,
+     "g": -3.675178549347475e-15,
+     "b": 1,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.0252429246902466,
+     "g": 1.100000023841858,
+     "b": 0.4386943280696869,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.13,
+    "PulsePhase": 0.5623
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_28",
+   "label": "GAL_0_LightShaft19",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": -2133.4001004804686,
+     "y": 100624.64608074023,
+     "z": -1434.8869316980451
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 40.00000000000091,
+     "roll": 145.00000000000054
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.6200000047683716,
+     "b": 0.3199999928474426,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 5,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": -2299.3095703125,
+     "g": 100822.3671875,
+     "b": -1803.50537109375,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0.36868783831596375,
+     "g": -0.4393850564956665,
+     "b": 0.8191520571708679,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.6820000410079956,
+     "b": 0.35199999809265137,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.014444444444444444,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.1911,
+    "PulsePhase": 0.1803
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_29",
+   "label": "GAL_0_LightShaft20",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": -2728.5590664804686,
+     "y": 99690.50457874023,
+     "z": -1434.8869089648438
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 179.9999999999998
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 0.4160670042037964,
+     "g": 0.9684699773788452,
+     "b": 1,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 5,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": -2728.55908203125,
+     "g": 99690.5078125,
+     "b": -1884.886962890625,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0,
+     "g": -3.675178549347475e-15,
+     "b": 1,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 0.45767372846603394,
+     "g": 1.0653170347213745,
+     "b": 1.100000023841858,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.014444444444444444,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.1534,
+    "PulsePhase": 0.4164
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_0",
+   "label": "GAL_0_LightShaft",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": -1819.8342742919922,
+     "y": 100411.2437446115,
+     "z": 364.4724051239109
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 0.573432981967926,
+     "g": 0.4921570122241974,
+     "b": 1,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 5,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": -1819.834228515625,
+     "g": 100411.2421875,
+     "b": 814.472412109375,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0,
+     "g": 0,
+     "b": -1,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 0.6307762861251831,
+     "g": 0.5413727164268494,
+     "b": 1.100000023841858,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.014444444444444444,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.06,
+    "PulsePhase": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_1",
+   "label": "GAL_8_Haz_A",
+   "tags": [
+    "GALSTATION",
+    "GAL_8"
+   ],
+   "transform": {
+    "location": {
+     "x": 238500,
+     "y": 99500,
+     "z": 1500
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 5,
+     "y": 5,
+     "z": 16
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 0.550000011920929,
+     "g": 0.8500000238418579,
+     "b": 1,
+     "a": 1
+    },
+    "Intensity": 0.35,
+    "EdgeSoft": 3.2,
+    "LengthFade": 1.6,
+    "SmokeAmount": 0.55,
+    "SmokeScale": 0.003,
+    "SmokeSpeed": 0.28,
+    "DepthFadeDist": 140,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.4,
+    "WobbleAmount": 0,
+    "WobbleFreq": 0.05,
+    "WobbleSpeed": 0.12,
+    "bShowFloorGlow": false,
+    "FloorGlowScale": 1,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0,
+    "Spread": 14,
+    "LaserAmount": 2,
+    "LaserWidth": 4,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.8,
+    "ShapeIndex": 0,
+    "bLaserMode": false,
+    "bDriveMPC": false,
+    "MPCPos": {
+     "r": 238500,
+     "g": 99500,
+     "b": 2300,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0,
+     "g": 0,
+     "b": -1,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 0.19249999523162842,
+     "g": 0.29750001430511475,
+     "b": 0.3499999940395355,
+     "a": 1
+    },
+    "MPCRadius": 250,
+    "MPCSpreadPer": 0.04375,
+    "MPCRange": 1600,
+    "MPCLaser": 0,
+    "bAutoFloor": false,
+    "WobbleVariety": 1,
+    "WobbleStretch": 1,
+    "EffectiveFloorZ": 0,
+    "bFloorFollowsBeam": false,
+    "WobbleTaper": 1,
+    "bShapedAperture": false,
+    "ApertureBoost": 3,
+    "bGradient": false,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": false,
+    "PulseSpeed": 0,
+    "PulsePhase": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_2",
+   "label": "GAL_8_Haz_B",
+   "tags": [
+    "GALSTATION",
+    "GAL_8"
+   ],
+   "transform": {
+    "location": {
+     "x": 239800,
+     "y": 100600,
+     "z": 1500
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 4,
+     "y": 4,
+     "z": 16
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 0.44999998807907104,
+     "g": 0.800000011920929,
+     "b": 1,
+     "a": 1
+    },
+    "Intensity": 0.28,
+    "EdgeSoft": 3.5,
+    "LengthFade": 1.8,
+    "SmokeAmount": 0.5,
+    "SmokeScale": 0.0035,
+    "SmokeSpeed": 0.22,
+    "DepthFadeDist": 140,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.5,
+    "WobbleAmount": 0,
+    "WobbleFreq": 0.05,
+    "WobbleSpeed": 0.09,
+    "bShowFloorGlow": false,
+    "FloorGlowScale": 1,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0,
+    "Spread": 11,
+    "LaserAmount": 2,
+    "LaserWidth": 4,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.8,
+    "ShapeIndex": 0,
+    "bLaserMode": false,
+    "bDriveMPC": false,
+    "MPCPos": {
+     "r": 239800,
+     "g": 100600,
+     "b": 2300,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0,
+     "g": 0,
+     "b": -1,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 0.12600000202655792,
+     "g": 0.2240000069141388,
+     "b": 0.2800000011920929,
+     "a": 1
+    },
+    "MPCRadius": 200,
+    "MPCSpreadPer": 0.0275,
+    "MPCRange": 1600,
+    "MPCLaser": 0,
+    "bAutoFloor": false,
+    "WobbleVariety": 1,
+    "WobbleStretch": 1,
+    "EffectiveFloorZ": 0,
+    "bFloorFollowsBeam": false,
+    "WobbleTaper": 1,
+    "bShapedAperture": false,
+    "ApertureBoost": 3,
+    "bGradient": false,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": false,
+    "PulseSpeed": 0,
+    "PulsePhase": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_5",
+   "label": "GAL_8_Haz_C",
+   "tags": [
+    "GALSTATION",
+    "GAL_8"
+   ],
+   "transform": {
+    "location": {
+     "x": 239300,
+     "y": 99100,
+     "z": 1500
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 6,
+     "y": 6,
+     "z": 16
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 0.6000000238418579,
+     "g": 0.8999999761581421,
+     "b": 1,
+     "a": 1
+    },
+    "Intensity": 0.22,
+    "EdgeSoft": 3.8,
+    "LengthFade": 2,
+    "SmokeAmount": 0.6,
+    "SmokeScale": 0.0028,
+    "SmokeSpeed": 0.18,
+    "DepthFadeDist": 140,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.6,
+    "WobbleAmount": 0,
+    "WobbleFreq": 0.05,
+    "WobbleSpeed": 0.14,
+    "bShowFloorGlow": false,
+    "FloorGlowScale": 1,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0,
+    "Spread": 17,
+    "LaserAmount": 2,
+    "LaserWidth": 4,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.8,
+    "ShapeIndex": 0,
+    "bLaserMode": false,
+    "bDriveMPC": false,
+    "MPCPos": {
+     "r": 239300,
+     "g": 99100,
+     "b": 2300,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0,
+     "g": 0,
+     "b": -1,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 0.13199999928474426,
+     "g": 0.1979999989271164,
+     "b": 0.2199999988079071,
+     "a": 1
+    },
+    "MPCRadius": 300,
+    "MPCSpreadPer": 0.06375,
+    "MPCRange": 1600,
+    "MPCLaser": 0,
+    "bAutoFloor": false,
+    "WobbleVariety": 1,
+    "WobbleStretch": 1,
+    "EffectiveFloorZ": 0,
+    "bFloorFollowsBeam": false,
+    "WobbleTaper": 1,
+    "bShapedAperture": false,
+    "ApertureBoost": 3,
+    "bGradient": false,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": false,
+    "PulseSpeed": 0,
+    "PulsePhase": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_11",
+   "label": "GAL_0_LightShaft2",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": -1224.675307935547,
+     "y": 99477.10224261963,
+     "z": 364.472405
+    },
+    "rotation": {
+     "pitch": 4.770832022195275e-15,
+     "yaw": -40,
+     "roll": -34.99999999999999
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 0.7724980115890503,
+     "g": 0.94793701171875,
+     "b": 1,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 5,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": -1390.5848388671875,
+     "g": 99279.3828125,
+     "b": 733.0908203125,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0.36868783831596375,
+     "g": 0.4393850564956665,
+     "b": -0.8191520571708679,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 0.8497478365898132,
+     "g": 1.042730689048767,
+     "b": 1.100000023841858,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.014444444444444444,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.0923,
+    "PulsePhase": 0.7984
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_12",
+   "label": "GAL_0_LightShaft3",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 56.09342951432291,
+     "y": 100357.41165271484,
+     "z": 364.472405
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.5212550163269043,
+     "b": 0.7347139716148376,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 56.09342956542969,
+     "g": 100357.4140625,
+     "b": 814.472412109375,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0,
+     "g": 0,
+     "b": -1,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.5733805298805237,
+     "b": 0.8081853985786438,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.2145,
+    "PulsePhase": 0.0344
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_13",
+   "label": "GAL_0_LightShaft4",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 56.0934299999999,
+     "y": 102920.43692155469,
+     "z": 364.472405
+    },
+    "rotation": {
+     "pitch": -44.99999999999991,
+     "yaw": 5.2697155397256965e-15,
+     "roll": 4.4943884278175144e-30
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 0.4113300144672394,
+     "g": 0.4304490089416504,
+     "b": 1,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 374.2914733886719,
+     "g": 102920.4375,
+     "b": 682.6704711914062,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": -0.7071067690849304,
+     "g": -6.503536174375259e-17,
+     "b": -0.7071067690849304,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 0.4524630308151245,
+     "g": 0.47349393367767334,
+     "b": 1.100000023841858,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.1156,
+    "PulsePhase": 0.6525
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_14",
+   "label": "GAL_0_LightShaft5",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": -1596.5869288867189,
+     "y": 97981.89123718554,
+     "z": 364.472405
+    },
+    "rotation": {
+     "pitch": -45.000000000000426,
+     "yaw": 64.99999999999972,
+     "roll": 4.048185209755482e-14
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 0.5407389998435974,
+     "g": 0.5785189867019653,
+     "b": 1,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftBox.SM_ShaftBox"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.012872,
+    "FloorGlowIntensity": 0.288,
+    "FloorZ": 0.168,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 2,
+    "bLaserMode": false,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": -1462.110595703125,
+     "g": 98270.2734375,
+     "b": 682.6704711914062,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": -0.29883623123168945,
+     "g": -0.6408563852310181,
+     "b": -0.7071067690849304,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 0.5948129296302795,
+     "g": 0.6363708972930908,
+     "b": 1.100000023841858,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.168,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.1767,
+    "PulsePhase": 0.2705
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_15",
+   "label": "GAL_0_LightShaft6",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 2334.8493874338146,
+     "y": 103300.95161985942,
+     "z": 364.4724049999996
+    },
+    "rotation": {
+     "pitch": -45.00000000000052,
+     "yaw": -100.00000000000028,
+     "roll": 1.4393547412463955e-13
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.6200000047683716,
+     "b": 0.3199999928474426,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 2279.594970703125,
+     "g": 102987.5859375,
+     "b": 682.6704711914062,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0.12278780341148376,
+     "g": 0.6963642239570618,
+     "b": -0.7071067690849304,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.6820000410079956,
+     "b": 0.35199999809265137,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.0778,
+    "PulsePhase": 0.8885
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_16",
+   "label": "GAL_0_LightShaft7",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 3179.252399616187,
+     "y": 101012.15793361492,
+     "z": 364.4724049999993
+    },
+    "rotation": {
+     "pitch": 2.5444437451708185e-14,
+     "yaw": -165.0000000000003,
+     "roll": 1.6014971228065053e-14
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.6200000047683716,
+     "b": 0.3199999928474426,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 5,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 3179.25244140625,
+     "g": 101012.15625,
+     "b": 814.472412109375,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": -5.013007797229335e-16,
+     "g": 1.5505102212123498e-16,
+     "b": -1,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.6820000410079956,
+     "b": 0.35199999809265137,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.014444444444444444,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.1389,
+    "PulsePhase": 0.5066
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_17",
+   "label": "GAL_0_LightShaft8",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 2362.5993917984288,
+     "y": 101760.43088207104,
+     "z": 364.4724049999997
+    },
+    "rotation": {
+     "pitch": 2.2263882770244617e-14,
+     "yaw": 154.9999999999998,
+     "roll": -35.000000000000014
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.689399003982544,
+     "b": 0.846576988697052,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 5,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 2471.68115234375,
+     "g": 101994.359375,
+     "b": 733.0908203125,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": -0.24240387976169586,
+     "g": -0.5198367834091187,
+     "b": -0.8191520571708679,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.7583389282226562,
+     "b": 0.9312347173690796,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.014444444444444444,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.2001,
+    "PulsePhase": 0.1246
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_18",
+   "label": "GAL_0_LightShaft9",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 1353.3125999946324,
+     "y": 99588.44222852853,
+     "z": 364.47240500000015
+    },
+    "rotation": {
+     "pitch": 2.5444437451708185e-14,
+     "yaw": -165.0000000000003,
+     "roll": 1.6014971228065053e-14
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.6200000047683716,
+     "b": 0.3199999928474426,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 1353.3126220703125,
+     "g": 99588.4453125,
+     "b": 814.472412109375,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": -5.013007797229335e-16,
+     "g": 1.5505102212123498e-16,
+     "b": -1,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.6820000410079956,
+     "b": 0.35199999809265137,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.1012,
+    "PulsePhase": 0.7426
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_19",
+   "label": "GAL_0_LightShaft10",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 2016.672287421875,
+     "y": 98102.93765442187,
+     "z": 364.472405
+    },
+    "rotation": {
+     "pitch": -45.00000000000053,
+     "yaw": -165.00000000000028,
+     "roll": 2.024092604877745e-14
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.6200000047683716,
+     "b": 0.3199999928474426,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 1709.3165283203125,
+     "g": 98020.578125,
+     "b": 682.6704711914062,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0.6830127239227295,
+     "g": 0.1830127090215683,
+     "b": -0.7071067690849304,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.6820000410079956,
+     "b": 0.35199999809265137,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.1211,
+    "PulsePhase": 0.618
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_20",
+   "label": "GAL_0_LightShaft11",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 1107.9474945195311,
+     "y": 101998.81066974024,
+     "z": -1434.8869651396103
+    },
+    "rotation": {
+     "pitch": 45.00000000000086,
+     "yaw": 165.00000000000054,
+     "roll": -179.99999999999926
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.37163200974464417,
+     "b": 0.7056530117988586,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 800.591796875,
+     "g": 102081.1640625,
+     "b": -1753.0849609375,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0.6830127239227295,
+     "g": -0.1830127090215683,
+     "b": 0.7071067690849304,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.40879520773887634,
+     "b": 0.7762183547019958,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.1822,
+    "PulsePhase": 0.2361
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_21",
+   "label": "GAL_0_LightShaft12",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 444.58780751953145,
+     "y": 100513.30609474026,
+     "z": -1434.8869289884801
+    },
+    "rotation": {
+     "pitch": 6.883382752675983e-15,
+     "yaw": 165,
+     "roll": 179.9999999999999
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.6200000047683716,
+     "b": 0.3199999928474426,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 444.5877990722656,
+     "g": 100513.3046875,
+     "b": -1884.886962890625,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 6.074952590838956e-16,
+     "g": 1.803026730535736e-15,
+     "b": 1,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.6820000410079956,
+     "b": 0.35199999809265137,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.0833,
+    "PulsePhase": 0.8541
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_22",
+   "label": "GAL_0_LightShaft13",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 1453.8745995195313,
+     "y": 98341.31744174023,
+     "z": -1434.8868761311253
+    },
+    "rotation": {
+     "pitch": 1.7811106216195694e-13,
+     "yaw": -155.00000000000006,
+     "roll": 145.00000000000034
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.6200000047683716,
+     "b": 0.3199999928474426,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 5,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 1562.956298828125,
+     "g": 98107.390625,
+     "b": -1803.5052490234375,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": -0.24240387976169586,
+     "g": 0.5198367834091187,
+     "b": 0.8191520571708679,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.6820000410079956,
+     "b": 0.35199999809265137,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.014444444444444444,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.1445,
+    "PulsePhase": 0.4721
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_23",
+   "label": "GAL_0_LightShaft14",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 2270.5276075195316,
+     "y": 99089.59038974026,
+     "z": -1434.8868943410318
+    },
+    "rotation": {
+     "pitch": 6.883382752675983e-15,
+     "yaw": 165,
+     "roll": 179.9999999999999
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.6200000047683716,
+     "b": 0.3199999928474426,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 5,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 2270.527587890625,
+     "g": 99089.59375,
+     "b": -1884.8868408203125,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 6.074952590838956e-16,
+     "g": 1.803026730535736e-15,
+     "b": 1,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.6820000410079956,
+     "b": 0.35199999809265137,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.014444444444444444,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.2056,
+    "PulsePhase": 0.0902
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_24",
+   "label": "GAL_0_LightShaft15",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": 1426.1245945195315,
+     "y": 96800.7967037402,
+     "z": -1434.8868386411136
+    },
+    "rotation": {
+     "pitch": 45.00000000000106,
+     "yaw": 100.00000000000264,
+     "roll": -179.99999999999915
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.6200000047683716,
+     "b": 0.3199999928474426,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": 1370.8701171875,
+     "g": 97114.1640625,
+     "b": -1753.0848388671875,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": 0.12278780341148376,
+     "g": -0.6963642239570618,
+     "b": 0.7071067690849304,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.6820000410079956,
+     "b": 0.35199999809265137,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.1067,
+    "PulsePhase": 0.7082
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_25",
+   "label": "GAL_0_LightShaft16",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": -2505.311721480469,
+     "y": 102119.85708674024,
+     "z": -1434.8869680854018
+    },
+    "rotation": {
+     "pitch": 45.0000000000006,
+     "yaw": -65.00000000000018,
+     "roll": 179.99999999999986
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.6200000047683716,
+     "b": 0.3199999928474426,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": -2370.83544921875,
+     "g": 101831.46875,
+     "b": -1753.0849609375,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": -0.29883623123168945,
+     "g": 0.6408563852310181,
+     "b": 0.7071067690849304,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.6820000410079956,
+     "b": 0.35199999809265137,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.1678,
+    "PulsePhase": 0.3262
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_26",
+   "label": "GAL_0_LightShaft17",
+   "tags": [
+    "GALSTATION",
+    "GAL_0"
+   ],
+   "transform": {
+    "location": {
+     "x": -852.6313624804689,
+     "y": 97181.31140174024,
+     "z": -1434.8868479012979
+    },
+    "rotation": {
+     "pitch": 45.00000000000129,
+     "yaw": -1.7053025658242387e-13,
+     "roll": 179.99999999999946
+    },
+    "scale": {
+     "x": 2.6,
+     "y": 2.6,
+     "z": 9
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_LightShaft_SC.BP_LightShaft_SC_C",
+   "vars": {
+    "BeamColor": {
+     "r": 1,
+     "g": 0.6200000047683716,
+     "b": 0.3199999928474426,
+     "a": 1
+    },
+    "Intensity": 1.1,
+    "EdgeSoft": 2.709852,
+    "LengthFade": 1.251073,
+    "SmokeAmount": 0.35734,
+    "SmokeScale": 0.004,
+    "SmokeSpeed": 0.5,
+    "DepthFadeDist": 80,
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_ShaftCone.SM_ShaftCone"
+    },
+    "TipSoft": 1.082069,
+    "WobbleAmount": 0.02,
+    "WobbleFreq": 0.059998,
+    "WobbleSpeed": 0.170066,
+    "bShowFloorGlow": true,
+    "FloorGlowScale": 1.259415,
+    "FloorGlowIntensity": 0.8,
+    "FloorZ": 0.512,
+    "Spread": 54.832879,
+    "LaserAmount": 0.07882,
+    "LaserWidth": 4.438632,
+    "bShowSourceGlow": false,
+    "SourceGlowScale": 1.15,
+    "SourceGlowIntensity": 0.6,
+    "ShapeIndex": 0,
+    "bLaserMode": true,
+    "bDriveMPC": true,
+    "MPCPos": {
+     "r": -534.4332885742188,
+     "g": 97181.3125,
+     "b": -1753.0848388671875,
+     "a": 1
+    },
+    "MPCDir": {
+     "r": -0.7071067690849304,
+     "g": -7.343766335332364e-15,
+     "b": 0.7071067690849304,
+     "a": 0
+    },
+    "MPCColor": {
+     "r": 1.100000023841858,
+     "g": 0.6820000410079956,
+     "b": 0.35199999809265137,
+     "a": 1
+    },
+    "MPCRadius": 130,
+    "MPCSpreadPer": 0.15840609488888888,
+    "MPCRange": 900,
+    "MPCLaser": 0.07882,
+    "bAutoFloor": false,
+    "WobbleVariety": 1.15208,
+    "WobbleStretch": 3.59923,
+    "EffectiveFloorZ": 0.512,
+    "bFloorFollowsBeam": true,
+    "WobbleTaper": 1.2,
+    "bShapedAperture": false,
+    "ApertureBoost": 5.982532,
+    "bGradient": true,
+    "GradientColor": {
+     "r": 0.550000011920929,
+     "g": 0.11999999731779099,
+     "b": 0.05000000074505806,
+     "a": 1
+    },
+    "GradientAmount": 0.8,
+    "ShapeWidth": 1,
+    "ShapeDepth": 1,
+    "bPulse": true,
+    "PulseSpeed": 0.0689,
+    "PulsePhase": 0.9443
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Ganzfeld_SC_C_2",
+   "label": "GAL_8_Shell_Verdeazul",
+   "tags": [
+    "GALSTATION",
+    "GAL_8"
+   ],
+   "transform": {
+    "location": {
+     "x": 239100,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_Ganzfeld_SC.BP_Ganzfeld_SC_C",
+   "vars": {
+    "ShellRadius": 3000,
+    "ShellHeight": 3000,
+    "Brightness": 1,
+    "GradientBias": 1,
+    "DitherAmount": 2,
+    "HorizonPos": 0.5,
+    "HorizonWidth": 8,
+    "HorizonGlow": 1,
+    "BreathAmount": 102.884822,
+    "BreathSpeed": 0.15,
+    "ColorTop": {
+     "r": 0.1599999964237213,
+     "g": 0.5199999809265137,
+     "b": 0.7799999713897705,
+     "a": 1
+    },
+    "ColorBottom": {
+     "r": 0.004999999888241291,
+     "g": 0.029999999329447746,
+     "b": 0.09000000357627869,
+     "a": 1
+    },
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_GanzShell.SM_GanzShell"
+    },
+    "CenterYaw": 0,
+    "CenterPitch": 20,
+    "InnerStop": 0.05,
+    "OuterStop": 1.4,
+    "Softness": 1,
+    "FlowScale": 2.656772,
+    "FlowSpeed": 0.403099,
+    "FlowMix": 0.015936,
+    "VeilAmount": 0.15,
+    "VeilScale": 1.8,
+    "ColorMid": {
+     "r": 0.05000000074505806,
+     "g": 0.25999999046325684,
+     "b": 0.46000000834465027,
+     "a": 1
+    },
+    "Mode": 2,
+    "WaveAmount": 0,
+    "WaveShade": 0,
+    "WaveLevel": 0.78125,
+    "ShadeYaw": 0,
+    "ShadeHeight": 1,
+    "ShadeWidth": 0.15,
+    "ShellMaterial": {
+     "refPath": "/Game/SoulCharger/Core/Light/M_GanzSolid_SC.M_GanzSolid_SC"
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Ganzfeld_SC_C_0",
+   "label": "GAL_3_Ganzfeld",
+   "tags": [
+    "GALSTATION",
+    "GAL_3"
+   ],
+   "transform": {
+    "location": {
+     "x": 90000,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_Ganzfeld_SC.BP_Ganzfeld_SC_C",
+   "vars": {
+    "ShellRadius": 5000,
+    "ShellHeight": 5000,
+    "Brightness": 1.30027,
+    "GradientBias": 1,
+    "DitherAmount": 1.400864,
+    "HorizonPos": 0.5,
+    "HorizonWidth": 8,
+    "HorizonGlow": 1,
+    "BreathAmount": 57.574804,
+    "BreathSpeed": 0.884344,
+    "ColorTop": {
+     "r": 0.1634799987077713,
+     "g": 0.18073800206184387,
+     "b": 0.765625,
+     "a": 1
+    },
+    "ColorBottom": {
+     "r": 0.21381500363349915,
+     "g": 0,
+     "b": 0.265625,
+     "a": 1
+    },
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_GanzShell_HD.SM_GanzShell_HD"
+    },
+    "CenterYaw": 0,
+    "CenterPitch": 20,
+    "InnerStop": 0.05,
+    "OuterStop": 1.4,
+    "Softness": 1,
+    "FlowScale": 1.437153,
+    "FlowSpeed": 0.146069,
+    "FlowMix": 1.218191,
+    "VeilAmount": 3.827098,
+    "VeilScale": 13.778864,
+    "ColorMid": {
+     "r": 0.08336400240659714,
+     "g": 0.04980500042438507,
+     "b": 0.796875,
+     "a": 1
+    },
+    "Mode": 2,
+    "WaveAmount": -1161.63539,
+    "WaveShade": 0,
+    "WaveLevel": 1.001265,
+    "ShadeYaw": 0,
+    "ShadeHeight": 1,
+    "ShadeWidth": 0.15,
+    "ShellMaterial": {
+     "refPath": "/Game/SoulCharger/Core/Light/M_Ganzfeld_SC.M_Ganzfeld_SC"
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Ganzfeld_SC_C_1",
+   "label": "GAL_7_Shell_Violeta",
+   "tags": [
+    "GALSTATION",
+    "GAL_7"
+   ],
+   "transform": {
+    "location": {
+     "x": 209100,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_Ganzfeld_SC.BP_Ganzfeld_SC_C",
+   "vars": {
+    "ShellRadius": 10000,
+    "ShellHeight": 10000,
+    "Brightness": 1.799951,
+    "GradientBias": 1,
+    "DitherAmount": 2,
+    "HorizonPos": 0.5,
+    "HorizonWidth": 8,
+    "HorizonGlow": 1,
+    "BreathAmount": 102.884822,
+    "BreathSpeed": 0.15,
+    "ColorTop": {
+     "r": 0.1599999964237213,
+     "g": 0.11999999731779099,
+     "b": 0.550000011920929,
+     "a": 1
+    },
+    "ColorBottom": {
+     "r": 0.0955210030078888,
+     "g": 0.06461600214242935,
+     "b": 0.2199999988079071,
+     "a": 1
+    },
+    "Mesh": {
+     "refPath": "/Game/SoulCharger/Core/Light/SM_GanzShell.SM_GanzShell"
+    },
+    "CenterYaw": 0,
+    "CenterPitch": 20,
+    "InnerStop": 0.05,
+    "OuterStop": 1.4,
+    "Softness": 1,
+    "FlowScale": 1.458797,
+    "FlowSpeed": 0.271891,
+    "FlowMix": 0.015936,
+    "VeilAmount": 0.499888,
+    "VeilScale": 3.537779,
+    "ColorMid": {
+     "r": 0.24276700615882874,
+     "g": 0.2547549903392792,
+     "b": 0.699999988079071,
+     "a": 1
+    },
+    "Mode": 2,
+    "WaveAmount": 0,
+    "WaveShade": 0,
+    "WaveLevel": 0.78125,
+    "ShadeYaw": 0,
+    "ShadeHeight": 1,
+    "ShadeWidth": 0.15,
+    "ShellMaterial": {
+     "refPath": "/Game/SoulCharger/Core/Light/M_GanzSolid_SC.M_GanzSolid_SC"
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_5",
+   "label": "GAL_4_VoidField5",
+   "tags": [
+    "GALSTATION",
+    "GAL_5"
+   ],
+   "transform": {
+    "location": {
+     "x": 149050,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 24.594766592723,
+     "yaw": 85.37066172911355,
+     "roll": 78.99033927878037
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_VoidField_SC.BP_VoidField_SC_C",
+   "vars": {
+    "Radius0": 1470.50675,
+    "Radius1": 1449.149864,
+    "Radius2": 1232.877383,
+    "Tiling": 14.405131,
+    "DotSize": 0.140064,
+    "JitterAmount": 0.525815,
+    "Brightness": 1.145809,
+    "FarDim": 1.540833,
+    "TwinkleAmount": 1.852392,
+    "TwinkleSpeed": 1.102585,
+    "bLayer1": true,
+    "bLayer2": true,
+    "DotColor": {
+     "r": 0.3633759915828705,
+     "g": 0.09973599761724472,
+     "b": 0.5625,
+     "a": 1
+    },
+    "Density": 2.091974,
+    "PulseAmount": 0.989602,
+    "PulseSpeed": 1.065382,
+    "bBackground": true,
+    "BackRadius": 9000,
+    "BackBrightness": 1,
+    "BackColor": {
+     "r": 0.7447919845581055,
+     "g": 0.703698992729187,
+     "b": 0.6639119982719421,
+     "a": 1
+    },
+    "DotColor2": {
+     "r": 0.2699730098247528,
+     "g": 0.23620900511741638,
+     "b": 0.949999988079071,
+     "a": 1
+    },
+    "DotColor3": {
+     "r": 0.598842978477478,
+     "g": 0.5756970047950745,
+     "b": 0.9800000190734863,
+     "a": 1
+    },
+    "SpinSpeed0": 1.456461,
+    "SpinSpeed1": 1.265762,
+    "SpinSpeed2": -1.060837,
+    "SpinAxis0": {
+     "x": 0,
+     "y": 0,
+     "z": 0.55
+    },
+    "SpinAxis1": {
+     "x": 0,
+     "y": 1.811912,
+     "z": 0
+    },
+    "SpinAxis2": {
+     "x": -27.025414,
+     "y": -2.673715,
+     "z": 0
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_6",
+   "label": "GAL_4_VoidField6",
+   "tags": [
+    "GALSTATION",
+    "GAL_5"
+   ],
+   "transform": {
+    "location": {
+     "x": 149050,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 60.789651346178175,
+     "yaw": -179.3168073976831,
+     "roll": -8.45861351092856
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_VoidField_SC.BP_VoidField_SC_C",
+   "vars": {
+    "Radius0": 1470.50675,
+    "Radius1": 1449.149864,
+    "Radius2": 1232.877383,
+    "Tiling": 14.405131,
+    "DotSize": 0.140064,
+    "JitterAmount": 0.525815,
+    "Brightness": 1.145809,
+    "FarDim": 1.540833,
+    "TwinkleAmount": 1.852392,
+    "TwinkleSpeed": 1.102585,
+    "bLayer1": true,
+    "bLayer2": true,
+    "DotColor": {
+     "r": 0.3633759915828705,
+     "g": 0.09973599761724472,
+     "b": 0.5625,
+     "a": 1
+    },
+    "Density": 2.091974,
+    "PulseAmount": 0.989602,
+    "PulseSpeed": 1.065382,
+    "bBackground": true,
+    "BackRadius": 9000,
+    "BackBrightness": 1,
+    "BackColor": {
+     "r": 0.7447919845581055,
+     "g": 0.703698992729187,
+     "b": 0.6639119982719421,
+     "a": 1
+    },
+    "DotColor2": {
+     "r": 0.2699730098247528,
+     "g": 0.23620900511741638,
+     "b": 0.949999988079071,
+     "a": 1
+    },
+    "DotColor3": {
+     "r": 0.598842978477478,
+     "g": 0.5756970047950745,
+     "b": 0.9800000190734863,
+     "a": 1
+    },
+    "SpinSpeed0": 1.456461,
+    "SpinSpeed1": 1.265762,
+    "SpinSpeed2": -1.060837,
+    "SpinAxis0": {
+     "x": 0,
+     "y": 0,
+     "z": 0.55
+    },
+    "SpinAxis1": {
+     "x": 0,
+     "y": 1.811912,
+     "z": 0
+    },
+    "SpinAxis2": {
+     "x": -27.025414,
+     "y": -2.673715,
+     "z": 0
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_7",
+   "label": "GAL_4_VoidField7",
+   "tags": [
+    "GALSTATION",
+    "GAL_5"
+   ],
+   "transform": {
+    "location": {
+     "x": 149050,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 35.03935057885243,
+     "yaw": 27.19187969207558,
+     "roll": 20.228470187372128
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_VoidField_SC.BP_VoidField_SC_C",
+   "vars": {
+    "Radius0": 348.314,
+    "Radius1": 1311.272805,
+    "Radius2": 1061.181124,
+    "Tiling": 14.405131,
+    "DotSize": 0.140064,
+    "JitterAmount": 0.525815,
+    "Brightness": 1.145809,
+    "FarDim": 1.540833,
+    "TwinkleAmount": 1.852392,
+    "TwinkleSpeed": 1.102585,
+    "bLayer1": true,
+    "bLayer2": true,
+    "DotColor": {
+     "r": 0.3633759915828705,
+     "g": 0.09973599761724472,
+     "b": 0.5625,
+     "a": 1
+    },
+    "Density": 2.091974,
+    "PulseAmount": 0.989602,
+    "PulseSpeed": 1.065382,
+    "bBackground": true,
+    "BackRadius": 9000,
+    "BackBrightness": 1,
+    "BackColor": {
+     "r": 0.7447919845581055,
+     "g": 0.703698992729187,
+     "b": 0.6639119982719421,
+     "a": 1
+    },
+    "DotColor2": {
+     "r": 0.2699730098247528,
+     "g": 0.23620900511741638,
+     "b": 0.949999988079071,
+     "a": 1
+    },
+    "DotColor3": {
+     "r": 0.598842978477478,
+     "g": 0.5756970047950745,
+     "b": 0.9800000190734863,
+     "a": 1
+    },
+    "SpinSpeed0": 1.456461,
+    "SpinSpeed1": 1.265762,
+    "SpinSpeed2": -1.060837,
+    "SpinAxis0": {
+     "x": 0,
+     "y": 0,
+     "z": 0.55
+    },
+    "SpinAxis1": {
+     "x": 0,
+     "y": 1.811912,
+     "z": 0
+    },
+    "SpinAxis2": {
+     "x": -27.025414,
+     "y": -2.673715,
+     "z": 0
+    }
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RingTunnel_SC_C_8",
+   "label": "GAL_9_RingTunnel5",
+   "tags": [
+    "GALSTATION",
+    "GAL_9"
+   ],
+   "transform": {
+    "location": {
+     "x": 268786.0069582225,
+     "y": 100576.94664882531,
+     "z": 333.91649112187883
+    },
+    "rotation": {
+     "pitch": 17.430131203529317,
+     "yaw": 118.55646321593059,
+     "roll": -2.358181933593532
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_RingTunnel_SC.BP_RingTunnel_SC_C",
+   "vars": {
+    "PortalRadius": 300,
+    "TunnelLength": 719.282917,
+    "TunnelCurve": 2.167314,
+    "Speed": 0.04,
+    "SpiralSpeed": 0.15,
+    "SpiralTwist": 49.302464,
+    "WobbleAmount": 71.378356,
+    "WobbleSpeed": 0.4,
+    "ColorNear": {
+     "r": 0.39625200629234314,
+     "g": 0.09693100303411484,
+     "b": 1.2000000476837158,
+     "a": 1
+    },
+    "ColorMid": {
+     "r": 0.9200000166893005,
+     "g": 0.43351098895072937,
+     "b": 0.4058220088481903,
+     "a": 1
+    },
+    "ColorFar": {
+     "r": 0.4735319912433624,
+     "g": 0.4649609923362732,
+     "b": 0.19344699382781982,
+     "a": 1
+    },
+    "Brightness": 0.909585,
+    "RingWidth": 0.476,
+    "WidthVariation": 0.098803,
+    "WidthFreq": 2,
+    "ContainerScale": 1,
+    "RingCount": 16,
+    "Idx": 15,
+    "BandGlow": 0.129414,
+    "BandCurve": 50.942113,
+    "TwistStart": 0.045801,
+    "FadeInTime": 0.02,
+    "WrapCount": 0,
+    "FrameColor": {
+     "r": 0.19461800158023834,
+     "g": 0.057805001735687256,
+     "b": 0.6866850256919861,
+     "a": 1
+    },
+    "ShadowAmount": 0.46,
+    "ShadowSoft": 1.826282,
+    "BackRadius": 365.171664,
+    "BackColor": {
+     "r": 0.4648990035057068,
+     "g": 0.4735319912433624,
+     "b": 0.28387799859046936,
+     "a": 1
+    },
+    "FadeOutTime": 0.15,
+    "ShapeIndex": 0,
+    "ShapeAspect": 0,
+    "ShapeCorner": 0,
+    "ShapeCurve": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RingTunnel_SC_C_9",
+   "label": "GAL_9_RingTunnel6",
+   "tags": [
+    "GALSTATION",
+    "GAL_9"
+   ],
+   "transform": {
+    "location": {
+     "x": 268872.03652384796,
+     "y": 99179.95276909067,
+     "z": 255.19195725755685
+    },
+    "rotation": {
+     "pitch": 8.519534397071507,
+     "yaw": -105.53530437814868,
+     "roll": 34.927267688471346
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_RingTunnel_SC.BP_RingTunnel_SC_C",
+   "vars": {
+    "PortalRadius": 300,
+    "TunnelLength": 958.186998,
+    "TunnelCurve": 2.167314,
+    "Speed": 0.04,
+    "SpiralSpeed": 0.15,
+    "SpiralTwist": 49.302464,
+    "WobbleAmount": 71.378356,
+    "WobbleSpeed": 0.4,
+    "ColorNear": {
+     "r": 0.9038439989089966,
+     "g": 0.7951580286026001,
+     "b": 1.2000000476837158,
+     "a": 1
+    },
+    "ColorMid": {
+     "r": 0.31415000557899475,
+     "g": 0.5244190096855164,
+     "b": 0.9200000166893005,
+     "a": 1
+    },
+    "ColorFar": {
+     "r": 0.4158560037612915,
+     "g": 0.42241400480270386,
+     "b": 0.4735319912433624,
+     "a": 1
+    },
+    "Brightness": 0.909585,
+    "RingWidth": 0.476,
+    "WidthVariation": 0.098803,
+    "WidthFreq": 2,
+    "ContainerScale": 1,
+    "RingCount": 16,
+    "Idx": 15,
+    "BandGlow": 0.129414,
+    "BandCurve": 50.942113,
+    "TwistStart": 0.045801,
+    "FadeInTime": 0.02,
+    "WrapCount": 0,
+    "FrameColor": {
+     "r": 0.19461800158023834,
+     "g": 0.057805001735687256,
+     "b": 0.6866850256919861,
+     "a": 1
+    },
+    "ShadowAmount": 0.46,
+    "ShadowSoft": 0.926217,
+    "BackRadius": 365.171664,
+    "BackColor": {
+     "r": 0.45473599433898926,
+     "g": 0.4735319912433624,
+     "b": 0.43277499079704285,
+     "a": 1
+    },
+    "FadeOutTime": 0.15,
+    "ShapeIndex": 0,
+    "ShapeAspect": 0,
+    "ShapeCorner": 0,
+    "ShapeCurve": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RingTunnel_SC_C_10",
+   "label": "GAL_9_RingTunnel7",
+   "tags": [
+    "GALSTATION",
+    "GAL_9"
+   ],
+   "transform": {
+    "location": {
+     "x": 268504.6199873587,
+     "y": 100124.39912981604,
+     "z": -448.71639647376605
+    },
+    "rotation": {
+     "pitch": -43.46091221536384,
+     "yaw": 168.19836192038906,
+     "roll": 20.55825632448449
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_RingTunnel_SC.BP_RingTunnel_SC_C",
+   "vars": {
+    "PortalRadius": 300,
+    "TunnelLength": 864.334355,
+    "TunnelCurve": 2.167314,
+    "Speed": 0.04,
+    "SpiralSpeed": 0.15,
+    "SpiralTwist": 49.302464,
+    "WobbleAmount": 71.378356,
+    "WobbleSpeed": 0.4,
+    "ColorNear": {
+     "r": 0.39625200629234314,
+     "g": 0.09693100303411484,
+     "b": 1.2000000476837158,
+     "a": 1
+    },
+    "ColorMid": {
+     "r": 0.31415000557899475,
+     "g": 0.5244190096855164,
+     "b": 0.9200000166893005,
+     "a": 1
+    },
+    "ColorFar": {
+     "r": 0.25415199995040894,
+     "g": 0.4735319912433624,
+     "b": 0.19461800158023834,
+     "a": 1
+    },
+    "Brightness": 0.909585,
+    "RingWidth": 0.476,
+    "WidthVariation": 0.098803,
+    "WidthFreq": 2,
+    "ContainerScale": 1,
+    "RingCount": 16,
+    "Idx": 15,
+    "BandGlow": 0.129414,
+    "BandCurve": 50.942113,
+    "TwistStart": 0.045801,
+    "FadeInTime": 0.02,
+    "WrapCount": 0,
+    "FrameColor": {
+     "r": 0.19461800158023834,
+     "g": 0.057805001735687256,
+     "b": 0.6866850256919861,
+     "a": 1
+    },
+    "ShadowAmount": 0.46,
+    "ShadowSoft": 0.926217,
+    "BackRadius": 365.171664,
+    "BackColor": {
+     "r": 0.2943669855594635,
+     "g": 0.40104201436042786,
+     "b": 0.25101301074028015,
+     "a": 1
+    },
+    "FadeOutTime": 0.15,
+    "ShapeIndex": 0,
+    "ShapeAspect": 0,
+    "ShapeCorner": 0,
+    "ShapeCurve": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_RingTunnel_SC_C_11",
+   "label": "GAL_9_RingTunnel8",
+   "tags": [
+    "GALSTATION",
+    "GAL_9"
+   ],
+   "transform": {
+    "location": {
+     "x": 268718.54199034936,
+     "y": 99965.64131332145,
+     "z": 190.63620946676053
+    },
+    "rotation": {
+     "pitch": 9.332941517362094,
+     "yaw": -174.85314319455892,
+     "roll": 14.969587408231334
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Light/BP_RingTunnel_SC.BP_RingTunnel_SC_C",
+   "vars": {
+    "PortalRadius": 300,
+    "TunnelLength": 608.759444,
+    "TunnelCurve": 2.167314,
+    "Speed": 0.02,
+    "SpiralSpeed": 0.15,
+    "SpiralTwist": 49.302464,
+    "WobbleAmount": 71.378356,
+    "WobbleSpeed": 0.4,
+    "ColorNear": {
+     "r": 0.39625200629234314,
+     "g": 0.09693100303411484,
+     "b": 1.2000000476837158,
+     "a": 1
+    },
+    "ColorMid": {
+     "r": 0.31415000557899475,
+     "g": 0.5244190096855164,
+     "b": 0.9200000166893005,
+     "a": 1
+    },
+    "ColorFar": {
+     "r": 0.25415199995040894,
+     "g": 0.4735319912433624,
+     "b": 0.19461800158023834,
+     "a": 1
+    },
+    "Brightness": 0.909585,
+    "RingWidth": 0.476,
+    "WidthVariation": 0.098803,
+    "WidthFreq": 2,
+    "ContainerScale": 1,
+    "RingCount": 16,
+    "Idx": 15,
+    "BandGlow": 0.129414,
+    "BandCurve": 50.942113,
+    "TwistStart": 0.045801,
+    "FadeInTime": 0.02,
+    "WrapCount": 0,
+    "FrameColor": {
+     "r": 0.19461800158023834,
+     "g": 0.057805001735687256,
+     "b": 0.6866850256919861,
+     "a": 1
+    },
+    "ShadowAmount": 0.46,
+    "ShadowSoft": 0.926217,
+    "BackRadius": 365.171664,
+    "BackColor": {
+     "r": 0.25415199995040894,
+     "g": 0.4735319912433624,
+     "b": 0.19461800158023834,
+     "a": 1
+    },
+    "FadeOutTime": 0.15,
+    "ShapeIndex": 0,
+    "ShapeAspect": 0,
+    "ShapeCorner": 0,
+    "ShapeCurve": 0
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_AudioHub_C_0",
+   "label": "GAL_AudioHub",
+   "tags": [],
+   "transform": {
+    "location": {
+     "x": -1200,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Audio/BP_AudioHub.BP_AudioHub_C",
+   "vars": {
+    "SfxMap": {},
+    "AmbientMap": {},
+    "VoClips": [],
+    "CurrentAmb": "",
+    "bUseA": false,
+    "MelodyClips": [
+     {
+      "refPath": "/Game/SoulCharger/Stages/Touch/Audio/MS_Synth.MS_Synth"
+     },
+     {
+      "refPath": "/Game/SoulCharger/Stages/Touch/Audio/MS_Perc.MS_Perc"
+     }
+    ],
+    "MelodyIds": [],
+    "MelodyIdx": 0,
+    "MelodyStep": 0.32,
+    "LoopMap": {
+     "LBell": {
+      "refPath": "/Game/SoulCharger/Core/Audio/Sounds/Bell.Bell"
+     },
+     "LBreath": {
+      "refPath": "/Game/SoulCharger/Core/Audio/Sounds/BreathCount.BreathCount"
+     },
+     "LDraw": {
+      "refPath": "/Game/SoulCharger/Core/Audio/Sounds/Draw.Draw"
+     },
+     "LMind1": {
+      "refPath": "/Game/SoulCharger/Core/Audio/Sounds/Mind1.Mind1"
+     },
+     "LMind2": {
+      "refPath": "/Game/SoulCharger/Core/Audio/Sounds/Mind2.Mind2"
+     },
+     "LMind3": {
+      "refPath": "/Game/SoulCharger/Core/Audio/Sounds/Mind3.Mind3"
+     },
+     "LSteps": {
+      "refPath": "/Game/SoulCharger/Core/Audio/Sounds/Pasos.Pasos"
+     },
+     "LProtoHover": {
+      "refPath": "/Game/SoulCharger/Core/Audio/Sounds/ProtoHover.ProtoHover"
+     },
+     "LAttractPad": {
+      "refPath": "/Game/SoulCharger/Core/Audio/AttractingSounds/Module1/PadM1.PadM1"
+     }
+    },
+    "LoopVoices": [],
+    "VoiceNames": []
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_HapticHub_C_0",
+   "label": "GAL_HapticHub",
+   "tags": [],
+   "transform": {
+    "location": {
+     "x": -1200,
+     "y": 100000,
+     "z": 0
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/Audio/BP_HapticHub.BP_HapticHub_C",
+   "vars": {
+    "HoverAmp": 0.15,
+    "HoverFreq": 0.4,
+    "HoverTime": 0.06,
+    "SelectAmp": 0.7,
+    "SelectFreq": 0.8,
+    "SelectTime": 0.12,
+    "HoldAmp": 0.35,
+    "HoldFreq": 0.25,
+    "bEnabled": true,
+    "PCRef": "None"
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_GalleryDirector_SC_C_0",
+   "label": "GAL_DIRECTOR",
+   "tags": [],
+   "transform": {
+    "location": {
+     "x": -700,
+     "y": 100000,
+     "z": 25
+    },
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Gallery/BP_GalleryDirector_SC.BP_GalleryDirector_SC_C",
+   "vars": {
+    "Index": 0,
+    "Anchors": [
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Anchor_C_0"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Anchor_C_1"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Anchor_C_2"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Anchor_C_3"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Anchor_C_4"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Anchor_C_5"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Anchor_C_6"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Anchor_C_7"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Anchor_C_8"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Anchor_C_10"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Anchor_C_9"
+     }
+    ],
+    "Stations": [
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LightShaft_SC_C_0"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_CloudPlane_SC_C_5"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_FogSlab_SC_C_2"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_Ganzfeld_SC_C_0"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_VoidField_SC_C_0"
+     },
+     {
+      "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_LineField_SC_C_3"
+     }
+    ],
+    "BtnNext": {
+     "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_MenuButton_C_0"
+    },
+    "BtnPrev": {
+     "refPath": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_MenuButton_C_1"
+    },
+    "bReady": false,
+    "Names": [
+     "1  Light Shaft",
+     "2  Cloud Ocean",
+     "3  Fog Slab",
+     "4  Ganzfeld",
+     "5  Void Field",
+     "6  Line Field",
+     "7  Sombra falsa",
+     "8  Orbe (Nico)",
+     "9  Burbujas (Nico)",
+     "10  Ring Tunnel",
+     "11  Ring Tunnel Rect"
+    ],
+    "StationTags": [
+     "GAL_0",
+     "GAL_1",
+     "GAL_2",
+     "GAL_3",
+     "GAL_4",
+     "GAL_5",
+     "GAL_6",
+     "GAL_7",
+     "GAL_8",
+     "GAL_9",
+     "GAL_10"
+    ],
+    "bArmedOnce": false,
+    "StartAt": 0,
+    "bWaitRelease": false
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_MenuButton_C_0",
+   "label": "GAL_BTN_NEXT",
+   "tags": [],
+   "transform": {
+    "location": {
+     "x": -652,
+     "y": 100024,
+     "z": 110
+    },
+    "rotation": {
+     "pitch": 34.99999999999986,
+     "yaw": 180,
+     "roll": 3.778019538781171e-15
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/UI/BP_MenuButton.BP_MenuButton_C",
+   "vars": {
+    "LabelText": "NEXT",
+    "HoverRadius": 20,
+    "HoldTime": 0,
+    "HoverScale": 1.18,
+    "HoverSpeed": 8,
+    "HoverT": 0,
+    "HoldT": 0,
+    "bArmed": false,
+    "bHovered": false,
+    "bTrigHeld": false,
+    "bDone": false,
+    "BaseScale": {
+     "x": 0,
+     "y": 0,
+     "z": 0
+    },
+    "HandL": "None",
+    "HandR": "None",
+    "OnPressed": "()",
+    "bHoldByHover": false,
+    "IMCRef": {
+     "refPath": "/Game/SoulCharger/Core/UI/Input/IMC_MenuTrigger.IMC_MenuTrigger"
+    },
+    "bInputReady": false,
+    "AudioRef": "None",
+    "HapticRef": "None",
+    "bWasHovered": false,
+    "bHoverRight": false,
+    "HoverSfxName": "SBubble",
+    "SelectSfxName": "SSelect",
+    "bWasHolding": false,
+    "HoldSfxName": "LBell",
+    "HoverOutSfxName": "SBubbleOut",
+    "HoverState": 0,
+    "HoverHandRight": false
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_MenuButton_C_1",
+   "label": "GAL_BTN_BACK",
+   "tags": [],
+   "transform": {
+    "location": {
+     "x": -652,
+     "y": 99976,
+     "z": 110
+    },
+    "rotation": {
+     "pitch": 34.99999999999986,
+     "yaw": 180,
+     "roll": 3.778019538781171e-15
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/SoulCharger/Core/UI/BP_MenuButton.BP_MenuButton_C",
+   "vars": {
+    "LabelText": "BACK",
+    "HoverRadius": 20,
+    "HoldTime": 0,
+    "HoverScale": 1.18,
+    "HoverSpeed": 8,
+    "HoverT": 0,
+    "HoldT": 0,
+    "bArmed": false,
+    "bHovered": false,
+    "bTrigHeld": false,
+    "bDone": false,
+    "BaseScale": {
+     "x": 0,
+     "y": 0,
+     "z": 0
+    },
+    "HandL": "None",
+    "HandR": "None",
+    "OnPressed": "()",
+    "bHoldByHover": false,
+    "IMCRef": {
+     "refPath": "/Game/SoulCharger/Core/UI/Input/IMC_MenuTrigger.IMC_MenuTrigger"
+    },
+    "bInputReady": false,
+    "AudioRef": "None",
+    "HapticRef": "None",
+    "bWasHovered": false,
+    "bHoverRight": false,
+    "HoverSfxName": "SBubble",
+    "SelectSfxName": "SSelect",
+    "bWasHolding": false,
+    "HoldSfxName": "LBell",
+    "HoverOutSfxName": "SBubbleOut",
+    "HoverState": 0,
+    "HoverHandRight": false
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_ControllerRig_C_1",
+   "label": "ControllerRig_L",
+   "tags": [],
+   "transform": {
+    "location": {
+     "x": -40,
+     "y": -25,
+     "z": 120
+    },
+    "rotation": {
+     "pitch": 1.3831033148303994e-14,
+     "yaw": -94.99999999999939,
+     "roll": 1.27222187258541e-14
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/BP_ControllerRig.BP_ControllerRig_C",
+   "vars": {
+    "bRightHand": false,
+    "DrawWidth": 1.8,
+    "DrawColor": {
+     "r": 0.3499999940395355,
+     "g": 0.699999988079071,
+     "b": 1,
+     "a": 1
+    },
+    "bCanDraw": false,
+    "DrawMat": {
+     "refPath": "/Game/Drawing/Material/M_Emissive_Inst.M_Emissive_Inst"
+    },
+    "HapticAmp": 0.25,
+    "bShowController": false,
+    "bShowBreath": false,
+    "bShowMarker": false,
+    "bShowHand": true
+   }
+  },
+  {
+   "actor": "/Game/TestMeshes.TestMeshes:PersistentLevel.BP_ControllerRig_C_2",
+   "label": "ControllerRig_R",
+   "tags": [],
+   "transform": {
+    "location": {
+     "x": -40,
+     "y": 25,
+     "z": 120
+    },
+    "rotation": {
+     "pitch": 1.051302862822936e-14,
+     "yaw": -79.9999999999995,
+     "roll": 1.2528939636738186e-14
+    },
+    "scale": {
+     "x": 1,
+     "y": 1,
+     "z": 1
+    }
+   },
+   "class": "/Game/BP_ControllerRig.BP_ControllerRig_C",
+   "vars": {
+    "bRightHand": true,
+    "DrawWidth": 1.8,
+    "DrawColor": {
+     "r": 0.3499999940395355,
+     "g": 0.699999988079071,
+     "b": 1,
+     "a": 1
+    },
+    "bCanDraw": false,
+    "DrawMat": {
+     "refPath": "/Game/Drawing/Material/M_Emissive_Inst.M_Emissive_Inst"
+    },
+    "HapticAmp": 0.25,
+    "bShowController": false,
+    "bShowBreath": false,
+    "bShowMarker": false,
+    "bShowHand": true
+   }
+  }
+ ]
+}

@@ -79,6 +79,8 @@ Un `compile_blueprint` con PIE vivo dejó el editor **sin responder**, con la me
 ## Session startup (check this first)
 MCP links are established when Claude starts, so **Unreal must already be running before the Claude session begins** (opening the project auto-starts the server — Auto Start Server is enabled on port 8000). If Unreal wasn't up at launch, the `unreal` tools won't exist and no amount of opening it now will attach them — the user must restart Claude.
 
+🔴 **2026-09-16 y 2026-09-17: el servidor NO arrancó solo** (editor abierto y respondiendo, puerto 8000 cerrado, sin la línea `Starting MCP server` en `Saved/Logs/VR_Test.log`). Arreglo: escribir **`ModelContextProtocol.StartServer`** en la consola del editor y después **reiniciar la sesión de Claude**. La herramienta de reconexión de la app no sirve: solo re-disca conectores de claude.ai, y `unreal` es un servidor del proyecto.
+
 At the start of any Unreal session, verify the link cheaply before promising anything: call `SceneTools.get_current_level`. If the tools are missing or the link dropped mid-session (observed: it does NOT auto-recover even though the port still answers), the fix is **restart Claude, leave Unreal open**. Confirm the editor is alive with `Get-Process UnrealEditor*` / port 8000 before blaming the plugin.
 
 ## How to call anything
