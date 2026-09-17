@@ -321,3 +321,26 @@ Resultado: **~45 vertices por esquina** (2° por faceta) y 6 y 13 en los rectos,
 ⚠ Guarda para `Corner = 0` (esquina viva): con `r ≈ 0` la ventana de la esquina es de ancho cero, asi que `cs` pasa a 0 y el reparto vuelve a ser proporcional a los rectos. Sin esa guarda, el 70 % de los vertices colapsaba en un punto.
 
 💡 **Las mallas HD siguen siendo utiles** (el cilindro del fondo tenia 32 lados y era el peor), pero **no eran la causa**. Con el warp, incluso las de 96 segmentos darian ~17 vertices por esquina.
+
+
+## 🌬️ 2026-09-17 — TAMAÑO y VELOCIDAD con la respiración ([[BP_BreathManager_SC]])
+Pedido de Beltrán: *"tamaño al inhalar, y velocidad baja. Luego, velocidad y tamaño al exhalar"* → **inhala: el portal crece y el viaje frena · exhala: el viaje fluye y el portal se achica.**
+
+🔴 **La velocidad NO se puede tocar**: `RingPix`, `RingWPO` y `RingMask` calculan `t = frac(Phase + Time·Speed)`; cambiar `Speed` en caliente hace saltar todos los anillos (con Time = 600 s, un Δ de 0,02 son 12 ciclos).
+
+- **Material `M_RingTunnel_SC`**:
+  - `Custom` **`BreathPhase`** = `Phase + Speed·(GIn·FlowIn + GOut·FlowOut)` → entra al `Phase` de **los tres** `Custom` (color, forma y fade siguen la misma fase). La velocidad efectiva queda `Speed·(1 + In·max(S,0) + Out·max(−S,0))`, sin saltos, y en reposo no cambia nada.
+  - `Custom` **`BreathSize`** (`WP`, `ObjPos`, `Off`=`RingWPO`, `TimeIn`, `Phase`, `Speed`, `CurveExp`, `VPt`, `S`, `GIn`, `GOut`):
+```
+m   = 1 + max(S,0)·GIn + max(−S,0)·GOut
+lam = 1 − exp(−max(CurveExp,0.01)·frac(Phase + TimeIn·Speed))
+return Off + (m−1)·((WP−ObjPos)·(1−lam) + (Off − (VPt−WP)·lam))
+```
+    = escala cada anillo sobre su centro en proporción a `(1−λ)`: **en la boca crece entero, en el punto de fuga no cambia**. Alimenta `RingShape.Off` y `Add_0.A` (la forma rectangular se calcula sobre la posición ya escalada).
+    🔴 **Duplica la ley `λ = 1 − e^(−K·t)` de `RingWPO`**: si esa ley cambia, cambiarla también acá.
+- **Material `M_RingFrame_SC`**: `Custom` **`BreathFrame`** = `(m−1)·(WP−ObjPos) + m·FrameShape` → WPO. El marco crece igual que los anillos en la boca (`FrameShape` es homogénea de grado 1, por eso `m·Shape` es exacto, rectángulo y curvatura incluidos). El `Backplate` usa el mismo material pero **no recibe** las perillas → no se mueve.
+- **BP**: perillas `BreathSizeIn/Out` · `BreathSpeedIn/Out` + `ApplyBreath` al final del Construction Script: `ContainerRing` (tamaño) + bucle `GetComponentsByTag(StaticMeshComponent, "TUNRING")` → cast → 4 parámetros por anillo.
+  🔴 **Trampa pagada**: el DSL **perdió los dos literales** de `GetComponentsByTag` (quedó `ActorComponent` + tag `None` = bucle vacío, **compilando en verde**): el primer argumento posicional se lo comió el pin `self`. Corregido con `set_pin_value` y verificado leyendo el nodo.
+- **Instancias** `GAL_9` (8 túneles) y `GAL_10` (3 rect): `SizeIn 0,2` · `SizeOut −0,15` · `SpeedIn −0,75` (×0,25) · `SpeedOut 0,8` (×1,8). La `Speed` negativa (el Rect que va al revés) se respeta.
+- ✅ Verificado en los MIDs: anillos (circular y rect) con las 4, marco con las 2, fondo sin ninguna.
+- 💡 El tamaño va en el shader y no escalando el actor: 8 túneles × 18 componentes serían 144 transformadas por frame en el CPU del Quest.

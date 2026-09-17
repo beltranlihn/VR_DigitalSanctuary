@@ -160,3 +160,20 @@ if (bPulse):
 Los **20 haces** de la composicion quedaron con `bPulse = true` y velocidad/fase **repartidas de forma determinista**: `speed = 0,06 + 0,16·frac(i·0,381966)` y `phase = frac(i·0,618034)` — el mismo truco de razon aurea que usa `BP_RingTunnel_SC` para desincronizar sus anillos. Rango: **4,5 a 16 segundos por ciclo**.
 ⚠ Los tres valores **nacieron en 0** en las instancias (la trampa de siempre) — por eso hubo que escribirlos actor por actor; con `PulseSpeed = 0` el pulso no se mueve aunque `bPulse` este en true.
 ✅ Canario **103 → 103** en las dos tandas de script, cero errores.
+
+
+## 🌬️ 2026-09-17 — el cono RESPIRA (`StepBreath`, mecánica portable [[BP_BreathManager_SC]])
+Pedido de Beltrán para la estación 1 de la galería: *"que controle apertura del cono de los haces de luz"*.
+
+- **Perillas** (cat. *R - Respiracion*, instance-editable, **0 = apagado = comportamiento anterior exacto**): `BreathSpreadIn` · `BreathSpreadOut` = cuánto cambia el **radio del extremo** a inhalación / exhalación plena.
+- **EventTick**: `StepPulse` → `GetScalarParameterValue(MPC_Breath, "Signed")` (nodo de COLECCIÓN, creado por cirugía con `declaring_class=KismetMaterialLibrary`) → `StepBreath(S)`.
+- **`StepBreath(S)`**, solo si alguna ganancia ≠ 0:
+```
+m         = 1 + max(S,0)·In + max(−S,0)·Out
+SpreadEff = max((50 + Spread)·m − 50, 0)          → "Spread" al Beam
+si bFloorFollowsBeam: FloorGlow.RelativeScale = FloorGlowScale·(1 + SpreadEff·0,02)   (la fórmula de ApplyFloorGlow)
+```
+- **Por qué el radio y no `Spread`**: los 20 haces de la estación tienen `Spread` 5 o 54,8. Un multiplicador sobre `Spread` dejaba quietos a los angostos; escalando el radio del extremo (`50 + Spread`) se abren todos en proporción y el pozo usa el mismo `m`. El clamp en 0 hace que cerrar un cono termine en **tubo**, no en embudo invertido.
+- **Instancias**: las 20 de `GAL_0` con `In 0,5` / `Out −0,45`. Las 3 de `GAL_8` quedan en 0.
+- ✅ **Medido en PIE con la respiración de prueba** (S = −1 / 0 / +1): haz angosto `Spread` 5 → **0 / 5 / 32,5** · haz ancho 54,8 → **7,66 / 54,8 / 107,25** · pozo del ancho ×1,45 / autorado / ×3,96. Números idénticos a la fórmula; cero `Accessed None`.
+- ⚠ Limitaciones: el pozo solo acompaña con `bFloorFollowsBeam` (el modo de toda la estación 1); en modo mundo no se reescala. `MPC_LightShaft` (receptores bañados) no se entera del spread respirado. Inhalar ensancha translúcidos aditivos → **más fill: medir en visor**. Es CPU: solo se ve en PIE o visor (la vista previa del manager no lo mueve en el editor).

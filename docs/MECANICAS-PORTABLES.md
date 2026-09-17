@@ -52,6 +52,7 @@ Qué referencia de verdad cada BP (solo lo relevante de `/Game/`; se omiten engi
 | **BP_SoulHUD_SC** | `BP_BioHub`, **`BP_Director_Story`**, `BP_FaceAnchor_SC`, `WBP_SoulHUD_SC`, `M_HudWidget_SC` | 🟡 |
 | **BP_Elevator_SC** | `BP_Sensor_Soul`, **`BP_Director_Story`** | 🟡 (patrón consumidor correcto; el cierre apunta al director) |
 | **BP_BreathOrb_SC** | `BP_Sensor_Soul`, `MI_Sensor` | 🟡 |
+| 🆕 **BP_BreathManager_SC** (2026-09-17) | `MPC_Breath`, `/Game/XRFramework/Haptics/GrabHapticEffect` — **nada más de /Game** | 🟢 **medido: cero pawn, cero director** (cumple el criterio de "listo" de §5) |
 | **BP_Sensor_Soul** | **`BP_VRPawn_SC`**, **`BP_Director_Story`**, `BP_ProtoSoul_SC`, `BP_BioHub`, `BP_SoundOrb_SC`, `BP_SaveMelody_SC`, `BP_BrushPalette`, `BP_DrawCanvas`, `MPC_Draw`, `MI_Sensor`, Niagara `LineTrace`, `HeartBeat`/`Trigger_Select`, `IA_Shoot`+`IMC_MenuTrigger` | 🔴 **el nudo del proyecto**: contiene 5 mecánicas y conoce al pawn Y al director por clase |
 | **BP_Sequencer_SC** | **`BP_Sensor_Soul`**, **`BP_Director_Story`**, `BP_InstructionsPanel_SC`, orb/slot/save, `PadM1` + 20 clips | 🔴 (vía sensor y director) |
 | **BP_SoundOrb_SC** / **BP_SaveMelody_SC** / **BP_SeqSlot_SC** | el cluster de Attracting + `BP_Sensor_Soul` | 🟡 (motores limpios; el acople al sensor es del diseño del beam) |
@@ -157,8 +158,17 @@ Los motores (`BP_SoundOrb_SC`, `BP_SeqSlot_SC`, `BP_SaveMelody_SC`) están limpi
 
 ---
 
-### 4.7 🔴 Respiración — modo 1 de `BP_Sensor_Soul` (+ consumidores)
-La menos portable hoy: motor+manager+etapa+háptica comparten BP con las otras 4 mecánicas, y **los ~25 valores afinados en visor viven en la INSTANCIA del nivel**, no en el CDO.
+### 4.7 🟢 Respiración — `BP_BreathManager_SC` + `MPC_Breath` (extraído 2026-09-17)
+**El manager portable ya existe** ([tracker](../.claude/skills/unreal-vr/blueprints/BP_BreathManager_SC.md)): el motor de señal + umbral + háptica del modo 1 de `BP_Sensor_Soul`, con los valores del CDO afinado en visor, sin cast al pawn, sin directores y sin input. Primer consumidor: la galería de `/Game/TestMeshes` (7 efectos). Plan y mapeo por estación: [`PLAN-GALERIA-RESPIRACION-2026-09-17.md`](PLAN-GALERIA-RESPIRACION-2026-09-17.md).
+
+- **Paquete:** la carpeta `Mechanics/Breath/` (manager + `MPC_Breath`) + `GrabHapticEffect` (perilla `HapticEffect`, reemplazable).
+- **Enchufe:** una instancia en el nivel persistente · pawn con `CameraComponent` y SceneComponents **`HandRight`/`HandLeft` hijos de su MotionController Grip**. Nada más: no necesita hubs, input ni tags.
+- **API:** variables `bBreathing` · `BreathLevel` (0..1) · `BreathDrive` (0..1, 0,5 en reposo, con el seguimiento de la esfera) · `BreathSigned` (−1..+1) · `BreathOn` · y el **`MPC_Breath`** (`Signed`, `On`, `FlowIn`, `FlowOut`) para materiales y BPs que no quieran conocer la clase. Convención de consumo: `valor·(1 + max(S,0)·In + max(−S,0)·Out)`; las velocidades se modulan sumando `Speed·(In·FlowIn + Out·FlowOut)` a la fase, **nunca** multiplicando un `Time·Speed`.
+- **Receta:** copiar la carpeta → colocar una instancia → PIE: `BREATH: listo (camara + manos del pawn)` una vez → consumidores leen el MPC. Autoría sin gafas: `PreviewBreath` (viewport) y `bFakeBreath` (PIE).
+- **Estado:** 🟢 compila estricto, dependencias medidas limpias, PIE (manos resueltas sin cast, respiración de prueba publicando, cero `Accessed None`), y consumidor de CPU medido de punta a punta. ⬜ **visor** (umbral, háptica, cambio automático de mano).
+- **Deuda:** `BP_Sensor_Soul` (la obra) todavía usa su copia — migrarlo a consumidor después del visor. El resolvedor de manos va por su 4ª copia (falta `BPFL_XRHands`).
+
+**Lo que sigue valiendo para la obra (el sensor de Entering, sin migrar):** motor+manager+etapa+háptica comparten BP con las otras 4 mecánicas, y **los ~25 valores afinados en visor viven en la INSTANCIA del nivel**, no en el CDO.
 
 - **Paquete:** `BP_Sensor_Soul` + `MI_Sensor` (con todo lo que arrastra, ver §2) + consumidores opcionales: `BP_BreathOrb_SC` (esfera), `BP_BreathRing_SC` + `WBP_BreathRing_SC` + `M_SoulRing` + `M_BreathDot_SC` + `M_BreathWord_SC` + `MI_Word_*` + `T_Word_*` (el reloj). El sensor histórico `Stages/Breath/BP_BreathSensor_V2` es un **segundo motor divergente** (señal por inclinación, no `GeomHoriz`): decidir cuál viaja; su `Step` es NO-reescribible (solo cirugía).
 - **Enchufe:** pawn con cámara + grips accesibles (`CacheHandRef`) · la mecánica arranca recién con `Take(Right)`/toma + `SetStage(1)` · la práctica la enciende el director (`SetPractice`) · el cierre NO lo hace la mecánica (lo hace el director por `StepTimes[1]` o el anillo por `BRingEnd`; `OnMechDone` está dormido). Sin OSC: **la respiración viene del mando, no del BioHub** (decisión explícita).
@@ -202,7 +212,7 @@ Orden acordado con Beltrán (*"Vamos uno a uno. Probamos, y resolvemos"*): **Dra
 |---|---|---|---|
 | 1 | **`BPC_DrawTool`** extraído del modo 5 del sensor; `BP_ControllerRig` como primer consumidor | Drawing = Manager real: One-Euro + calma + paleta, sin input propio (`Press`/`Release`/`SetTip`) | 🟢 **construido y verificado en PIE (2026-09-04)** — componente `Stages/Movement/BPC_DrawTool` (Setup/Press/Release/ToolTick + One-Euro + calma real), rig migrado como consumidor, ambos compilan estricto. Aserción sobre valores efectivos: `TipRef`, `HandMC`, `CanvasRef` (uno por herramienta) y la config llegan bien a las dos instancias. ⬜ **falta VISOR**. Deuda menor: la paleta sigue fija por `Setup` |
 | 2 | Desatar `BP_BrushPalette` del pawn (`FindHand` en vez del cast a `BP_VRPawn_SC`) | paleta portable | 🟢 **hecho 2026-09-04**: `AcquireControllers` ya no castea al pawn — usa `PalGrip(Right)` (mismo patrón que `FindHandMC`). 🔴 **Medido con `get_dependencies`: `BP_VRPawn_SC` DESAPARECIÓ de las dependencias de la paleta.** ⬜ falta ejercitarla (no hay paleta colocada en TestMeshes; la spawnea el sensor en la obra) |
-| 3 | **`Breath_Manager`**: motor de señal + `BreathLevel`/`bBreathing` publicados; valores de instancia subidos al CDO del módulo | Breath portable; el sensor de la obra pasa a ser un consumidor más | ⬜ |
+| 3 | **`Breath_Manager`**: motor de señal + `BreathLevel`/`bBreathing` publicados; valores de instancia subidos al CDO del módulo | Breath portable; el sensor de la obra pasa a ser un consumidor más | 🟢 **construido 2026-09-17** como `Mechanics/Breath/BP_BreathManager_SC` + `MPC_Breath` (señal, umbral, háptica, mano automática, vista previa y respiración de prueba), verificado en PIE y con `get_dependencies` limpio. ⬜ visor · ⬜ migrar `BP_Sensor_Soul` a consumidor |
 | 4 | **`Heart_Manager`** (zona + reloj sobre `BioHub.HeartSmooth`, publica `OnBeatPulse`/`BeatEnv`) y **Mind** (BioHub ya lo es) | Heart/Mind portables | ⬜ |
 | 5 | El beam como Manager propio; los casts a orb/botón reemplazados por interfaz o tag | Attracting deja de necesitar al sensor completo | ⬜ |
 | 6 | Podar la referencia de `BP_InstructionsPanel_SC` a `BP_Director_Movement` (medida hoy, contradice el diseño) | panel realmente limpio | ⬜ |

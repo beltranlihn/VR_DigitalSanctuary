@@ -134,3 +134,15 @@ Las tres capas que faltaban para que se lea **agua** y no vacio. **Ninguna neces
 ✅ **Verificado en PIE**: motas y haces de la 8 visibles, y el `BP_VoidField_SC` de la estacion 4 (el de Beltran) **oculto** — las dos instancias del mismo BP no se contaminan porque la pertenencia es por tag.
 
 ⚠ **Fill-rate**: se sumaron 3 haces translucidos + 3 cascarones de puntos a un campo que ya tiene ~123 esferas translucidas. **Es la combinacion mas cara de la galeria y solo se juzga en el visor.** Si hay que recortar, el orden sugerido: primero un haz, despues `Count` de las esferas, y las motas al final (son las mas baratas y las que mas "agua" aportan).
+
+
+## 🌬️ 2026-09-17 — APARICIÓN y TAMAÑO con la respiración ([[BP_BreathManager_SC]])
+Pedido de Beltrán: *"Bubbles, pueden ser tamaños y aparición"*. Y la regla de este BP: **la gracia es el develado** → la respiración pasa a manejarlo.
+
+- **Material `M_RimOnly_SC`** (compartido con `BP_RimShape_SC`: todo nace en 0 → idéntico):
+  1. `Custom` **`BreathReveal`** (`Val`=`RevealRadius`) → `SphereMask_0.Radius`.
+  2. **Inflado proporcional a cada burbuja**: `LocalPosition.XYZ` → `Transform` (vector, Local→World: usa la escala de la instancia del ISM) → `Custom` **`BreathInflate`** = `LPW·(max(S,0)·In + max(−S,0)·Out)` → `Add_11(Add_10, inflado)` → WPO.
+- **BP**: perillas `BreathRevealIn/Out` · `BreathSizeIn/Out` + `ApplyBreath` (a `Shapes`) colgado del **`Completed` del `ForLoop`**. No del cuerpo del bucle, que correría 123 veces.
+- **Instancia `GAL_8_RimField`**: `RevealIn 0,35` (1192 → 1609 ≈ `AreaRadius` 1600: aparece todo el campo) · `RevealOut −0,5` (→ 596: solo lo más cercano) · `SizeIn 0,2` · `SizeOut −0,15`. Verificado en el MID.
+- 👁️ Se ve en el editor con `PreviewBreath` del manager (el develado igual se juzga moviéndose).
+- ⚠ Inflar suma fill en la estación más cargada de la galería.

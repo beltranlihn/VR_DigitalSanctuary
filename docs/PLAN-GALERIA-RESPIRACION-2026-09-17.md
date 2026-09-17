@@ -1,6 +1,34 @@
 # Plan — la respiración controla la galería (2026-09-17)
 
-> **Estado: PROPUESTA de diseño, sin construir nada.** Se escribió leyendo los trackers, con el MCP de Unreal caído (el servidor no arrancó solo; se levantó a mano con `ModelContextProtocol.StartServer` en la consola del editor). **Todo número de instancia marcado "verificar" se lee del nivel antes de tocar nada.**
+> **Estado (cierre 2026-09-17): 🟢 CONSTRUIDO y verificado en PIE · ⬜ falta el visor.** El diseño de abajo se escribió leyendo los trackers, con el MCP caído. Después se verificó contra el nivel y se construyó; donde los datos reales cambiaron la decisión, está anotado en **"Lo que cambió al construir"**.
+
+## ✅ Lo construido (2026-09-17)
+- **Commit previo `04d3b32`** (punto de retorno) + **snapshot** de las 82 instancias en `docs/snapshots/galeria_snapshot_2026-09-17.json`.
+- **`Mechanics/Breath/BP_BreathManager_SC` + `MPC_Breath`** — tracker: `.claude/skills/unreal-vr/blueprints/BP_BreathManager_SC.md`. Colocado como `GAL_BreathManager` en `Galeria/_Sistema`.
+- **7 BPs + 6 materiales** con perillas `R - Respiracion` (0 = idéntico a hoy). Cada tracker tiene su sección 2026-09-17.
+
+| Estación | Instancias | Valores escritos | Verificado |
+|---|---|---|---|
+| 1 Haces | 20 | Spread In 0,5 / Out −0,45 | ✅ PIE: los números exactos de la fórmula |
+| 5 VoidField | `GAL_4_VoidField` | Density In 0,22 / Out −0,65 / Soft 0,06 | ✅ MID (las otras 10 VoidFields en 0) |
+| 6 LineField | 1 | Wave In 0,6 / Out −0,7 | ✅ MID |
+| 7 Sombra | 1 | Length In −0,5 / Out 1,2 · Sweep In −0,7 / Out 0,5 | compila estricto |
+| 8 Metaball | 1 | BreathAttract 1 | ✅ MID |
+| 9 Burbujas | 1 | Reveal In 0,35 / Out −0,5 · Size In 0,2 / Out −0,15 | ✅ MID |
+| 10-11 Túneles | 8 + 3 | Size In 0,2 / Out −0,15 · Speed In −0,75 / Out 0,8 | ✅ MID (anillos y marco; el fondo en 0) |
+
+## 🔀 Lo que cambió al construir (los datos mandaron)
+- **Metaball**: no fue `Spread` directo. El material ya hacía `Attract = lerp(Min, Max, sin(Time·Speed))`: el metaball **ya respiraba por reloj**. La respiración **reemplaza ese seno** cuando hay umbral (`On`) y vuelve al reloj al salir. Mismo rango autorado, cero riesgo de recorte.
+- **Haces**: la ganancia escala el **radio del extremo** (`50 + Spread`), no `Spread`. Los haces tienen `Spread` 5 o 54,8; así se abren todos y el pozo acompaña con la misma cuenta. Cerrar termina en tubo.
+- **Túneles**: hay **8 en la estación 10 y 3 en la 11** → el tamaño va **en el shader** (escalar actores costaría 144 transformadas por frame). La velocidad se integra por fase desde `FlowIn`/`FlowOut`.
+- **VoidField**: está autorado denso (0,73) → rango asimétrico. Se agregó el borde suave, con `Soft 0` idéntico.
+- **Sombra**: barrido al exhalar +50 % (con +70 % llegaba a 34°/s).
+
+## 🎛️ Cómo probarlo
+- **Editor, sin Play**: seleccionar `GAL_BreathManager` y mover **`PreviewBreath`** (−1 exhala … +1 inhala). Responden en el viewport las estaciones por material: 5, 6, 8, 9, 10, 11.
+- **PIE sin gafas**: `bFakeBreath` en `GAL_BreathManager` (respira sola, período `FakePeriod`). Ahí se ven también las de CPU (1 y 7).
+- **Visor**: mando en la panza, quieto 1,5 s → zumbido + pulso = conectado. Cualquier mano.
+- **Quitar la interactividad**: poner en 0 las perillas `R - Respiracion` de la instancia (o borrar `GAL_BreathManager`: sin él `Signed` = 0 y todo queda como antes). Los valores originales de todo el nivel están en el snapshot.
 
 ## El pedido (Beltrán, textual y resumido)
 Traer la mecánica de respiración a `/Game/TestMeshes` (la galería) y probar cómo se siente controlar parámetros en cada estación:

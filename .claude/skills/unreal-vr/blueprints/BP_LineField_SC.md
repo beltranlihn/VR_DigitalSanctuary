@@ -55,3 +55,13 @@ Categorias: `A - Forma` (FieldSizeX/Y 2000, LineCount 120) · `B - Color` (LineC
 - [ ] Juicio de Beltran y **prueba en visor, mirando el titileo con la cabeza en movimiento** (es el punto flojo de este efecto).
 - [ ] Rangos de slider a mano: FieldSizeX/Y 200-20000 · LineSharp 0,3-6 · LineVary 0-1 · TipFade 0,01-0,5 · ContactFade 0-400 · WaveAmount 0-600 · WaveScale 0,0005-0,02 · WaveSpeed 0-2 · FarFade 300-20000 · FarFadeRange 100-8000.
 - [ ] Si gusta, una variante con las tiras cruzadas (rejilla) — es otra malla, el mismo material.
+
+
+## 🌬️ 2026-09-17 — el oleaje RESPIRA ([[BP_BreathManager_SC]])
+Decisión delegada por Beltrán (*"sexta decide tú"*): **inhala → sube el oleaje · exhala → la superficie se aquieta.** La forma se lee entera por la deformación de las líneas, así que la amplitud es la lectura más directa del cuerpo (la panza sube y baja).
+
+- **Material `M_LineGlow_SC`**: `Custom` **`BreathWave`** (`Val`=`WaveAmount`, `S`=`MPC_Breath.Signed`, `GIn`, `GOut`) → `Multiply_18.B` (antes entraba `WaveAmount` directo). Código: `Val·(1 + max(S,0)·GIn + max(−S,0)·GOut)`. Parámetros nuevos `BreathWaveIn` / `BreathWaveOut` (default 0 → idéntico).
+- **BP**: perillas `BreathWaveIn`/`BreathWaveOut` (cat. *R - Respiracion*) + función **`ApplyBreath`** (empuja al componente `Lines`) al final del Construction Script.
+- **Instancia `GAL_5_LineField`**: `In 0,6` (180 → 288 cm) / `Out −0,7` (→ 54 cm). Verificado en el MID.
+- 👁️ **Se ve en el editor sin Play**: `PreviewBreath` del manager.
+- ⚠ Más amplitud = más escorzo = **más titileo** (el riesgo conocido de este efecto, y es la estación más justa de fps): si molesta en visor, bajar `In`.

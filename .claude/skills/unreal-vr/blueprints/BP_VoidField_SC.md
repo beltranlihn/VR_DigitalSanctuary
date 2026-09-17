@@ -150,3 +150,18 @@ uv   = dir' × Tiling                 // y RECIEN AHI floor/frac
 - [ ] Elegir mirando los seis valores de `E - Giro`: los defaults (1,2 / −0,7 / 0,35 °/s) son un punto de partida, no una decision autoral.
 - [ ] **Medir el fill**: son tres capas aditivas que ocupan la pantalla entera. Es el riesgo real de este efecto. Si aprieta, `bLayer2` off es lo primero.
 - [ ] Rangos de slider a mano: Radius 300–20000 · Tiling 8–80 · DotSize 0,01–0,3 · Density 0–1 · JitterAmount 0–1 · Brightness 0–6 · FarDim 0–1 · Twinkle* 0–2.
+
+
+## 🌬️ 2026-09-17 — el cielo SE PUEBLA al inhalar ([[BP_BreathManager_SC]])
+Decisión delegada por Beltrán (*"quinta decide tú"*): **inhala → se encienden estrellas · exhala → el cielo se vacía.** La densidad es la perilla que convirtió el ruido en campo de estrellas: la respiración toma justo esa.
+Descartes medidos antes de elegir: **tamaño de punto** (el jitter depende del tamaño → se habrían movido todos los puntos), **giro** (vección con el usuario adentro + salto por `Time×SpinSpeed`), **radios** (casi invisibles sentado: los puntos salen de `normalize(LocalPosition)`).
+
+- **Material `M_VoidDots_SC`**: el `Step_0` (vivo = `Density ≥ n3`) se **reemplazó** por el `Custom` **`BreathDensity`** (`N3`=`Frac_3`, `D`=`Density`, `S`, `GIn`, `GOut`, `Soft`) → `Multiply_33.B`:
+```
+d = saturate(D · (1 + max(S,0)·GIn + max(−S,0)·GOut))
+return saturate((d − N3) / max(Soft, 1e-5) + 0.5)
+```
+Con `Soft` 0 es el step de siempre; con `Soft` > 0 cada estrella se enciende con fundido en vez de parpadear. `Step_0` borrado.
+- **BP**: perillas `BreathDensityIn` / `BreathDensityOut` / `BreathDensitySoft` + **`ApplyBreath`** (a `Shell0/1/2`) al final del Construction Script.
+- **Instancia `GAL_4_VoidField` (estación 5)**: `In 0,22` (0,726 → 0,886) · `Out −0,65` (→ 0,254) · `Soft 0,06`. **Asimétrico a propósito**: está autorada densa y con jitter bajo (0,286); por encima de ~0,9 vuelve la grilla.
+- ✅ Las otras 10 instancias (ambiente de otras estaciones) quedan en 0 → idénticas (**verificado en su MID**).

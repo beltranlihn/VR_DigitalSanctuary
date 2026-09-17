@@ -61,3 +61,15 @@ pasos son los **rasantes de la silueta**. Bajarlo erosiona un poco el borde. **N
 
 Otras, menores: **`CastShadow = false`** en el componente `Volume` (gratis), y los arrays locales `P[16]`/`R[16]`
 con indexado dinamico, que en Adreno presionan registros aunque `BlobCount` sea 6.
+
+
+## 🌬️ 2026-09-17 — la respiración REEMPLAZA el reloj de la atracción ([[BP_BreathManager_SC]])
+Pedido de Beltrán: *"Metaball, puede ser el spread o curl"*.
+
+🔑 **El hallazgo del cableado que decidió todo:** `Attract = lerp(AttractMin, AttractMax, sin(Time·AttractSpeed))` → `P = C·Spread·(1−Attract)`. **El metaball ya respiraba solo, por reloj**: se funde y se separa. La respiración no suma otra animación: **toma ese ciclo**.
+
+- **Material `M_MetaBlob_SC`**: `Custom` **`BreathAttract`** (`Sin`=`Sine_0`, `S`=`Signed`, `On`=`On` del MPC, `G`=`BreathAttract`) → `LinearInterpolate_0.Alpha`: `lerp(Sin, −S, saturate(On·G))`.
+  - Inhala (S = +1) → alpha −1 → **máxima separación** del rango que ya recorría el reloj · exhala → `AttractMax` → **se funde en una masa** · reposo (S = 0) → `AttractMin` → el spread autorado.
+  - **Sin umbral (`On` = 0) sigue el reloj de siempre**; al entrar al umbral pasa al usuario con un fundido de ~1 s.
+- **BP**: perilla `BreathAttract` (0..1, cat. *R - Respiracion*) + `ApplyBreath` (a `Volume`) al final del Construction Script. Instancia `GAL_7_MetaBlob`: **1**. Verificado en el MID.
+- 💡 No agrega extensión ni costo al raymarch: el rango es el mismo que ya recorría el reloj.

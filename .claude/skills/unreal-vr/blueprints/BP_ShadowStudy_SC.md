@@ -212,3 +212,13 @@ CutSpherePos = Sphere.GetWorldLocation()     (el carve, siempre centrado en la e
 Ahora `ConeCutRadius = SphereRadius` corta **exacto y simetrico**, y mover el telon ya no descentra el carve.
 
 🚩 **La leccion (y la respuesta a "por que era tan dificil"):** cuando un arreglo correcto deja un residuo, y el siguiente tambien, **el problema no es el valor: es que dos requisitos distintos estan atados al mismo parametro**. Sintoma tipico: "lo arreglo de un lado y aparece del otro". Antes del tercer intento hay que ir a mirar **quien mas usa ese parametro**. Es la misma familia que gotchas §324 (material compartido) y §316b (el pulso que venia de otro subsistema).
+
+
+## 🌬️ 2026-09-17 — la sombra RESPIRA (`StepBreath`, [[BP_BreathManager_SC]])
+Decisión delegada por Beltrán (*"séptima decide tú"*): **inhala → la sombra se alarga y el barrido se suspende · exhala → se recoge hacia la esfera y el barrido fluye.** Es el mismo idioma que los túneles (velocidad baja al inhalar), más un mapeo de posición (el largo), que es el que da la sensación de espejo.
+
+- **Perillas** (cat. *R - Respiracion*, 0 = apagado): `BreathLengthIn` / `BreathLengthOut` (fracción sobre el exponente `ConeLengthFade`: negativo = sombra más larga) · `BreathSweepIn` / `BreathSweepOut` (fracción de `SweepSpeed`).
+- **EventTick**: `StepSweep(DT)` → `GetScalarParameterValue(MPC_Breath, "Signed")` → `StepBreath(S, DT)`.
+- **`StepBreath`**: `"LengthFade"` = `max(ConeLengthFade·(1 + max(S,0)·LenIn + max(−S,0)·LenOut), 0,05)` al `Cone` cada tick (con ganancias en 0 empuja el valor autorado: idéntico) · si `bSweep` y hay ganancia de barrido: `SweepPhase += SweepSpeed·DT·(max(S,0)·In + max(−S,0)·Out)`. La fase ya se integraba en el BP → **cambiar la velocidad no produce saltos**.
+- **Instancia `GAL_6_ShadowStudy`**: `LenIn −0,5` (exponente ×0,5 → más larga) · `LenOut 1,2` (×2,2 → se recoge) · `SweepIn −0,7` (×0,3) · `SweepOut 0,5` (×1,5; con +0,7 llegaba a 34°/s, brusco para un cono tan grande).
+- 🟡 Compila estricto; sin PIE específico (la estación no es la de arranque). Es el mismo patrón que los haces, que sí se midió en PIE. El largo es un exponente: **ajustarlo mirando**, no es lineal.

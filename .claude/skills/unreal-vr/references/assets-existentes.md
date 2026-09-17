@@ -411,3 +411,12 @@ obligatorio (`SlateUI`, `TintColorAndOpacity`, `OpacityFromTexture`): los escrib
 ## 🎛️ Las mecánicas de interacción de la versión limpia viven en `BP_Sensor_Soul` (2026-08-24)
 **Antes de construir una mecánica de mano para una etapa de `L_SoulCharger`, mirar ahí**: el sensor de la mano hábil es el contenedor único — respiración+calibración (modo 1, la receta de `BP_BreathSensor_V2` con sus valores afinados), latido por BPM del BioHub (modo 2), beam de apuntado (modo 4). Se activa con `SetStage(n)` desde `BP_Director_Story` y avisa con `OnMechDone` (cierra la etapa) y `OnBeatPulse` (un aviso por latido, libre para visuales). Tracker: `blueprints/BP_Sensor_Soul.md`.
 - **`M_Beam_SC`** (`Core/Sensor/`) — material unlit emisivo con param vector `BeamColor` (blanco tibio). Hoy lo usa el cilindro del beam; sirve como material barato para cualquier trazo/línea unlit. 🟡 sin visor.
+
+
+## 🌬️📦 Respiración PORTABLE — `BP_BreathManager_SC` + `MPC_Breath` (2026-09-17)
+**Ante "quiero que algo reaccione a la respiración" en cualquier nivel: NO construir otro detector.** Colocar una instancia de `Mechanics/Breath/BP_BreathManager_SC` y consumir su señal ([tracker](../blueprints/BP_BreathManager_SC.md)).
+- **Probado en PIE** (manos resueltas sin cast, publica, cero `Accessed None`); ⬜ **sin visor todavía**. El umbral, la señal y la háptica son los del modo 1 de `BP_Sensor_Soul`, **validados en visor en Entering**.
+- **Materiales**: `CollectionParameter` de `MPC_Breath` → `Signed` (−1 exhala … +1 inhala, 0 en reposo), `On` (presencia 0..1), `FlowIn`/`FlowOut` (integrales para modular velocidades sin saltos).
+- **Blueprints**: `GetScalarParameterValue` de colección (impuro: va en la ejecución) o las variables públicas del actor (`bBreathing`, `BreathLevel`, `BreathDrive`, `BreathSigned`, `BreathOn`).
+- **Convención de la galería**: `valor·(1 + max(S,0)·In + max(−S,0)·Out)` con `In`/`Out` en 0 por defecto. Hay 7 ejemplos cableados: haces (CPU), sombra (CPU), líneas, puntos, metaball, burbujas y túneles (material). Ver la sección 2026-09-17 de cada tracker.
+- **Autoría sin gafas**: `PreviewBreath` del manager (−1..+1) hace respirar en el viewport a todo lo que va por material; `bFakeBreath` respira sola en PIE.
