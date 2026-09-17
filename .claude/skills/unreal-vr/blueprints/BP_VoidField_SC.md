@@ -165,3 +165,24 @@ Con `Soft` 0 es el step de siempre; con `Soft` > 0 cada estrella se enciende con
 - **BP**: perillas `BreathDensityIn` / `BreathDensityOut` / `BreathDensitySoft` + **`ApplyBreath`** (a `Shell0/1/2`) al final del Construction Script.
 - **Instancia `GAL_4_VoidField` (estación 5)**: `In 0,22` (0,726 → 0,886) · `Out −0,65` (→ 0,254) · `Soft 0,06`. **Asimétrico a propósito**: está autorada densa y con jitter bajo (0,286); por encima de ~0,9 vuelve la grilla.
 - ✅ Las otras 10 instancias (ambiente de otras estaciones) quedan en 0 → idénticas (**verificado en su MID**).
+
+
+### 🌬️ 2026-09-17 (2ª pasada) — curva SUAVE y rango exagerado
+Beltrán tras probar: *"llegó muy duro a los valores máximos y mínimos, no suave como con la esfera"* y *"un poco más exagerados"*.
+- **Causa (en el manager, no acá):** `BreathSigned` era `clamp(gain·y)` → con ganancia 1,5 una respiración normal chocaba contra ±1 y quedaba plana. Ahora es `k·y/(1+(k−1)|y|)` (techo suave, `SignedGain` 2).
+- **Mapeo nuevo del consumidor** (sin quiebre en 0 aunque las ganancias sean asimétricas): `m = 1 + S·lerp(−Out, In, smoothstep((S+1)/2))`. `In` = fracción a inhalación plena, `Out` = a exhalación plena, igual que antes.
+- **La densidad "es poco notoria"** (Beltrán). Pidió escala de las esferas o movimiento/rotación. **Escala se descartó con la cuenta**: los puntos se pintan por dirección (`normalize(LocalPosition)`), así que agrandar un cascarón visto desde su centro no cambia nada en pantalla (solo paralaje de cabeza, mínimo sentado).
+- ✅ **Giro con la respiración**: `Custom` **`BreathSpin`** = `Time·SpinSpeed + SpinSpeed·(GIn·FlowIn + GOut·FlowOut)` → `Divide_1.A` (antes `Multiply_35`). La velocidad cambia sin saltos porque se integra la fase; cada cascarón conserva su sentido y velocidad propios. Perillas nuevas **`BreathSpinIn` / `BreathSpinOut`** (empujadas a los 3 cascarones en `ApplyBreath`).
+- **Valores (estación 5)**: `SpinIn −0,9` (al inhalar el cielo casi se detiene) · `SpinOut 3,0` (al exhalar gira ×4) · la densidad queda como estaba (0,22 / −0,65 / 0,06). ⚠ **Vección**: el campo entero gira alrededor del usuario; si en visor marea, bajar `SpinOut`.
+
+
+### 🌬️ 2026-09-17 (3ª pasada) — acompañar la respiración lenta, suavidad de resorte, más exagerado
+Beltrán: *"si hago una respiración lenta deben demorarse más en llegar al máximo o mínimo, acompañando mi movimiento"* · *"sigo sintiendo que está un poco duro"* · *"los valores más exagerados, menos el metaball"*.
+- **Causa (en el manager):** (1) `HorizTau` 3 s: la base del band-pass alcanzaba a una respiración lenta a mitad de la inhalación → el pico llegaba ANTES del final; (2) dos saturaciones encadenadas (`x/(1+|x|)` del nivel y el techo suave de `SignedGain`) = una sola muy comprimida: casi todo el recorrido quedaba pegado al máximo.
+- **Arreglo (manager):** `HorizTau` **6**; `S` sale del band-pass CRUDO en cm (`x = (HFast−HSlow)·SignedGain`, `SignedGain` 1 = 1 cm) con codo suave `x/(1+|x|³)^(1/3)` (lineal hasta ~0,7) y pasa por un **resorte críticamente amortiguado** (`SmoothFreq` 6): velocidad continua, sin rebote.
+- ✅ Medido en PIE con respiración de prueba de 10 s: el máximo llega al final de la media onda (no antes), la velocidad de `S` sube y baja suave.
+- **Pedido (estaciones 04 y 05)**: *"la inhalación debiera agrandar las 3 esferas, ojalá en distinta velocidad, y deben tener rotación incluso inhalando; en la exhalación se achican y aumenta la rotación"*.
+- **Material** — `Custom` **`BreathShellScale`** → WPO = `(WP − ObjPos)·(m − 1)`: la esfera crece o se achica DE VERDAD (desplazando vértices; el patrón sale de `LocalPosition`, que es anterior al WPO, así que no se deforma). `Custom` **`BreathDotSize`** → reemplaza a `Multiply_26` en `Multiply_5.A` y `Multiply_6.A`: el punto conserva su tamaño EN EL MUNDO (`Size/m`), o sea que al crecer la esfera los puntos se ven alejarse — es lo que hace visible el crecimiento visto desde el centro. Al achicarse (m < 1) crecen solo hasta el margen de su celda (`(0,5 − jitter/2)/1,8`) y nunca por debajo de su tamaño autorado → **sin cortes y en reposo idéntico** (verificado a mano contra el pulso de 0,95 de la instancia).
+- **Distinta velocidad por capa**: `ApplyBreath` empuja `BreathSizeIn · (1 − v)` a la cercana, `· 1` a la media y `· (1 + v)` a la lejana (`BreathSizeLayerVar` v). Al exhalar el factor es el mismo para las tres, así no se cruzan.
+- Perillas nuevas `BreathSizeIn` · `BreathSizeOut` · `BreathSizeLayerVar`.
+- **Valores (C_0 en 04 y C_4..C_7 en 05)**: `SizeIn 0,6` · `SizeOut −0,35` · `LayerVar 0,4` (capas 0,36 / 0,6 / 0,84, verificado en los MIDs) · `SpinIn 0` (gira igual al inhalar) · `SpinOut 4` (×5 al exhalar) · densidad 0,22 / −0,65 / 0,06.

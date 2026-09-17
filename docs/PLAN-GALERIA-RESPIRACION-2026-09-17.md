@@ -7,15 +7,21 @@
 - **`Mechanics/Breath/BP_BreathManager_SC` + `MPC_Breath`** — tracker: `.claude/skills/unreal-vr/blueprints/BP_BreathManager_SC.md`. Colocado como `GAL_BreathManager` en `Galeria/_Sistema`.
 - **7 BPs + 6 materiales** con perillas `R - Respiracion` (0 = idéntico a hoy). Cada tracker tiene su sección 2026-09-17.
 
-| Estación | Instancias | Valores escritos | Verificado |
+| Estación | Instancias | Valores escritos (2ª pasada) | Verificado |
 |---|---|---|---|
-| 1 Haces | 20 | Spread In 0,5 / Out −0,45 | ✅ PIE: los números exactos de la fórmula |
-| 5 VoidField | `GAL_4_VoidField` | Density In 0,22 / Out −0,65 / Soft 0,06 | ✅ MID (las otras 10 VoidFields en 0) |
-| 6 LineField | 1 | Wave In 0,6 / Out −0,7 | ✅ MID |
-| 7 Sombra | 1 | Length In −0,5 / Out 1,2 · Sweep In −0,7 / Out 0,5 | compila estricto |
-| 8 Metaball | 1 | BreathAttract 1 | ✅ MID |
-| 9 Burbujas | 1 | Reveal In 0,35 / Out −0,5 · Size In 0,2 / Out −0,15 | ✅ MID |
-| 10-11 Túneles | 8 + 3 | Size In 0,2 / Out −0,15 · Speed In −0,75 / Out 0,8 | ✅ MID (anillos y marco; el fondo en 0) |
+| 1 Haces | 20 | **Intensidad 0 → autorada** (`BreathIntensity 1`) · Spread In 0,8 / Out −0,7 | ✅ PIE: Intensity 0,02 ↔ 1,08, Spread 0 ↔ 126, curvas redondeadas |
+| 5 VoidField | `GAL_4_VoidField` | **Giro** Spin In −0,9 / Out 3,0 · Density In 0,22 / Out −0,65 / Soft 0,06 | ✅ MID (las otras 10 VoidFields en 0) |
+| 6 LineField | 1 | Wave In 1,0 / Out −0,9 | ✅ MID |
+| 7 Sombra | 1 | Length In −0,65 / Out 2,0 · Sweep In −0,9 / Out 0,7 | compila estricto |
+| 8 Metaball | 1 | BreathAttract 1 · **Spread** In 0,6 / Out −0,97 · **Curl** In 0,5 / Out −0,95 | ✅ MID |
+| 9 Burbujas | 1 | Reveal In 0,5 / Out −0,65 · Size In 0,35 / Out −0,3 | ✅ MID |
+| 10-11 Túneles | 8 + 3 | Size In 0,35 / Out −0,25 · Speed In −0,9 / Out 1,5 | ✅ MID (anillos y marco; el fondo en 0) |
+
+**4ª pasada (vigente):** *"todo llega demasiado rápido a sus destinos"* → la causa era la **amplitud**: la escala fija en cm hacía que una respiración de ~3 cm cruzara el codo en el primer tercio. El manager ahora tiene **ganancia automática por usuario** (aprende la amplitud en ~8 s: una respiración normal de cualquiera llega a ~0,8 justo al final), `HorizTau 8`, resorte `SmoothFreq 4`, y la respiración de prueba genera cm que pasan por ese mismo camino (`FakeAmpCm`). Haces: intensidad lineal. Medido en PIE con 3 cm / 10 s: pico ±0,79 exactamente al final de cada media onda.
+
+**3ª pasada (valores de estaciones, siguen vigentes):** haces `Spread 1,2 / −0,85` + intensidad · puntos (04 y 05) **crecen al inhalar** con `SizeIn 0,6 / SizeOut −0,35`, capas a distinto ritmo (0,36 / 0,6 / 0,84), giro igual al inhalar y ×5 al exhalar · líneas `1,6 / −0,95` · sombra largo `−0,8 / 3,0`, barrido `−0,5 / 1,2` · metaball **sin cambios** · burbujas revelado `0,8 / −0,8`, tamaño `0,6 / −0,45` · túneles tamaño `0,55 / −0,35`, velocidad `−0,85 / 2,5`, **espiral al exhalar** (circulares: estiramiento 0,35 + giro 1,2 rad/s; rectangulares: torsión 3 rad). Manager: `HorizTau 6`, `S` del band-pass crudo con codo suave y resorte (`SmoothFreq 6`), `SignedGain 1`/cm.
+
+**2ª pasada (feedback de Beltrán tras probar):** *"llegó muy duro a los máximos y mínimos"* → el manager publica `S` con techo suave (`k·y/(1+(k−1)|y|)`, `SignedGain` 2) en vez de `clamp`, y cada consumidor usa `1 + S·lerp(−Out, In, smoothstep)` en vez de tramos con quiebre. *"Más exagerados"* → todas las ganancias subieron. Haces: se sumó la **intensidad**. Metaball: exhalar baja **spread y curl** a casi 0 (antes el curl seguía separando las gotas). Puntos: la densidad no se notaba → **giro** integrado por fase (la escala de los cascarones se descartó: vista desde el centro no cambia nada en pantalla).
 
 ## 🔀 Lo que cambió al construir (los datos mandaron)
 - **Metaball**: no fue `Spread` directo. El material ya hacía `Attract = lerp(Min, Max, sin(Time·Speed))`: el metaball **ya respiraba por reloj**. La respiración **reemplaza ese seno** cuando hay umbral (`On`) y vuelve al reloj al salir. Mismo rango autorado, cero riesgo de recorte.

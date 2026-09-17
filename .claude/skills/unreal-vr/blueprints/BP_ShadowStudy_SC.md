@@ -222,3 +222,19 @@ Decisión delegada por Beltrán (*"séptima decide tú"*): **inhala → la sombr
 - **`StepBreath`**: `"LengthFade"` = `max(ConeLengthFade·(1 + max(S,0)·LenIn + max(−S,0)·LenOut), 0,05)` al `Cone` cada tick (con ganancias en 0 empuja el valor autorado: idéntico) · si `bSweep` y hay ganancia de barrido: `SweepPhase += SweepSpeed·DT·(max(S,0)·In + max(−S,0)·Out)`. La fase ya se integraba en el BP → **cambiar la velocidad no produce saltos**.
 - **Instancia `GAL_6_ShadowStudy`**: `LenIn −0,5` (exponente ×0,5 → más larga) · `LenOut 1,2` (×2,2 → se recoge) · `SweepIn −0,7` (×0,3) · `SweepOut 0,5` (×1,5; con +0,7 llegaba a 34°/s, brusco para un cono tan grande).
 - 🟡 Compila estricto; sin PIE específico (la estación no es la de arranque). Es el mismo patrón que los haces, que sí se midió en PIE. El largo es un exponente: **ajustarlo mirando**, no es lineal.
+
+
+### 🌬️ 2026-09-17 (2ª pasada) — curva SUAVE y rango exagerado
+Beltrán tras probar: *"llegó muy duro a los valores máximos y mínimos, no suave como con la esfera"* y *"un poco más exagerados"*.
+- **Causa (en el manager, no acá):** `BreathSigned` era `clamp(gain·y)` → con ganancia 1,5 una respiración normal chocaba contra ±1 y quedaba plana. Ahora es `k·y/(1+(k−1)|y|)` (techo suave, `SignedGain` 2).
+- **Mapeo nuevo del consumidor** (sin quiebre en 0 aunque las ganancias sean asimétricas): `m = 1 + S·lerp(−Out, In, smoothstep((S+1)/2))`. `In` = fracción a inhalación plena, `Out` = a exhalación plena, igual que antes.
+- `StepBreath` reescrita con la curva suave (largo y barrido).
+- **Valores**: `LengthIn −0,65` (exponente ×0,35 → muy larga) · `LengthOut 2,0` (×3 → se recoge) · `SweepIn −0,9` (×0,1, casi quieta) · `SweepOut 0,7` (×1,7).
+
+
+### 🌬️ 2026-09-17 (3ª pasada) — acompañar la respiración lenta, suavidad de resorte, más exagerado
+Beltrán: *"si hago una respiración lenta deben demorarse más en llegar al máximo o mínimo, acompañando mi movimiento"* · *"sigo sintiendo que está un poco duro"* · *"los valores más exagerados, menos el metaball"*.
+- **Causa (en el manager):** (1) `HorizTau` 3 s: la base del band-pass alcanzaba a una respiración lenta a mitad de la inhalación → el pico llegaba ANTES del final; (2) dos saturaciones encadenadas (`x/(1+|x|)` del nivel y el techo suave de `SignedGain`) = una sola muy comprimida: casi todo el recorrido quedaba pegado al máximo.
+- **Arreglo (manager):** `HorizTau` **6**; `S` sale del band-pass CRUDO en cm (`x = (HFast−HSlow)·SignedGain`, `SignedGain` 1 = 1 cm) con codo suave `x/(1+|x|³)^(1/3)` (lineal hasta ~0,7) y pasa por un **resorte críticamente amortiguado** (`SmoothFreq` 6): velocidad continua, sin rebote.
+- ✅ Medido en PIE con respiración de prueba de 10 s: el máximo llega al final de la media onda (no antes), la velocidad de `S` sube y baja suave.
+- **Valores**: `LengthIn −0,8` (×0,2) · `LengthOut 3,0` (×4) · `SweepIn −0,5` (sigue girando al inhalar) · `SweepOut 1,2` (×2,2).

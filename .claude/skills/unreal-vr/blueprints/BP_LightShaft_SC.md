@@ -177,3 +177,25 @@ si bFloorFollowsBeam: FloorGlow.RelativeScale = FloorGlowScale·(1 + SpreadEff·
 - **Instancias**: las 20 de `GAL_0` con `In 0,5` / `Out −0,45`. Las 3 de `GAL_8` quedan en 0.
 - ✅ **Medido en PIE con la respiración de prueba** (S = −1 / 0 / +1): haz angosto `Spread` 5 → **0 / 5 / 32,5** · haz ancho 54,8 → **7,66 / 54,8 / 107,25** · pozo del ancho ×1,45 / autorado / ×3,96. Números idénticos a la fórmula; cero `Accessed None`.
 - ⚠ Limitaciones: el pozo solo acompaña con `bFloorFollowsBeam` (el modo de toda la estación 1); en modo mundo no se reescala. `MPC_LightShaft` (receptores bañados) no se entera del spread respirado. Inhalar ensancha translúcidos aditivos → **más fill: medir en visor**. Es CPU: solo se ve en PIE o visor (la vista previa del manager no lo mueve en el editor).
+
+
+### 🌬️ 2026-09-17 (2ª pasada) — curva SUAVE y rango exagerado
+Beltrán tras probar: *"llegó muy duro a los valores máximos y mínimos, no suave como con la esfera"* y *"un poco más exagerados"*.
+- **Causa (en el manager, no acá):** `BreathSigned` era `clamp(gain·y)` → con ganancia 1,5 una respiración normal chocaba contra ±1 y quedaba plana. Ahora es `k·y/(1+(k−1)|y|)` (techo suave, `SignedGain` 2).
+- **Mapeo nuevo del consumidor** (sin quiebre en 0 aunque las ganancias sean asimétricas): `m = 1 + S·lerp(−Out, In, smoothstep((S+1)/2))`. `In` = fracción a inhalación plena, `Out` = a exhalación plena, igual que antes.
+- **Intensidad (pedido: "de 0 a su valor")**: perilla nueva **`BreathIntensity`** (0..1 = cuánto toma la respiración el control). `StepBreath(S, On)`: `k = lerp(k_reloj, smoothstep((S+1)/2), saturate(On·BreathIntensity))` → `Intensity·k` al Beam y `GlowColor·k` al pozo (el mismo canal que `StepPulse`, que corre antes en el mismo tick). Sin umbral sigue el pulso de siempre.
+- **La apertura pasó a su propia función `BreathSpread(S)`** con piso suave (`R−50` con una rampa cuadrática de ±4 hacia 0, en vez del `max(…,0)` duro).
+- **EventTick**: `StepPulse` → `MPC.Signed` → `MPC.On` → `StepBreath(S, On)`. 🔴 Trampa: agregar un parámetro a una función NO refresca el nodo de llamada existente (*"Could not find a pin for the parameter On"*): hubo que borrar la llamada y crearla de nuevo.
+- **Valores (20 haces)**: `SpreadIn 0,8` · `SpreadOut −0,7` · `BreathIntensity 1`.
+- ✅ **Medido en PIE** (haz ancho, respiración de prueba): Signed −0,85 ↔ +0,85 con cimas redondeadas · Intensity **0,02 ↔ 1,08** (autorado 1,1) · Spread 0 ↔ 126, llegando al tubo en rampa (5,2 → 1,0 → 0).
+
+
+### 🌬️ 2026-09-17 (3ª pasada) — acompañar la respiración lenta, suavidad de resorte, más exagerado
+Beltrán: *"si hago una respiración lenta deben demorarse más en llegar al máximo o mínimo, acompañando mi movimiento"* · *"sigo sintiendo que está un poco duro"* · *"los valores más exagerados, menos el metaball"*.
+- **Causa (en el manager):** (1) `HorizTau` 3 s: la base del band-pass alcanzaba a una respiración lenta a mitad de la inhalación → el pico llegaba ANTES del final; (2) dos saturaciones encadenadas (`x/(1+|x|)` del nivel y el techo suave de `SignedGain`) = una sola muy comprimida: casi todo el recorrido quedaba pegado al máximo.
+- **Arreglo (manager):** `HorizTau` **6**; `S` sale del band-pass CRUDO en cm (`x = (HFast−HSlow)·SignedGain`, `SignedGain` 1 = 1 cm) con codo suave `x/(1+|x|³)^(1/3)` (lineal hasta ~0,7) y pasa por un **resorte críticamente amortiguado** (`SmoothFreq` 6): velocidad continua, sin rebote.
+- ✅ Medido en PIE con respiración de prueba de 10 s: el máximo llega al final de la media onda (no antes), la velocidad de `S` sube y baja suave.
+- **Valores (20 haces)**: `SpreadIn 1,2` · `SpreadOut −0,85` · `BreathIntensity 1`. Intensidad medida: 0,02 → 1,08 siguiendo la curva lenta.
+
+### 🌬️ 2026-09-17 (4ª pasada) — intensidad PROPORCIONAL
+Beltrán: *"todo llega demasiado rápido a sus destinos"*. Además del arreglo en el manager (ganancia automática por usuario), la intensidad usaba `smoothstep((S+1)/2)`: la S de esa curva es empinada en el centro (de S = −0,5 a +0,5 la intensidad iba de 16 % a 84 %) → llegaba rápido. Ahora `k = (S+1)/2` **lineal**: la intensidad sigue la respiración en proporción; los extremos suaves los da `S` (codo + resorte).

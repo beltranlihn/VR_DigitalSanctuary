@@ -25,11 +25,12 @@ El motor de señal + umbral + háptica de la esfera de Entering (modo 1 de [[BP_
 | `bBreathing` | var | bool | umbral confirmado (zona + quietud + amplitud, con debounce) |
 | `BreathLevel` | var | 0..1, 0,5 neutro | la señal cruda validada (lo que lee la esfera de Entering) |
 | `BreathDrive` | var | 0..1, 0,5 en reposo | `FInterpTo(select(bBreathing, BreathLevel, 0.5), DriveFollow)` — **el seguimiento de la esfera** |
-| `BreathSigned` / `Signed` | var + MPC | −1..+1, 0 en reposo | `clamp((Drive−0,5)·2·SignedGain)`. **+ = inhala, − = exhala** |
+| `BreathSigned` / `Signed` | var + MPC | −1..+1, 0 en reposo | **(4ª pasada: GANANCIA AUTOMÁTICA por usuario)** `bp = HFast − HSlow` (cm) · `AmpEMA = EMA(|bp|, AmpTau 8 s)` solo mientras hay umbral · `x = bp / max(AmpEMA·π/2, AmpFloorCm) · SignedGain` → una respiración NORMAL de este usuario da `x ≈ ±1` al final de la inhalación, sea de 0,5 o de 3 cm. *(3ª pasada, reemplazada: `x = (HFast − HSlow)·SignedGain` en cm fijos — con la respiración de Beltrán (~3 cm) cruzaba el codo en el primer tercio: "no he terminado de inhalar y ya llegó")* → objetivo `x / (1 + |x|³)^(1/3)` (lineal hasta ~0,7, codo suave) → **resorte críticamente amortiguado** `SVel += (ω²·(obj − S) − 2ω·SVel)·dt; S += SVel·dt` con `ω = SmoothFreq`. **+ = inhala, − = exhala**. Acompaña una respiración lenta: llega al máximo al final de la inhalación, no antes |
 | `BreathOn` / `On` | var + MPC | 0..1 | presencia suavizada (tau ~0,5 s): 1 mientras hay umbral |
-| `FlowIn` / `FlowOut` | var + MPC | segundos | `∫max(S,0)dt` y `∫max(−S,0)dt` — para modular VELOCIDADES sin saltos (ver abajo) |
+| `FlowIn` / `FlowOut` | var + MPC | segundos | `∫pos(S)dt` y `∫neg(S)dt` con partes positiva/negativa SUAVES (`(0,5·(±S + √(S²+0,01)) − 0,05)/0,95249`, sin quiebre en 0) — para modular VELOCIDADES sin saltos |
 
-🔴 **Cómo modula un consumidor, la convención de toda la galería:** `valor · (1 + max(S,0)·In + max(−S,0)·Out)`. `In`/`Out` = cuánto cambia (±fracción) a inhalación/exhalación **plena**. Con `S = 0` el valor es **exactamente el autorado**.
+🔴 **Cómo modula un consumidor, la convención de toda la galería (2ª pasada):** `valor · m`, con **`m = 1 + S·lerp(−Out, In, smoothstep((S+1)/2))`**. `In`/`Out` = cuánto cambia (±fracción) a inhalación/exhalación **plena**. Con `S = 0` el valor es **exactamente el autorado**, y aunque `In` y `Out` sean muy distintos no hay quiebre al pasar por el centro.
+🔴🔴 **La lección de la 2ª pasada (Beltrán: *"llegó muy duro a los máximos y mínimos"*)**: la v1 hacía `clamp(gain·y, −1, 1)` y los consumidores `max(S,0)·In + max(−S,0)·Out`. Con ganancia 1,5 una respiración normal **chocaba contra el clamp y quedaba plana** — se siente como un tope. La esfera de Entering nunca tuvo tope: su nivel sale de una saturación suave. **Nada que sea biofeedback lleva un clamp duro ni una función por tramos con quiebre.**
 🔴 **Velocidades:** nunca multiplicar un `Speed` que el shader usa como `Time × Speed` (salta la fase entera). Sumar a la fase `Speed · (In·FlowIn + Out·FlowOut)`: la velocidad efectiva queda `Speed·(1 + In·max(S,0) + Out·max(−S,0))` y en reposo no cambia nada.
 
 ## Registro de variables
@@ -41,7 +42,7 @@ El motor de señal + umbral + háptica de la esfera de Entering (modo 1 de [[BP_
 | | `StillTau` | 0,3 | caída del EMA de velocidad (el ataque es instantáneo) |
 | | `MinHAmp` | 0,02 | amplitud mínima de la señal para ENTRAR (medida en vivo, no extrapolada) |
 | | `ActivateDelay` / `DeactivateDelay` | 1,5 / 0,2 s | debounce: entrar lento, salir rápido |
-| **B - Senal** | `TauFast` / `HorizTau` | 0,4 / 3 s | el band-pass sobre `GeomHoriz` (la panza empuja el mando) |
+| **B - Senal** | `TauFast` / `HorizTau` | 0,4 / **8 s** (4ª pasada; la obra usa 3) | el band-pass sobre `GeomHoriz` (la panza empuja el mando). Con 3 s la base alcanzaba a una respiración lenta a mitad de la inhalación y el pico llegaba antes de tiempo |
 | | `TauAmp` | 4 | EMA de `|band-pass|` → `HAmp` |
 | | `GainK` | 0,5 cm | ganancia de la saturación suave `x/(1+|x|)` |
 | | `LevelFollow` | 5 | seguimiento de `BreathLevel` |
@@ -51,7 +52,11 @@ El motor de señal + umbral + háptica de la esfera de Entering (modo 1 de [[BP_
 | | `HapticAmp` | 0,25 | zumbido continuo mientras `bBreathing` |
 | | `HapticEffect` | `GrabHapticEffect` | el pulso del flanco IN |
 | **D - Salida** | `DriveFollow` | 4 | seguimiento del Drive (el de la esfera, "excelente") |
-| | `SignedGain` | 1,5 | **una perilla para toda la galería**: cuánto mueve una respiración normal (la señal real ronda 0,18↔0,81 → ±0,6 sin ganancia) |
+| | `SignedGain` | **1,0** (4ª pasada: SIN unidades) | **cuánto de la respiración normal de ESTE usuario = el codo de la curva**. 1 = su respiración normal llega a ~0,8; subirlo = llega antes al extremo; bajarlo = hace falta respirar más profundo |
+| | `SmoothFreq` | **4** (era 6) | frecuencia del resorte que suaviza `S` (más alto = más inmediato; más bajo = más "flotante"). Sin rebote en ningún valor |
+| **B - Senal** | `AmpTau` 🆕 | 8 s | memoria de la ganancia automática (cuántos segundos de respiración promedia para aprender la amplitud del usuario) |
+| | `AmpFloorCm` 🆕 | 0,3 cm | piso de la amplitud aprendida: evita amplificar ruido si alguien respira casi sin mover la panza o sostiene mucho |
+| **E - Prueba** | `FakeAmpCm` 🆕 | 1,5 cm | amplitud en cm de la respiración de prueba — ahora pasa por la MISMA ganancia automática que la real (la de la 3ª pasada inyectaba `x` directo y por eso el PIE no mostraba el problema) |
 | | `bAutoHand` | true | usa la primera mano que entra a la zona; cambia solo fuera del umbral |
 | | `bRightHand` | true | mano inicial (y la única si `bAutoHand` = false) |
 | **E - Prueba** | `PreviewBreath` | 0 | **−1..+1: el Construction Script lo escribe al MPC → las estaciones de material respiran en el viewport sin Play** |

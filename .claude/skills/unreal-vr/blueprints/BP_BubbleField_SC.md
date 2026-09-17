@@ -146,3 +146,19 @@ Pedido de Beltrán: *"Bubbles, pueden ser tamaños y aparición"*. Y la regla de
 - **Instancia `GAL_8_RimField`**: `RevealIn 0,35` (1192 → 1609 ≈ `AreaRadius` 1600: aparece todo el campo) · `RevealOut −0,5` (→ 596: solo lo más cercano) · `SizeIn 0,2` · `SizeOut −0,15`. Verificado en el MID.
 - 👁️ Se ve en el editor con `PreviewBreath` del manager (el develado igual se juzga moviéndose).
 - ⚠ Inflar suma fill en la estación más cargada de la galería.
+
+
+### 🌬️ 2026-09-17 (2ª pasada) — curva SUAVE y rango exagerado
+Beltrán tras probar: *"llegó muy duro a los valores máximos y mínimos, no suave como con la esfera"* y *"un poco más exagerados"*.
+- **Causa (en el manager, no acá):** `BreathSigned` era `clamp(gain·y)` → con ganancia 1,5 una respiración normal chocaba contra ±1 y quedaba plana. Ahora es `k·y/(1+(k−1)|y|)` (techo suave, `SignedGain` 2).
+- **Mapeo nuevo del consumidor** (sin quiebre en 0 aunque las ganancias sean asimétricas): `m = 1 + S·lerp(−Out, In, smoothstep((S+1)/2))`. `In` = fracción a inhalación plena, `Out` = a exhalación plena, igual que antes.
+- `BreathReveal` y `BreathInflate` con la curva suave.
+- **Valores**: `RevealIn 0,5` (1192 → 1788: aparece todo) · `RevealOut −0,65` (→ 417 ≈ `InnerRadius`: solo asoman las más cercanas) · `SizeIn 0,35` · `SizeOut −0,3`.
+
+
+### 🌬️ 2026-09-17 (3ª pasada) — acompañar la respiración lenta, suavidad de resorte, más exagerado
+Beltrán: *"si hago una respiración lenta deben demorarse más en llegar al máximo o mínimo, acompañando mi movimiento"* · *"sigo sintiendo que está un poco duro"* · *"los valores más exagerados, menos el metaball"*.
+- **Causa (en el manager):** (1) `HorizTau` 3 s: la base del band-pass alcanzaba a una respiración lenta a mitad de la inhalación → el pico llegaba ANTES del final; (2) dos saturaciones encadenadas (`x/(1+|x|)` del nivel y el techo suave de `SignedGain`) = una sola muy comprimida: casi todo el recorrido quedaba pegado al máximo.
+- **Arreglo (manager):** `HorizTau` **6**; `S` sale del band-pass CRUDO en cm (`x = (HFast−HSlow)·SignedGain`, `SignedGain` 1 = 1 cm) con codo suave `x/(1+|x|³)^(1/3)` (lineal hasta ~0,7) y pasa por un **resorte críticamente amortiguado** (`SmoothFreq` 6): velocidad continua, sin rebote.
+- ✅ Medido en PIE con respiración de prueba de 10 s: el máximo llega al final de la media onda (no antes), la velocidad de `S` sube y baja suave.
+- **Valores**: `RevealIn 0,8` · `RevealOut −0,8` · `SizeIn 0,6` · `SizeOut −0,45`.

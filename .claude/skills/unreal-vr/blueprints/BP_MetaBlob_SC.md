@@ -73,3 +73,14 @@ Pedido de Beltrán: *"Metaball, puede ser el spread o curl"*.
   - **Sin umbral (`On` = 0) sigue el reloj de siempre**; al entrar al umbral pasa al usuario con un fundido de ~1 s.
 - **BP**: perilla `BreathAttract` (0..1, cat. *R - Respiracion*) + `ApplyBreath` (a `Volume`) al final del Construction Script. Instancia `GAL_7_MetaBlob`: **1**. Verificado en el MID.
 - 💡 No agrega extensión ni costo al raymarch: el rango es el mismo que ya recorría el reloj.
+
+
+### 🌬️ 2026-09-17 (2ª pasada) — curva SUAVE y rango exagerado
+Beltrán tras probar: *"llegó muy duro a los valores máximos y mínimos, no suave como con la esfera"* y *"un poco más exagerados"*.
+- **Causa (en el manager, no acá):** `BreathSigned` era `clamp(gain·y)` → con ganancia 1,5 una respiración normal chocaba contra ±1 y quedaba plana. Ahora es `k·y/(1+(k−1)|y|)` (techo suave, `SignedGain` 2).
+- **Mapeo nuevo del consumidor** (sin quiebre en 0 aunque las ganancias sean asimétricas): `m = 1 + S·lerp(−Out, In, smoothstep((S+1)/2))`. `In` = fracción a inhalación plena, `Out` = a exhalación plena, igual que antes.
+- **Pedido: "el spread y el curl muy bajos en la exhalación"**. Con la versión 1 al exhalar el attract llegaba a `AttractMax`, pero el **curl (19,4, tan grande como el spread) seguía separando las gotas**: nunca se fundían.
+- `Custom` **`BreathAttractSpread`** (reemplaza a `BreathAttract` y al `LinearInterpolate_0` del reloj, borrados): `lerp(lerp(AttractMin, AttractMax, sin), 1 − mSpread, saturate(On·BreathAttract))` → `AppendVector_0.B`. Con umbral, la respiración maneja el spread directo: `mSpread = 1 + S·lerp(−SpreadOut, SpreadIn, smoothstep)`.
+- `Custom` **`BreathCurl`** = `CurlAmount·lerp(1, mCurl, saturate(On·BreathAttract))` → `AppendVector_3.A`.
+- Perillas nuevas **`BreathSpreadIn/Out`** · **`BreathCurlIn/Out`**; `BreathAttract` queda como "cuánto toma el control la respiración" (0..1).
+- **Valores**: `SpreadIn 0,6` · `SpreadOut −0,97` (×0,03: una sola masa) · `CurlIn 0,5` · `CurlOut −0,95` (×0,05: quieta) · `BreathAttract 1`.

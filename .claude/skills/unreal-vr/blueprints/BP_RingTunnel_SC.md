@@ -344,3 +344,23 @@ return Off + (m−1)·((WP−ObjPos)·(1−lam) + (Off − (VPt−WP)·lam))
 - **Instancias** `GAL_9` (8 túneles) y `GAL_10` (3 rect): `SizeIn 0,2` · `SizeOut −0,15` · `SpeedIn −0,75` (×0,25) · `SpeedOut 0,8` (×1,8). La `Speed` negativa (el Rect que va al revés) se respeta.
 - ✅ Verificado en los MIDs: anillos (circular y rect) con las 4, marco con las 2, fondo sin ninguna.
 - 💡 El tamaño va en el shader y no escalando el actor: 8 túneles × 18 componentes serían 144 transformadas por frame en el CPU del Quest.
+
+
+### 🌬️ 2026-09-17 (2ª pasada) — curva SUAVE y rango exagerado
+Beltrán tras probar: *"llegó muy duro a los valores máximos y mínimos, no suave como con la esfera"* y *"un poco más exagerados"*.
+- **Causa (en el manager, no acá):** `BreathSigned` era `clamp(gain·y)` → con ganancia 1,5 una respiración normal chocaba contra ±1 y quedaba plana. Ahora es `k·y/(1+(k−1)|y|)` (techo suave, `SignedGain` 2).
+- **Mapeo nuevo del consumidor** (sin quiebre en 0 aunque las ganancias sean asimétricas): `m = 1 + S·lerp(−Out, In, smoothstep((S+1)/2))`. `In` = fracción a inhalación plena, `Out` = a exhalación plena, igual que antes.
+- `BreathSize` y `BreathFrame` con la curva suave (`BreathPhase` ya usaba los flujos, ahora suaves desde el manager).
+- **Valores (11 túneles)**: `SizeIn 0,35` · `SizeOut −0,25` · `SpeedIn −0,9` (×0,1) · `SpeedOut 1,5` (×2,5).
+
+
+### 🌬️ 2026-09-17 (3ª pasada) — acompañar la respiración lenta, suavidad de resorte, más exagerado
+Beltrán: *"si hago una respiración lenta deben demorarse más en llegar al máximo o mínimo, acompañando mi movimiento"* · *"sigo sintiendo que está un poco duro"* · *"los valores más exagerados, menos el metaball"*.
+- **Causa (en el manager):** (1) `HorizTau` 3 s: la base del band-pass alcanzaba a una respiración lenta a mitad de la inhalación → el pico llegaba ANTES del final; (2) dos saturaciones encadenadas (`x/(1+|x|)` del nivel y el techo suave de `SignedGain`) = una sola muy comprimida: casi todo el recorrido quedaba pegado al máximo.
+- **Arreglo (manager):** `HorizTau` **6**; `S` sale del band-pass CRUDO en cm (`x = (HFast−HSlow)·SignedGain`, `SignedGain` 1 = 1 cm) con codo suave `x/(1+|x|³)^(1/3)` (lineal hasta ~0,7) y pasa por un **resorte críticamente amortiguado** (`SmoothFreq` 6): velocidad continua, sin rebote.
+- ✅ Medido en PIE con respiración de prueba de 10 s: el máximo llega al final de la media onda (no antes), la velocidad de `S` sube y baja suave.
+- **Pedido**: *"al exhalar debiera aumentar la rotación de los círculos, así se ve como un espiral"*.
+- **Círculos (GAL_9)**: un círculo girando no se ve; lo que se ve es su estiramiento. `Custom` **`BreathStretch`** → `RingWPO.WidthVar` = `WidthVar + GSt·e` (e = parte exhalada suave de S) y `Custom` **`BreathRandOff`** → `RingWPO.RandOff` = `RandOff + GSp·FlowOut/2π`: el eje del estiramiento (que ya se tuerce 49 rad con la profundidad) **gira mientras se exhala** → espiral.
+- **Rectángulos (GAL_10)**: `Custom` **`RingShapeTwist`** reemplaza a `RingShape` (mismo código, con los ejes del plano rotados `θ = GTw·e·t`): en la boca θ = 0 (calza con el marco fijo) y crece hacia el fondo → el pasillo se tuerce en espiral al exhalar y se destuerce al inhalar. Con `GTw` 0 es el `RingShape` de antes.
+- Perillas nuevas `BreathStretchOut` · `BreathSpinOut` (rad/s a exhalación plena) · `BreathTwistOut` (rad al fondo). `ApplyBreath` ahora pasa `self` explícito a `GetComponentsByTag` → los literales ya no se pierden.
+- **Valores**: GAL_9 `SizeIn 0,55` · `SizeOut −0,35` · `SpeedIn −0,85` · `SpeedOut 2,5` · `StretchOut 0,35` · `SpinOut 1,2` · GAL_10 igual en tamaño y velocidad + `TwistOut 3,0`.
