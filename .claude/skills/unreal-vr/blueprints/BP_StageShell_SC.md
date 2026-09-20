@@ -81,3 +81,22 @@ El director de las 5 etapas **en el mismo sitio**. Hace tres cosas y nada más:
 
 ## Relacionados
 - [[BP_Ganzfeld_SC]] — el cascarón que maneja · [[BP_Director_Story]] — quien le pide las etapas · [[BP_Director_Rooms]] — ahora solo carga el Hall · [[BP_GalleryDirector_SC]] — de donde salió el diseño por tags
+
+
+## 🔴🔴 2026-09-21 (noche) — UNA ESTACIÓN SE APAGA EN TRES CANALES, NO EN DOS
+Lo cazó la primera pasada completa, con el log dando el nombre del culpable:
+```
+BEAM R corto contra: PulseField_Heart
+BEAM L corto contra: PulseField_Heart
+```
+El plano de las ondas del latido (etapa 2) seguía **bloqueando el line-trace del beam** durante Attracting, **invisible y sin Tick**. `SetActorHiddenInGame` saca el dibujo y `SetActorTickEnabled` saca la lógica, pero **la colisión queda viva**.
+
+🚩 **La forma general, y por qué es nueva:** en V2 cada sala era un sublevel y lo de la otra sala **no estaba en el mundo**. Al juntar las 5 etapas en el mismo sitio, **lo oculto de una estorba a la otra**. Es la misma familia que la saga de colisionadores fantasma (viñeta → proto ameba → HUD), por una puerta nueva.
+
+✅ `HideAll` y `ShowStage` hacen ahora **`Collision|SetActorEnableCollision`** además de la visibilidad y el Tick. Verificado en PIE: el beam se arma y no queda ni una línea de choque.
+👉 **La regla de este BP: visibilidad · Tick · colisión.** Si algún día se suma un cuarto canal (audio de un componente, por ejemplo), va en las mismas dos funciones.
+
+## 🔗 2026-09-21 — el nivel V2 sigue funcionando (repliegue automático)
+`BP_Director_Story` y `BP_Director_Rooms` son **compartidos**: la cirugía de V3 habría dejado `MapsV2/L_SoulCharger` trabado esperando una esfera que ahí no existe.
+✅ **`ExitHall()` y `GoShell()` ramifican por `IsValid(ShellRef)`**: con esfera → V3 (viraje de color); sin esfera → el camino viejo (`Rooms.EndStage()` + espera `"door"`). `NextRoom` pone `WaitFor = "shell"` **antes** de llamar a `GoShell`, justo para que el repliegue pueda pisarlo con `"door"`.
+👉 Un solo código sirve a los dos niveles, y V2 queda utilizable como referencia (que es lo que pide `CLAUDE.md`).

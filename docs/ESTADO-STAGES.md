@@ -4,6 +4,18 @@
 
 > Última actualización: **2026-08-13**.
 
+---
+
+## 🔮 2026-09-21 — ESTE ARCHIVO QUEDÓ ATRÁS: el nivel vigente es `MapsV3/L_SoulCharger_V3`
+🔴 **Lo de abajo describe el esqueleto viejo y la V2.** Desde el 2026-09-21 la obra se arma en **`/Game/SoulCharger/MapsV3/L_SoulCharger_V3`**, donde:
+- el pawn **solo avanza hasta la parada de Entering** y las 5 etapas ocurren ahí mismo;
+- el cilindro de sala lo reemplaza **una esfera de color** que vira de etapa en etapa — **sin puertas y sin fundido a negro** entre etapas;
+- Recepción (el Hall) es la única que conserva su mesh.
+
+👉 El estado vivo está en **[`PLAN-NIVEL-DEFINITIVO-2026-09-21.md`](PLAN-NIVEL-DEFINITIVO-2026-09-21.md)** y en el tracker de [`BP_StageShell_SC`](../.claude/skills/unreal-vr/blueprints/BP_StageShell_SC.md).
+
+---
+
 ## 🦴 EL ESQUELETO DE LA OBRA (rama `core/esqueleto`) — la maqueta corre de punta a punta
 Intro → menú → corredor con timbre → **Hall narrativo** (Alma recibe → scanner → sensor de mano hábil con **auto-asignado a los 12 s** si nadie lo toma → elección entre 5 Proto Souls con armado de manos despejadas → HUD nace al elegir) → **ENTERING = LA PRIMERA ETAPA REAL** (la cadena de Breath integrada al ciclo: instrucciones de 5 páginas → sensor de respiración → 5 respiraciones sostenidas → `Box_Breath` reactivo → cierre por el camino real) → 4 etapas placeholder → disolución final al exterior. Plan vivo: `docs/PLAN-2026-08-13.md` · mapa de BPs: `blueprints/_INDEX.md`.
 

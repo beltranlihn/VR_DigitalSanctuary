@@ -120,9 +120,32 @@ Esto no es una simplificación: es la opción más barata en el device, y cada p
 
 🐛 **El bug que cazó la primera pasada, y vale como regla:** `HideAll` apaga el **Tick** de las estaciones. Con la esfera en `Stage 0`, el panel de instrucciones quedaba con el Tick apagado y **su animación de salida nunca terminaba** → la obra se trababa esperando `"panel"`. No era el panel: era que nadie le había pedido la etapa 1 a la esfera.
 
+### ✅ Pasada COMPLETA desde el arranque real (`DebugStartRoom = −1`)
+La verificación que importaba, porque ejercita la única caminata que queda:
+```
+menu -> caminata (29 s) -> timbre -> Hall (pasos 0-9, con la explicacion de las etapas)
+     -> ExitToStage: negro + descarga del Hall + caminata
+     -> sala 1 paso 0 espera: shell  ->  la esfera sube AZUL
+     -> salas 1..5 encadenadas por el viraje de color, cada una con sus pasos 1-7
+```
+Medido en la instancia de PIE al llegar: **pawn en (1151, 0, 115)** = la parada de Entering · `LegIndex 4` · caminata terminada · **esfera visible** · `Stage 1`. Cero `Accessed None`.
+
+### 🐛 Dos bugs que solo aparecieron corriendo la obra entera
+**1. 🔴 Ocultar un actor NO apaga su colisión.** El log lo cantó con nombre y apellido: `BEAM R/L corto contra: PulseField_Heart`. El plano de las ondas del latido (etapa 2) seguía **bloqueando el line-trace del beam** durante Attracting, aunque estuviera invisible y sin Tick. Es la misma familia que la saga de colisionadores fantasma (viñeta → ameba → HUD), por una puerta nueva: **al juntar las 5 etapas en el mismo sitio, lo oculto de una estorba a la otra**.
+✅ `HideAll`/`ShowStage` ahora también hacen **`SetActorEnableCollision`**. Verificado: en la corrida siguiente el beam se arma y **no hay ni una línea de choque**.
+👉 **Regla para este nivel:** una estación se apaga en **tres** canales — visibilidad, Tick y **colisión**.
+
+**2. 🔴 El salto de debug entra a una sala SIN pasar por `NextRoom`**, así que nadie le pedía la etapa a la esfera. Como `HideAll` apaga el Tick, el panel de instrucciones quedaba con el Tick muerto y **su animación de salida nunca terminaba** → la obra se trababa esperando `"panel"`. ✅ `CheckShell` pone la esfera al día sola.
+
+### 🔗 Compatibilidad: el nivel V2 sigue vivo
+Los directores son **compartidos**, así que la cirugía habría dejado `MapsV2/L_SoulCharger` trabado esperando una esfera que ahí no existe. Se le puso **repliegue automático**: si no hay `BP_StageShell_SC` en el nivel, `ExitHall` y `GoShell` vuelven al camino viejo (`EndStage` + espera `"door"`). **Un solo código sirve a los dos niveles.**
+Los otros cambios ya eran aditivos: `ExitToStage` es una función nueva, y el pulso del metaball queda inerte con `PulseAmt = 0` (que es lo que heredan las instancias viejas de la galería).
+
 ### ⬜ Lo que falta
-- [ ] **Sembrar los valores autorados de los metaballs** — las instancias nuevas nacen con el CDO, no con lo que Beltrán afinó en `GAL_7_MetaBlob` (respiración incluida). Sin esto, el metaball de Entering **no reacciona a la respiración**.
-- [ ] **Attracting: el metaball pulsando por slot.** Pide un parámetro nuevo en `M_MetaBlob_SC`; se hará **aditivo con default 0**, para que el metaball de la galería quede byte a byte igual.
-- [ ] **Rutinas del robot** para las etapas en V3 (las de V2 estaban atadas al director viejo).
-- [ ] 🔴 **Restaurar `StepTimes`** del CDO de `BP_Director_Story` a `[0, 90, 240, 0, 300, 300]` (se bajaron a 8 s para poder testear).
-- [ ] 🔴 **Visor**: los 5 colores, el ritmo del viraje y el costo real de las etapas 3 y 4.
+- [x] ✅ **Valores autorados de los metaballs sembrados** (incluida la respiración del de Entering, copiada de `GAL_7_MetaBlob`).
+- [x] ✅ **Attracting: el metaball pulsa por slot** — aditivo, con `PulseAmt = 0` la galería queda byte a byte igual. Medido en PIE.
+- [x] ✅ **`StepTimes` restaurado** a `[0, 90, 240, 0, 300, 300]`; robot en `RobotOn = 0`; sin auto-demo.
+- [ ] 🔴 **VISOR** — es lo único que decide: los 5 colores, `FadeTime` (hoy 3 s), el aspecto del GROUP en Loving, cuánto pulso en Attracting (`PulseAmt` 0,6) y **el costo real en device** de las etapas 3 y 4.
+- [ ] **Surrounding no cierra sin alguien que dibuje.** Es una limitación **ya conocida de V2** (la práctica de dibujo cierra el panel por mecánica), no algo que haya traído V3. Se destraba con el robot en `Routine = 3` o con las manos puestas.
+- [ ] **Rutinas del robot para Entering / Recognizing / Attracting**: las de V2 estaban atadas al director viejo. ⚠ Y hay un techo real: la respiración y el latido **dependen de los bits de validez del tracking**, que en PIE no existen — eso solo se prueba en gafas.
+- [ ] Decidir si el Hall (`L_Hall_SC`) se duplica a `MapsV3` o se sigue compartiendo con V2 (hoy compartido y **sin tocar**).
