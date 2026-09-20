@@ -9,6 +9,25 @@
 
 ---
 
+## 🔮 ETAPA ACTUAL (desde 2026-09-21): el NIVEL DEFINITIVO, en `MapsV3/L_SoulCharger_V3`
+🔴 **El nivel de trabajo es `/Game/SoulCharger/MapsV3/L_SoulCharger_V3`.** Fusiona la narrativa de `MapsV2/L_SoulCharger` con la estética probada en `TestMeshes`. `MapsV2` **no se toca**: queda de referencia.
+
+**Los tres cambios que lo definen:**
+1. **El pawn solo avanza hasta la parada de Entering** (world `x ≈ 1152`). Las 5 etapas ocurren ahí mismo, una tras otra.
+2. **El cilindro de sala se reemplaza por una esfera de color** (`BP_Ganzfeld_SC` con `M_GanzSolid_SC`), y el cambio de etapa **es el viraje de color** — ya no hay fundido a negro ni puertas entre etapas. Reception (el Hall) es la única que mantiene su mesh.
+3. **Las mecánicas cambian de cara**: Entering = metaball · Recognizing = las ondas del latido (`BP_PulseField_SC`) · Loving = metaball en modo GROUP · Attracting = secuenciador + metaball por slot · Surrounding = el dibujo, igual.
+
+| Pieza nueva | Qué hace | Estado |
+|---|---|---|
+| [`BP_StageShell_SC`](BP_StageShell_SC.md) — la esfera de color + las estaciones por tag (`STAGESTATION` + `STAGE_1..5`) | reemplaza a `BP_Director_Rooms` para las etapas | 🟢 verificado por log, falta visor |
+| `BP_Director_Rooms.ExitToStage()` | la salida del Hall: fundido + descarga + caminata, sin sala siguiente | 🟢 compila y verificado por read |
+| `BP_Director_Story`: `TickShell`/`CheckShell`/`GoShell`/`EndShell`, `NextRoom` reescrita | las salas 1-5 avanzan **por la esfera**, ya no por la puerta | 🟢 compila; cirugía verificada por read |
+
+🔴 **Cómo se agrega algo a una etapa:** ponerle al actor los tags **`STAGESTATION` + `STAGE_<n>`**. Nada más. ⚠ **No taguear los anchors/TargetPoint** (aparece su marcador gris).
+📋 Plan y decisiones: [`docs/PLAN-NIVEL-DEFINITIVO-2026-09-21.md`](../../../../docs/PLAN-NIVEL-DEFINITIVO-2026-09-21.md).
+
+---
+
 ## 🧼 ETAPA ACTUAL (desde 2026-08-17): la VERSIÓN LIMPIA, en `MapsV2/L_SoulCharger`
 🔴 **El nivel de trabajo es `/Game/SoulCharger/MapsV2/L_SoulCharger`, no `L_Persistent`.** La etapa consiste en **rehacer las mecánicas de forma limpia y ordenada en un nivel nuevo** (pedido de Beltrán: *"empezar a armar algo más en limpio"*). El esqueleto viejo **no se toca**: queda como referencia de lo que ya está probado, y de ahí se copian los criterios, no los archivos.
 

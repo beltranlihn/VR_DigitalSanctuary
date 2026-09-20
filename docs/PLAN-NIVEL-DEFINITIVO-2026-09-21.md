@@ -93,6 +93,36 @@ Esto no es una simplificación: es la opción más barata en el device, y cada p
 
 ---
 
-## 5. Estado
+## 5. Bitácora
 
-Se va actualizando a medida que avanza la construcción. Ver la bitácora al final.
+### ✅ P0 — Cimientos (hecho)
+- `MapsV3/L_SoulCharger_V3` duplicado de V2.
+- **38 `TargetPoint`** de las salas 2-5 y del final movidos al sitio de Entering (canario 82→82, verificados releyendo).
+- **`BP_StageShell_SC`** construido: 13 funciones, 26 variables, dispatcher `OnStageReady`. Tracker: [`BP_StageShell_SC.md`](../.claude/skills/unreal-vr/blueprints/BP_StageShell_SC.md).
+- `Shell_Stages` (`BP_Ganzfeld_SC` + `M_GanzSolid_SC`, radio 1400) colocado **centrado en el usuario** (`x = 1151,7`) y `Director_Shell` con la tabla de 5 colores.
+
+🔑 **El dato que ordenó todo:** el spline del recorrido es **local** y su actor está en `x = −348,3`, así que **el pawn para en world `x ≈ 1152`**, no en 1500. Con eso, las posiciones autoradas de los sublevels caen donde tienen que caer: el panel a 1,6 m, el botón a 0,7 m, el metaball a 2,1 m, Alma a 3,5 m.
+
+### ✅ P1/P2 — Las 5 etapas en el sitio (hecho)
+- **35 actores** colocados en sus posiciones autoradas (canario 94→129, cero fallos): metaball en Entering, `BP_PulseField_SC` en Recognizing, metaball GROUP en Loving, secuenciador completo (+8 slots, +22 anclas) en Attracting, y los 4 paneles de instrucciones con sus índices de página.
+- **Las puertas entre etapas eliminadas del flujo:**
+  - `BP_Director_Rooms.ExitToStage()` (nueva) = la salida del Hall: fundido + descarga + caminata, sin sala siguiente.
+  - `BP_Director_Story`: `NextRoom` ahora llama a la esfera y espera **`"shell"`**; `RunRoomB` sub 8 ya no llama a `EndStage`; `RunHallB` sub 10 usa `ExitToStage`; `CloseRoomNow` apaga la esfera en el final.
+  - `RoomLevels` del nivel = **solo `L_Hall_SC`**.
+- **Antihielo:** `CheckShell` pone la esfera al día si quedó desfasada (cubre el salto de `DebugStartRoom`, que entra a una sala **sin** pasar por `NextRoom`).
+
+### 🔬 Verificado por log en PIE
+| Qué | Resultado |
+|---|---|
+| Ciclo de 5 etapas en modo automático | 🟢 tiempos exactos (3,0 s de viraje + 0,6 de sostén), 23 estaciones recogidas |
+| Encadenado real del guión | 🟢 `sala 2 paso 0 espera: shell` → la esfera vira → sala 2 corre los pasos 1-7 |
+| `Accessed None` | 🟢 **cero** en todas las corridas |
+
+🐛 **El bug que cazó la primera pasada, y vale como regla:** `HideAll` apaga el **Tick** de las estaciones. Con la esfera en `Stage 0`, el panel de instrucciones quedaba con el Tick apagado y **su animación de salida nunca terminaba** → la obra se trababa esperando `"panel"`. No era el panel: era que nadie le había pedido la etapa 1 a la esfera.
+
+### ⬜ Lo que falta
+- [ ] **Sembrar los valores autorados de los metaballs** — las instancias nuevas nacen con el CDO, no con lo que Beltrán afinó en `GAL_7_MetaBlob` (respiración incluida). Sin esto, el metaball de Entering **no reacciona a la respiración**.
+- [ ] **Attracting: el metaball pulsando por slot.** Pide un parámetro nuevo en `M_MetaBlob_SC`; se hará **aditivo con default 0**, para que el metaball de la galería quede byte a byte igual.
+- [ ] **Rutinas del robot** para las etapas en V3 (las de V2 estaban atadas al director viejo).
+- [ ] 🔴 **Restaurar `StepTimes`** del CDO de `BP_Director_Story` a `[0, 90, 240, 0, 300, 300]` (se bajaron a 8 s para poder testear).
+- [ ] 🔴 **Visor**: los 5 colores, el ritmo del viraje y el costo real de las etapas 3 y 4.
