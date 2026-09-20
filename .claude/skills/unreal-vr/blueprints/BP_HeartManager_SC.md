@@ -95,3 +95,19 @@ raw    = posición_en_caja  AND  bQuiet
 
 ### El método que faltó, y que es la lección real de la jornada
 Tres entregas sin medir, y el bug se veía en UNA llamada: `ObjectTools.get_properties` sobre el actor del mundo de PIE (`/Game/UEDPIE_0_<Mapa>…`) **comparado contra el BP que ya funciona**. Regla: **antes de entregar una mecánica extraída, diffear sus refs cacheadas contra las del original.**
+
+
+## 🧪 2026-09-21 — `bIgnoreTracking`: el umbral se puede probar en PIE con el robot
+**El problema, medido:** `bQuiet` terminaba en `… AND (bValidLin AND bValidAng)` — los bools de validez del tracking. En PIE no hay runtime XR, esos bools son `false`, y **el umbral no abría nunca** por más que la geometría fuera perfecta.
+
+🔑 **Lo que NO era el problema:** la velocidad. En PIE `GetLinearVelocity` devuelve **0**, que se lee como *quieto* — exactamente lo que el umbral pide. Y `GeomHoriz`/`GeomVDrop` salen de **posiciones de mundo**, que el robot controla. Como dijo Beltrán: *"finalmente la mecánica es de posición y movimiento"*.
+
+✅ **El cambio, de un nodo:**
+```
+bQuiet = velocidadesQuietas AND (trackingVálido OR bIgnoreTracking)
+```
+- **`bIgnoreTracking`** (bool, instance-editable, default **false**). En gafas el comportamiento es **idéntico** (el bool de validez es true, y `x OR false` = `x`).
+- 🔴 **Lo prende el robot en RUNTIME** ([[BP_Robot]] rutinas 4 y 6), no el nivel → no puede quedar prendida por olvido.
+- **Se conservó la protección a propósito**: si un mando se queda sin batería en la instalación, el bool de validez sigue cerrando el umbral en vez de dejar que una posición fantasma abra la zona.
+
+✅ **Verificado en PIE** con el robot moviendo la mano: el umbral abre, la señal oscila y los consumidores reaccionan. Detalle y números en [[BP_Robot]].

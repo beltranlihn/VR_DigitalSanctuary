@@ -217,3 +217,57 @@ flujo real (`DebugStartRoom = -1`) cierra en 29 s. Es un problema del atajo de d
 `RobotOn = 0` · `HeadOn = 0` · `Routine = 3` · `DebugStartRoom = 5` (el de Beltrán) · `bAutoTest = false` ·
 **`StepTimes` de vuelta en los valores de obra `[0, 90, 240, 0, 300, 300]`** · todas las flags de debug
 del archivo, la constelación, el retrato y el picker en `false`.
+
+
+## 🫁💓 2026-09-21 — EL ROBOT YA PUEDE PROBAR RESPIRACIÓN Y LATIDO (rutinas 4 y 6)
+Pedido de Beltrán: *"Arma un sistema para que el robot pueda testear breath y latido… **finalmente la mecánica es de posición y movimiento**."*
+Y tenía razón: **la geometría siempre había estado bien**; lo único que bloqueaba era un `and` de más.
+
+### 🔑 El techo no era el que decía este tracker
+Arriba está escrito que el robot no puede probar respiración ni latido porque *"el detector depende del TRACKING, no de la posición"*. **Eso era medio cierto y llevó a la conclusión equivocada.** El detector usa DOS cosas del tracking:
+| Qué | En PIE | ¿Estorba? |
+|---|---|---|
+| **la velocidad** (`GetLinearVelocity`) | devuelve **0** | ❌ no: 0 se lee como **quieto**, que es justo lo que el umbral pide |
+| **el bool de validez** | `false` | ✅ **sí**: era un `and` final que tiraba abajo `bQuiet` para siempre |
+
+Y la geometría (`GeomHoriz` / `GeomVDrop`) sale de **posiciones de mundo**, que el robot sí controla. O sea: **faltaba una sola compuerta**, no un sistema nuevo.
+
+### El arreglo: una perilla, no un cambio de comportamiento
+En [[BP_BreathManager_SC]] y [[BP_HeartManager_SC]], `bQuiet` pasó de
+`velocidadesQuietas AND trackingVálido` a **`velocidadesQuietas AND (trackingVálido OR bIgnoreTracking)`**.
+- **`bIgnoreTracking`** (bool, instance-editable, default **false**) → en gafas el comportamiento es **idéntico**, bit a bit.
+- 🔴 **El robot la prende en RUNTIME**, no en el nivel: sólo vive mientras el robot corre, así que no se puede quedar prendida por olvido.
+- Se conservó la protección original a propósito: si un mando se queda sin batería en la instalación, el bool de validez sigue cerrando el umbral.
+
+### Las rutinas
+| `Routine` | Qué hace |
+|---|---|
+| **4 · `RunBreathV3`** | mano derecha a la **panza** (`BellyLoc`) y la hace **oscilar**: `cam + fwd·(BellyFwd + BreathAmp·sin(2π·t/BreathPeriod)) − up·BellyDrop` |
+| **6 · `RunHeartV3`** | las dos manos al **pecho** (`ChestLoc`, el que ya existía) y quietas |
+Perillas nuevas (CDO): **`BellyFwd` 15** · **`BellyDrop` 45** · **`BreathAmp` 1,5 cm** · **`BreathPeriod` 5 s`**.
+Colgadas del `else` libre de `RobotTick` → **`RunV3`**, que despacha por `Routine`. No se tocó el dispatch existente.
+
+### Por qué esos números y no otros
+Se eligieron **leyendo las zonas del CDO**, no a ojo:
+| | zona del manager | lo que da el robot |
+|---|---|---|
+| Panza | `SafeHorizMax` 23 · `SafeVDrop` 33-63 | horiz **13,5-16,5** · vdrop **45** |
+| Pecho | `HeartHorizMax` 25 · `HeartVDrop` 10-45 | horiz **12** · vdrop **32** |
+⚠ La oscilación es de **1,9 cm/s de pico** — muy por debajo de `StillLin` (14), así que **no rompe la quietud**. Una respiración de verdad tampoco.
+
+### ✅ Medido en PIE (no supuesto)
+**Respiración** (`Routine 4`, `DebugStartRoom 1`): `BREATH: UMBRAL IN`, y leyendo la instancia viva:
+```
+GeomHoriz  13,8 ↔ 16,1   (= 15 ± 1,5, el seno del robot)   GeomVDrop 45
+bZone true · bQuiet true · bBreathing true · HAmp ~0,9 (contra MinHAmp 0,02)
+BreathSigned  −0,81 → +0,56      BreathLevel 0,12 → 0,83
+```
+**Latido** (`Routine 6`, `DebugStartRoom 2`, BioHub con `bFakeSignal`): `HEART: UMBRAL IN h=12.0 v=32.0`, `bHeartZone true`, `BeatCount` 37→42 en 4 s (~75 bpm), `HeartBPM` 71,6→76,0.
+Cero `Accessed None` en las tres corridas.
+
+### 🐛 Y de paso destapó un bug del nivel
+`BP_PulseField_SC` (las ondas de Recognizing) tenía **`bUseBioHub = false`** en la instancia — nació con el default del CDO. Las ondas corrían a 60 bpm fijos mientras el corazón iba a 75. ✅ Corregido y verificado: ahora `RateBPM` **sigue exacto** al `HeartBPM` (71,60 vs 71,63 → 76,02 vs 76,02).
+👉 Es la trampa de siempre (*lo de la instancia le gana al Blueprint*), y **sólo se ve corriendo la mecánica entera**.
+
+### ⬜ Lo que esto NO prueba
+El robot valida **toda la cadena** (geometría → umbral → señal → consumidores). **No** valida que la zona esté bien puesta para un cuerpo real, ni la háptica, ni si respirar así es cómodo: eso es visor.

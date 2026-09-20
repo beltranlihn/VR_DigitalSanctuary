@@ -147,5 +147,6 @@ Los otros cambios ya eran aditivos: `ExitToStage` es una función nueva, y el pu
 - [x] ✅ **`StepTimes` restaurado** a `[0, 90, 240, 0, 300, 300]`; robot en `RobotOn = 0`; sin auto-demo.
 - [ ] 🔴 **VISOR** — es lo único que decide: los 5 colores, `FadeTime` (hoy 3 s), el aspecto del GROUP en Loving, cuánto pulso en Attracting (`PulseAmt` 0,6) y **el costo real en device** de las etapas 3 y 4.
 - [ ] **Surrounding no cierra sin alguien que dibuje.** Es una limitación **ya conocida de V2** (la práctica de dibujo cierra el panel por mecánica), no algo que haya traído V3. Se destraba con el robot en `Routine = 3` o con las manos puestas.
-- [ ] **Rutinas del robot para Entering / Recognizing / Attracting**: las de V2 estaban atadas al director viejo. ⚠ Y hay un techo real: la respiración y el latido **dependen de los bits de validez del tracking**, que en PIE no existen — eso solo se prueba en gafas.
+- [x] ✅ **El robot ya prueba respiración y latido** (rutinas 4 y 6). El "techo del tracking" resultó ser **una sola compuerta**, no un límite real: la geometría siempre estuvo bien y la velocidad en PIE vale 0, que se lee como *quieto*. Lo único que estorbaba era el `and` de validez → ahora hay `bIgnoreTracking`, que el robot prende en runtime. Detalle en [`BP_Robot.md`](../.claude/skills/unreal-vr/blueprints/BP_Robot.md).
+- [ ] **Rutinas del robot para Attracting** (agarrar esferas y apretar SAVE MELODY): sigue pendiente.
 - [ ] Decidir si el Hall (`L_Hall_SC`) se duplica a `MapsV3` o se sigue compartiendo con V2 (hoy compartido y **sin tocar**).
