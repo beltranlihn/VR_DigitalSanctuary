@@ -54,14 +54,20 @@ def level_canary():
     return len(names), sorted(names)
 
 def run():
-    antes, _ = level_canary()
+    # 🔴 El try/except NO es decorativo: T() protege las llamadas al MCP, pero un error
+    # de TU propia lógica Python (un índice, un .get con default -- el sandbox usa
+    # _StrictDict y NO acepta default en .get()) también dispara el Undo. Ver gotcha 337.
+    try:
+        antes, _ = level_canary()
 
-    # ---- el trabajo va acá, SIEMPRE por T()/V(), nunca execute_tool() pelado ----
+        # ---- el trabajo va acá, SIEMPRE por T()/V(), nunca execute_tool() pelado ----
 
-    despues, quedan = level_canary()
-    return {
-        'errores': ERRS,                    # <- si esto no está vacío, el script igual terminó OK
-        'canario': str(antes) + ' -> ' + str(despues),
-        'perdio_actores': (antes > 0 and despues < antes),
-        'actores': quedan,
-    }
+        despues, quedan = level_canary()
+        return {
+            'errores': ERRS,                # <- si esto no está vacío, el script igual terminó OK
+            'canario': str(antes) + ' -> ' + str(despues),
+            'perdio_actores': (antes > 0 and despues < antes),
+            'actores': quedan,
+        }
+    except BaseException as e:
+        return {'errores': ERRS + ['run() :: ' + str(e)[:300]]}

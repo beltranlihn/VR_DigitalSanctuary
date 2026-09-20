@@ -17,6 +17,20 @@
 | 9 Burbujas | 1 | Reveal In 0,5 / Out −0,65 · Size In 0,35 / Out −0,3 | ✅ MID |
 | 10-11 Túneles | 8 + 3 | Size In 0,35 / Out −0,25 · Speed In −0,9 / Out 1,5 | ✅ MID (anillos y marco; el fondo en 0) |
 
+**6ª pasada (2026-09-18, vigente) — la LEY de las velocidades, probando en visor:**
+- Beltrán en los túneles: *"en el exhalar, recién se activa la velocidad rápida al llegar al final de la exhalación; debería ir aumentando según voy exhalando. Lo mismo con el giro del túnel circular."*
+- **Causa (en el manager, no en las estaciones):** `FlowOut = ∫neg(S)dt`, y al EMPEZAR a exhalar `S` está en su máximo positivo → la primera mitad de cada exhalación integraba cero. **Ninguna `f(S)` sin memoria lo puede arreglar** (ver gotcha 339): hace falta estado.
+- **Arreglo:** función `StepFlows` en el manager, con seguimiento de pico y valle (`SPeak`/`SValley`) y flujos que integran el **progreso** de cada media onda, normalizado por la amplitud real y apagado por `BreathOn`. Medido en PIE: a mitad de la exhalación `u` pasó de 0 a **0,26**, y sigue llegando a 1 al final.
+- **Alcance:** solo los mapeos de VELOCIDAD/FASE (velocidad de los túneles, giro del circular, giro del VoidField). Los de POSICIÓN leen `Signed` y no cambian.
+- **También:** GAL_10 (la última, los 3 rectangulares) se quedó **sin giro** por pedido (`BreathTwistOut` 3 → 0); GAL_9 conserva su espiral, aprobada.
+- ⬜ Sin visor.
+
+**5ª pasada (2026-09-18, vigente) — tres ajustes de estación pedidos por Beltrán:**
+- **Estaciones 04 y 05 (puntos)**: *"mucho más exagerado el agrandamiento de las esferas al inhalar"* → `BreathSizeIn` **0,6 → 1,5** en las 5 instancias con el mapeo (cascarón ×2,5 a inhalación plena).
+- **Estación 06 (eclipse)**: se agregaron los dos mapeos que faltaban. **Apertura del cono** (`BreathApertureIn 0,6` / `Out −0,5`) — va por CPU porque `AimCone` calcula la tangencia con el spread, así que hay una variable `ConeSpreadNow`, una función `StepAperture` y **el Tick se reordenó a `StepBreath → StepSweep`**. **Brillo de la esfera** (`BreathBrightIn 0,8` / `Out −0,6`, no se apaga) — en el material, así se ve con el slider. Rotación y largo sin cambios: ya hacían lo pedido.
+- **Estación 07 (metaball)**: *"inhalación baja las intensidades y achica tamaño de blobs"* → dos `Custom` nuevos calcados de `BreathCurl`, sobre `Brightness` y `BlobRadius`. `BreathBrightIn −0,5` · `BreathRadiusIn −0,45` · los `Out` en 0 (solo se pidió la inhalación).
+- ⬜ **Ninguno de los tres visto en visor.** El eclipse además solo se ve en Play (apertura y largo son CPU).
+
 **4ª pasada (vigente):** *"todo llega demasiado rápido a sus destinos"* → la causa era la **amplitud**: la escala fija en cm hacía que una respiración de ~3 cm cruzara el codo en el primer tercio. El manager ahora tiene **ganancia automática por usuario** (aprende la amplitud en ~8 s: una respiración normal de cualquiera llega a ~0,8 justo al final), `HorizTau 8`, resorte `SmoothFreq 4`, y la respiración de prueba genera cm que pasan por ese mismo camino (`FakeAmpCm`). Haces: intensidad lineal. Medido en PIE con 3 cm / 10 s: pico ±0,79 exactamente al final de cada media onda.
 
 **3ª pasada (valores de estaciones, siguen vigentes):** haces `Spread 1,2 / −0,85` + intensidad · puntos (04 y 05) **crecen al inhalar** con `SizeIn 0,6 / SizeOut −0,35`, capas a distinto ritmo (0,36 / 0,6 / 0,84), giro igual al inhalar y ×5 al exhalar · líneas `1,6 / −0,95` · sombra largo `−0,8 / 3,0`, barrido `−0,5 / 1,2` · metaball **sin cambios** · burbujas revelado `0,8 / −0,8`, tamaño `0,6 / −0,45` · túneles tamaño `0,55 / −0,35`, velocidad `−0,85 / 2,5`, **espiral al exhalar** (circulares: estiramiento 0,35 + giro 1,2 rad/s; rectangulares: torsión 3 rad). Manager: `HorizTau 6`, `S` del band-pass crudo con codo suave y resorte (`SmoothFreq 6`), `SignedGain 1`/cm.

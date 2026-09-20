@@ -79,7 +79,7 @@ AddUserVariables(system, [{"name":"User.Beam_Start","description":"...",
 **Nodes — editing**
 - **create_node**(graph, type_id, pos, declaring_class?) — type_id like `Development|PrintString`, `AddEvent|EventBeginPlay`, `AddEvent|Custom|MyEvent`.
 - **delete_node**(node) / **set_node_position**(node,pos) / **arrange_nodes**(…) / **retarget_node_class**(…).
-- **connect_pins**(output_pin: PinID, input_pin: PinID) / **break_pins**(…). PinID = `{direction: EGPD_Input|EGPD_Output, index_id, node:{refPath}}`. Connecting to an already-connected input REPLACES it.
+- **connect_pins**(output_pin: PinID, input_pin: PinID) / **break_pins**(…). PinID = `{direction: EGPD_Input|EGPD_Output, index_id, node:{refPath}}`. Connecting to an already-connected input REPLACES it — 🔴 **solo en pines de DATOS**. Un pin de **exec de entrada acepta varias conexiones** (el de enlace único es el de salida): para reordenar una cadena de ejecución hay que `break_pins` los enlaces viejos, o queda un bucle infinito que compila igual. Ver gotcha 338.
 - **get_pin_value**(pin) / **set_pin_value**(pin, value) — input pins with default values only.
 - **add_node_pin**(node) / **remove_node_pin**(node, pin) — Switch/Sequence/Make Array/commutative ops (auto-named).
 
@@ -117,7 +117,20 @@ Medido el 2026-08-11 construyendo el esqueleto. **Tres tools aceptan un transfor
 | `SceneTools.add_to_scene_from_asset` | el `xform` | — |
 | `ActorTools.set_actor_transform` | **todo** (devuelve `true` y no mueve nada) | — |
 
-✅ **La vía que SÍ funciona, para componentes y para actores del nivel:**
+🔴🔴 **CORREGIDO 2026-09-19 — la forma JSON de abajo ESCRIBE SOLO LA PRIMERA COMPONENTE.**
+Medido: `set_properties(root, '{"relativeLocation":{"x":1,"y":2,"z":3}}')` devuelve `true` y el componente queda en **(1, 0, 0)**.
+Costó colocar 33 actores de una estación entera apilados en el mismo punto, con la Y a 100 km del usuario.
+⚠ No es general: el mismo JSON sobre un `FLinearColor` de una expresión de material SÍ escribe los 4 campos. Es específico de los
+**transforms de SceneComponent**, que pasan por un setter propio.
+
+✅ **La vía que SÍ funciona: el formato de TEXTO de Unreal.**
+```
+ObjectTools.set_properties(<componente o rootComponent>, '{"relativeLocation":"(X=1.000000,Y=2.000000,Z=3.000000)"}')
+```
+Igual para `relativeScale3D` `(X=,Y=,Z=)` y `relativeRotation` `(Pitch=,Yaw=,Roll=)`.
+🔴 **Y verificar SIEMPRE releyendo**, que es lo único que lo delata: el write devuelve `true` en los dos casos.
+
+~~Forma vieja (rota, solo la primera componente):~~
 ```
 ObjectTools.set_properties(<componente o rootComponent>, '{"relativeLocation":{"x":..,"y":..,"z":..}}')
 ```

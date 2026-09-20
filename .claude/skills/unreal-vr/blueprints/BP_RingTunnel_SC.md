@@ -364,3 +364,23 @@ Beltrán: *"si hago una respiración lenta deben demorarse más en llegar al má
 - **Rectángulos (GAL_10)**: `Custom` **`RingShapeTwist`** reemplaza a `RingShape` (mismo código, con los ejes del plano rotados `θ = GTw·e·t`): en la boca θ = 0 (calza con el marco fijo) y crece hacia el fondo → el pasillo se tuerce en espiral al exhalar y se destuerce al inhalar. Con `GTw` 0 es el `RingShape` de antes.
 - Perillas nuevas `BreathStretchOut` · `BreathSpinOut` (rad/s a exhalación plena) · `BreathTwistOut` (rad al fondo). `ApplyBreath` ahora pasa `self` explícito a `GetComponentsByTag` → los literales ya no se pierden.
 - **Valores**: GAL_9 `SizeIn 0,55` · `SizeOut −0,35` · `SpeedIn −0,85` · `SpeedOut 2,5` · `StretchOut 0,35` · `SpinOut 1,2` · GAL_10 igual en tamaño y velocidad + `TwistOut 3,0`.
+
+
+### 🌬️ 2026-09-18 — GAL_10 (la ÚLTIMA estación) sin giro: solo tamaño y velocidad
+Beltrán, probando en visor: *"a la última estación, que la inhalación agrande y baje velocidad, y exhalación achique y expanda velocidad, pero que en esa en particular no afecte el giro la interactividad. En la estación anterior sí está perfecto"*.
+
+- **Qué estación es cuál** (confirmado leyendo `Names`/`StationTags` del `GAL_DIRECTOR`, no por deducción): `GAL_9` = *"10 Ring Tunnel"* = los **8 circulares** · `GAL_10` = *"11 Ring Tunnel Rect"* = los **3 rectangulares**, la última de las 11.
+- **Único cambio**: **`BreathTwistOut` 3,0 → 0** en las 3 instancias `GAL_TEST_RingTunnel_Rect*`. Con `GTw = 0` el `Custom` `RingShapeTwist` es **exactamente el `RingShape` de antes** (así se diseñó), así que el pasillo deja de torcerse y no queda ningún residuo.
+- Tamaño y velocidad **ya hacían lo pedido** y quedaron intactos: `SizeIn 0,55` / `SizeOut −0,35` · `SpeedIn −0,85` (×0,15) / `SpeedOut 2,5` (×3,5).
+- ✅ **`GAL_9` no se tocó**: conserva su espiral (`StretchOut 0,35` · `SpinOut 1,2`), que es la que Beltrán aprobó ("en la estación anterior sí está perfecto"). Verificado instancia por instancia después del cambio.
+- 💡 La lectura que queda: los circulares son **la estación del espiral**, los rectangulares **la del portal que respira**. Dos lecturas distintas con el mismo material.
+
+
+### 🌬️ 2026-09-18 (2a) — la velocidad y el giro ahora SUBEN durante toda la exhalación
+Beltrán: *"en el exhalar, recién se activa la velocidad rápida al llegar al final de la exhalación. Debería ir aumentando según voy exhalando. Lo mismo con el giro del túnel circular."*
+
+**No se tocó nada de este BP ni de sus materiales.** El defecto estaba en la LEY de los flujos del manager: `FlowOut` integraba la parte negativa de `S`, y al empezar a exhalar `S` todavía está arriba, así que la primera mitad de la exhalación no integraba nada. Ahora `FlowOut` integra el **progreso de la exhalación** (`u`, de 0 en el tope a 1 en el fondo). Detalle y medición: [[BP_BreathManager_SC]] §2026-09-18 y gotcha 339.
+
+- Afecta a **`BreathPhase`** (velocidad de los 11 túneles) y a **`BreathRandOff`** (el giro del eje del estirado, o sea la espiral de los circulares). Ambos consumen `FlowOut` sin cambios.
+- ⚠ **`BreathStretch` NO cambia**: es un mapeo de POSICIÓN (`WV + GSt·neg(S)`), o sea que la amplitud del estirado sigue llegando a su máximo al final de la exhalación. Es lo correcto para una posición, pero si Beltrán siente que **el espiral recién se ve** al final (y no que recién se mueve), la perilla a revisar es esa, no el giro.
+- Valores intactos: GAL_9 `SpeedIn −0,85` / `SpeedOut 2,5` · `StretchOut 0,35` · `SpinOut 1,2` · GAL_10 igual sin giro (`TwistOut 0`).

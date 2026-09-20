@@ -238,3 +238,32 @@ Beltrán: *"si hago una respiración lenta deben demorarse más en llegar al má
 - **Arreglo (manager):** `HorizTau` **6**; `S` sale del band-pass CRUDO en cm (`x = (HFast−HSlow)·SignedGain`, `SignedGain` 1 = 1 cm) con codo suave `x/(1+|x|³)^(1/3)` (lineal hasta ~0,7) y pasa por un **resorte críticamente amortiguado** (`SmoothFreq` 6): velocidad continua, sin rebote.
 - ✅ Medido en PIE con respiración de prueba de 10 s: el máximo llega al final de la media onda (no antes), la velocidad de `S` sube y baja suave.
 - **Valores**: `LengthIn −0,8` (×0,2) · `LengthOut 3,0` (×4) · `SweepIn −0,5` (sigue girando al inhalar) · `SweepOut 1,2` (×2,2).
+
+
+### 🌬️ 2026-09-18 — la APERTURA del cono y el BRILLO de la esfera
+Beltrán: *"Inhalación agranda apertura de cono, baja velocidad de rotación y aumenta brillo. Exhalación aumenta velocidad, achica el cono y baja intensidad de luz, sin que esta desaparezca."*
+La rotación y el largo **ya estaban** (`BreathSweepIn/Out` −0,5 / 1,2 y `BreathLengthIn/Out` −0,8 / 3,0) y quedaron igual: ya hacían "inhalar = más lento y más largo". Se agregaron los dos mapeos que faltaban.
+
+#### 1. Apertura — va por CPU, porque mueve la punta del cono
+🔴 **`AimCone` calcula la tangencia con `ConeSpread`** (`k = 100·SphereRadius / ((50 + ConeSpread)·ConeScaleXY)`). Si se modulara el `Spread` solo en el shader, el cono **se despegaría de la esfera**: con los valores de la instancia, pasar de 56 a 90 mueve la colocación ~33 cm. Por eso:
+- Variable interna **`ConeSpreadNow`** (cat. *I - Cono*, **no** instance-editable). `ApplyCone` la siembra con `ConeSpread` al final; como el CS corre `ApplyCone → AimCone`, en el editor todo queda idéntico.
+- **`AimCone` ahora lee `ConeSpreadNow`** en vez de `ConeSpread` (el getter viejo se borró).
+- Función nueva **`StepAperture(S)`**: `ConeSpreadNow = ConeSpread · (1 + S·lerp(−AperOut, AperIn, smoothstep))` y push de `"Spread"` al `Cone`. La llama `StepBreath` justo después del push de `LengthFade`, antes del branch del barrido.
+- 🔴 **El Tick se reordenó**, para que `AimCone` use la apertura de ESTE frame y no la del anterior. La cadena tiene **4 nodos de exec**, no 3 (`GetScalarParameterValue` del MPC es IMPURO y vive en la cadena):
+```
+antes:  Tick -> StepSweep (->AimCone) -> GetScalarParameterValue -> StepBreath
+ahora:  Tick -> GetScalarParameterValue -> StepBreath (->StepAperture) -> StepSweep (->AimCone)
+```
+- 🔴🔴 **Costó un crash (gotcha 338).** Al reordenar conecté las dos puntas nuevas dando por hecho que los enlaces viejos se iban: **un pin de exec de ENTRADA acepta varias conexiones**, así que quedó `… -> StepSweep -> GetScalarParameterValue -> StepBreath -> …` en **bucle infinito**. Compiló sin error y el `read_graph_dsl` lo imprimió LINEAL; en PIE el visor quedó congelado y el editor se cayó. Para reordenar exec: **`break_pins` explícito** y verificar con `get_node_infos` que cada entrada tenga UNA sola fuente.
+- 🔩 **Por qué una función nueva y no nodos sueltos**: `create_node` **no puede crear operadores promotables**, y `Math|Float|float*float` / `float+float` lo son (no aparecen en `find_node_types`). La salida barata es un grafo NUEVO escrito con `write_graph_dsl` (que sí los crea) y llamarlo. Es la misma trampa ya anotada acá para los operadores de Vector.
+
+#### 2. Brillo — en el material, para que se previsualice con el slider
+- `M_ShadowSphere_SC` gana un `Custom` **`BreathBright`** (4 entradas `Val/S/BIn/BOut`) intercalado entre `ScalarParameter_4` (`Brightness`) y `Multiply_7.B`, que es lo que alimenta `MP_EmissiveColor`. Lee `Signed` de `MPC_Breath` con un `CollectionParameter` propio.
+- **Sin gate `On`** (a diferencia del metaball): con `S = 0` el factor da ×1 exacto, así que en reposo es idéntico y no hace falta.
+- Parámetros nuevos `BreathBrightIn/Out` (default 0) + 2 pushes al final de `ApplyShadow`.
+
+**Valores en `GAL_6_ShadowStudy`**: `BreathApertureIn 0,6` (56,05 → 89,7) · `BreathApertureOut −0,5` (→ 28,0) · `BreathBrightIn 0,8` (1 → 1,8) · `BreathBrightOut −0,6` (→ 0,4: baja pero **no se apaga**, que era el pedido explícito).
+
+⚠ **Fill-rate**: el cono es translúcido y a ×1,6 de apertura cubre bastante más pantalla. Si la estación se cae de 72 fps en visor, la perilla es `BreathApertureIn`.
+⚠ **Apertura y largo son CPU (Tick)**: NO se ven con `PreviewBreath` en el viewport, solo en Play/visor. El brillo sí se ve con el slider.
+⬜ Compila estricto; sin visor.

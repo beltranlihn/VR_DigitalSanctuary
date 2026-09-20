@@ -186,3 +186,11 @@ Beltrán: *"si hago una respiración lenta deben demorarse más en llegar al má
 - **Distinta velocidad por capa**: `ApplyBreath` empuja `BreathSizeIn · (1 − v)` a la cercana, `· 1` a la media y `· (1 + v)` a la lejana (`BreathSizeLayerVar` v). Al exhalar el factor es el mismo para las tres, así no se cruzan.
 - Perillas nuevas `BreathSizeIn` · `BreathSizeOut` · `BreathSizeLayerVar`.
 - **Valores (C_0 en 04 y C_4..C_7 en 05)**: `SizeIn 0,6` · `SizeOut −0,35` · `LayerVar 0,4` (capas 0,36 / 0,6 / 0,84, verificado en los MIDs) · `SpinIn 0` (gira igual al inhalar) · `SpinOut 4` (×5 al exhalar) · densidad 0,22 / −0,65 / 0,06.
+
+
+### 🌬️ 2026-09-18 (4ª pasada de estación) — el crecimiento, mucho más exagerado
+Beltrán: *"Estación 4 y 5. Mucho más exagerado el agrandamiento de las esferas al inhalar."*
+- Único cambio: **`BreathSizeIn` 0,6 → 1,5** en las 5 instancias que tienen el mapeo (`BP_VoidField_SC_C_0` en la estación 04 y `C_4..C_7` en la 05). A inhalación plena el cascarón pasa de ×1,6 a **×2,5**; con `LayerVar 0,4` las capas quedan en 0,9 / 1,5 / 2,1.
+- Sin tocar: `SizeOut −0,35`, `LayerVar 0,4`, giro (`SpinIn 0` / `SpinOut 4`) y densidad (0,22 / −0,65 / 0,06). Las otras 6 instancias siguen en 0.
+- ⚠ El punto se dibuja con `Size/m` para conservar su tamaño EN EL MUNDO: a ×2,5 el patrón se hace 2,5 veces más chico. Si en visor los puntos titilan o se pierden por quedar sub-pixel, la perilla a bajar es **`BreathSizeIn`**, no `LayerVar`.
+- ⬜ Sin visor.

@@ -100,3 +100,58 @@ El motor de señal + umbral + háptica de la esfera de Entering (modo 1 de [[BP_
 - [ ] Opción a probar: que el zumbido suba con la inhalación (hoy constante, como lo validó Beltrán).
 - [ ] Migrar `BP_Sensor_Soul` (obra) a consumidor de este manager — después del visor.
 - [ ] Colapsar la 4ª copia del resolvedor de manos en `Core/Pawn/BPFL_XRHands` (crear a mano: `create` de BlueprintFunctionLibrary por MCP colgó el editor).
+
+
+## 🔴 2026-09-18 — LA LEY DE LOS FLUJOS: de "mitad negativa de S" a "cuánto llevo bajado desde el pico"
+Beltrán, probando los túneles en visor: *"en el exhalar, recién se activa la velocidad rápida al llegar al final de la exhalación. Debería ir aumentando según voy exhalando. Lo mismo con el giro del túnel circular."*
+
+### El diagnóstico
+`FlowOut` integraba `neg(S)` (la parte negativa suave de la señal). Pero **al EMPEZAR a exhalar `S` está en su máximo POSITIVO** — acaba de terminar la inhalación — y no cruza cero hasta la mitad de la exhalación. O sea que **la primera mitad de cada exhalación integraba exactamente cero**: el empujón aparecía recién al final. Igual el giro del túnel, que sale del mismo `FlowOut`.
+
+### 🔑 Por qué no alcanzaba con cambiar los números (ni la curva)
+Se buscó una `f(S)` que fuera **(a)** cero en reposo, **(b)** creciente desde el primer instante de la exhalación y **(c)** no negativa. **Es imposible**: si `f` es monótona y `f(0)=0`, entonces `f(S)<0` para todo `S>0`, que es justo la primera mitad de la exhalación. Una función **sin memoria de `S`** no puede distinguir "estoy arriba y subiendo" de "estoy arriba y empezando a bajar". 🚩 **Hace falta estado.**
+
+### La ley nueva — progreso desde el pico, normalizado por la amplitud real
+Función **`StepFlows(S, DT)`** (nueva, llamada desde `Publish` entre `SetBreathOn` y `PushMPC`):
+```
+k   = clamp(DT / 12)                       // el pico sube al instante y decae lento
+SPeak   = max(S, SPeak   + (S − SPeak)·k)
+SValley = min(S, SValley + (S − SValley)·k)
+amp = max(SPeak − SValley, 0.2)
+v = clamp((S − SValley)/amp)   FlowIn  += v · BreathOn · DT      // progreso de la INHALACIÓN
+u = clamp((SPeak   − S)/amp)   FlowOut += u · BreathOn · DT      // progreso de la EXHALACIÓN
+```
+- **`u` vale 0 al tope de la inhalación y 1 al fondo de la exhalación, subiendo lineal en el medio.** Es "cuánto llevo exhalado", no "dónde estoy".
+- **Reposo exacto**: sin respirar `BreathOn → 0` y además `SPeak/SValley → S`, así que los flujos se congelan y todo queda en lo autorado.
+- **Normaliza por la amplitud real** (`amp`), igual que `AmpEMA` hace con la señal: un suspiro y una respiración corta recorren los dos el mismo 0→1.
+- Variables nuevas `SPeak` / `SValley` (cat. *Z - Estado*).
+
+### ✅ Medido en PIE con `bFakeBreath` (período 6 s), leyendo el actor del mundo de PIE
+| `S` | dónde está | `u` con la ley vieja | `u` ahora |
+|---|---|---|---|
+| +0,73 | tope de la inhalación | 0 | **0,00** |
+| **+0,15** | **primera mitad de la exhalación** | **0** | **0,26** |
+| −0,70 | fondo de la exhalación | ~1 | **1,00** |
+
+El punto del medio es el que antes valía cero: ahí está el arreglo. `SPeak` sigue los máximos y `SValley` los mínimos (verificado: cuando sube, `S = SPeak`; cuando baja, `S = SValley`).
+
+### Alcance del cambio (quiénes consumen los flujos)
+Solo los mapeos de **VELOCIDAD/FASE**, que son los tres que tenían el defecto: **velocidad de los túneles** (`BreathPhase`), **giro del túnel circular** (`BreathRandOff`) y **giro del VoidField** (`BreathSpin`). Los mapeos de POSICIÓN leen `Signed` directo y **no cambian** (tamaño, apertura, brillo, densidad, oleaje, largo de la sombra).
+⚠ El giro del VoidField (estaciones 04/05) cambia también, aunque Beltrán no lo mencionó: tenía el mismo defecto y se corrige con la misma ley. Si molesta, la perilla sigue siendo `BreathSpinOut`.
+⬜ Sin visor.
+
+## 🔌 2026-09-19 — apagado por estación (`bEnabled` + oculto)
+Pedido de Beltrán: en la estación 12 (`GAL_11_PulseField`, la del latido) la respiración **no debe correr** — compite por el mismo mando y sus zonas se solapan (pecho `VDrop` 10-45 vs panza `SafeVDrop` 33-63).
+
+**Primer intento, que NO alcanzó:** taguear el manager como actor de estación (`GALSTATION` + `GAL_0`…`GAL_10`) y confiar en que `BP_GalleryDirector_SC.GalHideAll` le apague el tick. **Medido: lo OCULTA (`bHidden=true`) pero sigue tickeando** — el log mostraba `BREATH: UMBRAL IN/OUT` en plena estación 11. El pin `bEnabled` de su `SetActorTickEnabled` está en `false`, así que el director sí lo intenta; algo vuelve a habilitar el tick y no se investigó hasta el fondo.
+
+**La salida, que no depende de eso:** `EventTick` ahora llama **`TickBreathGated`**:
+```
+si (bEnabled AND NO estoy oculto) -> TickBreath   ; lo de siempre
+si no                             -> BreathSleep
+```
+- **`bEnabled`** (`A - Umbral`, true) = apagado manual para un nivel sin director.
+- **El "oculto" es la señal que SÍ se verificó que llega** (`GalHideAll` lo pone, `GalShow` lo saca en la estación que toca). En un nivel sin director el actor nunca está oculto → el manager corre siempre, como antes.
+- **`BreathSleep`** actúa **una sola vez** (se guarda con `bBreathing`): baja `bBreathing` y manda `SetHapticsByValue 0` a las dos manos, para que no quede un zumbido pegado si el tick se corta en pleno umbral. No repite nada por tick, así no pisa los `PlayHapticEffect` de otras mecánicas.
+
+✅ Verificado en PIE con `StartAt = 11`: sale `HEART: listo` y **no sale ninguna línea de BREATH**. En las estaciones 0-10 `GalShow` lo destapa y vuelve a funcionar igual que antes.
