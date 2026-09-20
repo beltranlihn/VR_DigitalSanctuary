@@ -216,3 +216,43 @@ Beltrán, al ver el anillo de racimos: *"acordate que son agrupaciones repartida
 - Dentro de la galaxia: anillo regular de `msz` gotas (equidistantes → mismo tamaño) con **fase aleatoria por galaxia**, en el plano vertical. Curl **por galaxia** (`fs = g`): el grupo se mueve entero y conserva su forma.
 
 **🔴 Lo que queda y es decisión suya:** con `Smoothness 26,9` contra `BlobRadius 1,28` y una separación interna de `LocalScale·Spread = 13` unidades, **las 2 gotas de una galaxia se funden en una sola**: se ven manís, no dos blobs. Para que se lean 2 o 3 blobs distintos hay que **bajar `Smoothness`** (a ~6-8) o **subir `LocalScale`** (a ~1,5). Es lo mismo que §343: el "tamaño" lo fija el smooth-min, no el radio.
+
+
+## 🎵 2026-09-21 — CADA BLOB PULSA SEGÚN SU SLOT (`S - Secuenciador`)
+Pedido de Beltrán para el nivel definitivo: *"Attracting tendrá ese metaball en el secuenciador, pulsando cada blop según su slot."*
+
+### La ley: fase continua, sin cola de eventos
+Es el mismo patrón ya probado en `BP_RingTunnel_SC` y `BP_PulseField_SC`. No hay buffer de "qué blob late ahora": cada blob calcula **cuánto hace que le tocó** a partir de una sola fase continua.
+```hlsl
+if (ParE.y > 0.0001)            // ParE = (PlayPos, PulseAmt, PulseFall)
+{
+  float na  = (float)N;
+  float age = ParE.x - f;                    // f = índice del blob
+  age = age - na * floor(age / na);          // envuelve en [0, N)
+  R[j] = R[j] * (1.0 + ParE.y * exp(-age * max(ParE.z, 0.01)));
+}
+```
+- `age = 0` justo cuando el playhead pasa por ese blob → **pulso pleno**, y decae con `PulseFall`.
+- Con **N = NumSteps** el mapeo blob↔slot es 1:1 exacto y envuelve solo.
+- 🔴 **`PulseAmt = 0` deja el shader byte a byte como estaba** → el metaball de la galería no cambia en nada. Las instancias viejas heredan 0 (las variables nacieron después), así que ni hubo que tocarlas.
+- Coste: **un `exp` por blob**, fuera del march. El march (`Steps × BlobCount`) no se mueve.
+
+### Cañería
+- **Material**: 3 `ScalarParameter` nuevos (`PlayPos`, `PulseAmt`, `PulseFall`, grupo *S - Secuenciador*) → dos `AppendVector` → **`ParE`, la 7ª entrada del `Custom_0`**. ✅ Compila (el tope de 6 entradas era conservador; 7 anda).
+- **BP**: `PulseAmt` · `PulseFall` · `bFollowSeq` (*S - Secuenciador*, instance-editable) + `PlayPos`/`SeqRef` (*Z - Estado*).
+  - `ApplyPulse` colgado al final del Construction Script (después de `ApplyMode`) → se previsualiza en el viewport.
+  - **`EventTick` → `TickPulse` → `SeekSeq` → `PushPlay`**: busca `BP_Sequencer_SC` con `GetActorOfClass` y cachea; `PlayPos = CurrentStep + StepTimer / max(StepDur, 0.001)`.
+- **Instancia `Blob_Attracting`** (`MapsV3/L_SoulCharger_V3`): `BlobMode 0` · `BlobCount 8` (= los 8 slots) · `bFollowSeq ✔` · `PulseAmt 0,6` · `PulseFall 1,2`.
+
+### 🔩 La trampa que cazó el read-back
+El DSL resolvió `(+ CurrentStep (StepTimer/StepDur))` como una **suma ENTERA** (el primer operando es int) y **truncaba la parte fraccionaria**: `PlayPos` habría saltado de entero en entero y el pulso habría salido cuantizado. ✅ Arreglo: convertir explícito primero — `(bind _step (Math|Conversions|ToFloat(Integer) …))` y sumar en float.
+👉 **Regla:** al mezclar int y float en el DSL, **convertir a mano y releer el grafo**. Compila igual de las dos formas.
+
+### ✅ Verificado en PIE (medido, no supuesto)
+Con la sala 4 corriendo y el secuenciador en fase 2:
+| `CurrentStep` | `StepTimer` | `PlayPos` esperado | `PlayPos` medido |
+|---|---|---|---|
+| 3 | 0,217 | 3,33 | **3,40** |
+| 4 | 0,434 | 4,65 | **4,73** |
+| (tras el 7) | — | envuelve | **0,08** |
+Cero `Accessed None`. ⬜ **Sin visor**: cuánto pulso (`PulseAmt`) y cuánta cola (`PulseFall`) son decisión de aspecto, y si conviene que los blobs estén en anillo (`BlobMode 1`) en vez de nube.
