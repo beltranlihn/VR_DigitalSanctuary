@@ -141,6 +141,24 @@ Medido en la instancia de PIE al llegar: **pawn en (1151, 0, 115)** = la parada 
 Los directores son **compartidos**, así que la cirugía habría dejado `MapsV2/L_SoulCharger` trabado esperando una esfera que ahí no existe. Se le puso **repliegue automático**: si no hay `BP_StageShell_SC` en el nivel, `ExitHall` y `GoShell` vuelven al camino viejo (`EndStage` + espera `"door"`). **Un solo código sirve a los dos niveles.**
 Los otros cambios ya eran aditivos: `ExitToStage` es una función nueva, y el pulso del metaball queda inerte con `PulseAmt = 0` (que es lo que heredan las instancias viejas de la galería).
 
+### ✅ Pasada COMPLETA con el robot probando las 5 etapas (2026-09-21)
+`BP_Robot` rutina **7 = auto por sala** (nueva): respiración en la 1, latido en la 2, dibujo en la 5. Corrida desde el arranque real, `DebugStartRoom = −1`, `StepTimes [0,25,25,10,20,60]`:
+
+| Etapa | Qué hizo el robot | Evidencia |
+|---|---|---|
+| Hall | el flujo normal | pasos 0-9 |
+| **1 Entering** | **respiró** | `BREATH: UMBRAL IN` a los 4 s de entrar |
+| **2 Recognizing** | **latió** | `HEART: UMBRAL IN h=12.0 v=32.0`, `BeatCount` subiendo, `HeartBPM` ~64-76 |
+| 3 Loving | nada (es contemplativa) | salta bien el paso del panel |
+| 4 Attracting | corre; cierra por cortafuegos | el robot todavía no coloca esferas |
+| **5 Surrounding** | **dibujó** | `Mode 5` + `bDrawHeld true` |
+
+Las 5 etapas encadenaron por el viraje de color. 🐛 **Y destapó un bug**: `HideAll`/`ShowStage` tocaban paneles de instrucciones **ya destruidos** (`pending kill`) — el array `Stations` es una foto del `Boot` y los paneles se autodestruyen al cerrar su etapa. ✅ Arreglado con guarda `IsValid` por elemento.
+
+### 🅰️ El título de etapa (2026-09-21)
+[`BP_StageTitle_SC`](../.claude/skills/unreal-vr/blueprints/BP_StageTitle_SC.md) + `WBP_StageTitle_SC`: el nombre de la etapa en **texto UMG**, que **nace del color del fondo y se revela en degradado**, letra por letra, durante el viraje de la esfera — antes de Alma y de las instrucciones. Se disuelve de vuelta en el espacio.
+🔴 **Se descartó hacerlo con un material sobre el widget**: `TranslucentMaterial` del `WidgetComponent` **no es escribible por MCP**, y un Retainer Box agregaría un render target más. La versión por letra no usa ninguno.
+
 ### ⬜ Lo que falta
 - [x] ✅ **Valores autorados de los metaballs sembrados** (incluida la respiración del de Entering, copiada de `GAL_7_MetaBlob`).
 - [x] ✅ **Attracting: el metaball pulsa por slot** — aditivo, con `PulseAmt = 0` la galería queda byte a byte igual. Medido en PIE.
@@ -149,4 +167,6 @@ Los otros cambios ya eran aditivos: `ExitToStage` es una función nueva, y el pu
 - [ ] **Surrounding no cierra sin alguien que dibuje.** Es una limitación **ya conocida de V2** (la práctica de dibujo cierra el panel por mecánica), no algo que haya traído V3. Se destraba con el robot en `Routine = 3` o con las manos puestas.
 - [x] ✅ **El robot ya prueba respiración y latido** (rutinas 4 y 6). El "techo del tracking" resultó ser **una sola compuerta**, no un límite real: la geometría siempre estuvo bien y la velocidad en PIE vale 0, que se lee como *quieto*. Lo único que estorbaba era el `and` de validez → ahora hay `bIgnoreTracking`, que el robot prende en runtime. Detalle en [`BP_Robot.md`](../.claude/skills/unreal-vr/blueprints/BP_Robot.md).
 - [ ] **Rutinas del robot para Attracting** (agarrar esferas y apretar SAVE MELODY): sigue pendiente.
+- [ ] 🔴 **Pasada completa de la obra CON el título puesto** — quedó sin correr: el editor crasheó (`PlayLevel.cpp:553`) después de forzar el cierre de un modal de compilación. **Nada se perdió** (había `save_assets` justo antes), pero es lo primero que hay que correr al reabrir.
+- [ ] ⚠ **Al reabrir Unreal hay que reiniciar Claude**: el MCP se conecta al arrancar la sesión, no se reengancha solo.
 - [ ] Decidir si el Hall (`L_Hall_SC`) se duplica a `MapsV3` o se sigue compartiendo con V2 (hoy compartido y **sin tocar**).
