@@ -144,3 +144,16 @@ Desde la herramienta Bash, `"C:/Program Files/Epic Games/..."` se rompe con `"C:
 & "C:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\RunUAT.bat" --% BuildCookRun -project="..." ...
 ```
 Señal de que corrió de verdad: el log termina en `BUILD SUCCESSFUL` + `AutomationTool exiting with ExitCode=0` y la carpeta de archive tiene el `.apk` y el `.obb`.
+
+### 📦 Empaquetar UN SOLO nivel (p. ej. Calibración) sin dejar tocada la config de la obra (2026-09-21)
+1. **`-map=/Game/SoulCharger/Maps/Tests/L_Calibration`** en el `BuildCookRun` de arriba. UAT lo pasa al cook como `-Map=`, y el cooker, si recibe mapas por línea de comando, **ignora la lista `MapsToCook` de `DefaultGame.ini`** (verificado en el motor: `CookOnTheFlyServer.cpp`, `bFoundMapsToCook = CookMaps.Num() > 0`). Resultado medido: *FULL COOK* de 855 paquetes en 25 s, APK de 121 MB + OBB de 86 MB, `BUILD SUCCESSFUL` en 57 s.
+2. **El mapa de arranque sigue saliendo de `GameDefaultMap`**, así que ese sí se cambia en `DefaultEngine.ini` **mientras corre UAT** (el paso de *package* lee la config al final). En el mismo momento se cambian `PackageName` y `ApplicationDisplayName`, para que la app conviva en la Quest con las demás.
+3. **Al terminar: `git checkout -- VR_Test/Config/DefaultEngine.ini`** y confirmar con `git status` que la config quedó igual a HEAD.
+4. Renombrar con `scripts/rename_package.py <carpeta> SoulCharger_Calibration`.
+
+| Build | `PackageName` | Nombre en el visor | Dónde queda la data |
+|---|---|---|---|
+| Calibración | `com.almadigital.calibration` | Soul Charger Calibration | `/sdcard/Android/data/com.almadigital.calibration/files/UnrealGame/VR_Test/VR_Test/Saved/SaveGames/` |
+
+🔴 **El `Install_*.bat` de Epic hace `rm -r %STORAGE%/UnrealGame/VR_Test`**, y esa carpeta es **compartida por todos los builds de VR_Test**. Instalando a mano no hace falta: `adb install -r <apk>` + el push del OBB de la sección de arriba. El `adb` que usa Meta Quest Developer Hub es el mismo del SDK (`%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`), así que no hay choque de versiones.
+⚪ **Ruido conocido en logcat:** `LogIoDispatcher: Error: OpenMappedEx failed on: ...ucas` (decenas de veces al arrancar). El motor no puede mapear en memoria datos que están dentro del OBB y los lee de la forma normal. El flujo de Calibración corrió completo igual. Si alguna vez falta un sonido o una imagen, es el primer sospechoso.
