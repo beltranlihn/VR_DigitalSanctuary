@@ -22,8 +22,12 @@
 | [`BP_StageShell_SC`](BP_StageShell_SC.md) — la esfera de color + las estaciones por tag (`STAGESTATION` + `STAGE_1..5`) | reemplaza a `BP_Director_Rooms` para las etapas | 🟢 verificado por log, falta visor |
 | `BP_Director_Rooms.ExitToStage()` | la salida del Hall: fundido + descarga + caminata, sin sala siguiente | 🟢 compila y verificado por read |
 | `BP_Director_Story`: `TickShell`/`CheckShell`/`GoShell`/`EndShell`, `NextRoom` reescrita | las salas 1-5 avanzan **por la esfera**, ya no por la puerta | 🟢 compila; cirugía verificada por read |
+| 🎨 `BP_StageShell_SC.PreviewStage` (2026-09-21 tarde) | **vista previa del color de una etapa en el viewport, sin Play**: 1-5 pinta la esfera con esa fila de `TopColors`/`BotColors`; 0 = apagado | 🟢 verificado leyendo el MID (3 → morado, 4 → naranja) |
+| 🎵 `BP_MetaBlob_SC` modo **LINE (4)** + `ProxyTrim` + `FollowRow` (2026-09-21 tarde) | el metaball de Attracting: **una gota por slot**, en fila detrás de los slots, que pulsa con el playhead y **viaja con la fila** en el cierre | 🟢 verificado en PIE; ⬜ visor |
+| `DebugStartRoom` en V3 | **0 = Hall · 1-5 = cada etapa · −1 = obra entera** | 🟢 los 6 valores probados en PIE, cero errores |
 
 🔴 **Cómo se agrega algo a una etapa:** ponerle al actor los tags **`STAGESTATION` + `STAGE_<n>`**. Nada más. ⚠ **No taguear los anchors/TargetPoint** (aparece su marcador gris).
+🔴🔴 **El V3 todavía tiene enganchados en el editor los 5 sublevels de sala de V2** (`L_Entering_SC` … `L_Surrounding_SC`, herencia del duplicado). **En juego no cargan**, pero en el viewport se ven encima de V3: la esfera `BP_BreathOrb_SC`, los interiores de Entering/Recognizing y el Niagara `BP_NeuralWeb_SC` de Loving **son de V2**. Se sacan desde el panel **Levels** (el MCP no puede); solo queda `L_Hall_SC`. Ver gotcha 345.
 📋 Plan y decisiones: [`docs/PLAN-NIVEL-DEFINITIVO-2026-09-21.md`](../../../../docs/PLAN-NIVEL-DEFINITIVO-2026-09-21.md).
 
 ---

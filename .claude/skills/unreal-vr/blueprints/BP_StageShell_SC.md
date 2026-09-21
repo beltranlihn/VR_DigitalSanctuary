@@ -30,6 +30,7 @@ El director de las 5 etapas **en el mismo sitio**. Hace tres cosas y nada más:
 | `ShellTag` | `stage_shell` | cómo encuentra el cascarón |
 | `StationTag` | `STAGESTATION` | qué actores administra |
 | `ShellBright` | 1.0 | el `Brightness` al que llega el cascarón encendido |
+| 🎨 `PreviewStage` | 0 | **vista previa en el editor**: 1-5 pinta la esfera con la fila de esa etapa; 0 = apagado. Solo editor (ver abajo) |
 
 ### B - Tiempos (instance-editable)
 | `FadeTime` | 3.0 s | cuánto dura el viraje de color |
@@ -100,3 +101,19 @@ El plano de las ondas del latido (etapa 2) seguía **bloqueando el line-trace de
 `BP_Director_Story` y `BP_Director_Rooms` son **compartidos**: la cirugía de V3 habría dejado `MapsV2/L_SoulCharger` trabado esperando una esfera que ahí no existe.
 ✅ **`ExitHall()` y `GoShell()` ramifican por `IsValid(ShellRef)`**: con esfera → V3 (viraje de color); sin esfera → el camino viejo (`Rooms.EndStage()` + espera `"door"`). `NextRoom` pone `WaitFor = "shell"` **antes** de llamar a `GoShell`, justo para que el repliegue pueda pisarlo con `"door"`.
 👉 Un solo código sirve a los dos niveles, y V2 queda utilizable como referencia (que es lo que pide `CLAUDE.md`).
+
+## 🎨 2026-09-21 (tarde) — LA HERRAMIENTA PARA AJUSTAR LOS COLORES (sin Play)
+Pedido de Beltrán: *"Dame las herramientas para poder ajustar esos colores"*.
+
+**Cómo se usa** — todo en la instancia **`Director_Shell`**, categoría **A-Etapas**:
+1. **`PreviewStage`** = el número de la etapa que querés mirar (**1 Entering · 2 Recognizing · 3 Loving · 4 Attracting · 5 Surrounding**). La esfera toma ese color **en el viewport, al instante**.
+2. Con la vista previa puesta, editá **`TopColors[n−1]`** (arriba) y **`BotColors[n−1]`** (abajo): se repinta **en vivo**. El color del medio se calcula solo (lerp 0,5), y es también el fondo del que nace el título de etapa.
+3. **`ShellBright`** = el brillo al que llega la esfera. **`FadeTime`** (B-Tiempos) = cuánto tarda el viraje de una etapa a la otra.
+4. **`PreviewStage = 0`** apaga la vista previa.
+👉 **Para verlo en gafas**, `DebugStartRoom` de `Director_Story` arranca directo en cualquier etapa con su color (0 Hall · 1-5 · −1 obra entera — los 6 probados en PIE el 2026-09-21).
+
+**Cómo está hecho** (mínimo): el Construction Script, si `1 ≤ PreviewStage ≤ Length(TopColors)`, llama **`PreviewPaint(Idx)`**, que busca el cascarón por `ShellTag`, cachea su mesh en `ShellMesh` y llama al **mismo `PushLook`** que usa el viraje en juego — una sola fuente para los nombres de los parámetros.
+- **Es solo de editor, sin conflicto con el juego**: al arrancar, `Boot` deja el cascarón apagado y oculto, y desde ahí manda el director.
+- ⚠ Si se edita el **propio cascarón** (`Shell_Stages`: radio, modo), su Construction Script le vuelve a poner sus colores. Se recupera tocando `PreviewStage` de nuevo.
+- ✅ Verificado leyendo el MID del cascarón (`vectorParameterValues`): `PreviewStage 3` → `ColorTop (0,42 · 0,10 · 0,80)` morado; `4` → `(0,95 · 0,35 · 0,05)` naranja.
+- Diseñada con **0 = apagado** a propósito: la variable nace en 0 en la instancia ya colocada, que es el valor neutro (gotcha 352).

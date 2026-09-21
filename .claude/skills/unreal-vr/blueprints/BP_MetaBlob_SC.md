@@ -256,3 +256,48 @@ Con la sala 4 corriendo y el secuenciador en fase 2:
 | 4 | 0,434 | 4,65 | **4,73** |
 | (tras el 7) | — | envuelve | **0,08** |
 Cero `Accessed None`. ⬜ **Sin visor**: cuánto pulso (`PulseAmt`) y cuánta cola (`PulseFall`) son decisión de aspecto, y si conviene que los blobs estén en anillo (`BlobMode 1`) en vez de nube.
+
+## 🎵 2026-09-21 (tarde) — MODO LINE (4): una gota por slot, en fila, que viaja con la mesa
+Beltrán, mirando el editor: *"no veo el metaball del secuenciador"*. Tenía razón: la instancia estaba en `(1500, 0, 226)`, **encima del metaball de Loving**, 2,65 m detrás y 1,4 m arriba de los slots, y en modo CURL (nube). Solo se había hecho la correspondencia **temporal** (el pulso), no la **espacial**: ninguna gota estaba en su slot.
+
+### El modo nuevo en el shader (`Custom_0`)
+```hlsl
+else if (Mode >= 3.5)          // 4 = LINE
+{
+  float u = (N > 1) ? (f / den) * 2.0 - 1.0 : 0.0;   // -1 .. +1
+  base = float3(0.0, u, 0.0);  D = float3(0,0,0);
+  aB = 0.0;  aD = 0.0;  curlG = 0.06;  sizeG = 0.0;
+}
+```
+- La gota `j` queda en `y local = u · Spread`, **en el mismo orden que `StepIndex`** (la 0 en −Y, igual que `SeqSlot_0`). Con `N = 8` el pulso cae 1:1 sobre su slot.
+- GROUP pasó de `Mode >= 2.5` a **`Mode >= 2.5 && Mode < 3.5`** (y `gext` igual). **Los modos 0-3 quedan byte a byte.**
+- `Attract` no mueve la fila (`aB = aD = 0`), `SizeVariation` tampoco (`sizeG = 0`: las 8 gotas iguales), y el curl queda como un temblor de ±1,2 unidades.
+
+### 🔴 El proxy recortado — `ProxyTrim` (E-Calidad, instance-editable)
+Una fila de 2,1 m con el cubo UNIFORME pide un cubo de ~2,5 m: **cubriría media vista con 64 × 8 evaluaciones por píxel**, y con `twoSided = false` la cámara quedaba **adentro** del cubo (caras traseras descartadas = el metaball desaparece).
+- `ApplyProxy` (al final del Construction Script): `Volume.scale = SizeCM · 0,01 · (1 − ProxyTrim)` y empuja **`ProxyStretch = 1 − ProxyTrim`** al material.
+- En el material, `RayOrigin` y `RayDir` (ya en espacio local) **se multiplican por `ProxyStretch`** antes del `Custom`: el SDF sigue **isótropo** aunque la caja sea chata. Con `ProxyTrim = 0` es `× 1` → las demás instancias no cambian.
+- ✅ Diseñado con **0 = neutro** a propósito: la perilla nació en 0 en las 3 instancias de V3 y en las de la galería, y ese es justo el valor que no cambia nada (gotcha 352).
+- 🔴 **Un proxy translúcido hace el depth-test en su cara DELANTERA**, no en el impacto: lo opaco que quede **dentro** de la caja se pinta por encima aunque la gota esté detrás. Por eso la caja va entera **detrás** de los slots (gotcha 351).
+
+### Seguir a la fila — `FollowRow` → `FollowSlot(Slot)` (desde `SeekSeq`, después de `PushPlay`)
+En el cierre de Attracting los slots **viajan** a `TP_seq_final_attracting`. Sin esto, la fila de gotas se quedaba atrás.
+- En el primer tick válido guarda `RowOffset = mi posición − slot 0` y prende `bRowLocked` (Z-Estado). Desde ahí se ubica en `slot 0 + RowOffset`. **Lo que se autoró en el editor se conserva**: moverlo a mano cambia el offset, no hay que tocar nada más.
+- `SetActorLocation` solo si se movió > 0,05 cm (no se ensucia el transform cada frame). Guardas: `Slots` vacío y slot inválido.
+
+### Valores de la instancia `Blob_Attracting` (V3)
+| Perilla | Valor | Por qué |
+|---|---|---|
+| `BlobMode` | **4** (LINE) | |
+| `SizeCM` | 300 | 1 unidad local = 3 cm |
+| `Spread` | 35 | = 105 cm = media fila (**`Spread = semilargo_cm × 100 / SizeCM`**) |
+| `BlobRadius` · `Smoothness` | 3,3 · 3,5 | gotas de ~10 cm que se rozan al pulsar |
+| `ProxyTrim` | (0,85 · 0,15 · 0,85) | caja de 45 × 255 × 45 cm |
+| posición | (1275, 0, 88) | 40 cm detrás de la fila de slots (x 1235) |
+| `PulseAmt` · `PulseFall` · `bFollowSeq` | 0,6 · 1,2 · ✔ | sin cambios |
+👉 **La cuenta para que no se recorte:** el semieje de la caja en unidades es `50 · (1 − ProxyTrim)` y tiene que superar `Spread + BlobRadius · (1 + PulseAmt) + CurlAmount · 0,06` en Y, y `BlobRadius · (1 + PulseAmt) + CurlAmount · 0,06` en X/Z.
+
+### ✅ Verificado
+- **Editor, vista cenital**: las 8 gotas caen en las columnas de los 8 slots.
+- **PIE (`DebugStartRoom 4`)**: primer tick → `bRowLocked` y `RowOffset = (40, 105, 3)` exactos; **los 8 slots subidos 50 cm → el metaball pasó de z 88 a 138**; con `bAutoTest` la intro se cierra, nacen las 20 esferas y el playhead corre (`PlayPos` 3,68 → 3,73). Cero `Accessed None`.
+- ⬜ **Visor**: tamaño de las gotas, color, distancia detrás de los slots y cuánto se funden al pulsar son decisión de Beltrán — todas son perillas de la instancia.

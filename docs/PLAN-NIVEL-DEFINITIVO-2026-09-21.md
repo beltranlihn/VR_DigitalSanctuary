@@ -192,3 +192,27 @@ Las 5 etapas encadenaron por el viraje de color. 🐛 **Y destapó un bug**: `Hi
 - [x] ✅ **Pasada completa de la obra CON el título puesto** — corrida el 2026-09-21 a la mañana, los 5 títulos por el flujo real, cero errores.
 - [ ] ⚠ **Al reabrir Unreal hay que reiniciar Claude**: el MCP se conecta al arrancar la sesión, no se reengancha solo.
 - [ ] Decidir si el Hall (`L_Hall_SC`) se duplica a `MapsV3` o se sigue compartiendo con V2 (hoy compartido y **sin tocar**).
+
+---
+
+## 🔎 2026-09-21 (tarde) — la revisión de Beltrán en el editor
+Cinco observaciones mirando el viewport. **Dos se arreglaron en V3; las otras tres no eran de V3.**
+
+| Lo que vio | Qué era | Estado |
+|---|---|---|
+| *"no veo el metaball del secuenciador"* | la instancia estaba encima del metaball de Loving, 2,65 m detrás y 1,4 m arriba de los slots, **en nube**: ninguna gota estaba en su slot | ✅ **modo LINE (4)**: una gota por slot, en fila 40 cm detrás de los slots, pulsando con el playhead y **viajando con la fila** en el cierre. Detalle en [`BP_MetaBlob_SC.md`](../.claude/skills/unreal-vr/blueprints/BP_MetaBlob_SC.md) |
+| *"el de breath todavía tiene la esfera"* | `BP_BreathOrb_SC` del sublevel **`MapsV2/RoomsV2/L_Entering_SC`**, enganchado a V3 desde el duplicado | ⬜ sacar el sublevel (abajo). En juego **nunca cargó**: en PIE con `DebugStartRoom 1` están solo los aros, el panel, el botón, el manager y el metaball en modo 0 |
+| *"los meshes de interior de breath y heart ya no van"* | los cilindros de `L_Entering_SC` y `L_Recognizing_SC` de V2 | ⬜ ídem |
+| *"sacar el niagara de mind"* | `BP_NeuralWeb_SC` solo está colocado en **`L_Loving_SC` de V2** — el `.umap` de V3 no lo referencia (verificado con `grep` sobre los paquetes) | ⬜ ídem |
+| *"dame las herramientas para ajustar esos colores"* | — | ✅ **`PreviewStage`** en `Director_Shell`: vista previa en vivo en el viewport. Ver [`BP_StageShell_SC.md`](../.claude/skills/unreal-vr/blueprints/BP_StageShell_SC.md) |
+| *"el director también debería permitir partir en distintas etapas"* | ya estaba: `DebugStartRoom` de `Director_Story` | ✅ **los 6 valores probados en PIE**: 0 (Hall cargado, esfera apagada) · 1 · 2 · 3 · 4 · 5 (cada uno con su etapa y solo sus estaciones visibles). Cero errores en todas las corridas |
+
+### 🔴 El paso que falta — solo desde la UI de Unreal (el MCP no puede sacar sublevels)
+1. *Window → Levels*.
+2. Seleccionar **`L_Entering_SC`, `L_Recognizing_SC`, `L_Loving_SC`, `L_Attracting_SC` y `L_Surrounding_SC`** (Ctrl+clic). **`L_Hall_SC` se queda** — es la Recepción.
+3. Clic derecho → **Remove Selected**, y guardar el nivel (Ctrl+S).
+
+No toca los archivos de V2 ni `MapsV2/L_SoulCharger`: solo desengancha esos 5 del nivel V3. Con eso el viewport de V3 muestra lo mismo que el juego: la esfera de color y las estaciones de V3.
+
+### Estado de las perillas al cerrar
+`DebugStartRoom = 1` (el valor de Beltrán) · `bAutoTest = false` · `PreviewStage = 1` (la esfera muestra el azul de Entering en el editor).
