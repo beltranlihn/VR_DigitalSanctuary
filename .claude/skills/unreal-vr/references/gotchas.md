@@ -2273,3 +2273,30 @@ después de mover algo por MCP, leer la transform y **comparar contra lo pedido*
 🔑 **El estado de un botón no es "el gatillo está apretado", es "el gatillo se apretó ACÁ".** Hace falta un pestillo por-hover, no basta el bool del input.
 ✅ **`bHoverArmed`**: `HoverIn` lo siembra con `NOT bTrigHeld` (entrar con el gatillo abajo = desarmado) y `UpdateHold` lo vuelve a armar en cuanto el gatillo se suelta (`bHoverArmed = bHoverArmed OR NOT bTrigHeld`). El hold solo corre con `bTrigHeld AND bHoverArmed`. Soltar y volver a apretar **sin salir del hover** funciona, que es lo que se espera.
 ⚠ Ojo que **NO es lo mismo** que el `bWaitRelease` del `BP_GalleryDirector_SC`: ese cubre el caso de cruzar de estación con el gatillo apretado (guarda a nivel director). Este cubre entrar al hover con el gatillo ya abajo (guarda a nivel botón). Hacen falta los dos.
+
+---
+
+## 🔴🔴🔴 Borrar y recrear una FUNCIÓN de Blueprint rompe a todos sus llamadores — y puede COLGAR el editor (2026-09-21)
+El patrón "remove_function_graph → compile → add_function_graph → write" es seguro **dentro** del mismo Blueprint, pero **cualquier OTRO Blueprint que llame a esa función queda con el nodo huérfano** y deja de compilar. No hay error en el momento: se descubre después.
+
+**Lo que pasó:** se recrearon `GoToStage` y `PushLook` en `BP_StageShell_SC`. `BP_Director_Story.GoShell` los llamaba → quedó en estado *failed to compile*. Al dar `StartPIE`, el editor abrió el modal **"Blueprint Asset Compilation Error"**, y ese modal **bloquea el hilo de juego → el MCP deja de responder** (todas las llamadas dan `The operation timed out`).
+
+### Cómo se diagnostica sin MCP
+El MCP está muerto, pero el proceso sigue vivo. Dos comandos de PowerShell alcanzan:
+```powershell
+Get-Process UnrealEditor* | Select Responding, WorkingSet64     # responde = no es cuelgue, es modal
+Select-String -Path "...\Saved\Logs\VR_Test.log" -Pattern "failed to compile"
+```
+Y para ver **qué** modal es, enumerar las ventanas visibles del proceso con `EnumWindows` (ver el script en la bitácora del 2026-09-21).
+
+### 🔴 Cerrar el modal a la fuerza DESESTABILIZA el PIE
+Mandarle `WM_CLOSE` a la ventana del modal **devuelve el MCP al instante**, pero si el modal apareció **durante el arranque de PIE**, la sesión de PIE queda a medio construir y **el `StopPIE` siguiente crashea el editor**:
+```
+Assertion failed: false [File:...\Editor\UnrealEd\Private\PlayLevel.cpp] [Line: 553]
+```
+👉 **Si hay que cerrar el modal, asumir que la sesión de PIE está perdida**: guardar todo lo que se pueda y **reiniciar el editor**, no intentar seguir jugando con ese PIE.
+
+### La regla que queda
+1. **Después de recrear una función, compilar TODOS los Blueprints que la llaman** — no solo el dueño. Un `grep -rl "<NombreFuncion>"` sobre los `.uasset` los encuentra en segundos.
+2. **Preferir la cirugía de nodos a recrear la función** cuando la función es pública y otros BP la llaman.
+3. **`save_assets` antes de cada `StartPIE`** — es lo único que hizo que este crash costara cero: todo estaba en disco.
