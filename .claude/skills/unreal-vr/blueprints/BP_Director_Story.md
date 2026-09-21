@@ -425,3 +425,13 @@ ahora:  GetActorOfClass(BP_Portrait_SC) → PortraitRef        (se conserva por 
 lo rotula como `Class|BPSeqSlotSC|Show` — colisión de nombres, no un bug.
 
 ⬜ **`BP_Portrait_SC` quedó sin llamador** en el final. Se retira cuando Beltrán lo apruebe.
+
+## 🐛 2026-09-21 (tarde) — el salto de debug a las salas 2-5 dejaba todo NEGRO en V3
+Beltrán, con `DebugStartRoom = 2`: *"se veía todo negro. No se ve un fondo de color y tampoco se ve el shader de onda"*.
+**Causa medida en PIE:** `DebugBoot` pone al pawn en `GotoStop(Room + DebugStopBase)` = parada **5** → x = 2652, **15 m del centro de la esfera de etapas (radio 14 m): afuera**. Desde afuera la esfera no se ve (caras hacia adentro), y las ondas quedaban 12 m detrás. La lógica estaba bien (esfera en etapa 2, roja, brillo 1): era solo el lugar.
+En V2 cada sala tenía su parada; **en V3 todas las etapas ocurren en la parada 4 (Entering)**.
+✅ **`CalcDebugStop()`** (nueva, insertada entre el `PrintString` y el `GoToStop` de `DebugBoot`) escribe **`DebugStop`** (Z - Estado interno):
+- **con `BP_StageShell_SC` en el nivel (V3):** `min(Room, 1) + DebugStopBase` → sala 0 = parada 3 (Hall) · salas 1-5 = **parada 4**.
+- **sin esfera (V2):** `Room + DebugStopBase`, igual que antes.
+Se usa `GetActorOfClass` en vez de `ShellRef` para no depender de que `TickShell` la haya cacheado a los 1,0 s.
+✅ Verificado en PIE con `DebugStartRoom 2`: `DebugStop = 4`, pawn en (1151,7 · 0 · 0), esfera en etapa 2.
