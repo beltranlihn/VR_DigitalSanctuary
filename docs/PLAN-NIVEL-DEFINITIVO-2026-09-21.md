@@ -159,6 +159,28 @@ Las 5 etapas encadenaron por el viraje de color. 🐛 **Y destapó un bug**: `Hi
 [`BP_StageTitle_SC`](../.claude/skills/unreal-vr/blueprints/BP_StageTitle_SC.md) + `WBP_StageTitle_SC`: el nombre de la etapa en **texto UMG**, que **nace del color del fondo y se revela en degradado**, letra por letra, durante el viraje de la esfera — antes de Alma y de las instrucciones. Se disuelve de vuelta en el espacio.
 🔴 **Se descartó hacerlo con un material sobre el widget**: `TranslucentMaterial` del `WidgetComponent` **no es escribible por MCP**, y un Retainer Box agregaría un render target más. La versión por letra no usa ninguno.
 
+### ✅ 2026-09-21 (mañana) — REVISIÓN Y PASADA COMPLETA CON EL TÍTULO, tras el crash de anoche
+**Primero se compilaron los 14 Blueprints tocados, ANTES de cualquier PIE** (la lección del modal de anoche): los 14 limpios. Nivel entero: **130 actores**.
+
+**Pasada completa desde el arranque real** (`DebugStartRoom −1`, robot en rutina 7, esfera en modo real — no automático):
+| Hora (UTC) | Evento |
+|---|---|
+| 11:56:25 | `TITULO: Entering` + viraje a la etapa 1 **en el mismo frame** |
+| 11:56:30 | `BREATH: UMBRAL IN` — el robot respirando por el detector real |
+| 11:57:26 | `TITULO: Recognizing` + etapa 2 |
+| 11:57:29 | `HEART: UMBRAL IN h=12.0 v=32.0` |
+| 11:58:26 | `TITULO: Loving` + etapa 3 |
+| 11:59:09 | `TITULO: Attracting` + etapa 4 |
+| 12:00:02 | `TITULO: Surrounding` + etapa 5 |
+| 12:00:54 | `STORY: final - apago la esfera` — Surrounding **cerró por la mecánica** (el robot completó el dibujo a los 32 s, antes del tope de 60) |
+| 12:00:57 | `SHELL: la esfera se apago - final` (el `FadeTime` exacto) |
+
+**Cero errores de cualquier tipo** en las 2.716 líneas de la corrida: `Runtime Error`, `Accessed None`, `pending kill`, `Assertion`, `failed to compile` — todos en 0. El arreglo de los paneles destruidos funciona.
+
+**El repliegue de V2, verificado por primera vez** (ayer se había afirmado sin probar): en `MapsV2/L_SoulCharger`, al cerrar Entering sin esfera en el nivel, el log dice `sin esfera de etapas - vuelvo al modo puerta (nivel V2)` → `SALAS: transicion hacia sala 2` → `cruzamos la puerta` 7 s después → sala 2 arranca. Cero errores. V2 quedó **byte a byte igual** (restaurado desde git).
+
+🔴 **Flags de test que habían quedado prendidas desde anoche** (el crash cortó la restauración), corregidas: `bAutoDemo` de la esfera en **true** (habría peleado con el director en una corrida real) · `StepTimes` en `[0,25,25,10,20,60]` → **`[0,90,240,0,300,300]`** · `bFakeSignal` del BioHub en true → **false** (el valor original de V2: latido real por OSC) · `HeadOn` del robot → 0.
+
 ### ⬜ Lo que falta
 - [x] ✅ **Valores autorados de los metaballs sembrados** (incluida la respiración del de Entering, copiada de `GAL_7_MetaBlob`).
 - [x] ✅ **Attracting: el metaball pulsa por slot** — aditivo, con `PulseAmt = 0` la galería queda byte a byte igual. Medido en PIE.
@@ -167,6 +189,6 @@ Las 5 etapas encadenaron por el viraje de color. 🐛 **Y destapó un bug**: `Hi
 - [ ] **Surrounding no cierra sin alguien que dibuje.** Es una limitación **ya conocida de V2** (la práctica de dibujo cierra el panel por mecánica), no algo que haya traído V3. Se destraba con el robot en `Routine = 3` o con las manos puestas.
 - [x] ✅ **El robot ya prueba respiración y latido** (rutinas 4 y 6). El "techo del tracking" resultó ser **una sola compuerta**, no un límite real: la geometría siempre estuvo bien y la velocidad en PIE vale 0, que se lee como *quieto*. Lo único que estorbaba era el `and` de validez → ahora hay `bIgnoreTracking`, que el robot prende en runtime. Detalle en [`BP_Robot.md`](../.claude/skills/unreal-vr/blueprints/BP_Robot.md).
 - [ ] **Rutinas del robot para Attracting** (agarrar esferas y apretar SAVE MELODY): sigue pendiente.
-- [ ] 🔴 **Pasada completa de la obra CON el título puesto** — quedó sin correr: el editor crasheó (`PlayLevel.cpp:553`) después de forzar el cierre de un modal de compilación. **Nada se perdió** (había `save_assets` justo antes), pero es lo primero que hay que correr al reabrir.
+- [x] ✅ **Pasada completa de la obra CON el título puesto** — corrida el 2026-09-21 a la mañana, los 5 títulos por el flujo real, cero errores.
 - [ ] ⚠ **Al reabrir Unreal hay que reiniciar Claude**: el MCP se conecta al arrancar la sesión, no se reengancha solo.
 - [ ] Decidir si el Hall (`L_Hall_SC`) se duplica a `MapsV3` o se sigue compartiendo con V2 (hoy compartido y **sin tocar**).
