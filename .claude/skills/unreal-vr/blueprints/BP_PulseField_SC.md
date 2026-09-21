@@ -241,3 +241,11 @@ Verificado en PIE: en la estación 11 sale `HEART: listo` y **ya no sale `BREATH
 Pedido: *"donde el anillo nace, que tome el color base, y que gradualmente pasen a tomar el color de la ola cuando se vayan elevando... quizás el segundo o tercero hacia arriba ya alcanzó"*.
 `M_PulseRing_SC` ahora tiene **`RingColorLow`** (vector) + **`RingMix`** (escalar): emisivo = `lerp(RingColorLow, RingColor, RingMix) · RingGlow`. El CS empuja `ColorLow`/`ColorHigh` del actor a los 6 anillos; `StepRise` escribe `RingMix` por anillo.
 **`RiseColorRings`** (`E - Elevacion`, **2**) = en cuántos espaciados de anillo se completa el viraje, así que **se autoajusta al BPM**: `cden = RiseColorRings · RiseSpeed · BeatsPerWave · 60/BPM`, y `mix = smoothstep(h/cden)`. Con 2: el que nace es base puro, el de arriba va por la mitad, el tercero ya es el color de la ola.
+
+### 🎚️ 2026-09-21 — `RiseRadius`: el radio de los anillos que se elevan, propio
+Beltrán: *"dame la opción de elegir el radio de los anillos que se elevan. Sino no tengo control"*. Antes el radio **era `WaveReach`** (nacen donde muere la ola), sin perilla propia.
+- **`RiseRadius`** (`E - Elevacion`, cm, instance-editable): **0 = usa `WaveReach`** (como antes, y así nació en todas las instancias) · **> 0 = ese radio**. La **altura y el momento de nacer no cambian** (siguen atados a la ola).
+- Cirugía en `StepRise`: `SelectFloat(RiseRadius, WaveReach, RiseRadius > 0)` en la entrada A del `Max` **vivo** (`K2Node_CommutativeAssociativeBinaryOperator_46`). Se previsualiza sin Play (el CS termina en `StepRise(0)`).
+- ✅ Control positivo en el editor: `RiseRadius` 4500 → escala de los anillos 45 (antes 90); vuelto a 9000.
+- 🔴 **En V3 la esfera de etapas tiene 14 m de radio y es opaca**: con `WaveReach` = `RiseRadius` = **9000 cm (90 m)** los anillos quedan **afuera de la esfera y no se ven nunca**. Para que se vean, `RiseRadius` **< ~1400**.
+- ⚠ `StepRise` tiene **511 nodos: la lógica está TRIPLICADA** (dos copias huérfanas de reescrituras viejas, invisibles en el read del DSL). Solo la cadena alcanzable desde `FunctionEntry_0` corre. Pendiente: limpiarlas con `scripts/clean_orphans.py`.
