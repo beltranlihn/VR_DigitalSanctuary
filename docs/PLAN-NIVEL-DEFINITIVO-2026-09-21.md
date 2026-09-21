@@ -216,3 +216,19 @@ No toca los archivos de V2 ni `MapsV2/L_SoulCharger`: solo desengancha esos 5 de
 
 ### Estado de las perillas al cerrar
 `DebugStartRoom = 1` (el valor de Beltrán) · `bAutoTest = false` · `PreviewStage = 1` (la esfera muestra el azul de Entering en el editor).
+
+---
+
+## 🎥 2026-09-21 (tarde) — preparado para GRABAR Breath (temporal, revertir antes de un build)
+Pedido de Beltrán: *"solo quiero el anillo y los metaballs"*, **sin cambiar la narrativa**.
+| Qué | Cómo quedó | Para revertir |
+|---|---|---|
+| Panel y botón de Entering invisibles | `bHiddenInGame = true` en los componentes `Panel` + `Glass` (`InstrPanel_Entering`) y `Body` + `RingW` (`InstrButton_Entering`). El guion los espera igual; se avanza tocando el botón invisible (frente al pecho, ~67 cm) o con la tecla **9** en PIE | `bHiddenInGame = false` en esos 4 componentes |
+| Gráfico del HUD con datos | **`bFakeSignal = true`** en `BP_BioHub_C_0` de V3: calma en seno 0,1–0,9 (`FakeHz` 0,08 ≈ 12,5 s) y BPM 68 ± 9, por el mismo `Ingest` que la señal real. ⚠ También mueve el punto del latido y las ondas de Recognizing | **`bFakeSignal = false`** antes de usar el Muse por OSC |
+| Proto ameba en el HUD | ya funcionaba: el salto de debug elige una (`ForceChoose`) y la ancla a `TP_soul_face` (hijo de `FaceAnchor`, que se engancha a la cámara en runtime). Verificado en PIE: la elegida queda en el punto, attacheada a la `Camera`, tamaño 0,02. Beltrán la ubica moviendo ese TP | — |
+
+### 🔴 Lo que se descubrió de paso y ya está corregido
+Al armar V3 se colocaron actores **nuevos** con los valores de fábrica en vez de copiar los de las instancias de V2, y se perdió autoría de visor:
+- **`BP_BreathRing_SC`**: 22 perillas (3 divisiones, 4 ciclos, `CycleTime` 12, palabras/puntos/marcador apagados, los 3 anillos, `Radius`…). Beltrán estaba ajustando el aro **de V2** (superpuesto al de V3) y por eso "no cambiaba". Copiadas al de V3 + la escala 2,695 que había puesto.
+- **4 paneles + 2 botones + 8 slots**: `bStartHidden`, **`PanelTag`** (el botón buscaba `instr_hall` → **no encontraba su panel**), `PanelWidth`, vidrio de color, caja de toque, `ZoneRadius`. Copiados y verificados: **cero diferencias** entre cada par V2/V3.
+👉 Regla para cualquier actor que se traiga de otro nivel: **diffear instancia contra instancia** (y contra el CDO) antes de darlo por colocado. Ver [[instance-editable-nace-en-cero]].
