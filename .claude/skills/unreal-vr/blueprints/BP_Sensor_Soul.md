@@ -232,6 +232,25 @@ medio segundo despues del IN la esfera se queda cerca del neutro. Es justamente 
 - El IMC lo arma el director en `ArmBeam` vía **`MaybeInput()`** (la receta probada de `EnsureInput`: `IMC_MenuTrigger`, Priority 1000, etc.).
 Los consumidores del beam (esferas y botón) **poll-ean** `BeamHitActor == self` para el hover; la esfera agarrada sigue `BeamStart + dir × GrabHoldDist` leyendo `BeamStart`/`BeamHitLoc`.
 
+### 🔒 Mientras esa mano sostiene una esfera, su hover queda CLAVADO en ella (2026-09-24)
+`HeldEndR`/`HeldEndL` ya corregian el **extremo visible** del beam cuando la mano lleva una esfera
+(`BeamEndR = GetActorLocation(HeldOrb)` en vez del punto de impacto). Ahora, en la misma rama
+`Is Valid(HeldOrb)`, tambien escriben **`BeamHitActor = HeldOrb`** (y `BeamHitActorL = HeldOrbL`).
+Corren **despues** del `SetBeamHitActor` de `TickBeamR`/`TickBeamL`, asi que pisan el resultado del trace.
+
+**Por que hacia falta:** al arrastrar una esfera sobre el secuenciador, el snap la saca del eje del rayo
+(se pega al slot), el trace sigue de largo y pegaba en **las esferas ya ancladas** — que se encendian y
+disparaban su preview. Con el hover clavado, esa mano no puede hoverear ninguna otra esfera **ni el boton
+SAVE MELODY** (`BeamGrabTry` castea a `BP_SoundOrb_SC` y ahora nunca cae al `CastFailed` → `BeamBtnTry`).
+
+⚠ Se toco un BP de `Core/` que usa la obra entera, pero el codigo nuevo vive **dentro** de
+`Is Valid(HeldOrb)` y `HeldOrb` solo lo escribe `BeamGrabTry` (Attracting): en cualquier otra etapa la
+rama no se toma y el comportamiento es identico. Lo que NO se toco: `BeamHitLoc`/`BeamStart`, de los que
+cuelgan `FollowBeam` (direccion del arrastre) y `SnapCheck`.
+
+💡 La mano **libre** conserva su hover normal: `RefreshHover` de la esfera mira las dos
+(`BeamHitActor == self OR BeamHitActorL == self`), y solo se bloquea la que sostiene.
+
 ## ✏️ Modo 5 — dibujo 3D libre (Surrounding V2, 2026-08-26)
 Plan maestro: `docs/stages/surrounding-v2.md`. **Sin lápiz** (la punta es el propio sensor en la mano hábil), **sin botón** (1 m de práctica cierra las instrucciones), **cierre por 10 m lineales**, la firma reaparece junto al alma al final. 🔴 **El canvas (`BP_DrawCanvas`) NO se tocó**: el sensor lo spawnea en identidad, lee su `ArcLength` público, y el "borrar" es destruir + re-spawnear.
 
