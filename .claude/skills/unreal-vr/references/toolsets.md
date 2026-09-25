@@ -1,6 +1,7 @@
 # Toolset reference (distilled) — use instead of `describe_toolset`
 
-Call any tool via `mcp__unreal__call_tool {toolset_name, tool_name (SHORT), arguments}`. Refs are `{"refPath": "/Game/..."}` or `/Script/Module.Class`. `?` = optional. Re-`describe_toolset` live only if a tool isn't here.
+Call any tool via `mcp__unreal__call_tool {toolset_name, tool_name (SHORT), arguments}`. Refs are `{"refPath": "/Game/..."}` or `/Script/Module.Class`.
+🔴 **El `refPath` de un ASSET va en forma `Paquete.Objeto`** — `/Game/X/M_Y.M_Y`, NO `/Game/X/M_Y` (2026-09-25: la forma corta la rechazan `ObjectTools.get_properties` y `MaterialTools.recompile` con *"is not a valid object path"*, y cuesta un round-trip cada vez). Para una expresión adentro de un material: `/Game/X/M_Y.M_Y:MaterialExpressionCustom_0`. En cambio `AssetTools.save_assets`/`is_dirty` toman la forma **corta** (`/Game/X/M_Y`), porque su parámetro son paths de asset, no refs de objeto. `?` = optional. Re-`describe_toolset` live only if a tool isn't here.
 
 Toolsets: BlueprintTools, SceneTools, ActorTools, ObjectTools, AssetTools, PrimitiveTools, StaticMeshTools, MaterialTools, MaterialInstanceTools, TextureTools, SkeletalMeshTools, DataTableTools, DataAssetTools, CurveTableTools, StringTableTools, EditorAppToolset, LogsToolset, ProgrammaticToolset, AgentSkillToolset.
 
@@ -78,6 +79,7 @@ AddUserVariables(system, [{"name":"User.Beam_Start","description":"...",
 
 **Nodes — editing**
 - **create_node**(graph, type_id, pos, declaring_class?) — type_id like `Development|PrintString`, `AddEvent|EventBeginPlay`, `AddEvent|Custom|MyEvent`.
+  ⚠ **Nombres de pin que no se adivinan** (verificados 2026-09-25): los exec son **`execute`** (entrada) y **`then`** (salida); el texto del `PrintString` es **`InString`** (sin espacio); el evento custom expone `OutputDelegate` + `then`; `SetScalarParameterValue` de `KismetMaterialLibrary` expone `Collection`/`ParameterName`/`ParameterValue`. Un nombre equivocado tira `KeyError` **después** de haber creado los nodos: quedan huérfanos y hay que terminar el cableado, no recrearlos.
 - **delete_node**(node) / **set_node_position**(node,pos) / **arrange_nodes**(…) / **retarget_node_class**(…).
 - **connect_pins**(output_pin: PinID, input_pin: PinID) / **break_pins**(…). PinID = `{direction: EGPD_Input|EGPD_Output, index_id, node:{refPath}}`. Connecting to an already-connected input REPLACES it — 🔴 **solo en pines de DATOS**. Un pin de **exec de entrada acepta varias conexiones** (el de enlace único es el de salida): para reordenar una cadena de ejecución hay que `break_pins` los enlaces viejos, o queda un bucle infinito que compila igual. Ver gotcha 338.
 - **get_pin_value**(pin) / **set_pin_value**(pin, value) — input pins with default values only.

@@ -75,9 +75,11 @@ def main():
     resumen = {}
     for clave in sorted(por_modo):
         meds = [x[1] for x in por_modo[clave]]
+        caps = [x[3] for x in por_modo[clave]]
         prom = sum(meds) / len(meds)
         sep = (max(meds) - min(meds)) if len(meds) > 1 else 0.0
-        resumen[clave] = (prom, sep)
+        capavg = sum(caps) / len(caps)
+        resumen[clave] = (prom, sep, capavg)
         print("  %-14s  %6.2f ms   (las dos pasadas separadas por %.2f ms)" % (clave, prom, sep))
 
     seps = sorted([v[1] for v in resumen.values()])
@@ -128,6 +130,67 @@ def main():
     else:
         print("")
         print("  Faltan el modo0 o el modo3, que son los que arman la cuenta.")
+
+    # --- EL SPLIT cadena vs esferas (modos 4 y 5, agregados 2026-09-25) ---------------
+    cadena = None
+    esferas = None
+    for clave in resumen:
+        if clave.startswith("modo4"):
+            cadena = resumen[clave][0]
+        if clave.startswith("modo5"):
+            esferas = resumen[clave][0]
+
+    if cadena is not None and esferas is not None and actual is not None:
+        print("")
+        print("=== EL SPLIT: cadena vs esferas ===")
+        # El modo 3 queda pegado al cap de 72 Hz, asi que el piso real se deriva por
+        # aditividad: m4 = piso+cadena ; m5 = piso+esferas ; m0 = piso+cadena+esferas.
+        piso = cadena + esferas - actual
+        c_cad = cadena - piso
+        c_esf = esferas - piso
+        # Si una fase del split quedo pegada al cap, su mediana es una COTA SUPERIOR de
+        # su valor real y los numeros derivados heredan el sesgo. Con m5 en el cap:
+        # esferas = m0 - m4 sigue siendo EXACTO, pero cadena pasa a ser >= y piso <=.
+        cap4 = 0.0
+        cap5 = 0.0
+        for clave in resumen:
+            if clave.startswith("modo4"):
+                cap4 = resumen[clave][2]
+            if clave.startswith("modo5"):
+                cap5 = resumen[clave][2]
+        pref_cad = ">=" if cap5 > 20 else "  "
+        pref_esf = ">=" if cap4 > 20 else "  "
+        print("  solo cadena  (modo 4)     : %6.2f ms" % cadena)
+        print("  solo esferas (modo 5)     : %6.2f ms" % esferas)
+        print("  piso derivado (m4+m5-m0)  : %6.2f ms   <- sin la trampa del vsync" % piso)
+        if gratis is not None:
+            print("  piso medido   (modo 3)    : %6.2f ms   (pegado al cap: cota superior)" % gratis)
+        print("  --------------------------------------------")
+        print("  cuestan las 20 ESFERAS    : %s %6.2f ms" % (pref_esf, c_esf))
+        print("  cuesta la CADENA          : %s %6.2f ms" % (pref_cad, c_cad))
+        total = c_esf + c_cad
+        if total > 0:
+            print("  reparto: esferas %.0f%% / cadena %.0f%%" % (c_esf * 100.0 / total, c_cad * 100.0 / total))
+        if cap5 > 20:
+            print("  OJO: el modo 5 quedo pegado al cap (%.0f%% de cuadros) -> el costo de la" % cap5)
+            print("  CADENA es una COTA INFERIOR (puede ser mas) y el piso derivado una cota")
+            print("  superior. El de las ESFERAS es exacto igual: sale de m0 - m4, sin cap.")
+        if cap4 > 20:
+            print("  OJO: el modo 4 quedo pegado al cap (%.0f%% de cuadros) -> el costo de las" % cap4)
+            print("  ESFERAS es una COTA INFERIOR. El de la CADENA es exacto igual: m0 - m5.")
+        print("")
+        print("  Tras reemplazar SOLO las esferas (enfoque C) el cuadro quedaria en")
+        print("  ~%.2f ms (= el modo 4) + lo que cueste la malla nueva. Presupuesto: %.2f ms." % (cadena, PRESUPUESTO))
+        if cadena <= PRESUPUESTO + 0.5:
+            print("  VEREDICTO DEL SPLIT: con C sobre las esferas ALCANZA; la cadena puede quedarse.")
+            print("  (Si el modo 4 quedo pegado al cap, su costo real es ese o MENOR.)")
+        else:
+            print("  VEREDICTO DEL SPLIT: C sobre las esferas NO alcanza por si solo -- la cadena")
+            print("  necesita trabajo propio (proxy ajustado / poda por gota / tambien C).")
+        if piso < 0 or (gratis is not None and piso > gratis + 1.0):
+            print("  ATENCION: el piso derivado (%.2f ms) es incoherente con el modo 3." % piso)
+            print("  La aditividad no cierra: hay interaccion entre superficies (overdraw mutuo,")
+            print("  o una fase pegada al cap) y el split es aproximacion, no cuenta exacta.")
     return 0
 
 

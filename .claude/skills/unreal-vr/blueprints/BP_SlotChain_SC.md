@@ -308,3 +308,159 @@ gotchas: se comparó el cuadro entero y la cadena es un lavado pálido de bajo c
 desaparición total pasó inadvertida.
 
 </details>
+
+## 🆕 2026-09-25 (2ª pasada) — modos 4/5 del banco: EL SPLIT cadena vs esferas
+
+Al `MaterialExpressionCustom_0` de `M_SlotChain_SC` se le agregaron **3 líneas** justo después del
+early-out del modo 3 (inserción por script `replace` sobre `code`, sin retranscribir el shader):
+
+```hlsl
+float isOrb = (WobAFS.x > 0.001) ? 1.0 : 0.0;
+if (PM == 4 && isOrb > 0.5) { return float4(0.0, 0.0, 1.0, 0.0); }
+if (PM == 5 && isOrb < 0.5) { return float4(0.0, 0.0, 1.0, 0.0); }
+```
+
+- **Modo 4 = solo cadena** (mata todo píxel con `WobbleAFS.x > 0` = las 20 esferas de `MI_OrbBlob_SC`).
+- **Modo 5 = solo esferas** (mata el camino `WobA = 0` = el MID del `Volume`, que no overridea `WobbleAFS`).
+- En modo 0 el costo agregado es nulo (rama uniforme, misma lógica que el banco original).
+- **Para qué:** partir los 12,28 ms medidos entre las dos superficies. `resumen_modos.py` deriva
+  además el piso real por aditividad (`m4+m5−m0`), que el modo 3 no muestra por estar pegado al cap.
+- **Verificado por elemento (§378), sin visor:** preview de `MI_OrbBlob_SC` (esfera) y del master
+  (cadena) en 0/4/5/0 — cada modo vacía exactamente su superficie y el 0 restaura ambas.
+  Capturas `perf_shots/SPLIT45_*`. ⚠ El viewport del nivel NO sirve de oráculo acá: en la galería
+  los orbes se anclan en el centro de las gotas (superficies co-ubicadas) y los modos se confunden.
+- Eventos `Perf4`/`Perf5` en [[BP_PerfSwitch_SC]] (cirugía, `declaring_class=KismetMaterialLibrary`).
+- Guardado (`M_SlotChain_SC` + `BP_PerfSwitch_SC`, rutas explícitas). MPC restaurado a 0 sin guardar.
+- ⬜ Pendiente: build Development + `quest_perfmodes.ps1 -Modos 0,4,5,3` (~4 min de visor). El mismo
+  build lleva **FFR hardware 3 A PRUEBA** (`Config/Android/AndroidEngine.ini`, revertible a 1).
+
+## 🆕 2026-09-25 (3ª pasada) — PROXY CEÑIDO: `SM_ChainProxyTube_SC` reemplaza la caja
+
+**Por qué:** el split midió que la cadena cuesta ≥8,93 ms (≥61% de la técnica) y la caja
+`SM_ChainProxy_SC` (120×340×120) hacía pagar el march de 32×9 a una pantalla enorme de píxeles
+que nunca pegan: las gotas viven en un arco de ±62 en Y, panza +20 en X, z≈−20, radio efectivo
+máx ~13,6.
+
+**La malla nueva:** tubo de 10 anillos × 10 lados (102 verts / 110 caras) siguiendo el arco real
+por los C0..C7 del MID, radio 26 (= R_max 13,6 + float 1,3 + panza smin k/4≈3,8 + margen para la
+gota 9 fundida), extendido 24 en las puntas, tapado. Generado con **Blender headless**
+(`--background --python`, script en scratchpad `gen_chain_proxy_tube.py`), export FBX con el
+checklist de la skill. ⚠ El FBX espeja Y (RH→LH): irrelevante acá porque el arco es casi
+simétrico en Y (asimetría ~1 uu ≪ holgura ~7 uu).
+
+**Dónde vive el cambio:** `staticMesh` del `Volume` en el **template del BP**
+(`BP_SlotChain_SC_C:Volume_GEN_VARIABLE`) **y en la instancia** del nivel (tiene override propio
+— "lo de la instancia le gana al Blueprint", hubo que escribir en los dos). La caja vieja
+`SM_ChainProxy_SC` queda en el proyecto como referencia/rollback.
+
+**Verificación (sin visor):**
+- 🔴 El lavado a 0,156 de alpha NO se resuelve en capturas de editor a distancia — el instrumento
+  que funcionó: **`ChainTransparency` 0 momentáneo (bold) + modo 4 (cadena aislada)** + recorte
+  ampliado, 2 fases del swell. La cadena renderiza completa, silueta orgánica, **cero cortes
+  planos**. Restaurado el 0.15575799345970154 exacto y verificado por re-lectura.
+- PIE: `SEQ: boot slots=8 → esferas=20 → pad ON, paso 0 alineado`, cero `Accessed None`.
+  ⚠ El reloj del log corre ~2 h detrás del local — comparar contra los timestamps de los propios
+  `LogModelContextProtocol`, no contra la hora de la pared.
+- ⬜ **Pendiente en visor (Beltrán): la FUSIÓN al acercar una esfera al slot** — la gota 9 puede
+  asomar fuera del radio 26 mientras la esfera se sostiene cerca (el resto del bulto, cerca de la
+  cadena, está cubierto). Si se nota un corte en ese momento, subir el radio del tubo (regenerar
+  con el script) o ceñir solo la sección.
+- ⬜ Medición: `quest_perfmodes.ps1 -Modos 0,4,5,3`. **Criterio de éxito dentro de la sesión:
+  modo 4 pegado al cap de 72 Hz** (la cadena desaparece bajo el velo del vsync).
+
+## 🆕 2026-09-25 (4ª pasada) — RESULTADO del tubo + fix del TIEMPO fp16
+
+**El tubo MIDIÓ:** modo 4 (solo cadena) pasó de 17,02 ms → **13,93 ms PEGADO AL CAP de 72 Hz**
+(criterio de éxito cumplido); modo 0 de 22,83 → **15,57** (pasada estable 14,73 con 25% en cap).
+Beltrán: "nunca sentí bajo frame rate". CSVs en `perf/tubo-2026-09-25/`. A4 (poda) y C (esferas
+por malla) pasan de rescate a **margen**.
+
+**El bug que la fluidez destapó:** las animaciones DEL MATERIAL (wobble de esferas + deformación
+del metaball) se iban "trabando" progresivamente con el tiempo de sesión — manos fluidas, material
+a saltos. **Es el fp16 del reloj** (la trampa conocida de [[degradados-animados-quest-dos-causas]]):
+el input `T` del Custom llega en HALF en el APK; a T≈1000 s el ulp es ~1 s. En editor (fp32) no
+existe. Beltrán lo diagnosticó de una: "algo del packaging que satura el time".
+
+**El fix (cirugía, costo cero):** `float Tt = View.GameTime;` DENTRO del Custom (uniform fp32,
+mismo reloj que el nodo Time — verificado: el nodo era Time pelado, sin period ni RealTime) y todos
+los usos de `T` → `Tt`. Sin period, sin saltos, sin `MFPM_Full` (que acá duplicaría el ALU del
+march en Adreno).
+
+**⛔ La verificación por modos 6/7 NO PROBÓ NADA (2026-09-25, en device).** La idea era que
+`ke * Perf6` (reloj +1024 s por el camino HALF) mostrara el trabado al instante y `Perf7` (mismo
+reloj, fp32) se viera fluido. **Beltrán no pudo distinguir uno del otro.**
+🔴 Y eso no es "no se nota": a T≈1024 el ulp de un half es **exactamente 1,0 s**, así que el modo 6
+tendría que haberse visto congelado a saltos de un segundo — imposible de no ver. La conclusión es
+que **el `half hT = half(Tt + 1024.0)` NO produjo fp16 real** (el cross-compiler de UE lo promueve a
+float en este target), o sea que el control negativo es inválido.
+**Consecuencias, sin adornar:**
+- El **fix está aplicado pero NO verificado**. Es teóricamente correcto y cuesta cero, así que se queda.
+- 🔴 **El DIAGNÓSTICO original también queda en duda**: si el `half` explícito no es fp16 acá, el
+  mecanismo del trabado que reportó Beltrán puede ser otro (interpolante/uniform, acumulación en
+  el BP, o algo no relacionado con precisión).
+- **El único test decisivo que queda es el barato:** una sesión LARGA (15-20 min) con el build
+  actual. Si el trabado no vuelve, el fix sirvió; si vuelve, el diagnóstico estaba mal y hay que
+  volver a empezar por el síntoma.
+Previews modo 0 verificados idénticos post-cirugía. Eventos `Perf6`/`Perf7` en [[BP_PerfSwitch_SC]]
+(quedan: no molestan y sirven si algún día se confirma cómo forzar fp16 real).
+
+⚠ **DEUDA PROYECTO-ANCHA:** todo material de la obra con animación por `Time` comparte este bug
+latente (la obra dura 15 min). Barrer con la misma receta: Custom → `View.GameTime`; grafo puro →
+`MFPM_Full_MaterialExpressionOnly` + Period (la cura de los degradados). El modo 6/7 de este master
+es el patrón de verificación.
+
+## 🆕 2026-09-25 (5ª pasada) — A4: LA PODA POR GOTA, y el modo 8 que cuelga la app
+
+### Lo que se construyó (y sobrevive en visor)
+Al `MaterialExpressionCustom_0` se le insertaron 32 líneas justo después de `float eps = ...`
+(inserción por `replace` sobre `code`, sin retranscribir; 167 → 199 líneas):
+un **test punto-recta por píxel** que descarta las gotas que ese rayo no puede tocar y **compacta**
+las supervivientes al frente de `P`/`R`/`PU`, de modo que los tres bucles internos (march, refinado
+de wobble y normal) iteran sobre `M` en vez de sobre 9 **sin un solo cambio de estructura ni de
+indexado**: solo se les achica la cota `NA`.
+- **El margen es exacto, no heurístico:** `R[j]*(1 + 1.31*WobA) + 2*Smth + eps`. El `1.31` es el
+  mismo factor que `mW` (el radio máximo con wobble: `ws∈[-3,3]`, `wm∈[-1,1]` → `1 + WobA*1.3`), y
+  más allá de `Smth` el smooth-min da `h=0`, así que la gota no puede alterar el resultado. Se usa la
+  recta INFINITA, que es conservadora (mantiene más gotas de las necesarias).
+- **Ganancia extra no prevista:** si no sobrevive ninguna gota el píxel sale **sin marchar un solo
+  paso** (`if (M < 1) return`). Es casi todo el borde del tubo proxy, que hoy pagaba 32 pasos para
+  terminar en nada.
+- Backup del HLSL previo: `scripts/hlsl_backups/M_SlotChain_Custom0_2026-09-25_pre-A4.hlsl`.
+- ✅ **Compila** (38 parámetros expuestos, 0 errores de `LogShaderCompilers`) y ✅ **corre en el
+  visor sin colgarse** — validado dos veces por caminos independientes (ver abajo).
+
+### 🔴 EL MODO 8 CUELGA LA APP — INCÓGNITA ABIERTA, NO DISPARAR `ke * Perf8`
+El modo 8 se agregó para tener el "antes" vivo en el mismo build (`if (PM == 8) { M = NA; }` = la
+poda apagada). **Cuelga la app a los pocos segundos**: imagen congelada, sonido siguiendo,
+**game thread en estado `S` con 14 s de CPU total** (o sea BLOQUEADO, no calculando), GPU en 0 de
+presión, proceso vivo. El log del motor termina en el print de "modo 8" y después nada (los ensures
+de `xrLocateHandJointsEXT` / `XR_ERROR_TIME_INVALID` que aparecen son **síntoma**: el rastreo de
+manos recibe un tiempo de display inválido porque el bucle de cuadro ya se paró).
+
+**Lo que está probado por medición, no por razonamiento:**
+| | resultado |
+|---|---|
+| app abierta a mano, **modo 0 (poda ENCENDIDA)** | 🟢 corre, no cuelga (Beltrán) |
+| `ke * Perf0` (poda encendida) | 🟢 sigue viva |
+| `ke * Perf1` (modo viejo, sin tocar) | 🟢 sigue viva → **cambiar de modo NO es el problema** |
+| `ke * Perf8` (poda APAGADA) | 🔴 cuelga |
+
+**Por qué NO cierra, dicho sin adornos:** en mode 8 el flujo ejecutado debería ser idéntico al
+código original —- el mismo que corrió 18 minutos esta tarde sin colgarse -— y el branch es
+**uniforme**, así que el programa compilado es uno solo y el valor del uniform no cambia el conteo de
+instrucciones. Una explicación puramente de shader no alcanza. **No hay mecanismo identificado.**
+
+**Las tres cosas a revisar cuando Unreal esté abierto** (en este orden):
+1. **Quién más lee `PerfMode`** de `MPC_Perf_SC` además de este master. Un consumidor que no espere
+   el valor 8 explicaría un cuelgue fuera del shader.
+2. **Qué quedó realmente en el pin `ParameterValue`** del nodo `Perf8`
+   (`K2Node_CallMaterialParameterCollectionFunction_9`): se escribió por `set_pin_value` con la
+   cadena `"8.0"`. Si el literal no parseó, el MPC puede estar recibiendo basura (NaN o un valor
+   enorme), y `int PM = (int)(PerfMode + 0.5)` con NaN es comportamiento indefinido.
+3. **El HLSL generado** para la rama `PM == 8` (Platform Stats del material editor, plataforma
+   Android ES3.1), comparado contra el backup pre-A4.
+
+Mientras no se resuelva: **el modo 8 se saca del banco** y el A/B de la poda se hace comparando
+`modo 0` de este build contra los **20,5 ms medidos en la sesión larga** (mismo FFR 0, misma familia
+de build, lo único que cambia es la poda). Es comparación entre sesiones —- ruido ~15 %, gotcha 379 —-
+pero el efecto esperado (20,5 → ~14) es mucho mayor que el ruido.

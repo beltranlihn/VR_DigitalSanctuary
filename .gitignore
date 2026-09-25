@@ -52,3 +52,7 @@ Desktop.ini
 
 # Capturas de performance traidas de la Quest (regenerables)
 perf/
+
+# Cache de Python de los scripts de la skill
+__pycache__/
+*.pyc

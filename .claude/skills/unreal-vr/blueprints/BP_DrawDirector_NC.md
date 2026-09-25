@@ -272,6 +272,43 @@ radio += N · (bead + facet) · ShrinkAmount · mascara_del_taper
 
 ⚠ **Lo que esto NO da**: caras planas con aristas duras como el dibujo de alambre. Los lóbulos son **suaves**. Facetas duras de verdad exigen **duplicar vértices por cara** (flat shading) en `Tube_EmitRing`, porque una arista dura necesita dos normales en el mismo punto. Es un cambio real, no un parámetro.
 
+## 🎨 LA FAMILIA DE PINCELES TEXTURADOS — el flujo Tilt Brush completo (2026-09-25)
+Con `BrushTex` como parámetro, un pincel nuevo dejó de ser código: es **una textura + una instancia de material**. Se armaron 5 de una vez:
+
+| Pincel (`StartBrush`) | MIC | Textura | Carácter |
+|---|---|---|---|
+| **4** | `MI_Brush_Dry` | `T_BrushDry` | cerda seca (el original) |
+| **6** | `MI_Brush_Ink` | `T_BrushInk` | tinta: núcleo sólido, borde ondulado |
+| **7** | `MI_Brush_Splatter` | `T_BrushSplatter` | salpicado de gotas |
+| **8** | `MI_Brush_Pencil` | `T_BrushPencil` | lápiz: trama granulada rala |
+| **9** | `MI_Brush_Water` | `T_BrushWater` | acuarela: manchas blandas, borde cargado |
+
+(3 = tubo, 5 = sparks, 0 = la cinta aprobada, intocada.)
+
+### Cómo funciona el despacho ahora — POR DATO
+- El director tiene **`PaintMats`** (array de MaterialInterface, categoría `09 PINCELES`): `PaintMats[i]` = material del pincel `4+i` (el índice 1 = pincel 5 = sparks, slot no usado).
+- `Press` guarda **`BrushIdx`** en el trazo (junto a `ColorIdx`); `Paint_PickMat` en `BP_Stroke` elige: default `M_PaintRibbon_NC`, y si `IsValidIndex(PaintMats, BrushIdx-4)` → MID de ese material. Sin else ni reconvergencia: **default primero, override después**.
+- Ruteo del Default del switch: `5→sparks, 3→tubo, resto→pintura`. En ToolTick: `0→cinta | 3→tubo | 5→sparks | 4..99→cinta` (el 5 se atrapa ANTES del rango 4-99: **el orden de los elif es parte de la lógica**).
+- 🔑 **Agregar el pincel 10 = generar una textura, crear un MIC, agregarlo al array.** Cero Blueprints.
+
+### Trampas de la pasada
+- 🔴 **§372 mordió de nuevo**: al girar el chequeo del tubo en `Press` (True↔False + rango), el enlace `Default→chequeo de sparks` se desplazó y **sparks quedó huérfano** (el 5 caía en pintura). Lo atrapó el read post-cirugía obligatorio. Reordenar exec = revisar TODOS los enlaces de la cadena, no solo los que tocaste.
+- ⚠ Texturas generadas con **PIL** e importadas con `TextureTools.import_file`; hay que setear `TC_Grayscale` + `sRGB false` **después** de importar o el sampler LinearGrayscale no compila.
+- ⚠ Los parámetros de un MIC se escriben con `set_properties` y los arrays completos (`textureParameterValues` / `scalarParameterValues` con `parameterInfo`+`parameterValue`), igual que el patrón de las MPC (gotcha 1907).
+
+## 🖌️ CARÁCTER POR PINCEL — respuesta a "son el mismo pincel" (2026-09-25, 2ª pasada)
+Beltrán probó los 5 texturados: *"son el mismo pincel que cambian las lineas... muy planos... se ven todos como una textura estirada"*. Tres quejas, tres causas, tres arreglos:
+
+1. **"El mismo pincel"** → compartían geometría idéntica. Ahora el descriptor lleva **`FeelWidth`**: un parámetro escalar del material que el shader NO usa — es **dato del descriptor** que `Paint_StartStroke` lee del MID (`GetScalarParameterValue`) y multiplica sobre `StrokeWidth`. Lápiz 0.35×, tinta 0.7×, seco 1×, acuarela 1.8×, salpicado 2.2×. 📌 **El truco: params inertes en el material = el BrushDescriptor de Tilt Brush.** El MIC transporta datos de gameplay, no solo de shader.
+2. **"Muy planos"** → **`ReliefAmt`**: emboss de dos muestras (`tex(v-d) - tex(v+d)`) multiplicando el emisivo — las crestas de la textura atrapan luz, como el normal.png de TB pero sin textura extra. Dos `TextureSampleParameter2D` **con el MISMO nombre** `BrushTex` → las tres muestras cambian juntas al swappear la textura.
+3. **"Textura estirada"** → cada MIC activa **`BeadAmp`/`BeadSpacing`** (heredados del padre vía el duplicado): el ANCHO ondula distinto por pincel (acuarela hincha suave, salpicado irregular, lápiz casi nada) y la silueta deja de ser una banda constante. + `TexLength` por pincel (acuarela 70 = casi sin repetir).
+
+Defaults del padre **leídos y verificados neutros**: `ReliefAmt` 0, `FeelWidth` 1.
+
+### ⚠ Trampas nuevas
+- **`scalarParameterValues` de un MIC no puede CRECER y cambiar elementos a la vez** (*"insertion points are ambiguous"*). ✅ Receta: escribir `[]` primero, luego el array completo. Y siempre el array COMPLETO — un set parcial borra los overrides previos.
+- El `GetScalarParameterValue` con el MID como primer posicional resuelve al overload correcto en el DSL (mismo patrón que los setters); el compile estricto lo confirma.
+
 ## Historial
 - **2026-09-24 (11a)** — Replanteo: sección irregular que rota (`FacetAmp`/`FacetLobes`/`FacetTwist`), `TubeSides` a 9. ⬜ sin visor.
 - **2026-09-24 (10a)** — **Troceado** de la malla en secciones de 32 anillos (`Tube_NextChunk`), y con el techo quitado: `TubeStep` 0,25 / `TubeSides` 20. ⬜ sin visor, ⬜ sin medir en device.

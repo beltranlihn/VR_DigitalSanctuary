@@ -343,3 +343,113 @@ encima del presupuesto" — por comparar contra 13,90 sin mirar la distribución
   menor. El banco permite medirlo por separado si hace falta.
 - ⚠ **Pendiente de una segunda pasada**: repetir el modo 1 mirando lo mismo que en las demás fases.
   No cambia la decisión, pero cierra el número.
+
+---
+
+# 🔀 EL SPLIT (2026-09-25, 2ª pasada) — construido y verificado, falta correrlo
+
+La medición de arriba dice que la técnica entera cuesta 12,28 ms, pero no dice **cuánto es de la
+cadena y cuánto de las 20 esferas** — y esa cifra dimensiona el enfoque C: si la cadena es chica,
+C sobre las esferas alcanza solo; si es grande, la cadena necesita trabajo propio (proxy ajustado /
+poda por gota / también C).
+
+**Piezas nuevas, ya verificadas en editor (sin visor):**
+- `M_SlotChain_SC`: **modo 4 = solo cadena** (apaga todo píxel con `WobbleAFS.x > 0`, o sea las
+  esferas) y **modo 5 = solo esferas**. Tres líneas tras el early-out del modo 3; en modo 0 no
+  cambia nada (verificado por preview de asset en los DOS caminos, `perf_shots/SPLIT45_*`).
+- `BP_PerfSwitch_SC`: eventos `Perf4`/`Perf5` (mismo patrón que 0-3).
+- `quest_perfmodes.ps1 -Modos 0,4,5,3` corre el split; `resumen_modos.py` imprime la cuenta,
+  incluido el **piso derivado = m4 + m5 − m0** (la aditividad esquiva el cap de 72 Hz que tapa al
+  modo 3) y el veredicto (¿alcanza C sobre las esferas solo?). Control positivo con CSVs
+  sintéticos: recupera exactamente piso/cadena/esferas sembrados.
+- **FFR de hardware 1→3 A PRUEBA** en `Config/Android/AndroidEngine.ini` (D1 del plan): entra en
+  el mismo build. El split queda internamente válido (FFR constante en las 8 fases); el número
+  absoluto vs sesiones anteriores sale sucio (~15% entre sesiones) — lo que vale de D1 en esta
+  corrida es el **juicio a ojo de la periferia**. Si degrada, revertir a 1 (línea comentada al lado).
+
+**Cómo se corre (cuando Beltrán esté con el visor):**
+1. Empaquetar Development (receta `WORKFLOW-EQUIPO.md`; `PackageName=com.almadigital.TESTMESHES`
+   a mano, restaurar `DefaultEngine.ini` después).
+2. `powershell -ExecutionPolicy Bypass -File .claude/skills/unreal-vr/scripts/quest_perfmodes.ps1 -Modos 0,4,5,3`
+3. `python .claude/skills/unreal-vr/scripts/resumen_modos.py perf`
+4. En la misma sesión: mirar la periferia (FFR 3) y decir si se banca.
+
+## 🏁 RESULTADO DEL SPLIT (2026-09-25 14:47, 8 fases, FFR 3 activo) — **LA CADENA DOMINA**
+
+| modo | mediana | separación | cap |
+|---|---|---|---|
+| 0 actual | **22,83 ms** | 0,97 | — |
+| 4 solo cadena | **17,02 ms** | 0,45 | — |
+| 5 solo esferas | **13,90 ms** | 0,01 | 🔴 34-37% en el cap |
+| 3 gratis | 13,89 ms | 0,04 | 🔴 en el cap |
+
+Resolución del instrumento: 0,25 ms. CSVs en `perf/split-2026-09-25/`.
+
+```
+las 20 ESFERAS cuestan :    5,81 ms   (EXACTO: m0 − m4, sin cap de por medio)
+la CADENA cuesta       : ≥  8,93 ms   (COTA INFERIOR: m5 quedó pegado al cap)
+reparto                :  esferas 39% / cadena ≥61%
+```
+
+**Las tres lecturas que cambian el plan:**
+1. 🔴 **La sorpresa: el costo dominante es LA CADENA (1 objeto), no las 20 esferas.** La
+   expectativa previa era la inversa. Su caja proxy (`SM_ChainProxy_SC`, diagonal ~500 para
+   gotas de ~40) y el inner loop de 9 gotas × 32 pasos por píxel cobran más que 20 esferas
+   con wobble.
+2. **Solo esferas = 72 fps clavado** (modo 5 en el cap con separación 0,01): el piso + las 20
+   esferas raymarcheadas TAL COMO ESTÁN entran en presupuesto — aunque al ras: la mediana en el
+   cap con ~36% de cuadros en la banda dice que hay poco o ningún margen escondido.
+3. **Matar solo las esferas no alcanza** (modo 4 = 17,02 > 13,9): la cadena necesita trabajo
+   **sí o sí**, y es el primer objetivo, no C.
+
+**Nota FFR:** esta sesión corrió con FFR 3 (verificado en boot: `Set CVar xr.OpenXRFBFoveationLevel:3`).
+El modo 0 dio 22,83 vs 26,19 de ayer con FFR 1 (−13%), pero es comparación entre sesiones (~15% de
+ruido) → **no es un número reclamable**; el juicio que vale es el de la periferia a ojo.
+
+### El plan reordenado
+1. **Cadena, palancas sin costo visual, iterando con `-Modos 0,4` (el modo 4 es el A/B directo
+   del costo de la cadena):**
+   a. **Proxy ajustado** — ✅ **HECHO (2026-09-25, 3ª pasada):** `SM_ChainProxyTube_SC`, tubo de
+      102 verts siguiendo el arco real (radio 26), reemplaza la caja de 120×340×120 en template
+      + instancia. Verificado sin visor (bold + modo 4, dos fases del swell, sin cortes; PIE
+      verde). Detalle en el tracker de `BP_SlotChain_SC`. **Criterio de éxito de la próxima
+      medición: modo 4 pegado al cap de 72 Hz.** ⚠ Ojo de Beltrán pendiente: la fusión al
+      acercar una esfera al slot (la gota 9 puede asomar fuera del tubo).
+   b. **A4 poda por gota** — test punto-recta 1× por píxel, marchar solo las ≤4 gotas
+      relevantes (inner loop 9 → ~3-4). Siguiente si el tubo no alcanza.
+2. **C sobre las esferas** (premio exacto: 5,81 ms) — sigue valiendo porque el punto 2 de arriba
+   dice que piso+esferas queda AL RAS del cap: sin margen para picos, calor ni estaciones más
+   cargadas. La incógnita del lóbulo (P[1] vs P[8], leer `ApplyLook`) sigue vigente.
+3. FFR 3 queda si Beltrán lo aprueba a ojo; si no, revertir la línea en `AndroidEngine.ini`.
+
+## 🏆 RESULTADO DEL TUBO (2026-09-25 15:23, 8 fases, FFR 3) — **LA CADENA ENTRÓ EN PRESUPUESTO**
+
+| modo | con la CAJA (mañana) | con el TUBO |
+|---|---|---|
+| 0 — todo | 22,83 ms | **15,57 ms** (pasada estable 14,73, 25% en cap) |
+| 4 — solo cadena | 17,02 ms | **13,93 ms — EN EL CAP** ✅ criterio cumplido |
+| 5 — solo esferas | 13,90 (cap) | 13,93 (cap) |
+| 3 — piso | 13,89 (cap) | 13,88 (cap) |
+
+Resolución del instrumento: 0,07 ms. CSVs en `perf/tubo-2026-09-25/`. Beltrán en visor: *"todo
+mucho más fluido, nunca sentí bajo frame rate"*. **El proxy ceñido le sacó ~7 ms al cuadro.**
+⚠ La fase 1 del modo 0 midió 16,41 (arranque de la estación en cámara); la estable es 14,73.
+⚠ El costo marginal de las esferas midió 1,64 hoy vs 5,81 a la mañana: el fill de las esferas
+depende de CÓMO se juega (qué tan cerca de la cara se sostienen) — entre sesiones no es comparable.
+**A4 (poda) y C (esferas por malla) pasan de rescate a MARGEN.** Queda ~0,8-1,7 ms para clavar
+72 sostenido en el juego pesado; C sobre las esferas sigue siendo la inversión correcta si se
+quiere margen para calor + estaciones cargadas, pero ya no bloquea.
+
+### Y el bug que la fluidez destapó: el TRABADO del reloj (fp16)
+Con el frame rate liso, Beltrán vio las animaciones DEL MATERIAL (wobble/metaball) trabarse
+progresivamente con los minutos de sesión — manos fluidas, material a saltos, editor impecable.
+Diagnóstico: el reloj del shader en half (gotcha 382, pariente de la cura de los degradados).
+**Fix aplicado en el master:** `View.GameTime` (fp32) leído dentro del Custom, costo cero.
+**⛔ La verificación por modos 6/7 FALLÓ como instrumento (probada en device el mismo día):**
+Beltrán no pudo distinguir el modo 6 del 7. A T≈1024 el ulp de un half es 1,0 s — el modo 6 debía
+verse congelado a saltos de un segundo. Que no se notara prueba que **el `half` explícito no compiló
+a fp16 real** en este target, no que el fix funcione. Por lo tanto: **fix aplicado pero NO
+verificado, y el diagnóstico original (fp16) queda en duda**. El test decisivo que queda es gratis:
+**una sesión larga (15-20 min) con el build actual** — si el trabado no vuelve, sirvió.
+🔴 **Deuda proyecto-ancha:** todos los materiales animados por Time de la obra (15 min) comparten
+el bug latente. Barrido pendiente con la receta de la gotcha 382.
