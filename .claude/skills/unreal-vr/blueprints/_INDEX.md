@@ -87,6 +87,11 @@
 
 ---
 
+## 🫁 Mecánica portable: Pacer de respiración (`Content/SoulCharger/Mechanics/Pacer/`)
+| Blueprint | Qué hace | Estado | Tracker |
+|---|---|---|---|
+| 🆕🫁 **BP_Pacer_SC** + **M_Pacer_SC** + **MI_Pacer_SC** | **El pacer visual de respiración de 3 modos** (2026-09-25, **Nico**): un reloj guía (no sensor) que marca inhalar/aguantar/exhalar con 3 estéticas elegibles por `Mode` — **Aros** (5 aros escalonados que respiran), **Órbita** (punto que recorre el perímetro + 4 arcos de fase + aro que respira), **Arco** (un arco que se llena/vacía + escala de 60 marcas). Un solo reloj de fases (anti-deriva `T-=Total`, quíntico), anillo perimetral con **centro libre**, presets (Coherente/Box/4-7-8/Larga), audio data-driven (4 clips, "falta clip" si vacío), API `PacerPlay/Pause/Stop/SetMode/SetTimes` + dispatchers `OnPacerPhase/Cycle/Finished`, y puerta `bUseExternalLung` a la respiración real. 🔴 El material es un **Custom HLSL** portado 1:1 del GLSL de `docs/efectos-nico/pacer/` (ramas por-píxel por `Mode`, no static switch). Vive en `L_PacerTest_Nico`. | 🟡 compila, PIE 5 s sin `Accessed None`, material validado a ojo; falta visor y medir el ciclo | [✓](BP_Pacer_SC.md) |
+
 ## Core — infraestructura compartida (`Content/SoulCharger/Core/`)
 > ⚠️ Estos son **compartidos entre stages** → coordinar antes de tocar (ver `docs/WORKFLOW-EQUIPO.md`). Varios están **sin auditar en detalle** — auditar y documentar al primer trabajo sobre ellos.
 
