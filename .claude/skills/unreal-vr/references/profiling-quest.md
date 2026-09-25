@@ -5,6 +5,12 @@
 
 ---
 
+> 📊 **Hay una medicion REAL de este proyecto, hecha en visor el 2026-09-24:**
+> [`docs/PERF-ATTRACTING-2026-09-24.md`](../../../../docs/PERF-ATTRACTING-2026-09-24.md).
+> La estacion Attracting corre a **24,85 ms donde necesita 13,9** y esta confirmada **fill-rate bound**
+> con el test de Meta de §2. Trae los numeros de cada palanca probada, las que faltan, y las trampas del
+> instrumental. **Antes de re-medir nada, leer eso.**
+
 # 🔴 PROCEDIMIENTO PASO A PASO
 
 ## 0. Empaquetar en **Development**, no Shipping
@@ -245,3 +251,34 @@ Sin fuente oficial de Epic/Meta que recomiende un valor específico para Quest �
 4. **`t.MaxFPS` en VR** — sin recomendación oficial de valor para Quest.
 5. **Umbral exacto de "extended periods" en VRC.Quest.Performance.1** — Meta no define cuántos segundos/frames constituyen un período extendido por debajo de 60 fps; solo dice "revisar el gráfico de FPS con OVR Metrics".
 6. **SysPTW** — experimental a partir de Horizon OS v83; sin fecha ni compromiso de Meta de cuándo (o si) sale de experimental.
+
+---
+
+# 🛠️ Script listo: `scripts/quest_perf.ps1`
+
+No hace falta recordar los intents. El script envuelve el broadcast de §6 y el `adb pull`:
+
+```powershell
+.\.claude\skills\unreal-vr\scripts\quest_perf.ps1 stats   # stat unit + stat gpu en pantalla
+.\.claude\skills\unreal-vr\scripts\quest_perf.ps1 start   # empieza el CSV por frame
+#   ... jugar la estación 30-60 s con el visor puesto ...
+.\.claude\skills\unreal-vr\scripts\quest_perf.ps1 stop
+.\.claude\skills\unreal-vr\scripts\quest_perf.ps1 pull    # CSV + VR_Test.log a .\perf\
+.\.claude\skills\unreal-vr\scripts\quest_perf.ps1 off
+```
+
+`-Package` por defecto es `com.almadigital.TESTMESHES`; cambialo para medir otro build. `cmd -Command "..."`
+manda cualquier consola suelta.
+
+## Los dos instrumentos, y para qué sirve cada uno
+- **`stats`** → `stat unit` + `stat gpu` **en pantalla, dentro del visor**. Es para Beltrán mientras juega:
+  ve el número moverse y sabe qué acción lo dispara. El umbral es **13,9 ms** (72 Hz).
+- **`start`/`stop`/`pull`** → el **CSV por frame** del CsvProfiler, que es lo que se analiza después:
+  da `FrameTime`, `GameThread`, `RenderThread` y `GPU` cuadro a cuadro, así que se puede sacar mediana,
+  p95 y **dónde** estaban los picos. Queda en
+  `/sdcard/Android/data/<package>/files/UnrealGame/VR_Test/VR_Test/Saved/Profiling/CSV/`.
+
+⚠ **Development, no Shipping** — es lo único que garantiza también RenderDoc e Insights (§3).
+⚠ El `stat gpu` de Unreal es **una estimación del engine**. El número duro de GPU time lo da
+**OVR Metrics Tool** (§1 paso 1), y el veredicto CPU-vs-GPU bound sale del test de Meta (§2), no de
+`stat unit` — esa heurística es folclore, está marcada como tal más arriba.

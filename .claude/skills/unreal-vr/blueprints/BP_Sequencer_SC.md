@@ -1,5 +1,9 @@
 # BP_Sequencer_SC — la etapa Attracting de la versión limpia (Core/Attracting/)
 
+📊 **Performance: MEDIDA en visor el 2026-09-24 y no llega.** 24,85 ms contra un presupuesto de
+13,9 (40 fps de 72), **fill-rate bound** confirmado. Numeros, palancas probadas y pendientes en
+[`docs/PERF-ATTRACTING-2026-09-24.md`](../../../../docs/PERF-ATTRACTING-2026-09-24.md).
+
 > Ecosistema completo de la sala 4 (2026-08-26): **`BP_Sequencer_SC`** (director de la sala) + **`BP_SoundOrb_SC`** (la esfera con sonido) + **`BP_SeqSlot_SC`** (el slot) + **`BP_SaveMelody_SC`** (el botón SAVE MELODY). Todo en `/Game/SoulCharger/Core/Attracting/`.
 > Colocados en **`MapsV2/RoomsV2/L_Attracting_SC`**: `Sequencer_Attracting` (5720,0,60) · 8 `SeqSlot_0..7` (X=5720, Y=−105..+105 cada 30, Z=85, `StepIndex` 0-7 izquierda→derecha) · `SaveMelody_Attracting` (5720,0,62, pitch 90) · `TP_orb_intro_attracting` (5745,0,115, en el panel) · **20 `BP_Anchor` `TP_orb_attracting_01..20` DETRÁS del widget** (x 5850-6250, y ±180, z 105-190 — una por sonido del módulo).
 > **Estado: 🟢 flujo intro → pad alineado → esferas verificado en PIE por log y medición; beam en DOS manos verificado con manos posadas; 🔴 falta visor (todo el tacto).**
@@ -138,3 +142,269 @@ Una función nueva, sin tocar nada de lo que ya andaba. Recorre `Slots`, y por c
 - ⚠ Al escribirlo: las variables de este BP están **en categorías**, así que el getter del array de
   slots es `Variables|Z-Estado|GetSlots`, **no** `Variables|Default|GetSlots` (el `Default` falla con
   "does not exist"). Y hay colisión de nombres con el `BP_SeqSlot` viejo: usar `Class|BPSeqSlotSC|…`.
+
+---
+
+## 🔊 2026-09-24 — el clip suena al AGARRAR, ya no al hacer hover
+Pedido de Beltran: *"cada vez que hacemos hover en una esfera, suena el sonido de esa esfera. Eliminemos el
+sonido cuando hace hover. Solo que suene una vez cada vez que agarramos una esfera."*
+
+- **`UpdateHover(DT)`** quedo reducida a lo visual: `RefreshHover()` + el `FInterpTo` de `HoverT`. Se le saco
+  todo el bloque del preview.
+- **`GrabStart(Right)`** arranca ahora con `SetVolumeMultiplier(Voice, 0.5)` + `Play(Voice)`, **antes** de
+  `SetGrabbed(true)`. Suena en cada agarre, tambien al re-agarrar una esfera ya anclada.
+- El beat del secuenciador no cambia: `PulseOnBeat` pone `SetVolumeMultiplier(Voice, 1.0)` antes de sonar
+  cuando la esfera esta `Placed`, asi que el 0,5 del agarre **no se queda pegado**.
+
+⚠ **Quedaron huerfanos y NO se borraron** (la regla del proyecto es preguntar antes de sacar): la funcion
+**`PlayPreview`**, las variables **`HoverAge`** y **`PreviewDone`**, y la perilla **`PreviewDelay`**
+(`0-Config`). Son justo lo que habria que reconectar para devolver el preview al hover, asi que sirven de
+documentacion de como estaba. Si el cambio se da por definitivo, se sacan las cuatro cosas juntas.
+
+🚩 **La trampa del overload en `SetVolumeMultiplier`** (ya estaba anotada para los Fades y volvio a
+morder): `find_node_types` devuelve **`Audio|Components|Audio|SetVolumeMultiplier` DOS veces**, y
+`write_graph_dsl` elige la que no va — falla con *"Could not connect pin Voice to self"*. ✅ Se resuelve con
+**cirugia de nodos pasandole `declaring_class`** (`/Script/Engine.AudioComponent`) a `create_node`.
+
+---
+
+## ✨ 2026-09-24 — `NS_OrbAttract_SC`: las particulas que van del orbe a la mano
+Pedido con dibujo: *"cuando tengamos agarrada una esfera, que aparezcan sprites muy pequenitos que se vienen
+hacia nuestra mano — el attracting. Si suelto, se desvanecen hasta desaparecer. Del color de la esfera."*
+
+**No se construyo de cero: es un DUPLICADO de `NS_BreathParticles`**, que ya era lo que hacia falta — un
+emisor CPU de sprites con el spawn rate expuesto a Blueprint (`User.SpawnRate`). De attracting no habia nada,
+pero el esqueleto si. Cambios sobre el duplicado:
+- `GravityForce` **deshabilitado**.
+- **`PointAttractionForce` (la version V2)** agregado al `ParticleUpdateScript`, antes de `SolveForces`.
+  🔴 **La V2 y no la vieja a proposito:** el `AttractorPosition` de la legacy es **`Vector3f`**, y la
+  estacion esta a **362.000 cm del origen** — las posiciones de mundo alli van en `NiagaraPosition` (LWC).
+  La V2 expone `Attractor Position` como `NiagaraPosition`, que calza con el user param sin conversiones.
+- Ajustes: atraccion 1500, radio 400, **Kill Within Radius** con radio 3 (mueren al llegar a la mano),
+  vida 0,7-1,3 s, sprite 1,2-3 cm, velocidad inicial 30 (un soplido leve para que se abran alrededor del orbe).
+
+**User params y quien los consume** (verificado con `GetModuleInputValues`, no supuesto):
+| Param | Tipo | Lo consume |
+|---|---|---|
+| `User.SpawnRate` | Float | modulo `SpawnRate` (heredado del original) |
+| `User.Target` | **NiagaraPosition** | `PointAttractionForce → Attractor Position` |
+| `User.OrbColor` | LinearColor | `InitializeParticle → Color` (Color Mode ya estaba en *Direct Set*) |
+
+**Lado Blueprint** (`BP_SoundOrb_SC`), componente `Attract` (`bAutoActivate` false):
+- **`GrabStart`** → `Activate(Attract)` + `SetNiagaraVariable(LinearColor)("OrbColor", OrbColor)`.
+- **`UpdateAttract()`** en el Tick → `SpawnRate = Grabbed ? AttractRate : 0` y, si esta agarrada,
+  `Target` = la mano (`BeamStart` o `BeamStartL` segun `GrabbedRight`).
+- **El desvanecido sale gratis**: al soltar, el rate va a 0 y las particulas vivas terminan su vida y
+  desaparecen solas. No hace falta codigo de fade.
+- `AttractRate` (120) lo copia `Setup` del director, como las perillas de giro.
+
+🔴 **`SetNiagaraVariable` va SIN el prefijo `User.`** — con prefijo busca `User.User.X` y es un no-op
+silencioso. Por eso los literales son `"SpawnRate"`, `"Target"`, `"OrbColor"`.
+
+⚠ **`bLocalSpace` del emisor es `false`** (heredado) y eso es lo que queremos: las particulas nacen en el
+orbe y quedan en el mundo, asi que la atraccion las arrastra hacia la mano en vez de viajar pegadas al orbe.
+
+### 1a pasada de ajuste (misma jornada)
+*"muchisimo mas pequenas, muchisimo · mas lenta la velocidad · se deben ver por delante de la esfera · y con
+transparencia los sprites"*.
+
+| | antes | ahora |
+|---|---|---|
+| sprite | 1,2 - 3 cm | **0,15 - 0,4 cm** |
+| atraccion | 1500 | **220** |
+| velocidad inicial | 30 | **10** |
+| vida | 0,7 - 1,3 s | **1,6 - 2,6 s** (mas lentas, mas tiempo para llegar) |
+
+🔴 **Por delante de la esfera = `TranslucencySortPriority` del COMPONENTE, no del material.** Es el mismo
+mecanismo del punto del puntero (gotcha 368): entre translucidos no hay test de profundidad, manda la
+prioridad. El componente `Attract` va en **40**, encima de las esferas (20) y debajo del puntero (100).
+
+💡 **La transparencia sin tocar la curva de vida.** El alpha final del sprite es
+`Particles.Initial.Color.a × la curva del modulo ScaleColor`. Como `Initial.Color` viene linkeado a
+`User.OrbColor`, alcanza con **empujar el color con el alpha ya bajado** desde Blueprint
+(`Math|Color|NewOpacity`, un solo nodo) — queda la transparencia global Y se conserva el desvanecido por
+vida que ya traia el sistema. Perilla: **`AttractAlpha`** (0,35).
+
+⚠ Tambien se apago **`bCastShadows`** del sprite renderer, que venia en true: particulas que proyectan
+sombra en un renderer movil fill-rate bound es gasto puro.
+
+### 2a pasada: **el `Drag` era la causa comun de dos quejas**
+*"si movemos la mano, el target debe seguir siendo la mano; al mover la mano quedan fuera"* + *"la velocidad
+mas lenta"*.
+
+🔴 **`Drag` estaba en 0,25 — casi nada — y eso explica LAS DOS cosas.** Con friccion baja la particula
+acumula inercia: se pasa de largo del atractor y orbita, asi que al mover la mano la masa de particulas
+**sale disparada fuera** en vez de reencauzarse. Y como el modelo es `v_terminal ≈ Fuerza / Drag`, con 0,25 la
+velocidad terminal eran ~440 cm/s: rapidisimas.
+✅ **`Drag` a 2,5** → terminal ~44 cm/s con la fuerza en 110. Lentas **y** obedientes: sin inercia acumulada,
+la particula sigue la direccion de la fuerza, o sea la mano, cuadro a cuadro.
+💡 **La leccion:** *"va muy rapido"* y *"no sigue al objetivo"* suenan a dos problemas y en un sistema
+de fuerzas suelen ser **el mismo**: falta de amortiguacion. Bajar la fuerza sola no arregla el seguimiento,
+solo hace que tarde mas en pasarse de largo.
+
+⚠ Con vida corta + poca fuerza las particulas **mueren antes de llegar**. Por eso la vida subio a
+**1,8-3,0 s**. Si vuelven a quedarse a mitad de camino, la perilla correcta es **subir la fuerza**, no la vida.
+
+| | antes | ahora |
+|---|---|---|
+| Drag | 0,25 | **2,5** |
+| atraccion | 220 | **110** |
+| velocidad inicial | 10 | **6** |
+| sprite | 0,15-0,4 cm | **0,35-0,8 cm** |
+| vida | 1,6-2,6 s | **1,8-3,0 s** |
+
+### 📈 La curva 0-1-0 en escala y opacidad
+- **Opacidad**: el `Scale Alpha` de `ScaleColor` dejo de ser una curva y pasa a la entrada dinamica
+  **`RampInOut`**, que Niagara trae hecha justamente para esto (sube suave, se sostiene, baja suave).
+- **Escala**: se agrego el modulo **`ScaleSpriteSize`**, que ya viene en modo *Uniform Curve* indexado por
+  `Particles.NormalizedAge`. Su curva **se escribe como JSON por MCP** — no hace falta abrir el editor:
+  tres claves `(0,0) (0.5,1) (1,0)` con `RCIM_Cubic` + `RCTM_Auto` para que sea suave.
+  💡 **Ese es el truco reutilizable:** un input de tipo `NiagaraDataInterfaceCurve` se lee y se escribe
+  entero como `_DataInterface` con su `propertyValues`, asi que **cualquier curva de Niagara es editable por
+  MCP** sin tocar la UI.
+
+📍 Tambien se movio `UpdateAttract` al **final** del Tick (antes era el primero) y ahora escribe
+`Target` **siempre**, no solo cuando esta agarrada: el dato que usa es el mas fresco del cuadro.
+
+### 3a pasada: LOCAL SPACE + el cono termina ANTES de la mano
+Dos correcciones de Beltran, y la segunda fue suya y mejor que mi plan:
+
+**1. 🔴 Error de runtime:** *"Attempted to access Attract… not valid (pending kill or garbage)"*. La
+esfera se **destruye** al terminar (`Vanish`), y el Tick alcanza a correr un cuadro mas con el componente ya
+muerto. ✅ Todo el cuerpo de `UpdateAttract` vive ahora dentro de un `IsValid(Attract)`.
+
+**2. 💡 `bLocalSpace = true` — idea de Beltran.** Yo venia persiguiendo el problema por el lado
+equivocado: recalcular un punto de destino en MUNDO cada cuadro para que el cono no se despegara al mover la
+mano. Con el emisor en **espacio local** el problema desaparece de raiz: se rota el **componente** para que
+su eje +X apunte a la mano, y el cono entero queda rigido a ese eje. Mover la mano rota el marco de
+simulacion completo — no hay nada que perseguir.
+🚩 **La forma general:** cuando un efecto tiene que **mantenerse alineado** a algo que se mueve, no se
+persigue con posiciones de mundo por tick: se pone el emisor en local y se **orienta el componente**.
+
+**3. El cono NO llega a la mano.** Termina donde muere la linea del beam. Como el emisor es local, el
+atractor es un punto **local** sobre +X: `(|mano - orbe| - AttractStop, 0, 0)`. Con `AttractStop` = 50 cm y
+la esfera a `GrabHoldDist` 80, el cono corre de 80 a 50 cm de la mano — y ahi mueren (Kill Radius 3).
+Perilla nueva: **`AttractStop`** (50).
+
+⚠ **El precio del local space**, que hay que saber: las particulas **se mueven con la esfera**. Si la
+esfera pega un salto (el imantado a un slot), el cono salta con ella en vez de quedar atras. Es el
+intercambio que Beltran eligio a cambio de que el cono nunca se desalinee.
+
+### 4a pasada: los DOS "chorros" eran el local space + la esfera viajando
+Reporte: *"al agarrar sale un chorro desde mi mano hacia la esfera, luego se forma el cono, luego la suelto y
+sale otro chorro"*.
+
+🔴 **Diagnostico: el local space suelda la nube de particulas a la esfera, y la esfera VIAJA.** Al
+agarrarla vuela desde su sitio en la constelacion hasta la mano (`StepMove` con `GrabSpeed` 3, casi un
+segundo cruzando la sala); al soltarla vuelve a casa. En espacio local el cono entero se arrastra rigido en
+esos dos viajes — y eso, visto desde adentro, es exactamente un chorro que sale y otro que vuelve.
+
+✅ **Vuelta a `bLocalSpace = false`** + **compuerta de emision**: solo se emite si
+`Grabbed AND dist(esfera, mano) < AttractMax` (130 cm). Asi:
+- **mientras la esfera vuela hacia la mano**: no hay particulas. El primer chorro desaparece.
+- **una vez cerca**: el cono se forma y se sostiene.
+- **al soltar**: el rate va a 0 al instante y las particulas vivas **se quedan donde estan** y se apagan.
+  El segundo chorro desaparece, porque en espacio de mundo nadie las arrastra.
+
+El cono sigue alineado sin local space porque el **destino se recalcula cada cuadro sobre la linea
+esfera→mano**: `Target = mano + normalize(esfera - mano) * AttractStop`. Y siguen la direccion de la fuerza
+sin inercia gracias al `Drag` 2,5 de la pasada anterior.
+
+🚩 **La leccion, que me costo dos rondas:** el local space resuelve la ALINEACION pero regala el
+DESACOPLE. Sirve cuando el emisor esta quieto o se mueve poco; con un emisor que hace viajes largos, todo lo
+emitido viaja con el. **Antes de elegir el espacio de simulacion hay que preguntarse cuanto se mueve el
+emisor, no solo como debe verse el efecto.**
+
+Perilla nueva: **`AttractMax`** (130) — la distancia esfera-mano por debajo de la cual se emite.
+
+### 5a pasada: LOCAL SPACE **+ compuerta** — las dos piezas juntas, no una o la otra
+Beltran dibujo la diferencia: en espacio de mundo, al mover la mano *"deja de existir el cono y las
+particulas deambulan por el espacio"*; lo que quiere es el cono **rigido**, que se reorienta entero.
+
+🔴 **Mi error fue tratarlo como una disyuntiva.** Probe local space (cono rigido ✅, pero dos chorros al
+viajar la esfera ❌), despues mundo (sin chorros ✅, pero el cono se deshace ❌), y las presente como opciones
+excluyentes. **No lo eran:** los chorros no venian del local space en si, sino de que la esfera **viaja**
+largo al agarrarla y al soltarla, y en local space se arrastra lo emitido. La **compuerta de distancia**
+(`AttractMax`) ya apaga la emision durante esos viajes — o sea que ya no hay casi nada que arrastrar.
+
+✅ **Configuracion final: `bLocalSpace = true` Y la compuerta.**
+- `SetWorldRotation(Attract, MakeRotFromX(mano - esfera))` cada cuadro → el eje +X local apunta a la mano y
+  **el cono entero gira con el**, rigido, pase lo que pase con la mano.
+- El atractor vuelve a ser un punto **local** sobre +X: `(|mano-esfera| - AttractStop, 0, 0)`.
+- La compuerta mantiene el rate en 0 mientras la esfera viaja, asi que los dos chorros no reaparecen.
+
+⚠ Queda un residuo conocido: al soltar, las **pocas** particulas vivas se van con la esfera de vuelta a
+casa. Duran poco (convergen al atractor y mueren ahi), asi que es un borron breve en vez del chorro de antes.
+Si molesta, la palanca es acortar la vida, no cambiar de espacio.
+
+🚩 **La leccion, que me costo dos pasadas enteras:** cuando dos soluciones parecen excluyentes, vale la
+pena preguntarse **si el defecto de una viene de la otra dimension del problema**. Aca el defecto del local
+space dependia de *cuanto viaja el emisor*, y eso se podia controlar por separado. Presente un trade-off
+donde habia una combinacion.
+
+### 6a pasada: velocidad CONSTANTE, y la compuerta de distancia se elimina
+Reporte de Beltran: *"el attract max hace que vayan mas rapido. Yo quiero que vayan a velocidad constante
+suave. Pero que aparezcan apenas tomo la esfera"*.
+
+**Tenia razon, y el acoplamiento era real aunque indirecto.** `AttractMax` no tocaba ninguna velocidad: era
+la compuerta de emision. Pero al subirla, las particulas empiezan a nacer con la esfera **mas lejos**, el
+atractor queda a mas distancia, y `PointAttractionForce` tiene mas pista para acelerar. Encima el modulo
+tenia **`Use Falloff` activo** (exponente 0,5): la fuerza depende de la distancia al blanco. Y
+`InitializeParticle` daba **masa aleatoria 0,75-1,25**, asi que `SolveForcesAndVelocity` repartia
+aceleraciones distintas por particula. Tres fuentes de variacion de velocidad, ninguna controlable desde el
+panel.
+
+✅ **Se cambio el motor del movimiento: de FUERZA a VELOCIDAD FIJA AL NACER.**
+- `AddVelocity` (Particle Spawn) pasa de "desde el emisor a 6 cm/s" a **`Velocity Origin` = `User.Target`**
+  con **`Velocity Speed` = `User.Pull`**. El modo "From Point" calcula `normalize(pos - punto) * speed`, asi
+  que con **speed NEGATIVA** la particula sale **hacia** el punto, a rapidez exacta y constante.
+- `Drag` **desactivado y en 0** — cualquier drag hace decaer la velocidad, que es justo lo contrario.
+- `PointAttractionForce` queda con **`Attraction Strength` = 0**: ya no empuja, solo sobrevive como
+  **matador** (`Kill Within Radius`, radio 3 → 5) para limpiar lo que llega al blanco.
+- La masa aleatoria deja de importar: no hay fuerzas que dividir por ella.
+
+Como la velocidad ya no depende de nada, **el recorrido y la vida se pueden atar**: el BP empuja
+**`User.Life` = recorrido / velocidad**, y `Lifetime Min` y `Lifetime Max` quedan los dos linkeados a ese
+parametro. Resultado: la particula muere **siempre a la misma altura del cono**, se mueva la mano o no.
+La punta no queda dura porque nacen repartidas en una esfera de radio 9, asi que mueren repartidas en ±9 cm.
+
+🔴 **`AttractMax` se ELIMINO de los dos Blueprints.** La compuerta ahora es solo `Grabbed` — *"que aparezcan
+apenas tomo la esfera"*. Los dos chorros de la 4a/5a pasada **no vuelven**: ya no hay que apagar la emision
+mientras la esfera viaja, porque las particulas nacen apuntadas al blanco y con vida = recorrido/velocidad,
+de modo que se consumen solas dentro del cono en vez de acumularse y ser arrastradas.
+
+🚩 **La leccion:** *"la perilla X cambia Y"* puede ser cierto por un camino que no esta en el nombre de la
+perilla. `AttractMax` era una **distancia de compuerta** y terminaba fijando una **velocidad de llegada**,
+porque quien mandaba era una fuerza con falloff. Cuando una magnitud tiene que ser estable, no se pide a un
+sistema de fuerzas que la mantenga: **se la escribe directo** (aca, velocidad al nacer) y se deja la fuerza
+para lo que no es medible a ojo.
+
+### 🎛️ Perillas del efecto, y donde vive cada una
+**En el director (`GAL_12_OrbDirector`, `0-Config`)** — viajan por Blueprint, se copian en el `Setup` de cada
+esfera, asi que **hay que reentrar a PIE** para que tomen: `AttractRate` (cuantas nacen por segundo) ·
+`AttractAlpha` (opacidad del color) · `AttractStop` (cuantos cm antes de la mano termina el cono) ·
+**`AttractSpeed`** (cm/s, constante — 25) · **`AttractSizeMin`/`AttractSizeMax`**.
+🔴 `AttractMax` **ya no existe**: la emision arranca al agarrar, sin condicion de distancia.
+
+**En el asset `NS_OrbAttract_SC`** — se ven en vivo en el preview del editor de Niagara, sin dar play:
+`Shape Location` (radio 9 = boca del cono), `Add Velocity` (ya linkeado, no tocar), `Point Attraction Force`
+(solo `Kill Radius`; su `Attraction Strength` **debe quedar en 0**), y las dos curvas. `Drag` esta apagado a
+proposito. La **vida ya no se edita aca**: la calcula el BP (`User.Life`).
+
+🔧 **Como se mapea una perilla de BP a un input de MODULO de Niagara** (no es un user param de fabrica):
+1. `AddUserVariables` crea `User.X` del tipo del input.
+2. `SetStackInputData` sobre el input del modulo con `_StackInputData_Linked` → `User.X`.
+3. El BP empuja con `SetNiagaraVariable(...)` y **el nombre SIN el prefijo `User.`**.
+Asi se hizo con `Uniform Sprite Size Min/Max` → `User.SizeMin`/`User.SizeMax`, y despues con
+`Velocity Origin`/`Velocity Speed` → `User.Target`/`User.Pull` y `Lifetime Min`/`Max` → `User.Life`.
+✅ Verificado leyendo el modulo: los dos inputs figuran como `Linked` a sus user params.
+
+⚠ El emisor sigue llamandose **`BreathEmitter`** (herencia del duplicado) — nombre enganoso, renombrarlo
+cuando se cierre el efecto.
+⚠ Beltran **edita el asset a mano en paralelo** (la vida ya no es la que dejo este agente): no pisar
+valores del asset sin leerlos antes. Es [[no-pisar-los-valores-del-editor]] aplicado a Niagara.
+
+### ⬜ Sin ver
+Compila limpio (`GetSystemCompileState`: sin errores ni warnings) y los tres params estan **linkeados**, que
+es la verificacion que exige el gotcha de Niagara. Pero **nadie lo vio correr**: los numeros son una primera
+apuesta y seguro haya que moverlos mirando.

@@ -205,3 +205,106 @@ cada esfera es un raymarch de una sola gota, con la misma SDF, la misma normal y
   no puede pasar de 50 o el lobulo se sale de la malla proxy y se corta.
 - 🔴 **`MaxT` = 40.000**, no 140 — ver gotcha 367: el rayo arranca en la camara y `MaxT` esta en
   unidades locales, asi que en una malla a escala 0,4 un `MaxT` de 140 son 57 cm de alcance real.
+
+## 🔴 2026-09-24 — el "breath" sincronizado de las esferas era `SwellAmount`
+Reporte: *"hay como un movimiento de breath, que las agranda y las achica, y esta sucediendo a la misma vez
+en todas, no de forma aleatoria"*.
+
+**Causa, medida antes de tocar:** `MI_OrbBlob_SC` tenia **`SwellAmount` 0,3** y **`SwellSpeed` 0,12**
+heredados del master. La onda de union del shader es
+`sw1 = sin(2*PI*(pn*SwellWv - T*SwellSpd))`, y **`pn = fj/lastF`**. En la cadena `pn` reparte fase a lo largo
+de la fila, pero en una esfera suelta **`BlobCount = 1` → `lastF = 1` → `pn = 0`**: la onda queda como
+**funcion pura del tiempo**, identica en las 20 esferas. Multiplica el radio via `fac`, o sea las agranda y
+achica a todas al unisono cada ~8 s.
+
+✅ Se le sumo la semilla por esfera a la fase (`+ ps*2.7` / `+ ps*4.1`) y un jitter de ritmo
+`sJit = 1 + solo*(frac(ps*0.137+0.31)-0.5)*0.5`. De paso se corrigio el **mismo olvido en `wm`**, el termino
+viajero del wobble, que tampoco llevaba `ps` — era el residuo del arreglo del 2026-09-23, donde la parte
+estatica `ws` si lo recibio y la movil no.
+
+🔒 **La cadena no se toca, y esta verificado, no supuesto:** todo lo nuevo esta multiplicado por `ps` o
+por `solo`, que valen 0 cuando `WobbleAFS.x == 0`. El MID del `Volume` del chain **no tiene override de
+`WobbleAFS`**, asi que usa el default del master `(0, 4, 0.35)` → `solo = 0` → `ps = 0` y `sJit = 1`, o sea
+las expresiones quedan identicas a las de antes.
+
+🚩 **La forma general, que ya aparecio dos veces en esta estacion:** un parametro pensado para
+**repartir fase a lo largo de una fila** (`pn`, indice normalizado) **degenera a una constante cuando la fila
+tiene un solo elemento**, y lo que era variedad se vuelve sincronia perfecta. Al reusar un shader de
+conjunto para un objeto solitario, revisar TODO lo que dependa del indice.
+
+## ⛔ 2026-09-25 — LA CIRUGÍA DE ABAJO SE REVIRTIÓ ENTERA. El material está como estaba.
+
+**Qué pasó:** la fase **A1 (rayo desde el píxel del proxy) HACE DESAPARECER el metaball de la cadena.**
+Lo detectó Beltrán mirando su viewport (*"ya no se ve el metaball del sequencer"*), no mi verificación.
+Probado con recortes de la misma cámara en tres estados: el tubo crema está **antes**, **no está** con
+la cirugía, y **vuelve** al restaurar (`perf_shots/COMPARA_metaball_3estados.png`).
+
+**Estado actual (guardado en disco):** `code` restaurado byte a byte desde el backup ·
+`RayOrigin` ← `MaterialExpressionTransformPosition_2` (cámara, el original) · master `MaxT` 900 ·
+`MI_OrbBlob_SC.MaxT` 40000 · los dos nodos que agregué (`WorldPosition_0`, `TransformPosition_0`)
+**borrados** · 33 inputs en el Custom, como al principio · canario 152→152.
+
+🔬 **Mecanismo NO identificado** — es lo que falta antes de volver a intentarlo. Los orbes seguían
+viéndose con A1 puesto; solo murió la cadena. Diferencias candidatas: proxy caja grande
+(256×340×256) con gotas chicas (R≈7,3) y dispersas adentro, contra el proxy esfera del orbe donde la
+gota lo llena casi entero. **No volver a tocar `RayOrigin` sin una hipótesis medida.**
+
+### ✅ 2026-09-25 (misma jornada) — A2+A3 RE-APLICADAS solas, verificadas y guardadas
+Sin tocar `RayOrigin` ni `MaxT`. Verificado por recorte ×2 (cadena: el tubo crema está en las dos;
+orbe: mismo bulto en el preview del MI), PIE `esferas=20` + `pad ON` + cero `Accessed None`, y log
+de shaders limpio. Capturas en `VR_Test/Saved/perf_shots/VERIF_A2A3_*.png`.
+⬜ **Sin medir en device** — el A/B con `quest_ab.ps1` es el que dice cuánto se ganó. No estimar.
+
+🟢 **A2 y A3 son inocentes, y está probado por lectura, no por opinión:** el master tiene
+`WobbleAFS` default **(0, 4, 0.35)** → `WobA = 0` para la cadena → `mW = 0` → la rama else de A3 es
+idéntica al original (que ya usaba `stepK = 1.0` con `WobA=0`); y `ROrb` default **0** → `NA = N = 8`
+→ `ND = min(8,8) = 8`, el mismo bucle de decoración. Se revirtieron igual, por venir en el mismo
+`code`. **Son las dos que valen para los orbes** (20 en pantalla, los únicos con wobble) y se pueden
+re-aplicar solas, con la verificación por recorte de §378.
+
+<details><summary>Lo que se había hecho (histórico, NO está aplicado)</summary>
+
+## 🚀 2026-09-24 (noche) — CIRUGÍA DE PERFORMANCE del march (fases A1+A2+A3 del plan)
+
+Contexto y enfoques: [`docs/PLAN-PERF-ATTRACTING.md`](../../../../docs/PLAN-PERF-ATTRACTING.md)
+(medición base: [`docs/PERF-ATTRACTING-2026-09-24.md`](../../../../docs/PERF-ATTRACTING-2026-09-24.md)).
+🔒 **Backup EXACTO del HLSL anterior:** `scripts/hlsl_backups/M_SlotChain_Custom0_2026-09-24_pre-cirugia.hlsl`
+(restaurar = `set_properties` de `code` sobre `MaterialExpressionCustom_0` + `recompile`).
+
+**Los 3 cambios, mismo look por construcción:**
+1. **A1 — el rayo arranca en el PÍXEL del proxy**, no en la cámara: `RayOrigin` ← `WorldPosition` →
+   `TransformPosition(World→Local)` (nuevo `TransformPosition_0`; la cadena vieja
+   `CameraPositionWS_2→TransformPosition_2` quedó huérfana e inofensiva). Con eso **`MaxT` pasa a
+   significar "cuánto recorre el rayo DENTRO del proxy"**: `MI_OrbBlob_SC` 40000→**120** (cuerda máx.
+   de `SM_AlmaSphere` r50 = 100), default del master 900→**600** (diagonal del box de la cadena ≈ 500).
+   💀 La gotcha §367 (MaxT vs escala del actor) muere de raíz: desde la superficie, en local, las
+   distancias son ≤ el diámetro del proxy a cualquier escala.
+2. **A2 — decoración `j < min(NA,8)`** en vez de `j < 8`: bit-idéntico para todo lo que se marcha
+   (la cadena decora sus 8; la gota 9 sigue sin decorarse), y las esferas dejan de pagar 8 gotas de
+   senos por una que usan.
+3. **A3 — wobble por BANDAS:** el march evalúa primero la SDF **lisa** (sin senos); solo si
+   `res < mW + 2·eps` (con `mW = rmax·WobA·1.31`, cota exacta: `smin(a−m,b−m) = smin(a,b)−m` en este
+   smin polinómico) evalúa la SDF completa con los 5 senos y el paso 0.7. Fuera de banda avanza
+   `res − mW` con paso ENTERO (mejor que el 0.7 global de antes). Con `WobA=0` (la cadena) el camino
+   es EXACTAMENTE el original. La isosuperficie la decide siempre la SDF completa → mismo borde.
+
+**Verificación (sin visor — Beltrán fuera de oficina):** capturas con cámaras idénticas antes/después
+de cada fase (`VR_Test/Saved/perf_shots/`): idénticas salvo la pose animada. Preview del MI intacto
+(⚠ una captura salió NEGRA justo tras el recompile = shader asíncrono en vuelo, gotcha §377).
+PIE: `SEQ boot → esferas=20 → pad ON alineado`, **cero `Accessed None`**. Guardado con rutas
+explícitas (`M_SlotChain_SC` + `MI_OrbBlob_SC`); **el nivel NO se tocó ni se guardó**.
+
+⬜ **PENDIENTE:** medición A/B en device (`quest_ab.ps1`) cuando Beltrán vuelva a la oficina — el
+número decide si hacen falta **A4** (poda por gota en la cadena) y **A5** (re-tunear `Steps` con una
+perilla de debug) y el FFR 3 del plan. 🔴 Sin commitear (como todo el día del 24).
+
+⚠ **Incógnita anotada para el enfoque C (malla):** dónde vive el lóbulo de la esfera en runtime —
+si `ApplyLook` empuja `COrb`/`ROrb` (P[8], que con N=1 y NA=2 el march NO alcanza) o si va por `C1`.
+La cirugía es neutral ante ambas lecturas (min(NA,8) decora exactamente lo que se marcha), pero al
+retomar C hay que resolverla leyendo `ApplyLook` del orbe/director.
+
+⚠ **Y la verificación de arriba ("capturas idénticas antes/después") era FALSA** — ver §378 de
+gotchas: se comparó el cuadro entero y la cadena es un lavado pálido de bajo contraste, así que su
+desaparición total pasó inadvertida.
+
+</details>

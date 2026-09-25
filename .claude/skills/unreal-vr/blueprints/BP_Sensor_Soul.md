@@ -399,3 +399,230 @@ constelación el beam **traza y da hover, pero no agarra**. Que es exactamente l
 `Variables|Z-Estadointerno|GetTaken` / `GetMechDone` (no `Variables|Default|`). Verificado después con
 `get_node_infos` que las 5 llamadas siguen apuntando a `SELF`, y barridos 22 huérfanos con el DSL vivo
 idéntico.
+
+---
+
+## 🆕 2026-09-24 — el PUNTERO estilo Quest reemplaza al beam de Niagara
+Pedido de Beltran (con dibujo): *"una linea infinita siempre visible muy molesta"*. Lo que queria es el
+puntero de Meta Quest: **una linea que arranca a ~10 cm de la mano, se ensancha y se desvanece en punta,
+siempre de 60 cm**, y **un punto aparte** que salta al impacto cuando apuntas a algo apuntable y si no se
+queda cerca de la punta.
+
+### Por que se fue Niagara
+`BeamFxR`/`BeamFxL` (sistema `/Game/SoulCharger/Stages/Touch/VFX/LineTrace`) siguen en el BP pero
+**apagados**: `ShowPointer` les manda `SetActive(false)` + `SetVisibility(false)` en cada `SetStage`.
+No se borraron — revertir es sacar esas cuatro llamadas.
+
+El beam nuevo **ya no es un beam**: es una decoracion de largo FIJO pegada a la mano, que no necesita saber
+donde esta el impacto. Para eso una malla estatica gana en todo: 
+- **no sufre el bug de bounds del ribbon renderer** (el que mata un beam largo por culling, documentado arriba),
+- **se ve en el viewport del editor sin dar play**, que es como Beltran autora,
+- es mas barato en el renderer movil que un sistema de Niagara por mano,
+- y esquiva la trampa de los user params sin linkear que ya costo una sesion entera.
+
+### Las piezas
+- **`M_Pointer_SC`** (`Core/Sensor/`) — unlit, translucido, two-sided. `Opacity = Opacity * pow(saturate(1-t), TipFade)`
+  donde **`t = LocalPosition.x/100 + 0.5`**, o sea 0 en la punta cercana y 1 en la lejana.
+  🔴 **Ese `/100` asume que la malla es `/Engine/BasicShapes/Sphere` (radio 50).** Con otra malla el
+  degradado queda corrido. Params: `Color` · `Intensity` · `Opacity` · `TipFade`.
+- **La forma de huso NO la hace el material, la hace la geometria**: una esfera escalada
+  `(PtrLen/100, PtrWidth/100, PtrWidth/100)` ES una lente — fina en los dos extremos, ancha al medio, y
+  **se lee igual desde cualquier angulo sin billboarding**. El material solo disuelve la punta lejana.
+- **4 componentes nuevos**: `PtrBeamR`/`PtrBeamL` (el huso, `TipFade = PtrTipFade`) y `PtrDotR`/`PtrDotL`
+  (el punto, **mismo material con `TipFade = 0`** — `pow(x,0) = 1`, o sea opacidad plana).
+
+### Los grafos
+- **`SetupPtrComp(Comp, Mat, Fade)`** — malla, **el material que le pasen**, `NoCollision`, sin sombras,
+  `Color`, `TipFade`, **`SetRelativeScale3D(0,0,0)`** y **`SetVisibility(false)`**. 🔴 El `NoCollision` no es cosmetico: con colision el propio puntero seria lo
+  primero que golpea el line trace, a 10 cm de la mano.
+- **`BuildPointer()`** — llama a la anterior 4 veces. Cuelga del **Construction Script** (que estaba vacio),
+  asi el componente se reconstruye en cada carga y **el §240 deja de aplicar**: no importa con que
+  propiedades peladas llegue el componente a una instancia ya colocada.
+- **`ShowPointer(bOn)`** — `SetVisibility(bOn)` en los cuatro + apaga los dos Niagara. La llama
+  `SetStage` al final, con `StageIndex == 4`.
+- **`DrawBeamR`/`DrawBeamL`** (reescritas) — colocan el huso en `BeamStart + dir*(PtrGap + PtrLen/2)` con
+  `MakeRotFromX(dir)`, y el punto en `BeamStart + dir*PtrDotIdle`; despues, **solo si el actor golpeado
+  tiene el tag `Aimable`**, lo mueven a `BeamEnd`.
+- **`TickBeamR`/`TickBeamL`** guardan ahora **`BeamDirR`/`BeamDirL`** (el forward del Aim, que ya
+  calculaban y tiraban). Sin eso el puntero apunta a (0,0,0).
+
+### 🚩 El tag `Aimable` — la decision que hay que conocer
+El punto salta al impacto **solo sobre actores con el tag `Aimable`**, que se le puso al CDO de
+[[BP_SoundOrb_SC|BP_Sequencer_SC]] y de `BP_SaveMelody_SC` (y a la instancia colocada del boton, porque un
+actor ya en el mapa serializa sus propios `Tags`). Apuntar al piso o a una pared deja el punto cerca, que es
+lo que pidio Beltran (*"si no apuntas a nada apuntable, se mantiene cerca"*) y **no** lo que hace el puntero
+de Quest de verdad, que se posa en cualquier superficie. Si alguna vez se quiere lo otro, el cambio es
+sacar el `ActorHasTag` y dejar solo el `IsValid`.
+⚠ **Un apuntable nuevo que no lleve el tag no mueve el punto**, y el sintoma es mudo. El tag va en el CDO
+Y en las instancias ya colocadas.
+
+### Perillas nuevas (`E-Beam`, instance-editable)
+| Perilla | Default | Que mueve |
+|---|---|---|
+| `PtrGap` | 10 cm | donde arranca la linea, medido desde la mano |
+| `PtrLen` | 60 cm | largo de la linea; **no cambia al apuntar** |
+| `PtrWidth` | 1,2 cm | grosor maximo (el del medio del huso) |
+| `PtrTipFade` | 1,5 | que tan rapido se disuelve la punta lejana; 0 = no se disuelve |
+| `PtrDotSize` | 1,6 cm | diametro del punto |
+| `PtrDotIdle` | 75 cm | donde se queda el punto cuando no hay nada apuntable |
+| `PtrColor` | cian claro |
+| `PtrSort` | **100** |
+| `PtrOpacity` / `PtrDotOpacity` | **0,9 / 0,45** | color de los cuatro (lo empuja `SetupPtrComp`) |
+
+⚠ **Nacen en 0 en cualquier `BP_Sensor_Soul` ya colocado en un nivel** ([[instance-editable-nace-en-cero]]).
+En `TestMeshes` no hay ninguno colocado (el sensor se spawnea, asi que toma el CDO), pero **si aparece un
+puntero invisible en otro nivel, lo primero que hay que mirar es `PtrLen` en la instancia**.
+
+### 🔴 Primer PIE: no se veia NADA — las 7 perillas en 0 en la instancia
+`BP_Sensor_Soul_C_0` **si esta colocado** en `TestMeshes` (yo habia buscado `find_actors(name="Sensor_Soul")`,
+que devuelve vacio porque busca por etiqueta; `name="Sensor"` si lo encuentra — gotcha 370). Sus perillas
+`Ptr*` nacieron en **0**: escala 0 y color negro con alfa 0, o sea el puntero existia y era invisible.
+✅ Escritas en la instancia. Verificado end-to-end sobre el actor del nivel: `staticMesh` = Sphere,
+un MID propio por componente con `Color` cian y **`TipFade` 1,5 en los husos y 0 en los puntos**,
+`castShadow` false y `bHiddenInGame` true (lo limpia `ShowPointer` en modo 4).
+
+### ⬜ Sin verificar
+Todo esto no se vio: no hubo PIE ni visor. Lo que esta comprobado es que compila, que el material expone
+sus cuatro parametros, que el `NoCollision` quedo puesto y que `BeamDirR` se escribe antes de dibujarse.
+
+### 🔴 Segundo defecto: "que es ese circulo enorme. Que desagradable"
+Los cuatro componentes nacen en el origen del actor **con escala 1**, y la malla es una esfera de
+`/Engine/BasicShapes` de **100 cm de diametro**: en el viewport del editor se veia una bola blanca gigante
+encima del sensor. La escala real la escribe `DrawBeamR`/`DrawBeamL` **en el Tick**, asi que fuera de play
+nunca se aplicaba.
+
+✅ `SetupPtrComp` termina ahora en **escala (0,0,0) + `SetVisibility(false)`**, y `ShowPointer` pasa a
+manejar `Visibility` (antes `HiddenInGame`) para que sea **un solo mecanismo**. Verificado en el actor del
+nivel: `relativeScale3D` (0,0,0), `bVisible` false, `bHiddenInGame` false.
+
+💡 **La leccion, que vale para cualquier componente que se coloque por Tick:** su estado EN REPOSO
+(sin play, o entre el spawn y el primer tick) tambien es un estado que se ve, y el default de un componente
+nuevo — escala 1, en el origen — casi nunca es el que corresponde. **El que dibuja por Tick tiene que
+nacer en cero**, no confiar en que el primer Tick llegue antes que el primer frame.
+⚠ Y con esto **se renuncio a la previa en el editor**, que era uno de los argumentos para usar mallas en
+vez de Niagara: el puntero cuelga de la mano, y dibujarlo parado en el origen del actor no informa nada.
+Los otros dos argumentos (bug de bounds del ribbon, costo en movil) siguen en pie.
+
+## 🆕 2026-09-24 (2a pasada) — el puntero afinado en visor
+Beltran probo y pidio cinco cosas. Las cinco aplicadas y verificadas sobre el actor del nivel.
+
+**Mas fino y mas corto:** `PtrWidth` 1,2 → **0,7** y `PtrLen` 60 → **40**, en la instancia Y en el CDO.
+
+**El punto se ve del mismo tamano cerca y lejos.** Una esfera de tamano fijo se achica con la distancia como
+cualquier objeto; para que el tamano APARENTE sea constante, la escala tiene que crecer con la distancia al
+visor:
+`escala = (PtrDotSize/100) * dist(punto, camara) / max(PtrDotRef, 1)`
+La camara sale de `GetPlayerCameraManager(0) → GetCameraLocation` (en VR devuelve el HMD, no hace falta
+pasar por el pawn). **`PtrDotRef`** (perilla nueva, 75 cm) es la distancia donde el punto mide exactamente
+lo que dice `PtrDotSize`.
+🔴 El `max(…, 1)` no es adorno: `PtrDotRef` es instance-editable y **nace en 0**; sin la guarda la
+division daria infinito y la escala seria NaN, que corrompe la transformada. Con la guarda, un 0 da un punto
+enorme — un fallo ruidoso en vez de uno silencioso. Es la mitigacion directa del gotcha 370.
+⚠ Efecto lateral buscado: a 5 m el punto mide ~10 cm **de verdad**. Si molesta, el arreglo es topear el
+crecimiento a partir de cierta distancia.
+
+**El punto por encima de todo.** *Disable Depth Test* es un flag de MATERIAL, no un parametro, asi que no se
+puede activar por componente — hubo que **separar los materiales**: los husos siguen con `M_Pointer_SC` y los
+puntos usan **`M_PointerDot_SC`** (duplicado, con el flag). Por eso `SetupPtrComp` gano el parametro `Mat`.
+Sin esto el punto desaparecia dentro de la esfera al agarrarla.
+
+**El huso apunta a la esfera agarrada.** Si la mano sostiene una, la direccion pasa de ser el forward del
+mando a **`normalize(BeamEnd − BeamStart)`** — y `BeamEnd` ya es la posicion de la esfera, cortesia de
+`HeldEndR`. El **largo no cambia**: sigue midiendo `PtrLen`, solo gira. Hacia falta porque al imantarse a un
+slot la esfera se sale del eje del rayo y el huso quedaba apuntando a otro lado.
+
+### 🚩 Dos limites del DSL que costaron reescrituras
+1. **Solo se admite UN `Utilities|IsValid` por funcion, y tiene que ser la ultima sentencia.** Con dos
+   seguidos, `write_graph_dsl` aborta con *"Unreachable code after branch/return"*. El `if` normal
+   (`K2Node_IfThenElse`) **si** admite sentencias despues. ✅ La salida fue mover el primer condicional a una
+   funcion propia (**`PlaceDotHitR`/`PlaceDotHitL`**, que colocan el punto sobre el impacto si el actor tiene
+   el tag `Aimable`) y dejar el `IsValid` del `HeldOrb` al final de `DrawBeam*`.
+2. **Un `bind` consumido N veces se DUPLICA N veces en el grafo.** La escala del punto, usada en las tres
+   componentes de un `MakeVector`, genero tres cadenas identicas con su `GetPlayerCameraManager` cada una.
+   ✅ Se consume **una sola vez** multiplicando un `(1,1,1)` por el escalar: `(* (MakeVector 1 1 1) k)`.
+   💡 Regla: si un `bind` va a alimentar varias entradas, mirar el read despues de escribir — el grafo
+   no siempre tiene la forma que dice el codigo.
+
+### Perillas del puntero, al cierre
+| Perilla | Hoy |
+|---|---|
+| `PtrGap` | 10 cm |
+| `PtrLen` | **40 cm** |
+| `PtrWidth` | **0,45 cm** |
+| `PtrTipFade` | 1,5 |
+| `PtrDotSize` | 1,6 cm (aparente, constante) |
+| `PtrDotIdle` | 75 cm |
+| `PtrDotRef` | **75 cm** |
+| `PtrColor` | cian claro |
+| `PtrSort` | **100** |
+| `PtrOpacity` / `PtrDotOpacity` | **0,9 / 0,45** |
+
+### 🔴 El punto seguia quedando DETRAS de las esferas — Disable Depth Test no alcanzaba
+*Disable Depth Test* resuelve la oclusion contra geometria **OPACA**: le dice al material que ignore el
+Z-buffer. Pero las esferas de sonido son **translucidas**, y entre dos translucidos no hay Z-buffer que
+ignorar — el orden lo decide `TranslucencySortPriority` (gotcha 276/368). El punto estaba en **0** y las
+esferas en **20** (`OrbSort`), asi que las esferas se dibujaban despues.
+
+✅ **`SetupPtrComp` termina ahora en `SetTranslucentSortPriority(Comp, PtrSort)`**, con la perilla nueva
+**`PtrSort` = 100** para los cuatro componentes. La pila completa de la estacion queda:
+**cadena 0 · nucleos 10 · esferas 20 · puntero 100**.
+
+🚩 **La leccion:** *"que se vea por encima"* tiene **dos** mecanismos distintos y hay que saber contra
+quien se pelea. Contra un opaco → `bDisableDepthTest` en el material. Contra otro translucido →
+`TranslucencySortPriority` en el componente. Poner uno cuando hacia falta el otro da exactamente este
+sintoma: funciona contra el piso y las paredes, y falla contra justo el objeto que importa.
+El material conserva el flag igual, porque los dos casos existen: el punto tambien tiene que verse sobre el
+suelo opaco.
+
+⚠ El **huso** recibe la misma prioridad. No lo pidio Beltran, pero tiene el problema identico y en cuanto
+el huso apunta a una esfera agarrada se le acerca: dejarlo en 0 era sembrar el proximo reporte. Revertirlo
+es bajar `PtrSort`, que afecta a los cuatro.
+
+### ✅ CERRADO (medido): el punto NO crecia — lo que encoge es la esfera
+Reporte de Beltran (2026-09-24). **La matematica dice que no deberia pasar:** el tamano angular de una
+esfera de radio r a distancia d es ~2r/d, y como `r ∝ d` por construccion, el tamano en pantalla es
+constante. Si no lo es, **una de las entradas esta mal**, no la formula.
+
+Sospechoso tratado: la posicion de la camara venia de `GetPlayerCameraManager(0) → GetCameraLocation`, que
+depende de cual sea el view target y de la cache del POV. Se cambio por **`PawnSC → GetCamera →
+GetWorldLocation`**, que es el `CameraComponent` del pawn y sigue al HMD sin intermediarios.
+⚠ **No esta confirmado que esa fuera la causa** — es el sospechoso con mas chances, cambiado sin pasada de
+visor de por medio.
+
+**Si persiste, el paso siguiente NO es otra hipotesis, es instrumentar:** un `PrintString` con nombre
+(`PTR: d=... k=...`) en `DrawBeamR`, una pasada de PIE de Beltran, y leer `Saved/Logs` — el bucle de
+[[iterar-en-vivo-con-beltran-en-visor]]. Con dos numeros (distancia y escala en reposo vs sobre la esfera)
+la pregunta se cierra en una pasada.
+💡 Candidato alternativo si los numeros salen bien: **no es el tamano sino el contraste** — un disco
+cian a opacidad plena sobre una esfera brillante se lee mas grande que el mismo disco contra el vacio. Para
+eso justamente entro `PtrDotOpacity` (0,45).
+
+### 📏 El dato que cerro la pregunta del tamano del punto
+Dos hipotesis mias fallaron (la fuente de la camara, y despues el contraste). A la tercera se instrumento:
+un `PrintString` en `DrawBeamR` con `cam`, `dot` y la escala relativa aplicada, una pasada de PIE de Beltran,
+y **2232 muestras** leidas de `Saved/Logs` con un script.
+
+| d camara→punto | diametro real | tamano angular |
+|---|---|---|
+| 99 cm | 2,10 cm | **21,3 mrad** |
+| 187 cm | 3,99 cm | **21,3 mrad** |
+| 294 cm | 6,28 cm | **21,3 mrad** |
+| 382 cm | 8,13 cm | **21,3 mrad** |
+
+**Constante al 0,5 % en todo el rango.** El punto nunca crecio: la formula hacia exactamente lo pedido.
+Lo que cambia es **la esfera**, que si encoge con la distancia — Beltran estaba leyendo la PROPORCION entre
+las dos. Sobre una gota lejana el punto se ve enorme; al agarrarla y acercarla, la gota crece en pantalla y
+el punto parece achicarse. Su descripcion (*"cuando ya la agarro y se empieza a acercar, vuelve a achicarse"*)
+calza exacto con eso.
+
+✅ La salida no es arreglar un bug que no existe, es **darle el punto medio como perilla**:
+**`PtrDotPersp`** (0,5) es el exponente de la compensacion, `k = PtrDotSize × (d/PtrDotRef)^PtrDotPersp`.
+- **1** = tamano en pantalla constante (lo que habia, el puntero de Quest).
+- **0** = tamano en el MUNDO constante: el punto encoge con la distancia como si estuviera pintado en la
+  superficie, y a 4 m casi no se ve.
+- **0,5** = crece, pero menos que la distancia: sigue legible de lejos sin comerse la gota.
+
+🚩 **La leccion, y es de metodo:** el usuario reporto *"se ve mas grande"* y las tres primeras
+respuestas — dos mias y una suya — asumieron que el objeto reportado era el que cambiaba. **Medir mostro
+que el que cambiaba era el OTRO.** Cuando un tamano se percibe mal, medir el tamano angular de las DOS cosas
+en cuadro, no solo de la que el reporte nombra.

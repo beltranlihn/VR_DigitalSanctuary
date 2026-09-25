@@ -80,7 +80,36 @@ ConstructionScript: if bShowPreview → RebuildPreview
 
 ---
 
-## Perillas (`0-Config`, todas instance-editable)
+## 🗂️ Grupos del panel (2026-09-24)
+Beltran: *"hay demasiadas y a veces me pierdo para que son"*. Las 36 variables salieron de la bolsa unica
+`0-Config` y se repartieron en grupos con prefijo numerico, que es lo que ordena el panel de detalles:
+
+| Grupo | Que hay adentro |
+|---|---|
+| `0-General` | `Seed` — la semilla maestra del azar |
+| `1-Color` | `Color1..4` (la paleta) + `ShadeColor` (el color bajo, el `ChainColorLow`) |
+| `2-Esfera` | `ScaleMin`/`ScaleMax` y `OrbSort` (orden de dibujo entre translucidos) |
+| `3-Forma` | la deformacion de la gota: `WobbleAmp`/`WobbleFreq`/`WobbleSpeed`, `FloatSpeedMin`/`Max`, `SeedSpread` |
+| `4-Giro` | `SpinSlow` · `SpinFast` · `SpinAccel` |
+| `5-Constelacion` | `Spread` · `SpreadSeed` · `GroupOffset` |
+| `6-Particulas` | el cono del attracting: `AttractOn`, `AttractRate`, `AttractSpeed`, `AttractStop`, `AttractSizeMin`/`Max`, `AttractAlpha` |
+| `7-Movimiento` | `ReturnSpeed` |
+| `8-Editor` | andamiaje de la previa: `bShowPreview`, `bShowAnchors`, `PreviewMesh`, `PreviewMaterial`, `AnchorTag`, `AnchorScale` |
+| `Z-Interno` | `ActivePalette` — no editable, la arma `BuildPalette` |
+
+🔴 **Categorias SIN espacios, SIN acentos y SIN parentesis.** El id del DSL es
+`Variables|<Categoria>|Get<Nombre>` con la categoria tal cual: `Variables|6-Particulas|GetAttractRate`. Los
+espacios se comen (gotcha 1089) y los parentesis **rompen el parser** (gotcha 100).
+⚠ **Recategorizar NO rompe los grafos ya compilados** (los nodos apuntan a la variable, no a la categoria),
+pero **cambia el id del DSL**: cualquier `write_graph_dsl` futuro tiene que usar el grupo nuevo. Verificado
+releyendo `ApplyLook` despues del cambio y con `find_node_types`.
+
+💡 Ojo con dos nombres que se parecen y NO son lo mismo: **`SeedSpread`** (semilla por esfera de la forma,
+en `3-Forma`) y **`SpreadSeed`** (semilla del desorden de la constelacion, en `5-Constelacion`).
+
+---
+
+## Perillas (instance-editable; el grupo de cada una, en la tabla de arriba)
 | Perilla | Default | Qué mueve |
 |---|---|---|
 | `Color1` · `Color2` · `Color3` · `Color4` | rojo · ámbar · turquesa · azul | los 4 colores, cada uno con su selector — **así los pidió Beltrán, "tal como me has dejado en otros BP"**, no un array |
@@ -101,12 +130,72 @@ ConstructionScript: if bShowPreview → RebuildPreview
 | `SeedSpread` | 10 | la **semilla por esfera**: va a `COrb` y de ahi salen su forma, su fase de ondulacion y su fase de flotar. En 0 todas quedan identicas |
 | `WobbleAmp` / `WobbleFreq` / `WobbleSpeed` | 0,09 / 4 / 0,35 | el wobble del material nuevo (`WobbleAFS`); no confundir con `WobbleAmount`/`WobbleFreq`/`WobbleSpeed`, que son de la ameba vieja |
 | `OrbSort` | 20 | 🎯 **`TranslucencySortPriority` de cada esfera.** Mas alto = se dibuja despues = va por delante del metaball. La pila de la estacion es **0 = cadena · 10 = nucleos blancos · 20 = esferas**. En 0 vuelven a lavarse debajo de la gota |
+| `Spread` | (0,0,0) | 🌟 **Desorden de constelacion**: maximo desplazamiento al azar por eje, en cm, sobre la posicion del ancla. En (0,0,0) queda la grilla ordenada de siempre |
+| `SpreadSeed` | 0 | vuelve a sortear el desorden sin cambiar su magnitud |
+| `GroupOffset` | (0,0,0) | 📦 **mueve TODO el conjunto en bloque**, sin tocar las anclas. Mover el actor del director NO hace esto |
 | `SpinSlow` / `SpinFast` | 22 / 150 °/s | 🔄 la rotacion propia de cada esfera: suave en reposo, rapida **mientras la sostienes**. Vuelve sola a `SpinSlow` al anclarla |
 | `SpinAccel` | 4 | que tan rapido pasa de una velocidad a la otra (`FInterpTo`); alto = casi instantaneo |
+| `AttractOn` | ✅ true | ☑️ **la casilla del efecto**: en false no nace ni una particula y el emisor se completa solo. Es la forma de dejar el attracting fuera sin desarmar nada |
+| `AttractRate` | ~120 /s | ✨ **el cono de particulas** (`NS_OrbAttract_SC`): cuantas nacen por segundo mientras sostenes la esfera. 0 = efecto apagado |
+| `AttractSpeed` | 25 cm/s | la rapidez **constante** con que viajan hacia la mano. Tambien fija la vida de cada particula (vida = recorrido / esta velocidad), asi que subirla acorta el rastro |
+| `AttractStop` | ~20 cm | cuantos cm **antes** de la mano termina el cono. Mas alto = cono mas corto, muere mas lejos de la mano |
+| `AttractAlpha` | ~1 | opacidad del color de la esfera que se le pasa a las particulas |
+| `AttractSizeMin` / `AttractSizeMax` | ~0,36 / 0,47 cm | tamano del sprite, sorteado por particula |
+| `ReturnSpeed` | 1,5 | 🏠 **que tan rapido vuelve una esfera a su sitio** al soltarla fuera de un slot o al ser desalojada del secuenciador. Es la velocidad de un `VInterpTo`, no cm/s: mas alto = llega antes. Vivia escondida en el CDO de la esfera (estaba en 3) |
+
+⚠ Las seis `Attract*` **las copia la esfera en su `Setup`**, asi que hay que **reentrar a PIE** para verlas
+cambiar. Y **no hay ninguna compuerta de distancia**: el cono aparece apenas agarras la esfera (§374 de
+gotchas — `AttractMax` existio y se borro por ser una trampa).
 
 `ActivePalette` (Z-Estado) es la paleta armada: la llena `BuildPalette` desde `Color1..4` y la lee
 `LookColor`. No es editable a propósito.
 
+---
+
+## 🧹 2026-09-24 — `ApplyLook` limpiada: 15 de 20 pushes no hacian NADA
+
+Beltran: *"creo que hay muchas perillas muertas en los BP que son parte del sequencer"*. Tenia razon, y la
+causa estaba toda en un sitio.
+
+`ApplyLook` era **verbatim la lista de empujes del material viejo de ameba** (`M_SoundOrb_SC`) con 4
+parametros de la cadena agregados al final. Pero las esferas usan **`MI_OrbBlob_SC`** (hija de
+`M_SlotChain_SC`) desde el cambio del 2026-09-24. De los 20 parametros que empujaba:
+
+- **Llegaban 5**: `FloatSpeed` · `ChainColorHigh` · `ChainColorLow` · `COrb` · `WobbleAFS`.
+- **No existen en el material (14)**: `CoreColor`, `PhaseSeed`, `FloatScale`, `WobbleAmount`, `Brightness`,
+  `WobbleFreq`, `WobbleSpeed`, `RimColor`, `GradColorA`, `GradColorB`, `EdgeColor`, `GradAmount` (ademas con
+  **el pin de valor sin conectar**), `FresnelPower`, `ReliefAmount`.
+- **Existe pero con el TIPO equivocado (1)**: `FloatAmount` es **Scalar** en `M_SlotChain_SC` y se empujaba
+  con `SetVectorParameterValueOnMaterials` → se descarta en silencio.
+
+🔍 **Como se verifico sin adivinar:** `MaterialInstanceTools.list_parameters` sobre el **material padre**
+devuelve los 38 parametros que expone compilado. Cruzar esa lista contra los nombres de `ApplyLook` cierra la
+pregunta en una llamada. Un `Set*ParameterValueOnMaterials` con un nombre que no existe **no falla ni avisa**:
+es el caso puro de [[soul-charger-declarado-no-aplicado]] aplicado a materiales.
+
+✅ `ApplyLook` quedo en 9 sentencias (orden de dibujo, malla, material, escala, y los 5 empujes vivos), y de
+paso **`LookColor` se llama una vez en vez de dos**. Verificado despues: el call externo desde
+`BP_SoundOrb_SC::Setup` y el de `RebuildPreview` siguen cableados, y los dos BP compilan limpio.
+
+### Perillas borradas (7 del director)
+`WobbleAmount` · `Brightness` · `FloatScale` · `ShadeSharp` · `ReliefAmount` — las cinco alimentaban empujes
+muertos. Beltran las habia estado arrastrando (`Brightness` 1,143 · `ShadeSharp` 1,4747 · `FloatScale`
+0,12005): **giraba perillas que no hacian nada**.
+`WobbleFreq_0` · `WobbleSpeed_0` — duplicados sin usar, en la categoria `Default`, la firma de
+[[variante-por-duplicado-deja-basura]]. ⚠ Ojo al borrarlos: los **originales** `WobbleFreq`/`WobbleSpeed`
+**si viven** (los lee `LookWobble` para armar `WobbleAFS`). Se verifico releyendo `list_variables` y
+`LookWobble` despues del borrado.
+
+### 🗑️ `FloatAmpMin` / `FloatAmpMax` + `LookFloatAmp`: BORRADOS
+Alimentaban el empuje mistipado de `FloatAmount` (Scalar empujado con el setter Vector), que se saco al
+limpiar `ApplyLook`. Habia dos salidas — revivirlas empujando `FloatAmount` como Scalar, o borrarlas —
+y **Beltran eligio borrarlas**. Coherente con la cadena, donde el flotar se **mudo del shader al Blueprint**
+el 2026-09-23: mantener una amplitud de flotado por shader era volver atras.
+
+⚠ **No confundir con `FloatSpeedMin`/`FloatSpeedMax` + `LookFloatSpeed`, que SIGUEN VIVOS**: alimentan el
+empuje de `FloatSpeed`, que si existe en `M_SlotChain_SC` y si llega.
+
+El director quedo en **36 variables** (eran 45).
 ---
 
 ## 🔒 La obra no cambia
@@ -256,3 +345,41 @@ Las tres perillas (`SpinSlow`/`SpinFast`/`SpinAccel`) y el eje los **copia la es
 (ver [[BP_Sequencer_SC]]), no `ApplyLook`: `ApplyLook` recibe un *componente*, no puede escribir variables
 del actor. La previa del editor **no gira** (el Construction Script no tiene tick) y esta bien: una
 velocidad no se autora mirando una foto.
+
+## 🌟 2026-09-24 — `Spread`: romper la grilla sin mover las anclas
+Pedido: *"están ordenadas como dos filas en columnas — una perilla que permita desordenarlas aleatoriamente
+en el espacio, para que se sienta mas como una constelacion"*.
+
+**`LookOffset(Index) -> Vector`** devuelve `(h(211)*2-1, h(307)*2-1, h(409)*2-1) * Spread`, con los salts
+corridos por `SpreadSeed`. Cada eje tiene su propio maximo, asi que se puede desparramar mucho en horizontal
+y poco en vertical, o al reves.
+
+**Se aplica en DOS lados y tiene que ser el mismo numero:**
+- `RebuildPreview` → `AddWorldOffset(comp, LookOffset(indice del array))`, despues de plantar la previa
+  sobre el ancla. Se ve en el viewport sin dar play.
+- `BP_SoundOrb_SC.Setup` → `AddActorWorldOffset(LookOffset(ClipId))` y **recalcula `HomeLoc`** con la
+  posicion nueva, para que la esfera vuelva a su lugar desparramado al soltarla lejos.
+
+🔴 **Las anclas NO se mueven.** El desorden es un offset sobre ellas, asi que `Spread = 0` devuelve
+exactamente la composicion autorada y **nada de esto es destructivo**.
+
+⚠ **Esto vuelve VISIBLE un riesgo que estaba dormido:** la previa indexa por **posicion en el array de
+anclas** y la esfera de juego por **`ClipId`**. Si esos dos indices no coinciden, el desparramo del editor y
+el del juego van a ser distintos — y con `Spread` alto se nota de inmediato. Si en la proxima pasada la
+constelacion en PIE no es la que se ve en el viewport, **ese es el problema**, y afecta tambien a color,
+tamano y giro (que ya indexaban asi).
+
+## 📦 `GroupOffset` — por que mover el ACTOR del director no mueve nada
+`RebuildPreview` planta cada previa sobre la **posicion mundial del ancla**, no sobre el director. El
+director es un panel de control, no un padre: su transformada no participa en ningun calculo, asi que
+arrastrarlo en el viewport no mueve una sola esfera.
+
+✅ Para mover el conjunto en bloque existe **`GroupOffset`** (cm, mundo). Se sumo **dentro de `LookOffset`**
+— que devuelve `dispersion + GroupOffset` — para que los **dos** consumidores (la previa del editor y el
+`Setup` de la esfera de juego) lo hereden sin tocar nada mas.
+📏 Verificado con test de identidad sobre el actor del nivel: con `GroupOffset` en (0,0,40) las previas
+subieron **exactamente 40 en Z** y no se movieron en X ni en Y.
+
+⚠ La alternativa habria sido usar la transformada del director como offset, que es lo que uno espera al
+arrastrarlo. Se descarto: obligaria a guardar una posicion "origen" de referencia y se rompe el dia que el
+director se mueva por orden, no por diseno.

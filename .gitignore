@@ -49,3 +49,6 @@ Desktop.ini
 #
 # ⚠ IMPORTANTE: Unreal no mergea assets. Si en algún momento trabajan dos personas,
 # hay que usar File Locking o coordinar por fuera. Para un solo autor, git basta y sobra.
+
+# Capturas de performance traidas de la Quest (regenerables)
+perf/

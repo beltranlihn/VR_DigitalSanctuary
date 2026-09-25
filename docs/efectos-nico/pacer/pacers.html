@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pacers de respiración · anillo perimetral para domo</title>
+<style>
+:root{
+  --ink:#4A3A33; --sub:rgba(74,58,51,.5); --stroke:rgba(120,92,78,.18);
+  --accent:#A9705A; --bg:#DCC3B4; --bg2:#C9A995;
+  --mono: ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  background:radial-gradient(120% 120% at 50% 18%, var(--bg) 0%, var(--bg2) 100%);
+  color:var(--ink); font-family:var(--mono); -webkit-font-smoothing:antialiased;
+  padding:44px 32px 72px;
+}
+a{color:var(--accent)} a:hover{color:#8A5A45}
+header{max-width:1180px;margin:0 auto 34px;display:flex;flex-direction:column;gap:8px}
+h1{margin:0;font-size:13px;font-weight:400;letter-spacing:.3em;text-transform:uppercase}
+header p{margin:0;font-size:11px;letter-spacing:.06em;color:var(--sub);max-width:62ch;line-height:1.7}
+
+#controls{
+  max-width:1180px;margin:0 auto 40px;display:flex;flex-wrap:wrap;gap:10px 22px;
+  align-items:center;padding:16px 20px;border:1px solid var(--stroke);border-radius:2px;
+  background:rgba(252,245,240,.42);backdrop-filter:blur(8px);
+}
+#controls .grp{display:flex;align-items:center;gap:8px}
+#controls label{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--sub)}
+#controls input[type=number]{
+  width:50px;padding:4px 6px;border:1px solid var(--stroke);border-radius:2px;
+  background:rgba(255,255,255,.5);font-family:var(--mono);font-size:11px;color:var(--ink);
+}
+#controls input[type=range]{width:110px;accent-color:var(--accent)}
+#controls select,#controls button{
+  padding:5px 12px;border:1px solid var(--stroke);border-radius:2px;
+  background:rgba(255,255,255,.5);font-family:var(--mono);font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink);cursor:pointer;
+}
+#controls button:hover,#controls select:hover{background:rgba(255,255,255,.8)}
+#play{
+  border-color:var(--accent);color:#FFF4EC;background:var(--accent);
+  min-width:112px;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+#play:hover{background:#8A5A45}
+#play svg{width:9px;height:11px;fill:currentColor}
+
+#grid{
+  max-width:1180px;margin:0 auto;display:grid;gap:28px;
+  grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));
+}
+.card{
+  display:flex;flex-direction:column;border:1px solid var(--stroke);border-radius:2px;
+  background:rgba(252,245,240,.34);overflow:hidden;position:relative;
+}
+/* el escenario replica el dome master: cuadrado 1:1, fondo negro, círculo útil */
+.stage{aspect-ratio:1;background:#0B0806;position:relative;display:grid;place-items:center}
+.stage svg{width:100%;height:100%;display:block}
+.id{
+  position:absolute;top:10px;left:12px;z-index:2;font-size:9px;letter-spacing:.2em;
+  color:rgba(243,220,207,.55);
+}
+.meta{
+  display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:13px 16px;border-top:1px solid var(--stroke);
+}
+.meta b{font-size:10px;font-weight:400;letter-spacing:.24em;text-transform:uppercase}
+.meta span{font-size:9.5px;letter-spacing:.06em;color:var(--sub);text-align:right;line-height:1.6}
+.phase{font-size:6px;letter-spacing:.3em;text-transform:uppercase;fill:rgba(243,220,207,.5)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Pacers de respiración · anillo perimetral</h1>
+  <p>Cinco marcadores que viven en el anillo exterior del dome master y dejan el centro libre para el shader. El disco punteado indica la zona reservada: ningún trazo entra en ella. Los cinco corren sobre el mismo reloj de fases.</p>
+</header>
+
+<div id="controls">
+  <button id="play"><svg viewBox="0 0 10 12"><path id="playIcon" d="M0 0 L10 6 L0 12 Z"></path></svg><span id="playLbl">Play</span></button>
+  <div class="grp">
+    <label for="preset">Preset</label>
+    <select id="preset">
+      <option>Coherente 6-0-6-0</option>
+      <option>Box 4-4-4-4</option>
+      <option>4-7-8</option>
+      <option>Larga 5-2-8-2</option>
+    </select>
+  </div>
+  <div class="grp"><label for="tin">Inhale</label><input id="tin" type="number" min="1" max="20" step="0.5" value="6" /></div>
+  <div class="grp"><label for="th1">Hold</label><input id="th1" type="number" min="0" max="20" step="0.5" value="0" /></div>
+  <div class="grp"><label for="tex">Exhale</label><input id="tex" type="number" min="1" max="20" step="0.5" value="6" /></div>
+  <div class="grp"><label for="th2">Hold</label><input id="th2" type="number" min="0" max="20" step="0.5" value="0" /></div>
+  <div class="grp">
+    <label for="clear">Centro libre</label>
+    <input id="clear" type="range" min="45" max="80" step="1" value="62" />
+    <span id="clearVal" style="font-size:10px;color:var(--sub)">62%</span>
+  </div>
+  <button id="restart">Reiniciar</button>
+  <button id="guides">Guías</button>
+</div>
+
+<div id="grid"></div>
+
+<script type="module">
+/* ═══════════════════════════════════════════════════════════════════════════
+   Todos los pacers se dibujan en el ANILLO entre rClear y rEdge del dome
+   master. El centro queda intacto para el shader concéntrico. Un solo reloj
+   de fases alimenta los cinco; Play arranca el bucle continuo.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const VB = 200, C = 100;              // viewBox y centro
+const R_EDGE = 94;                    // borde útil del domo (deja margen al horizonte)
+const P = { inhale:6, hold1:0, exhale:6, hold2:0, clear:0.62, guides:true, playing:true };
+const PRESETS = {
+  'Coherente 6-0-6-0':[6,0,6,0], 'Box 4-4-4-4':[4,4,4,4],
+  '4-7-8':[4,7,8,0], 'Larga 5-2-8-2':[5,2,8,2],
+};
+const LABEL = { inhale:'Inhala', hold1:'Sostén', exhale:'Exhala', hold2:'Sostén' };
+const smoother = x => x*x*x*(x*(x*6-15)+10);
+const rClear = () => R_EDGE * P.clear;
+
+const clock = { t:0, lung:0, phase:'inhale', pPos:0, cycle:0, total:12, loops:0 };
+function tick(dt){
+  const a = Math.max(0.2,P.inhale), b = Math.max(0,P.hold1),
+        c = Math.max(0.2,P.exhale), d = Math.max(0,P.hold2);
+  const total = a+b+c+d;
+  clock.total = total;
+  const nt = clock.t + dt;
+  if(nt >= total) clock.loops++;
+  clock.t = nt % total;
+  clock.cycle = clock.t/total;
+  const x = clock.t;
+  if(x < a){          clock.phase='inhale'; clock.pPos = x/a;                       clock.lung = smoother(clock.pPos); }
+  else if(x < a+b){   clock.phase='hold1';  clock.pPos = (x-a)/Math.max(b,1e-4);    clock.lung = 1; }
+  else if(x < a+b+c){ clock.phase='exhale'; clock.pPos = (x-a-b)/c;                 clock.lung = 1 - smoother(clock.pPos); }
+  else {              clock.phase='hold2';  clock.pPos = (x-a-b-c)/Math.max(d,1e-4); clock.lung = 0; }
+}
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs) => {
+  const n = document.createElementNS(SVGNS, tag);
+  for(const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+};
+const polar = (r, a) => [C + r*Math.cos(a), C + r*Math.sin(a)];
+const arcPath = (a0, a1, r) => {
+  const [x0,y0] = polar(r,a0), [x1,y1] = polar(r,a1);
+  const large = Math.abs(a1-a0) > Math.PI ? 1 : 0;
+  const sweep = a1 > a0 ? 1 : 0;
+  return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r.toFixed(2)} ${r.toFixed(2)} 0 ${large} ${sweep} ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+};
+const INK = '#E7D3C6', ACC = '#E29A72', DIM = 'rgba(231,211,198,.26)';
+
+/* ── A · Aros perimetrales ──────────────────────────────────────────────────
+   Cinco aros que nacen en el borde de la zona libre y se expanden hacia el
+   horizonte con retardo escalonado. Anular por construcción. */
+function pacerRings(svg){
+  const N = 5, rings = [];
+  for(let i=0;i<N;i++){
+    const c = el('circle', { cx:C, cy:C, fill:'none', stroke: i===0 ? ACC : INK,
+      'stroke-width': i===0 ? 1.1 : 0.7 });
+    svg.appendChild(c); rings.push(c);
+  }
+  return () => {
+    const r0 = rClear(), band = R_EDGE - r0;
+    for(let i=0;i<N;i++){
+      const lag = i/N*0.3;
+      const v = smoother(Math.max(0, Math.min(1, (clock.lung - lag)/(1-lag))));
+      rings[i].setAttribute('r', (r0 + 1.5 + v*band*(0.94 - i*0.02) * (i+1)/N).toFixed(2));
+      rings[i].style.opacity = (0.18 + v*0.6 - i*0.05).toFixed(3);
+    }
+  };
+}
+
+/* ── B · Marcador orbital ───────────────────────────────────────────────────
+   El punto recorre el perímetro una vez por ciclo; los arcos separan las
+   cuatro fases, así que la proporción se lee sin números. */
+function pacerOrbit(svg){
+  const R = R_EDGE - 6;
+  svg.appendChild(el('circle', { cx:C, cy:C, r:R, fill:'none', stroke:INK, 'stroke-width':0.5, opacity:0.18 }));
+  const arcs = [0,1,2,3].map(()=>{
+    const p = el('path', { fill:'none', stroke:INK, 'stroke-width':2, 'stroke-linecap':'butt' });
+    svg.appendChild(p); return p;
+  });
+  const trail = el('path', { fill:'none', stroke:ACC, 'stroke-width':2, 'stroke-linecap':'round' });
+  const pulse = el('circle', { cx:C, cy:C, fill:'none', stroke:ACC, 'stroke-width':0.7 });
+  const head  = el('circle', { r:3.6, fill:ACC });
+  const txt   = el('text', { x:C, y:VB-8, 'text-anchor':'middle', class:'phase' });
+  svg.append(trail, pulse, head, txt);
+  return () => {
+    const segs = [P.inhale, P.hold1, P.exhale, P.hold2].map(v=>Math.max(v,0));
+    const tot = segs.reduce((a,b)=>a+b,0) || 1;
+    let acc = 0;
+    segs.forEach((s,i)=>{
+      const a0 = -Math.PI/2 + acc/tot*Math.PI*2, a1 = -Math.PI/2 + (acc+s)/tot*Math.PI*2;
+      arcs[i].setAttribute('d', s > 0.05 ? arcPath(a0 + 0.025, a1 - 0.025, R) : '');
+      arcs[i].style.opacity = i%2 ? 0.12 : 0.28;
+      acc += s;
+    });
+    const a = -Math.PI/2 + clock.cycle*Math.PI*2;
+    trail.setAttribute('d', arcPath(-Math.PI/2, Math.max(a, -Math.PI/2 + 0.001), R));
+    const [hx,hy] = polar(R, a);
+    head.setAttribute('cx', hx.toFixed(2)); head.setAttribute('cy', hy.toFixed(2));
+    // el aro de respiración vive dentro de la banda, nunca invade el centro
+    pulse.setAttribute('r', (rClear() + 2 + clock.lung*(R - rClear() - 6)).toFixed(2));
+    pulse.style.opacity = (0.2 + clock.lung*0.4).toFixed(3);
+    txt.textContent = LABEL[clock.phase];
+  };
+}
+
+/* ── C · Corona de radios ───────────────────────────────────────────────────
+   36 radios anclados al borde de la zona libre que crecen hacia fuera con
+   desfase angular: la corona se abre en espiral al inhalar. */
+function pacerCrown(svg){
+  const N = 36, lines = [];
+  for(let i=0;i<N;i++){
+    const l = el('line', { stroke:INK, 'stroke-width':0.85, 'stroke-linecap':'round' });
+    svg.appendChild(l); lines.push(l);
+  }
+  const base = el('circle', { cx:C, cy:C, fill:'none', stroke:ACC, 'stroke-width':0.8 });
+  svg.appendChild(base);
+  return () => {
+    const r0 = rClear() + 3, band = R_EDGE - r0 - 2;
+    for(let i=0;i<N;i++){
+      const a = i/N*Math.PI*2 - Math.PI/2;
+      const lag = (i/N)*0.32;
+      const v = smoother(Math.max(0, Math.min(1, (clock.lung - lag)/(1-lag))));
+      const [x0,y0] = polar(r0, a), [x1,y1] = polar(r0 + 2 + v*band, a);
+      lines[i].setAttribute('x1', x0.toFixed(2)); lines[i].setAttribute('y1', y0.toFixed(2));
+      lines[i].setAttribute('x2', x1.toFixed(2)); lines[i].setAttribute('y2', y1.toFixed(2));
+      lines[i].style.opacity = (0.16 + v*0.52).toFixed(3);
+    }
+    base.setAttribute('r', r0.toFixed(2));
+    base.style.opacity = (0.3 + clock.lung*0.4).toFixed(3);
+  };
+}
+
+/* ── D · Arco de fase ───────────────────────────────────────────────────────
+   Un solo arco se llena durante la fase activa y se vacía en los sostenidos.
+   Escala de 60 marcas al borde. El más silencioso: para proyección larga. */
+function pacerArc(svg){
+  const R = R_EDGE - 10;
+  const ticks = el('g', { opacity:0.22 });
+  for(let i=0;i<60;i++){
+    const a = i/60*Math.PI*2 - Math.PI/2;
+    const [x0,y0] = polar(R_EDGE - 2, a), [x1,y1] = polar(i%15===0 ? R_EDGE - 9 : R_EDGE - 5, a);
+    ticks.appendChild(el('line', { x1:x0.toFixed(2), y1:y0.toFixed(2), x2:x1.toFixed(2), y2:y1.toFixed(2),
+      stroke:INK, 'stroke-width': i%15===0 ? 1 : 0.5 }));
+  }
+  const track = el('circle', { cx:C, cy:C, r:R, fill:'none', stroke:INK, 'stroke-width':0.5, opacity:0.14 });
+  const arc = el('circle', { cx:C, cy:C, r:R, fill:'none', stroke:ACC, 'stroke-width':2.6,
+    'stroke-linecap':'round', transform:`rotate(-90 ${C} ${C})` });
+  const breath = el('circle', { cx:C, cy:C, fill:'none', stroke:INK, 'stroke-width':0.8 });
+  const txt = el('text', { x:C, y:VB-8, 'text-anchor':'middle', class:'phase' });
+  svg.append(ticks, track, arc, breath, txt);
+  const L = 2*Math.PI*R;
+  return () => {
+    const frac = clock.phase.startsWith('hold') ? 1 - clock.pPos : clock.pPos;
+    arc.setAttribute('stroke-dasharray', `${(L*frac).toFixed(2)} ${L.toFixed(2)}`);
+    arc.style.opacity = clock.phase.startsWith('hold') ? 0.4 : 0.9;
+    breath.setAttribute('r', (rClear() + 2 + clock.lung*(R - rClear() - 8)).toFixed(2));
+    breath.style.opacity = (0.22 + clock.lung*0.4).toFixed(3);
+    txt.textContent = LABEL[clock.phase];
+  };
+}
+
+/* ── E · Onda polar anular ──────────────────────────────────────────────────
+   El historial del último ciclo dibujado como radio dentro de la banda: la
+   curva ES la forma de la respiración, enrollada en el perímetro del domo. */
+function pacerWave(svg){
+  const N = 200, hist = new Array(N).fill(0);
+  const gIn  = el('circle', { cx:C, cy:C, fill:'none', stroke:INK, 'stroke-width':0.5, opacity:0.14 });
+  const gOut = el('circle', { cx:C, cy:C, r:R_EDGE-3, fill:'none', stroke:INK, 'stroke-width':0.5, opacity:0.14 });
+  const path = el('path', { fill:'none', stroke:ACC, 'stroke-width':1.5, 'stroke-linejoin':'round' });
+  const head = el('circle', { r:3, fill:ACC });
+  svg.append(gOut, gIn, path, head);
+  let idx = 0, accT = 0;
+  return (dt) => {
+    const r0 = rClear() + 2, band = R_EDGE - r0 - 5;
+    gIn.setAttribute('r', r0.toFixed(2));
+    accT += dt;
+    const step = clock.total/N;
+    while(accT >= step){ accT -= step; hist[idx] = clock.lung; idx = (idx+1)%N; }
+    let d = '';
+    for(let i=0;i<N;i++){
+      const j = (idx + i) % N;
+      const a = i/N*Math.PI*2 - Math.PI/2;
+      const [x,y] = polar(r0 + hist[j]*band, a);
+      d += (i ? 'L' : 'M') + x.toFixed(2) + ' ' + y.toFixed(2);
+    }
+    path.setAttribute('d', d + 'Z');
+    const [hx,hy] = polar(r0 + clock.lung*band, -Math.PI/2 - (Math.PI*2)/N);
+    head.setAttribute('cx', hx.toFixed(2)); head.setAttribute('cy', hy.toFixed(2));
+  };
+}
+
+/* ── montaje ── */
+const OPTS = [
+  ['A','Aros','Cinco aros que se abren hacia el horizonte', pacerRings],
+  ['B','Órbita','Marcador que recorre las cuatro fases', pacerOrbit],
+  ['C','Arco','Un arco por fase, el más silencioso', pacerArc],
+];
+const grid = document.getElementById('grid');
+const updaters = [], guideEls = [];
+for(const [id, name, desc, build] of OPTS){
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<div class="id">${id}</div><div class="stage"></div>
+    <div class="meta"><b>${name}</b><span>${desc}</span></div>`;
+  const svg = el('svg', { viewBox:`0 0 ${VB} ${VB}` });
+  // borde del domo + zona reservada al shader
+  svg.appendChild(el('circle', { cx:C, cy:C, r:R_EDGE+3, fill:'none',
+    stroke:'rgba(231,211,198,.16)', 'stroke-width':0.5 }));
+  const gClear = el('circle', { cx:C, cy:C, fill:'none', stroke:'rgba(226,154,114,.4)',
+    'stroke-width':0.5, 'stroke-dasharray':'2 4' });
+  svg.appendChild(gClear); guideEls.push(gClear);
+  card.querySelector('.stage').appendChild(svg);
+  grid.appendChild(card);
+  updaters.push(build(svg));
+}
+
+/* ── controles ── */
+const fields = { inhale:'tin', hold1:'th1', exhale:'tex', hold2:'th2' };
+const syncInputs = () => { for(const k in fields) document.getElementById(fields[k]).value = P[k]; };
+for(const k in fields){
+  document.getElementById(fields[k]).addEventListener('input', e => { P[k] = parseFloat(e.target.value) || 0; });
+}
+document.getElementById('preset').addEventListener('change', e => {
+  const v = PRESETS[e.target.value];
+  if(v){ [P.inhale, P.hold1, P.exhale, P.hold2] = v; clock.t = 0; syncInputs(); }
+});
+const clearIn = document.getElementById('clear'), clearVal = document.getElementById('clearVal');
+clearIn.addEventListener('input', e => {
+  P.clear = parseFloat(e.target.value)/100;
+  clearVal.textContent = e.target.value + '%';
+});
+document.getElementById('restart').addEventListener('click', ()=>{ clock.t = 0; clock.loops = 0; });
+document.getElementById('guides').addEventListener('click', ()=>{
+  P.guides = !P.guides;
+  guideEls.forEach(g => g.style.display = P.guides ? '' : 'none');
+});
+const playBtn = document.getElementById('play'), playIcon = document.getElementById('playIcon'),
+      playLbl = document.getElementById('playLbl');
+function setPlaying(v){
+  P.playing = v;
+  playIcon.setAttribute('d', v ? 'M0 0 H3.5 V12 H0 Z M6.5 0 H10 V12 H6.5 Z' : 'M0 0 L10 6 L0 12 Z');
+  playLbl.textContent = v ? 'Pausa' : 'Play';
+}
+playBtn.addEventListener('click', ()=> setPlaying(!P.playing));
+addEventListener('keydown', e => { if(e.code === 'Space'){ e.preventDefault(); setPlaying(!P.playing); } });
+syncInputs(); setPlaying(true);
+
+let last = performance.now();
+(function loop(){
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  const dt = Math.min((now - last)/1000, 0.05); last = now;
+  if(P.playing) tick(dt);          // el ciclo se repite indefinidamente
+  for(const u of updaters) u(P.playing ? dt : 0);
+})();
+</script>
+</body>
+</html>

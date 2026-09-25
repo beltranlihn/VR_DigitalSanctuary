@@ -296,18 +296,187 @@ El término espacial (`dot(WorldPos.xy, …)`) es lo que da el aire de ruido: ca
 
 | Parámetro | Default | Qué hace |
 |---|---|---|
-| `SwaySpan` | 25 cm | en cuántos cm pasa de rígido a suelto. Más chico = se mueve casi desde la base |
-| `SwayStrength` | 4 cm | amplitud |
-| `SwaySpeed` | 1.2 | velocidad |
+| `SwaySpan` | 40 cm | en cuántos cm pasa de rígido a suelto. Más chico = se mueve casi desde la base |
+| `SwayStrength` | 1.5 cm | amplitud |
+| `SwaySpeed` | 0.5 | velocidad (periodo ≈ 12,6 s) |
 | `SwayScale` | 0.03 | frecuencia espacial: cuánto difieren las fases entre zonas |
 | `SwayDir` | (1, 0.6, 0.15) | dirección del vaivén; Z bajo = se mueve más en horizontal |
 | `SwayOn` | 0 | **lo pone el código** |
 
-### El encendido
-`PincelA_EndStroke` ahora cierra con `SetScalarParameterValue(DynamicMaterial, "SwayOn", 1.0)`. Mientras se dibuja el trazo está quieto; al soltar, empieza a moverse. Como hay **un MID por trazo**, cada trazo enciende el suyo.
+### El encendido — 🔴 con RAMPA, no con salto
+Primera versión: `PincelA_EndStroke` ponía `SwayOn = 1.0` de golpe. **Síntoma en visor** (Beltrán): *"cuando termino el trazo, se glitchea y se reposiciona"*. Lógico: el WPO pasa de cero a pleno en **un frame** y toda la cinta salta a su posición desplazada.
+
+**Arreglo — `SwayStep(DT)` en `BP_Stroke`:**
+```
+EndStroke: SwayOn = 0 · SwayT = 0 · bSwayRamp = true
+Tick → Sequence
+   then_0: SwayStep(DeltaSeconds)   ← SIEMPRE, fuera de la guarda de VRPawn
+   then_1: IsValid(VRPawn) → UbicacionMano   (lo de antes)
+
+SwayStep: si bSwayRamp → SwayT = min(SwayT + DT/SwayFade, 1)
+                       → MID.SwayOn = SwayT
+                       → si SwayT >= 1: bSwayRamp = false
+```
+`SwayFade` = **1,2 s** (instance-editable en `BP_Stroke`). El vaivén entra desvaneciéndose y el salto desaparece.
+
+🔴 **El `Sequence` es imprescindible**: el Tick de `BP_Stroke` está envuelto en `IsValid(VRPawn)`, que es **null en el camino empaquetado**. Si la rampa colgara de esa rama, no correría nunca. Va en `then_0`, antes de la guarda.
+
+Como hay **un MID por trazo**, cada trazo corre su propia rampa sin interferir con los demás.
 
 ⚠ **El punto fijo es donde el trazo EMPIEZA** (UV.Y = 0), no el extremo más bajo. Si se dibuja de la punta hacia la base, el ancla queda arriba.
-⬜ Sin visor. Para afinar: los defaults se tocan en **`M_Emissive_Inst`** y aplican a los trazos **nuevos**.
+
+### ✅ VALIDADO EN VISOR (2026-09-24)
+Beltrán: *"Funcionaaaa"*. Primera pasada con `SwayStrength=6` / `SwaySpeed=1.2`: **demasiado**. Pedido: *"mucho más suave"*.
+**Valores aprobados como punto de partida suave:** `SwayStrength 6 → 1.5` · `SwaySpeed 1.2 → 0.5` · `SwaySpan 25 → 40` · `SwayOn → 0` (vuelve al encendido por `PincelA_EndStroke`, como se diseñó).
+🎚️ **Para afinar sin recompilar**: los overrides van en **`M_Emissive_Inst`** (una instancia no necesita `recompile`) y aplican a los trazos **nuevos**. Solo tocar el material padre exige `MaterialTools.recompile`.
+
+## 🔴🔴🔴 EDITAR UN MATERIAL POR MCP NO RECOMPILA SUS SHADERS
+Cuatro viajes al visor perdidos con el vaivén. Síntoma: **nunca cambió NADA** — ni el vaivén, ni siquiera un WPO forzado a la constante `(0,0,30)`. No "salió mal": salió *nada*.
+
+**Causa: `MaterialTools.recompile` existe y hay que llamarla a mano.** Su propia doc lo dice:
+> *"Recompiles a Material or MaterialFunction after edits. **Call this once after a set of graph modifications is complete** — after adding or deleting expressions, making connections, or changing expression properties such as parameter names or default values."*
+
+`add_expression` + `connect_expressions` + `set_properties` + `save_assets` **dejan el asset con el grafo nuevo y los shaders viejos**. El editor y el juego siguen corriendo el shader anterior. Se ve todo bien en el grafo y no pasa nada en pantalla.
+
+👉 **Regla: toda tanda de edición de material termina en `MaterialTools.recompile`.** Igual que una tanda de Blueprint termina en `compile_blueprint`.
+
+⚠ **Y la lección de método, que es la más cara**: la firma de "no cambió absolutamente nada" apunta al **instrumento**, no al contenido. Antes de construir 22 nodos de vaivén había que haber puesto **una constante en el WPO** y verificar que se movía. Eso habría encontrado esto en el primer intento, no en el cuarto. Es literalmente [[debugging-instrumento-sin-validar]] del repo, sin aplicar.
+
+### ⚠ Trampa del test con cubos
+Para verificar WPO se pusieron dos cubos, uno con `M_Emissive_Inst`. **Ese cubo es INVISIBLE**, no negro: el material divide por `StrokeLength`, que en un cubo vale **0** → NaN. El material del trazo **no sirve como material de prueba sobre geometría cualquiera**; hay que setear `StrokeLength` a algo > 0 o probar con un material opaco aparte.
+
+## 🎨 Color mate con degradado de dos colores a lo largo del trazo (2026-09-24)
+Pedido: *"que el color sea más mate, como el metaball de Soul Charger, que es un degradé de dos colores; que ese degradado exista a lo largo del trazo y se anime suavemente"*.
+
+**Referencia leída del proyecto real** (`VR_Test` → `M_MetaBlob_SC`, por el segundo MCP): el metaball hace `lerp(ColorShadow, ColorLight, …)` con
+- `ColorShadow` = **(0.42, 0.36, 0.85)** — violeta apagado
+- `ColorLight` = **(0.97, 0.96, 1.0)** — casi blanco
+- `Brightness` = **1**
+
+🔑 **De ahí sale lo "mate"**: valores bien por debajo de 1 en un extremo, casi blanco en el otro y **sin brillo sobreexcitado**. El color deja de ser plano porque siempre es una mezcla.
+
+### Cómo se hizo en el trazo
+El emisivo era `EmissiveColor × EmissiveBrightness`. Ahora el primer factor pasa por un lerp:
+```
+t     = GradAmount · (sin(UV.Y · GradFreq + Time · GradSpeed) · 0.5 + 0.5)
+color = lerp(EmissiveColor, GradColorB, t)
+emissive = color · EmissiveBrightness
+```
+🔑 **`EmissiveColor` sigue siendo el color de la PALETA** (el `SeleccionColor` por trazo): es uno de los dos extremos. Así los 3 pinceles siguen mandando y el degradado los lleva hacia `GradColorB`. Si se hubieran puesto dos colores fijos, la paleta habría quedado muerta.
+
+**`UV.Y` otra vez** — la misma distancia-desde-el-nacimiento que usa el taper y el vaivén. Por eso el degradado recorre el trazo, y el `+ Time·GradSpeed` lo hace **viajar** suavemente a lo largo.
+
+| Perilla | Default | Qué hace |
+|---|---|---|
+| `GradColorB` | (0.97, 0.96, 1) | el segundo color — el mismo `ColorLight` del metaball |
+| `GradFreq` | 0.06 | largo de onda del degradado (~100 cm por ciclo) |
+| `GradSpeed` | 0.25 | cuánto viaja por el trazo |
+| `GradAmount` | 0.7 | cuánto llega hacia `GradColorB`. **0 = color plano de antes** |
+
+✅ Recompilado con `MaterialTools.recompile` y verificado leyendo las entradas del `LinearInterpolate` y del `Multiply` del emisivo.
+⬜ Sin visor.
+
+## 📏 Ancho por velocidad (2026-09-24)
+Pedido: *"que mientras más rápido, más ancho sea el ancho máximo"*.
+
+🔑 **No se tocó la geometría.** `PincelA_AddPoint` ya lee `StrokeWidth` **en cada punto**, así que alcanza con que el componente le escriba esa variable al trazo antes de cada `AddPoint`. Cero riesgo sobre el pipeline frágil del trazo.
+
+⚠ Se evaluó usar el parámetro `OverrideWidth` de `AddPoint` (que existe y **no se lee** en el cuerpo de la función) — habría exigido cirugía dentro de `AddPoint`. Se descartó por eso.
+
+**El Tick del componente pasó a la función `ToolTick(DT)`** (el `EventGraph` conserva solo el evento y los de input, que no se tocan):
+```
+tip  = TipComp.WorldLocation
+spd  = distance(tip, TipLocation) / max(DT, 0.001)      ← TipLocation es el del frame anterior
+SpeedEMA = lerp(SpeedEMA, spd, saturate(DT / SpeedTau)) ← suavizado, si no el ancho tiembla
+TipLocation = tip
+si dibujando y pincel A:
+    stroke.StrokeWidth = MapRangeClamped(SpeedEMA, 0 → SpeedForMax, WidthMin → WidthMax)
+    stroke.PincelA_AddPoint(tip, …)
+```
+🔴 **El orden importa**: la velocidad se calcula **antes** de pisar `TipLocation`, que es el punto del frame anterior.
+
+| Perilla | Default | Qué hace |
+|---|---|---|
+| `WidthMin` | 1.0 | semi-ancho quieto (= 2 cm de cinta, el de siempre) |
+| `WidthMax` | **1.4** | semi-ancho a velocidad plena (= 2,8 cm) — **sutil a propósito** |
+| `SpeedForMax` | **400 cm/s** | a qué velocidad se llega al ancho máximo |
+| `SpeedTau` | **0.3 s** | suavizado del EMA. Más alto = el ancho responde más lento |
+
+### 🔴 Primera calibración RECHAZADA — las tres causas
+Beltrán: *"quedó pésimo… se ve como una vuelta geométrica al principio y se pone gordísimo de una. La idea es que sea como que ya teníamos, pero si hago un trazo rápido, justo al medio, toma un poco más de ancho"*.
+
+| Defecto | Causa | Arreglo |
+|---|---|---|
+| **Gordo desde el primer punto** | `SpeedEMA` **no se reiniciaba en `Press`**: llegaba cargada del movimiento con que la mano se llevó hasta el punto de inicio | `SetSpeedEMA(0)` como **primer statement** del `if` de `Press` |
+| **Siempre al tope** | `SpeedForMax = 150 cm/s` es bajísimo; un movimiento normal de dibujo lo supera | 150 → **400** |
+| **"Vuelta geométrica" al inicio** | En el primer punto `new == last`, así que `normalize(new − last)` es **degenerado** y el vector lateral queda indefinido. Con semi-ancho 1 no se nota; con 3 se convierte en un lazo visible | se combate con las dos de arriba (el trazo nace en `WidthMin`) |
+
+### 🔴 "Debe seguir partiendo en punta SIEMPRE" — `HoldTaper`
+Riesgo identificado al recibir ese pedido: **`AddPoint` escribe `ShrinkAmount = StrokeWidth × −1` en CADA punto**, y ese parámetro es **único para todo el trazo**. Si el ancho crece en el medio, el taper del **inicio** cambia retroactivamente y la punta se pierde.
+
+**Mitigación — `HoldTaper(Stroke)`**, llamada justo después de cada `AddPoint`: reafirma `ShrinkAmount = WidthMin × −1`. El taper queda anclado al **ancho base**, independiente del ancho variable de la geometría → la punta del inicio no cambia nunca.
+
+⚠ **`Math|Float|NegateFloat` es un MACRO con pines de exec que niega la variable POR REFERENCIA** — la habría dejado negada de forma permanente. Y los operadores promotables (`*`, `−`) **no se pueden crear por `create_node`**: solo los arma el DSL. Por eso `HoldTaper` es una función escrita con `write_graph_dsl` en vez de cirugía de nodos.
+
+⚠ **Recordar la regla de la plantilla**: los defaults se escribieron también en `BP_DrawPawn_Solo_C:DrawTool_GEN_VARIABLE` y **el actor se volvió a colocar**; si no, la instancia nace en cero.
+
+## 🔬 LA FÓRMULA DEL TAPER, leída por fin (2026-09-24)
+Tres intentos fallidos del ancho por velocidad se explican con esto, y haberlo leído antes los habría evitado todos:
+```
+ancho_renderizado(d) = W · saturate(d / Divide) · saturate((L − d) / Divide)
+```
+donde `W` = `StrokeWidth`, `L` = `StrokeLength`, `Divide` = longitud del taper en cm, `d` = `UV.Y`.
+
+**Cadena real en `M_Emissive`:** `Subtract_0` = `StrokeLength − UV.Y` → `Divide_0` = eso `/ Divide` → `Saturate_0`; `Divide_1` = `UV.Y / Divide` → `Saturate_1`; `Multiply_0` = producto de ambos; `OneMinus_0`; `× VertexNormalWS`; `× ShrinkAmount` → WPO.
+
+Es decir: **un huso simétrico**, cero en las dos puntas, `W` pleno en el medio. La forma del dibujo que hizo Beltrán.
+
+### 🔴 Por qué el ancho POR PUNTO era imposible
+`ShrinkAmount` es **un solo valor para todo el trazo** (el último escrito por `AddPoint`). Si la geometría de los primeros vértices se construyó con `W=1.0` pero el shader encoge usando el `W=1.93` final, los vértices **cruzan el eje y la cinta se invierte** → la "vuelta diagonal geométrica" del inicio. Y la inversión enmascara la diferencia de grosor, que era el otro síntoma.
+👉 **Un solo `StrokeWidth` por trazo, fijado antes del primer punto.** Se resolvió en `Press`: `SetStrokeWidth(WidthForSpeed())` justo tras el spawn.
+
+### 🔴 Por qué el inicio dejó de ser punta
+**El primer punto NO genera vértices** (`AddPoint` sale por la rama `Length(Points) < 2`), así que la cinta empieza en `d ≈ MinDistance` = **2 cm**. Con `Divide = 6`, ahí el ancho ya es `saturate(2/6)` = **33% de W**. Con trazos de `W=1` eso medía 6 mm y no se veía; al llevar `W` a 2,2 se volvió un arranque chato de 1,5 cm.
+👉 **No era un bug nuevo: es la consecuencia de ensanchar.** Arreglo: `Divide` de **6 → 22** en `M_Emissive_Inst` (el taper es más largo, el arranque cae a ~9% de W y se lee como punta). Bonus: con taper largo los trazos cortos son husos completos, que es exactamente la referencia dibujada.
+
+### 🔴🔴 `WidthForSpeed` PODADA — el día que el trazo desapareció
+Síntoma: dejó de dibujar por completo. **El log lo decía literalmente:**
+> `WidthForSpeed was pruned because its Exec pin is not connected, the connected value is not available and **will instead be read as default**`
+
+Una función de Blueprint **con pin de ejecución** cuya salida se conecta pero cuyo **exec no está en la cadena** se poda, y su valor se lee como **0**. `StrokeWidth = 0` → cinta de ancho cero → invisible.
+⚠ **Y `compile_blueprint` con `warnings_as_errors` venía fallando con `Compile Errors: []` desde varios pasos antes.** Se interpretó como ruido y se siguió con el compile normal. **Un compile estricto que falla sin listar errores = ir al log**, ahí está el warning con el nombre del nodo.
+
+## 📐 Taper PROPORCIONAL — los trazos cortos ya no quedan hilos
+Con `Divide = 22` fijo, el taper se aplica **desde cada punta y las dos máscaras se multiplican**. Un trazo de 20 cm da en su centro `saturate(10/22)² ≈ 0,21` → **21% del ancho**. Beltrán: *"trazos cortos y pequeños quedan demasiaaaado delgados"*.
+
+**Arreglo en `M_Emissive`** — el taper deja de ser una longitud fija y pasa a ser la menor entre la fija y una fracción del trazo:
+```
+taperLen = min(Divide, StrokeLength · TaperFrac)
+```
+Nuevas expresiones: `TaperFrac` (ScalarParameter, def **0.4**) · `Multiply_15` = `StrokeLength × TaperFrac` · `Min_0` = `min(Divide, eso)` → alimenta **los dos** `Divide_0` y `Divide_1`.
+
+Resultado: un trazo largo conserva el taper elegante de 22 cm; uno de 20 cm usa 8 cm de taper y **sí llega a su ancho pleno** en el medio. La forma relativa (el huso) se mantiene en cualquier escala.
+
+| Perilla | Default | Qué hace |
+|---|---|---|
+| `Divide` | **22** (override en `M_Emissive_Inst`) | largo máximo del taper en cm |
+| `TaperFrac` | **0.62** (en el padre) | fracción del trazo que puede ocupar cada taper |
+| `TipOffset` | **2.2** (en el padre) | corrección del arranque; ver abajo |
+
+🔑 **Fórmula útil para afinar**: el ancho relativo que alcanza un trazo CORTO en su centro es **`(1 / (2·TaperFrac))²`**, *independiente de su largo*. 0.4→100% · 0.5→100% · 0.62→65% · 0.7→51% · 1.0→25%. Con eso la afinación deja de ser a tientas.
+
+### 🔴 El arranque con corte recto — `TipOffset`
+Beltrán, en trazos cortos: *"la punta de inicio se ve con un corte recto, no en punta"*.
+
+**Causa:** el primer punto **no genera vértices**, así que la cinta empieza en `d ≈ MinDistance` = 2 cm. El taper vale 0 en `d = 0`, pero ahí **no hay geometría**. En un trazo largo (taper 22 cm) esos 2 cm son el 9% y se leen como punta; en uno corto (taper ~6 cm) son el **32%** → corte visible.
+
+**Descartado:** bajar `MinDistance`. Acercaría el primer vértice al origen, pero multiplica los vértices y **`CreateMeshSection` reconstruye la sección ENTERA en cada punto** → el costo crece al cuadrado con la longitud del trazo. Malo para Quest.
+
+**Arreglo, gratis en runtime:** correr el origen del taper al primer vértice.
+```
+Divide_1.A:  UV.Y  →  (UV.Y − TipOffset)
+```
+Con `TipOffset ≈ MinDistance`, el taper vale 0 **justo donde empieza la geometría** → punta real en cualquier escala. El extremo final no necesita corrección: el último vértice está en `d = L` y `(L − d)` ya da 0.
 
 ## Session log
 - **2026-09-24** — Auditoría. Proyecto abierto por un **segundo MCP** (`unreal-canvas`, puerto 8001, registrado a nivel usuario). Medido: sin C++ ni plugins propios, `ProceduralMeshComponent` es plugin de engine con `EnabledByDefault=true` → disponible en VR_Test sin tocar nada; ambos proyectos en renderer móvil. Acoplamientos enumerados (tabla de arriba). Diseño escrito. **Sin construir todavía.**
@@ -335,3 +504,18 @@ El término espacial (`dot(WorldPos.xy, …)`) es lo que da el aire de ruido: ca
 - ⬜ Solo después: reescribir el `VRPawn` real para que delegue en el componente (y llamar `EnableDraw(false)` en su BeginPlay, porque el componente arranca en `true` y el original arrancaba cerrado).
 - ⬜ Migrate a Soul Charger + instalación en el pawn.
 - ⬜ Medir fill-rate en device.
+
+---
+
+## 🎛️ El Director (2026-09-24) — las perillas se mudaron
+Desde hoy **el componente ya no es dueño de los valores del look**: los toma de [[BP_DrawDirector_NC]], un actor de datos puro que se coloca en el nivel y concentra las 20 perillas (colores, anchos, taper, vaivén, degradado, brillo). Motivo: poder llevar el dibujo a otro proyecto colocando **un solo actor**.
+
+Qué cambió acá:
+- Variable objeto **`Director`** (tipo `BP_DrawDirector_NC_C`).
+- Función nueva **`PullDirector`** — `GetActorOfClass` → cachea `Director` → copia `Colors`, `WidthMin`, `WidthMax`, `SpeedForMax`, `SpeedTau`. Rama `Is Not Valid` con `PrintString` de aviso (mitigación de `gotchas.md` §274: sin el actor en el nivel esto se callaría).
+- **`Setup`** la llama **primero**, antes de `EnsureRig`/`EnsureInput`/`EnsurePalette` — así la paleta ya nace con los colores del director.
+- **`Press`**, después de `SetStrokeWidth`: `stroke.Director = self.Director` → `stroke.ApplyLook()`.
+- **`EnsurePalette`** cierra con `paleta.RefreshColors()`.
+- Las 5 perillas que ahora pisa el director se movieron a la categoría **`Z - Fallback (los pisa el Director)`**. Siguen sirviendo si no hay director en el nivel.
+
+⚠ **Trampa nueva, anotada porque casi la diagnostico mal**: el `read_graph_dsl` imprime `(Variables|Default|GetWidthMin _returnvalue)` en vez de `(Class|BPDrawDirectorNC|GetWidthMin ...)` cuando **la variable existe con el mismo nombre en los dos Blueprints**. Parece que el getter lee el suyo propio, y no es así. **El nodo está bien**: se comprueba en `get_node_infos` mirando el **tipo del pin `self`** (`BP Draw Director NC Object Reference`). El argumento que aparece en la forma corta es justamente la prueba de que hay target. Pasó con `SwayFade` en `BP_Stroke` y con las 5 del componente.

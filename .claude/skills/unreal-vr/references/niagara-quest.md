@@ -269,3 +269,58 @@ DispatchParameters->View = SimulationSceneViews[0].ViewUniformBuffer;
 - `Engine\Source\Runtime\Renderer\Private\MobileBasePass.cpp`
 - `Engine\Config\Android\AndroidEngine.ini`
 - `Engine\Config\BaseScalability.ini`
+
+---
+
+## 🔴🔴 `Activate` SIN reset sobre un emisor que ya se COMPLETO no hace nada
+2026-09-24, `NS_OrbAttract_SC`. Sintoma: *"no se ve ninguna particula"*, con el sistema compilando limpio,
+el emisor habilitado y todos los user params correctamente linkeados.
+
+**El mecanismo**, leido de `EmitterState` con `GetModuleInputValues` (no deducido):
+- `Life Cycle Mode` = **Self**
+- `Inactive Response` = **Complete (Let Particles Finish then Kill Emitter)**
+
+Con esa combinacion, en cuanto el emisor se queda **sin particulas y sin spawn**, se da por terminado y
+**se mata**. A partir de ahi `Activate(bReset = false)` — el default del nodo — **no lo revive**.
+
+💥 **Por que era total y no intermitente:** el spawn rate se maneja por Blueprint y arranca en 0
+(la esfera nace lejos de la mano y hay una compuerta de distancia). O sea el emisor nacia seco, se completaba
+en los primeros cuadros, y **ya nunca volvia** por mas que se lo activara en cada agarre.
+
+✅ **`Activate` con `bReset = true`.** Se conserva `Inactive Response = Complete` a proposito: cuando nadie
+sostiene la esfera el emisor esta terminado y **no tickea**, que en Quest es justo lo que se quiere. El reset
+lo revive en cada agarre.
+
+🚩 **La regla:** si el spawn rate lo maneja Blueprint y puede valer 0, el emisor **se va a completar
+solo**. Todo `Activate` sobre un sistema asi tiene que ir con **reset**, o el efecto funciona una vez y nunca
+mas. Y el sintoma no aparece en `GetSystemCompileState` ni en `GetStackIssues`: el asset esta perfecto, lo
+que esta muerto es la instancia en runtime.
+
+---
+
+## 🎯 Partículas que van a un punto a VELOCIDAD CONSTANTE (y un cono que termina donde quieres)
+
+Receta verificada el 2026-09-24 en `NS_OrbAttract_SC`. Sirve para cualquier "attracting": un chorro cónico
+que nace en un objeto y converge en otro punto, sin acelerones.
+
+**No uses fuerzas.** `PointAttractionForce` da *aceleración*, y encima su `Use Falloff` la hace depender de
+la distancia y `SolveForcesAndVelocity` la divide por la masa (que `InitializeParticle` suele randomizar).
+Tres variables ocultas para algo que tiene que ser un número.
+
+| Módulo | Script | Cómo queda |
+|---|---|---|
+| `AddVelocity` | **Particle Spawn** | modo **"From Point"** · `Velocity Origin` = el punto destino · `Velocity Speed` **negativa** (el modo hace `normalize(pos − punto) · speed`, el signo invierte el sentido) |
+| `Drag` | Particle Update | **desactivado y en 0** — cualquier drag hace decaer la velocidad |
+| `PointAttractionForce` | Particle Update | `Attraction Strength` **0**; se conserva solo por `Kill Within Radius` |
+| `InitializeParticle` | Particle Spawn | `Lifetime Min` y `Lifetime Max` **los dos linkeados** a un `User.Life` |
+
+**La vida se calcula, no se autora:** el BP empuja `User.Life = recorrido / velocidad`. Así la partícula
+muere siempre a la misma altura del cono aunque el destino se mueva, sin depender de que el matador acierte.
+La punta no queda dura porque nacen repartidas en la esfera de `Shape Location` y mueren repartidas igual.
+
+**La forma del cono la da la geometría, no un ángulo:** todas apuntan al *mismo* punto desde una esfera de
+radio R → cono de boca R que converge. El ancho se ajusta con el radio de `Shape Location`.
+
+⚠ Con el emisor en **local space**, el punto destino es un `NiagaraPosition` en coordenadas **locales**
+(típicamente `(distancia, 0, 0)` sobre +X) y al componente se le hace `SetWorldRotation(MakeRotFromX(dir))`
+cada cuadro. El cono entero gira rígido; no hay nada que perseguir en mundo. Ver `BP_Sequencer_SC.md`.
