@@ -750,6 +750,133 @@ Ver gotcha 401.
 apilar). 🔴 **Sacarla cuando se sepa el valor.** De paso se borro la sonda vieja
 `"TOOL gate release"` de `GateStop`, que ya estaba validada.
 
+## 2026-09-26 (3c) - Segunda pasada de visor: tres sintomas, tres causas de Tilt Brush
+
+Presion **medida en visor: llega a 1**. Eso mato mi hipotesis de "sale fino por presion baja".
+Pedido de Beltran, y va como regla: **"Procura revisar siempre desde lo que tiltbrush tiene"**.
+
+### El "pincel de lapiz mas rojizo" es un pincel ADITIVO
+
+Descartados por medicion, en este orden: el valor del color (nucleo = (255,140,50) exacto),
+el material, la textura (RGB blanco puro), el tonemapper (no se aplica) y el **encogimiento de
+alfa por mipmap** (cobertura sobre el clip: 65,9% en mip0 y 65-75% en todos los demas → no
+encoge).
+
+Lo que si dio: ajustando los pixeles a dos modelos, **gana el ADITIVO** — error mediano 27
+contra 46 del modelo "se mezcla con el fondo". Nucleo medido **(208, 116, 116)**, ganancia ~0,6
+(SoftHighlighter tiene `Gain 0.617`). El `Bloom.shader` de TB confirma `Blend One One`.
+
+🔑 **Sumar naranja sobre un fondo azul (B=112) deja el azul abajo: el B final nunca baja de
+~110 y el tono queda rosa. No es del pincel, es del fondo.** En Tilt Brush el entorno es oscuro
+y por eso los aditivos conservan su tono. Se comprueba en un segundo: dibujar contra una zona
+oscura de la escena.
+
+### Light: la textura esta, el halo es BLOOM
+
+De su fuente: prefab `Line.prefab` = `QuadStripBrushStretchUV` (cinta — igual al nuestro ✓),
+`m_PressureOpacityRange {0.5,1}`, `Blend One One`, y el frag termina en
+`color = encodeHdr(color.rgb)`. **El halo de color que recuerda Beltran es el bloom del
+pipeline HDR.** Con `r.MobileHDR=False` no hay bloom: no hay halo posible sin cambiar eso o
+falsearlo con una segunda pasada mas ancha y tenue. La textura si la tenemos y es la real.
+
+### Petal: el que faltaba era el SOMBREADO FACETADO
+
+Su prefab es el tubo ✓ y los numeros ya estan bien (3a), pero su shader vive en
+**`4_DiffuseSpecials`** — es **difuso, o sea iluminado** — y el prefab trae **`m_HardEdges: 1`**.
+Las cinco caras planas reciben luz distinta: **eso** son los petalos. El nuestro era color plano
+con normales suaves compartidas → jamas se iba a facetar.
+
+Agregado a la rama de `PetalShade` en `M_TB_Solid` (sigue con default 0 = neutro):
+```
+P        = WorldPosition (Camera Relative)         // camara-relativa por precision movil (gotcha 398)
+N_cara   = normalize(cross(ddy(P), ddx(P)))        // Custom: normal de CARA, no de vertice
+lambert  = dot(N_cara, (0.5,0.6,0.62)) * 0.5 + 0.5 // medio-lambert, nada cae a negro
+emissive = VertexColor * lerp(1, grad*ao*lambert, PetalShade)
+```
+🔑 **`ddx/ddy` da la normal de cara en el pixel shader: es el equivalente de `m_HardEdges` sin
+tocar la geometria** (que en el DSL seria reescribir `EmitPassTube` con 2N vertices por anillo).
+⚠ Desviacion consciente: TB usa luz real de escena; aca es una direccion fija. Precedente en el
+proyecto: `M_PaintRibbon_NC` ya tiene `ShadeAmount`/`ShadeLightDir`. La direccion es la perilla.
+
+⬜ Sin ver en visor.
+
+## 2026-09-26 (3d) - PETAL RESUELTO: `m_HardEdges` no es sombreado, es el MECANISMO
+
+Beltran mando un dibujo: ✗ tres hojas pegadas en un manojo; ✓ las mismas tres **abiertas en
+abanico**, unidas solo en la punta de abajo. Eso obligo a leer la funcion que yo **no** habia
+leido: Petal tiene `m_HardEdges: 1`, asi que usa `MakeClosedCircleHardEdges`, no la de aristas
+suaves que yo si habia verificado.
+
+```csharp
+// MakeClosedCircleHardEdges: DOS vertices COINCIDENTES por angulo, con normales DISTINTAS
+Vector3 nCur  = -cos(theta + dTheta)*up - sin(theta + dTheta)*rt;   // cara siguiente
+Vector3 nPrev = -cos(theta - dTheta)*up - sin(theta - dTheta)*rt;   // cara anterior
+AppendVert(k, center + radius*off1, nPrev, ...);   // mismo sitio
+AppendVert(k, center + radius*off1, nCur,  ...);   // normal distinta
+AppendDisplacement(k, off1);                       // el RADIO si es compartido
+
+// ApplyShapeModifiers, Petal:
+offset = m_geometry.m_Normals[vert] * pow(t,exp) * petalAmt * p;   // <- a lo largo de la NORMAL
+vertex = offset + center + radius * dir * curve;                   // dir = m_Displacements
+```
+
+🔑 **Los dos vertices que comparten una arista se van en direcciones DIFERENTES** a medida que
+crece `t^exp`: el tubo **se rasga en N petalos** unidos en el arranque (donde `t^3 ≈ 0`).
+Con nuestro anillo de N vertices compartidos y normal radial, el empuje mantenia el anillo
+cerrado → salia una trompeta, nunca una flor. **`m_HardEdges` es el mecanismo de la separacion,
+no un detalle de sombreado**, y la nota del tracker que decia "sumarlo al radio es equivalente"
+era falsa justo para Petal (era cierta solo para la version de aristas suaves).
+
+### `EmitTubeHard` (funcion NUEVA, reemplaza a `EmitPassTube` en `EmitDispatch`)
+
+2N vertices por anillo. Para `k` en `[0, nudos*2N)`: `i = k/2N`, `r = k-i*2N`, `j = r/2`,
+`side = r-2j`.
+```
+th   = 2pi*j/N                      dth = pi/N
+thn  = th - dth  si side==0,  th + dth  si side==1      ; normal de la cara anterior / siguiente
+off  = Right*cos(th)  + Surface*sin(th)                 ; radio, compartido
+nrm  = Right*cos(thn) + Surface*sin(thn)                ; NORMAL DE CARA, distinta por vertice
+pos  = K_Pos[i] + off*(size*0.5*curve) + nrm*(size*petal)
+UV.y = 1.0 si (side==0 y j==0), si no j/N               ; la costura de TB, sin vertice extra
+```
+Triangulos por cara `j`: `(cB_j, nB_j, cA_j+1)` y `(cA_j+1, nB_j, nA_j+1)`, con
+`A = base+2j`, `B = base+2j+1`. **Ya no hace falta cerrar el anillo con modulo en los UV**:
+cada cara tiene su propio par, asi que de paso desaparece la costura de UV que teniamos.
+
+✅ Spikes tambien trae `m_HardEdges: 1` → el emisor nuevo es el correcto para los dos tubos.
+⚠ `EmitPassTube` (el viejo, de anillo compartido) quedo en el BP sin llamadas. Borrarlo cuando
+esto se valide en visor.
+
+### El sombreado, ahora que la malla trae normales de cara de verdad
+Se saco el `Custom` con `ddx/ddy` (era un parche para fabricar normales de cara desde el pixel
+shader, y ademas arriesgado en movil por precision — gotcha 398) y se cambio por
+**`VertexNormalWS`**, que ahora ES la normal de cara. La cadena de `PetalShade` queda:
+```
+emissive = VertexColor * lerp(1, grad * ao * lambert, PetalShade)
+grad    = lerp(0.6, 1.0, u)                     ; literal de petalFrag
+ao      = lerp(1.0, 0.5*u, caraTrasera)         ; literal de fAO
+lambert = dot(VertexNormalWS, (0.5,0.6,0.62)) * 0.5 + 0.5
+```
+
+## 2026-09-26 (3e) - Light: el halo es bloom, y el ancho tambien
+
+De su fuente: `m_BrushSizeRange {0.05, 0.2}` — **Light es fino a proposito**, diez veces mas
+fino que OilPaint. Su grosor aparente **lo pone el bloom**: `Blend One One` + el frag termina en
+`encodeHdr(color.rgb)`. Con `r.MobileHDR=False` no hay bloom, asi que no hay ni halo ni grosor.
+
+**Decision tomada, y es una desviacion consciente:** si el halo no puede venir del post-proceso,
+tiene que venir de la geometria. `BrushSize` 0.8 → **3.0**. El razonamiento, para que sea
+revisable y no un numero al azar: el valor fiel seria 0.4 (regla `max*2`), y el bloom de TB
+multiplica el ancho aparente por ~7 → 0.4*7 ≈ 3.
+`Gain` 4 → **2**: con `G=4` el canal R **y** el G clipeaban (`0.2636*a*4 ≈ a`) → blanco plano
+sin textura; con `G=2` solo clipea el R (nucleo caliente) y el verde nunca llega a 1, asi que
+**la textura y el degradado vuelven a verse**. Regla: el canal C clipea donde `a > 1/(color_C*G)`.
+
+⚠ **Lo que NINGUN ajuste del pincel arregla:** aditivo sobre fondo azul. El azul del fondo queda
+debajo (B >= 110) y tine de rosa todo lo aditivo. En Tilt Brush el entorno es oscuro. Las salidas
+son fondo oscuro, o encender `r.MobileHDR` (que ademas devolveria el bloom de verdad) — **decision
+de Beltran, porque cuesta rendimiento en Quest**.
+
 
 ## Session log
 - **2026-09-25** — Completo y compilando: motor + herramienta + pawn + nivel de prueba.
@@ -759,6 +886,16 @@ apilar). 🔴 **Sacarla cuando se sepa el valor.** De paso se borro la sonda vie
   despues de cada tanda**. **Dos** crashes de Unreal, los dos por el Undo de un
   script fallido (gotchas 383-384). 🟢 **Visor OK, mecánica aprobada.** Un bug (secciones sin material) arreglado.
 
+- **2026-09-26 (3d/3e)** — 🏆 **Petal resuelto en la causa raiz**: `m_HardEdges: 1` no es
+  sombreado, es **el mecanismo de la separacion** — dos vertices coincidentes con normales de
+  cara distintas, y el empuje va por la normal → el tubo se rasga en petalos. Emisor nuevo
+  `EmitTubeHard` (2N vertices/anillo, sin costura de UV); `EmitPassTube` queda huerfano.
+  Light: el halo **y el ancho** son bloom → `BrushSize` 0.8→3.0 y `Gain` 4→2, razonados.
+  ⬜ Sin visor. 🔴 Pendiente de Beltran: fondo oscuro o `r.MobileHDR`.
+- **2026-09-26 (3c)** — 🔬 Presion **llega a 1** (medido en visor). El "lapiz rojizo" es un
+  pincel **ADITIVO** sobre fondo azul (modelo aditivo gana 27 vs 46; nucleo (208,116,116)):
+  causa el fondo, no el pincel. Light: el halo es **bloom HDR**, imposible con MobileHDR=False.
+  Petal: su shader es **difuso + `m_HardEdges`** → agregado sombreado facetado con `ddx/ddy`.
 - **2026-09-26 (3b)** — 🔬 **El "rojizo" no era color: era ancho.** Midiendo los pixeles de la
   captura, el nucleo de los dos trazos daba (255,140,50) exacto; el pincel 0 salia a 8 px con
   0,1% a color pleno. Light: `Gain` 180->4 (el 180 era fiel pero HDR, y aca no hay HDR).
