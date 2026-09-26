@@ -492,6 +492,138 @@ Su shadergraph **no tiene ningun nodo de taper** (es lit estandar) y no tiene pr
 el compartido de `FlatGeometryBrush`. **Su afinado doble sale de la PRESION**, igual que el
 nuestro. Somos fieles.
 
+
+## 2026-09-26 - REARQUITECTURA: `BP_TBDrawRig`, el actor AUTOINSTALABLE
+
+🔴 **Correccion de Beltran, y es de arquitectura, no de detalle:**
+*"En Soul Charger estamos intentando no tocar nada dentro del VRPawn. Sino construir BP con
+cada mecanica que llamen al PAWN. Pero no tocamos el event graph del pawn, esa es la idea de
+mantenerlo clean."*
+
+Yo habia construido `BP_TBPawn` a medida y le habia cableado input, paleta y herramienta. Eso
+**no migra**: en Soul Charger el destino es su VRPawn (duplicado del de VRTemplate) y no se
+toca. Tambien probe duplicar el VRPawn y lo **descarte**: un pawn paralelo tampoco es la forma.
+
+### La forma correcta: una mecanica = un actor que se instala solo
+
+**`BP_TBDrawRig`** se COLOCA EN EL NIVEL y no pide nada al pawn:
+
+| Funcion | Que hace |
+|---|---|
+| `CheckController` | en BeginPlay y en Tick, si no esta listo reintenta (el pawn puede no estar poseido aun) |
+| `FindControllers` | `GetPlayerPawn` -> `Actor|GetComponentsByClass(MotionControllerComponent)` |
+| `SortController` / `SortLeft` | 🔑 clasifica **por su `MotionSource`**, no por nombre: `RightAim` y `LeftGrip` |
+| `InstallInput` | `Input|EnableInput` sobre el PlayerController + sus propios IMC (con las opciones correctas, gotcha 388) |
+| `TryInstall` | `FindControllers` -> `IsValid(RightAim)` -> `DoInstall`. **Solo exige la mano derecha** (ver abajo) |
+| `DoInstall` | `InstallInput` -> `TBTool.Setup(RightAim)` -> `MountPalette` -> `bReady = true` |
+| `MountPalette` | spawnea `BP_TBPalette`, la attachea al `LeftGrip` y le pasa `Setup(TBTool, RightAim)`. Se protege sola con `IsValid(LeftGrip)`. Tambien cuelga y enciende `SM_LHand` |
+| `MountHands` | cuelga `SM_RHand` del `RightGrip` con `KeepRelative` y lo enciende. Protegida con `IsValid(RightGrip)` |
+| `SortRGrip` | tercer paso de clasificacion: captura el `RightGrip` (la malla del mando va en el GRIP, no en el Aim) |
+| `TB_Press` / `TB_Release` / `TB_Pressure` | rutean el input a la herramienta |
+| EventTick | ademas de reintentar la instalacion, **consulta el gatillo cada cuadro** y se lo pasa a `TBTool.GateStop(Held)` |
+
+El actor **hostea sus propios eventos de Enhanced Input** (`IA_Shoot_Right` Started/Completed,
+`IA_Hand_IndexCurl_Right` Triggered), lo cual es posible en un Actor gracias a `EnableInput`.
+
+💡 **Clasificar por `MotionSource` en vez de por nombre de componente** es mas robusto que el
+patron `[[BP_BreathManager_SC]]` de buscar por nombre: sobrevive a que alguien renombre el
+componente, y es semantico. El nombre solo lo sabe quien escribio ese pawn; el `MotionSource`
+lo define el runtime de XR.
+
+### Lo que quedo del pawn de prueba
+`BP_TBPawn` se **limpio**: se le desconectaron (no borraron) `Setup`, `OnTriggerStart`,
+`OnTriggerEnd`, `OnCurl`, `SetPressure` y `SpawnPalette`. Queda como un pawn VR pelado con
+camara, mandos y los meshes (`SetupHands`, que se reconecto a proposito). Asi el rig es el
+unico que dibuja y se prueba el camino de instalacion real.
+
+⚠ Al desconectar `SpawnPalette` quedo huerfano `SetupHands` (colgaba de el). **Cortar un
+nodo de una cadena deja sin exec a todo lo que venia despues** - la lectura post-cirugia lo
+atrapo. Reconectado al ultimo `AddMappingContext`.
+
+### 2026-09-26 - Por que no funcionaba en visor, y los dos arreglos
+
+Beltran probo el rig y no pasaba **nada**: ni paleta ni dibujo. Pregunto si estaba mal el
+GameMode o la referencia al pawn. **No era eso** (queda verificado, para no volver a mirar ahi):
+`WorldSettings.DefaultGameMode = GM_VR`, el `BP_TBPawn_C_0` colocado tiene
+`AutoPossessPlayer = Player0` y por eso gana la posesion — el `DefaultPawnClass` de `GM_VR`
+(`VRPawn`) **nunca se llega a spawnear**, porque `RestartPlayerAtPlayerStart` solo crea el pawn
+por defecto en el `else` de "el controller ya tiene pawn". Y `DefaultInput.ini` tiene
+`DefaultInputComponentClass=EnhancedInputComponent`, requisito para que un **Actor** reciba
+eventos de Enhanced Input via `EnableInput`.
+
+🔴 **La causa real: los dos grips del pawn tenian `MotionSource = "Left"`.** Los cree con el
+nombre `MC_RGrip` / `MC_LGrip` y nunca les escribi el `MotionSource`, que **nace en `Left`**.
+`SortLeft` busca `LeftGrip` -> nunca lo encontraba -> el gate no pasaba -> no se instalaba nada.
+Arreglado en la plantilla **y en la instancia del nivel** (la instancia lo tenia como override
+propio y no heredo el cambio del CDO). Detalle en gotcha 392.
+
+🔴 **Y una fragilidad de diseno, arreglada:** el gate era `IsValid(RightAim)` **y**
+`IsValid(LeftGrip)` antes de instalar, asi que faltando un mando se perdia tambien el dibujo y
+el sintoma no señalaba nada. Ahora `TryInstall` solo exige `RightAim` y `MountPalette` se
+protege sola. Una mano izquierda mal configurada cuesta **solo la paleta**. `CheckLeft` quedo
+sin uso y **se borro**. Gotcha 393.
+
+✅ **Verificado sin casco**: dos `PrintString` temporales al final de `DoInstall` y de
+`MountPalette`, `StartPIE` en viewport, `GetLogEntries(category:"LogBlueprintUserMessages")` ->
+`TBRIG install OK` + `TBRIG palette OK`. Prints borrados, todo compilado y guardado.
+⬜ **Falta la prueba en visor** (que el trazo salga de la mano y que la paleta se pueda apuntar).
+
+### 2026-09-26 (2a) - La sesion de visor: cuatro bugs, cuatro causas distintas
+
+Beltran probo cuatro veces. Cada pasada aislo una causa; **ninguna era la misma**.
+
+**1. No dibujaba.** El nodo `EnableInput` tenia el PlayerController en el pin **`self`** y el
+parametro `PlayerController` vacio. Como un PlayerController *es* un Actor, compilo limpio y no
+hizo nada: el rig nunca registro su InputComponent. Lo delataron las sondas — `PAWN hands` si
+imprimia, `RIG press` y `RIG curl` nunca. Gotcha 394. 🔴 Mi verificacion en PIE de la pasada
+anterior **no lo agarro porque probaba que la funcion corria, no que hiciera efecto**.
+
+**2. No se veian los mandos.** La instancia del nivel tenia `staticMesh = None` en los
+componentes, aunque el Blueprint los tenia asignados. Gotcha 396.
+
+**3. El trazo se quedaba pegado, fino.** `IA_Hand_IndexCurl_Right` **no es el gatillo**: es la
+curvatura capacitiva del dedo, y con el dedo apoyado nunca baja del umbral 0,08 donde yo habia
+colgado el corte. El log lo mostro: esa accion dispara en **todos** los cuadros, incluso antes de
+apretar. Reemplazado por el modelo de TB: el Tick del rig consulta `IA_Shoot_Right` y se lo pasa
+a `GateStop(Held)`; el gatillo decide si el trazo vive, el dedo solo modula el grosor. Gotcha 395.
+**El gate por presion era invencion mia**, puesta para tapar §387.
+
+**4. Los mandos en mala posicion y con material que reventaba la vista.** Dos causas: mi
+`SetupHands` los colgaba con `SnapToTarget` en posicion **y** rotacion, regla que **borra
+cualquier offset**; y el material original es lit y brillaba. A pedido de Beltran los mandos
+**pasaron del pawn al rig** (la mecanica trae sus propios visuales).
+
+#### Las transformadas correctas (de `BP_HandRig_NC` y del `VRPawn` del VRTemplate, identicas)
+El izquierdo colgaba directo del grip; el derecho colgaba de un `HandRight` intermedio (el
+maniqui `B_MannequinsXR`), asi que hubo que **componer** las dos transformadas
+(`scratchpad`, verificado reconvirtiendo la matriz a rotador: error 1e-16).
+
+| | Posicion | Rotacion | Escala |
+|---|---|---|---|
+| `SM_RHand` sobre `RightGrip` | 5.685942, 0.540018, -1.677589 | -13.566261, -83.539335, 64.230738 | 1.0875 |
+| `SM_LHand` sobre `LeftGrip` | 5.876514, -1.566667, -2.049637 | 0, -95, 65 | 1.0875 |
+
+Se cuelgan con **`KeepRelative`** (no `SnapToTarget`), asi que lo que se ve en el panel de
+detalles es lo que queda en la mano. Nacen con `bVisible = false` y se encienden al colgarse,
+para que no floten en la posicion del rig durante los ~7 s que tarda la posesion del pawn.
+
+**Material:** `M_TBHand_NC` (unlit, opaco) + `MI_TBHand_NC` con parametro `Tint` (gris 0,09).
+Sin especular, no puede reventar con ninguna luz. El color se ajusta en la instancia.
+
+🟢 **Validado en visor el 2026-09-26**: dibuja, corta limpio al soltar, paleta y mandos a la vista.
+
+### El contrato de migracion a Soul Charger
+**Colocar `BP_TBDrawRig` en el nivel. Nada mas.** No se toca el VRPawn. Si su VRPawn usa otros
+IMC, se cambian los dos que agrega `InstallInput`.
+
+⚠ **Lo unico que el rig le exige al pawn:** un `MotionControllerComponent` con
+`MotionSource = RightAim` y otro con `LeftGrip`. El VRPawn del VRTemplate los tiene con esos
+valores exactos (verificado), asi que en Soul Charger no hay nada que tocar — pero **si alguien
+agrego mandos a mano, hay que leer su `MotionSource`, no confiar en el nombre**.
+
+⚠ **Y si el rig gana componentes DESPUES de colocarlo, hay que volver a colocarlo**: recompilar
+no actualiza una instancia ya puesta (gotcha 396). Vale tanto para este nivel como para Soul Charger.
+
 ## Session log
 - **2026-09-25** — Completo y compilando: motor + herramienta + pawn + nivel de prueba.
   Diseno escrito desde el codigo fuente clonado. Motor construido entero,
@@ -499,6 +631,14 @@ nuestro. Somos fieles.
   el Undo de un script fallido) costo la primera pasada de variables: **se reconstruyo guardando
   despues de cada tanda**. **Dos** crashes de Unreal, los dos por el Undo de un
   script fallido (gotchas 383-384). 🟢 **Visor OK, mecánica aprobada.** Un bug (secciones sin material) arreglado.
+
+- **2026-09-26 (2a)** — 🟢 **Rig VALIDADO EN VISOR.** Cuatro bugs en cuatro pasadas: `EnableInput`
+  mal targeteado (394), malla sin asignar en la instancia (396), el corte del trazo colgado del
+  sensor del dedo en vez del gatillo (395), y los mandos con `SnapToTarget` + material lit. Los
+  mandos pasaron del pawn al rig. ⬜ Sin respaldo todavia.
+- **2026-09-26** — 🟢 Arreglado el rig: los grips del pawn de prueba no tenian `MotionSource`
+  (default `Left`), asi que la instalacion nunca pasaba el gate. Gate reestructurado para que
+  degrade por partes. Verificado en PIE por log; **pendiente visor**.
 
 ## TODO
 - `m_BackfaceHueShift` necesita doble cara real (hoy two-sided por material).
