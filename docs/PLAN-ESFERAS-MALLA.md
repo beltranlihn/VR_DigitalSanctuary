@@ -39,8 +39,50 @@ que hoy usa `MI_OrbBlob_SC` (`ChainColorLow`, `ChainColorHigh`, `Rad0`, `ROrb`, 
 el sistema de paletas, distribución y sonido siguen funcionando sin un solo cambio.
 Los que sobran del raymarch (`Steps`, `MaxT`) se empujan igual y son no-ops inofensivos.
 
+## 🔴 PASO 0 — leer `MI_OrbBlob_SC` ANTES de escribir shader
+Leyendo el codigo real del master (no el tracker) aparecio una incoherencia que hay que
+resolver primero, porque decide de donde sale la **segunda bola**:
+
+```
+P[8] = COrb;  R[8] = max(ROrb, 0.001);
+int NA = (ROrb > 0.001) ? (N + 1) : N;
+for (j = 0; j < NA; j++) ...
+```
+El orbe vive en el indice **8**, y ese indice solo se alcanza cuando `NA = 9`, o sea con
+`BlobCount = 8` (la cadena). Con **`BlobCount = 1`** el bucle llega hasta el indice **1**,
+que es `C1` / `Rad0.y` — **no** el orbe. O sea que, tal como esta el codigo hoy, una esfera
+NO puede recibir su lobulo por `COrb`/`ROrb`.
+
+Dos explicaciones posibles, y **no hay que adivinar**:
+- **(a)** `MI_OrbBlob_SC` pone el lobulo en `C1` + `Rad0.y`, y la nota del tracker (2026-09-24)
+  quedo desactualizada.
+- **(b)** El lobulo se **perdio** cuando se agrego la poda A4 (2026-09-25), que reescribio el
+  bucle. Seria una regresion silenciosa: las esferas quedarian como bolas simetricas.
+
+👉 **Primer comando al volver el MCP**: leer los overrides de `MI_OrbBlob_SC`
+(`MaterialInstanceTools` / `get_properties` de `scalarParameterValues` + `vectorParameterValues`)
+y mirar si `C1`/`Rad0.y` estan seteados. Eso decide si el port copia dos bolas o una, y de paso
+dice si hay una regresion que arreglar en el raymarch.
+⚠ Tambien explica el `ps`: la semilla por esfera sale de `COrb` (`ps = COrb·(0,11 · 0,17 · 0,23)`),
+asi que `COrb` **si** esta seteado aunque el lobulo no se use — mirar los dos.
+
+## El wobble, copiado del codigo real
+```hlsl
+float WobA = WobAFS.x;  float WobF = WobAFS.y;  float WobS = WobAFS.z;
+float solo = (WobA > 0.001) ? 1.0 : 0.0;
+float ps   = solo * (COrb.x*0.11 + COrb.y*0.17 + COrb.z*0.23);
+float sJit = 1.0 + solo * (frac(ps*0.137 + 0.31) - 0.5) * 0.5;
+// por gota, con dn = direccion desde el centro de la gota al punto:
+float ws = sin(dn.x*WobF + ps*1.7) + sin(dn.y*WobF*1.31 + ps*3.1) + sin(dn.z*WobF*0.77 + ps*5.3);
+float wm = sin(dn.x*WobF*1.9 + Tt*WobS + ps*2.3) * sin(dn.y*WobF*1.3 - Tt*WobS*0.83 + ps*1.9);
+float rr = R[j] * (1.0 + WobA * (ws*0.25 + wm*0.55));
+```
+El radio maximo con wobble es `R * (1 + 1.31*WobA)` — el mismo margen que usa la poda del master,
+y el que hay que usar como cota superior de la biseccion.
+🔴 **El `ps` va en TODO**: sin el, las 20 esferas respiran al unisono. Ya se pago una vez.
+
 ## Piezas
-1. **`SM_BlobOrb_SC`** — icoesfera de **radio 50 local** (misma convención que `SM_AlmaSphere`, así
+1. **`SM_BlobOrb_SC`** — 🟢 generador ya escrito: `scripts/gen_blob_orb.py`. Icoesfera de **radio 50 local** (misma convención que `SM_AlmaSphere`, así
    `Rad0` = 42 sigue valiendo), subdivisión 3 = 642 verts / 1.280 tris. Generada con Blender headless,
    script versionado al lado de `gen_blob_tube.py`. Con `WobbleAFS.y` = 4, 642 verts resuelven la onda
    de sobra. 20 esferas × 1.280 tris = 25k tris, que en este proyecto es ruido (somos fill-rate bound).
