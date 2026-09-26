@@ -877,6 +877,123 @@ debajo (B >= 110) y tine de rosa todo lo aditivo. En Tilt Brush el entorno es os
 son fondo oscuro, o encender `r.MobileHDR` (que ademas devolveria el bloom de verdad) — **decision
 de Beltran, porque cuesta rendimiento en Quest**.
 
+## 2026-09-26 (3f) - 🟢 PETAL SE ABRE EN VISOR. Los dos remates, con aritmetica
+
+Beltran: *"Ahora si se abren"*. La separacion por aristas duras esta **validada en visor**.
+
+### La punta poligonal: no se arregla con mas nudos
+
+Medido, con S = 2 cm y separacion entre nudos `0.2 + S*0.2 = 0.6 cm`:
+
+| t | ancho de la hoja | paso lateral por nudo (trazo 15 cm) | (trazo 30 cm) |
+|---|---|---|---|
+| 0.50 | 1.18 cm | 0.09 | 0.05 |
+| 0.90 | 0.36 cm | 0.29 | 0.15 |
+| **0.97** | **0.11 cm** | **0.34 → ESCALERA** | **0.17 → ESCALERA** |
+
+🔑 **El paso supera al ancho solo a partir de t≈0.95, y en los dos largos de trazo.** Duplicar
+los nudos no lo arregla: a esa altura la hoja ya tiene ancho ~0 (`|sin(t·pi)| → 0`) mientras la
+punta sigue acelerando (`t^3`). **Es estructural de la formula, no de la teselacion.**
+✅ Verificado que el espaciado es fiel: TB usa `m_SolidMinLengthMeters_PS + PressuredSize*0.2`
+con `0.002` para los tres pinceles que miramos, y nosotros `SolidMinLengthCm=0.2` + `0.2`.
+
+**Arreglo: `TipMinCurve`** — variable nueva, **default 0 = NEUTRO**, usada solo dentro de la rama
+`ShapeMod == 2` de `ShapeCurve`:
+```
+curve = max(|sin(u*pi)|, TipMinCurve)
+```
+`Brush_Petal` la pone en **0.15** → la hoja nunca baja de ~0.18 cm de ancho y la punta termina
+en un remate chico en vez de una aguja. **No hace falta multiplicar por `u`**: en `t=0` el empuje
+es 0, asi que las 5 caras quedan en un pentagono de 1.5 mm de radio — sigue leyendose como punta.
+⚠ Desviacion consciente de TB (ellos llegan a ancho 0). `TipMinCurve` es la perilla.
+⚠ `DoubleTaperedFlat` tambien usa `ShapeMod 2`, pero **el trazo es un actor NUEVO por trazo**, asi
+que arranca del CDO (0) y solo Petal se lo cambia. No hace falta ponerlo en los otros ocho.
+
+### Light: ningun valor del pincel lo arregla, es el FONDO
+
+Color de cada zona del trazo (aditivo, `Gain 2`), calculado:
+
+| zona | sobre el azul del nivel | sobre fondo oscuro |
+|---|---|---|
+| centro | (255, 178, 128) | (255, 177, **67**) |
+| medio | (255, 156, 124) | (255, 154, **58**) |
+| halo | (164, 91, **116**) | (162, 88, **32**) |
+
+🔑 El fondo aporta **B = 0.162 en lineal**, asi que el canal azul del trazo **nunca baja de 112**:
+eso es lo que lava el naranja hacia blanco y borra el halo. Sobre oscuro con **`Gain 4`** el centro
+da (255,241,93) y el borde (221,121,45) — literalmente *"quema un poco a blanco pero tiene un halo
+del color alrededor"*, que es como Beltran recuerda el de TB.
+⬜ **Pendiente de decision**: fondo oscuro en `L_TBTest` (gratis, y es el entorno real de TB) o
+`r.MobileHDR=True` (devuelve el bloom de verdad, cuesta rendimiento). `Gain` quedo en **2** porque
+es lo mejor sobre azul; **si el fondo se oscurece, subirlo a 4**.
+
+## 2026-09-26 (3g) - PALETA REDUCIDA A 4 + RUEDA DE COLOR
+
+Pedido de Beltran: *"dejar solo los pinceles 3, 4, 6 y 9, el resto que queden guardados"* y
+*"agregar junto a la seleccion de pinceles una rueda de color... se selecciona solo tocando,
+sin trigger"*.
+
+### 🔴 La paleta se ve ESPEJADA: su numeracion NO es el indice del array
+
+El componente `Mesh` esta con **Yaw 180**, asi que el eje Y local se invierte para el que mira:
+la columna que el codigo pone a la izquierda **aparece a la derecha**. La grilla se arma
+row-major desde arriba-izquierda en local, pero se LEE al reves por fila.
+
+Dos evidencias independientes lo confirman: (1) la geometria del componente, y (2) el pincel que
+Beltran llamo *"el primero"* resulto ser, por medicion de pixeles, el **aditivo** = indice 2 — que
+solo cae en la posicion 1 si la fila esta invertida.
+
+| el ve | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|---|---|---|---|---|---|---|---|---|---|
+| indice | 2 | 1 | **0** | **5** | 4 | **3** | 8 | 7 | **6** |
+
+Sus 3/4/6/9 = **TaperedMarker Flat, OilPaint, Light, WetPaint**.
+
+### `BrushIds`: la paleta pasa a ser una LISTA, no los 9 fijos
+
+Variables nuevas en `BP_TBPalette` (todas editables en el panel):
+`BrushIds` (int[], **[0,5,3,6]**), `Cols` (2), `WheelOffset` ((0,-5.6,0)), `WheelRadius` (2.4).
+
+- **`BuildUI`** (reemplaza a `BuildPalette`, que queda sin llamadas): arma `Length(BrushIds)`
+  slots en grilla de `Cols` columnas, **centrada** — `Y = (col - (Cols-1)/2)*Pitch`,
+  `Z = ((rows-1)/2 - row)*Pitch`, con `rows = (n + Cols - 1)/Cols`. El icono sale de
+  `Icons[BrushIds[i]]`, asi que **los 9 iconos y los 9 presets siguen ahi**: cambiar la paleta es
+  editar un array de enteros.
+- **`SendToTool`** manda `BrushIds[Selected]`, no el indice del slot.
+- `TestSlot` y `ApplyHighlight` no se tocaron: recorren `Slots`/`Mids`, que ahora tienen 4.
+
+### La rueda de color
+
+Una seccion mas del mismo ProceduralMesh (indice `n`), un quad con `M_TB_ColorWheel`.
+
+`M_TB_ColorWheel` — Unlit / Masked / two-sided, un `Custom` sobre la UV:
+```hlsl
+float2 c = UV*2-1;  float r = length(c);
+float h = atan2(c.y, c.x) * 0.15915494 + 0.5;
+float3 k = frac(h + float3(0, 2.0/3, 1.0/3)) * 6 - 3;
+float3 rgb = lerp(1, saturate(abs(k)-1), saturate(r));
+return float4(rgb, r < 1 ? 1 : 0);      // alfa = la mascara del disco
+```
+
+`TestWheel` (llamada al final de `PickSlot`, o sea **cada tick, sin gatillo**):
+```
+tipL = InverseTransformLocation(Mesh.WorldTransform, Tip.WorldLocation)
+d    = tipL - WheelOffset
+si |d.yz| < WheelRadius y |d.x| < PickRadius:
+   SetWheelColor(atan2(-d.z, d.y) + 180, clamp(|d.yz| / WheelRadius))
+```
+`SetWheelColor(H,S)` hace `HSVtoRGB(H, S, 1, 1)` y lo escribe en `BrushColor` de la herramienta.
+
+🔑 **El `-d.z` del atan2 no es un capricho**: la UV del quad tiene V creciendo hacia ABAJO
+(`Q_UV` pone V=1 en los vertices de abajo), asi que el `c.y` del material es el negativo del Z
+local. Sin ese signo, el color que se toca no es el que se ve.
+✅ El espejado de la paleta **no afecta** a la rueda: lo visible y la deteccion salen de la misma
+coordenada local, asi que coinciden. Solo se ve el circulo cromatico en sentido antihorario.
+
+⚠ La rueda escribe color mientras el dedo este adentro, pero `BeginStroke` copia `BrushColor` a
+`BaseColor` **al empezar** el trazo, asi que cambiarlo a mitad no altera el trazo en curso.
+⬜ Sin visor.
+
 
 ## Session log
 - **2026-09-25** — Completo y compilando: motor + herramienta + pawn + nivel de prueba.
@@ -886,6 +1003,16 @@ de Beltran, porque cuesta rendimiento en Quest**.
   despues de cada tanda**. **Dos** crashes de Unreal, los dos por el Undo de un
   script fallido (gotchas 383-384). 🟢 **Visor OK, mecánica aprobada.** Un bug (secciones sin material) arreglado.
 
+- **2026-09-26 (3g)** — 🎨 **Paleta reducida a 4 + rueda de color.** La paleta se ve
+  **espejada** (Yaw 180): su numeracion es la fila invertida, confirmado por dos evidencias.
+  Sus 3/4/6/9 = TaperedMarker, OilPaint, Light, WetPaint. Ahora la paleta es un array
+  `BrushIds` editable; los 9 presets e iconos siguen guardados. Rueda HSV por `Custom` en la UV,
+  seleccion por proximidad sin gatillo. ⬜ Sin visor.
+- **2026-09-26 (3f)** — 🟢 **Petal VALIDADO EN VISOR: "ahora si se abren"**. Punta poligonal
+  medida: el paso lateral supera el ancho de la hoja solo en t>0.95 y **no lo arregla teselar**
+  → `TipMinCurve` (default 0 neutro, 0.15 en Petal). Light: calculado que **ningun `Gain` lo
+  arregla sobre fondo azul** (el B del fondo no baja de 112); sobre oscuro con Gain 4 sale
+  exactamente lo que recuerda. 🔴 Pendiente de Beltran: fondo oscuro o `r.MobileHDR`.
 - **2026-09-26 (3d/3e)** — 🏆 **Petal resuelto en la causa raiz**: `m_HardEdges: 1` no es
   sombreado, es **el mecanismo de la separacion** — dos vertices coincidentes con normales de
   cara distintas, y el empuje va por la normal → el tubo se rasga en petalos. Emisor nuevo

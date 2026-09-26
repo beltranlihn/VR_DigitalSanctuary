@@ -67,6 +67,46 @@ llega a unirlos (`smin(a,a,k) = a − k/4` = 4,79 − 3,81 > 0). El `smin` de lo
 **misma línea de código**, así que el raymarch en el editor se parte igual. En play los une
 `PushRadii`. Si hiciera falta que se vea unido también en el editor, la perilla es `BlobRadius`.
 
+## 🆕 El tinte por esfera insertada: el gusano PREGUNTA, no espera que le avisen
+La cadena de aviso original es: `BP_SeqSlot_SC` guarda un **`ChainRef` tipado `BP_SlotChain_SC`**
+y en su `Pulse` le llama `SetPulseColor(SlotColor)`. Como el gusano es una clase **hermana**, ese
+ref no lo puede apuntar nunca, y el tinte no llegaba.
+
+**Herencia descartada por tooling, no por diseño.** Un hijo de `BP_SlotChain_SC` habria hecho que
+todos los casts existentes (`BP_SeqSlot_SC` y tambien `BP_SoundOrb_SC`) funcionaran gratis. Pero
+los componentes del hijo **resuelven a los templates del PADRE** (`ActorTools.get_components` sobre
+el CDO del hijo devuelve `.../BP_SlotChain_SC.BP_SlotChain_SC_C:Volume_GEN_VARIABLE`), asi que
+cambiarle la malla por MCP habria modificado **el raymarch**. El override de componente heredado
+vive en el `InheritableComponentHandler` y el MCP no lo expone.
+
+✅ **Lo que se hizo: invertir la direccion.** El gusano ya consultaba a cada slot su `PulseT` en
+`PushRadii`; ahora tambien le consulta su `SlotColor`. Funcion nueva **`PullPulseColor`**, llamada
+en el Tick **entre `PushCenters` y `PushRadii`** (tiene que correr antes, porque `PushRadii` es
+quien interpola `ColorNow → ColorTarget` y lo empuja a `ChainColorPulse`):
+```
+BestPulse = 0.02                       ; umbral, asi el color no salta con ruido
+for s in Slots:
+    if s.PulseT > BestPulse: BestPulse = s.PulseT ; ColorTarget = s.SlotColor
+```
+👉 **No toca un solo Blueprint compartido**, y el camino del raymarch queda exactamente como estaba.
+Ademas el pull es mas robusto que el push: no depende de que el evento llegue, se recupera solo, y
+funciona igual en el primer cuadro.
+
+⚠ Dos trampas del DSL pagadas aca: **`bind` dentro de un `for` se HOISTEA fuera del bucle** (la
+llamada quedaba una sola vez y sobre el array, no sobre el elemento) → repetir el getter en vez de
+bindear; y el getter de una variable de otra clase se resuelve **por nombre**, asi que `GetPulseT`
+salio como `Class|BPSoundBubble|GetPulseT` en el `read`. En el grafo el pin es
+`BP Seq Slot SC Object Reference`, o sea esta bien conectado: **es el read el que renombra**.
+
+## 🎚️ `BlobRadius`: el umbral para que no se separen
+Con los slots a **21,4** de distancia, dos gotas se tocan cuando `smin(a,a,k) < 0`, o sea
+`10,7 − R − Smooth/4 < 0` → **R > 6,9**. Pero la gota mas chica baja a `R·MinScale` (0,856) y el
+flotado separa los centros hasta ~2,5 mas, asi que el radio seguro es **≈ 11** (puesto en la
+instancia el 2026-09-26, antes 5,91).
+⚠ Al fusionarse tanto se pierde la definicion de gota en el medio. El lever para recuperarla sin
+volver a separarlas es **bajar `Smooth`** (con el radio grande sobra margen): 10 la recupera, 7 la
+marca fuerte. Es decision de Beltran.
+
 ## TODO
 - [ ] 🔴 **Visor** con el secuenciador corriendo: que las esferas insertadas pulsen y tiñan.
 - [ ] Medir el costo con el banco (`-Modos 0,5,3`) — ⚠ la última medición quedó **saturada** contra
