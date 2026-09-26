@@ -107,6 +107,27 @@ instancia el 2026-09-26, antes 5,91).
 volver a separarlas es **bajar `Smooth`** (con el radio grande sobra margen): 10 la recupera, 7 la
 marca fuerte. Es decision de Beltran.
 
+## ⬜ PENDIENTE: el nacimiento (la "linea" fea) — diseño cerrado, sin aplicar
+Sintoma reportado en VR Preview: al nacer el gusano **se ve una linea de geometria**.
+🔴 **La causa es estructural y no la tenia el raymarch**: al arrancar, el `RevealT` de cada
+slot vale 0, los radios llegan en ~0, y **una malla no puede "no existir"**. Donde el raymarch
+simplemente no encontraba superficie y no dibujaba nada, el tubo **colapsa sobre el eje** y eso
+se ve como un hilo.
+
+✅ **El arreglo: la opacidad sigue al radio LOCAL, por vertice.**
+Un fundido GLOBAL no sirve — los slots se revelan de a uno, asi que entre una gota ya viva y
+otra en cero la linea volveria a aparecer. Por eso va por vertice, en el canal `z` que
+`Custom_1` tenia libre:
+1. `Custom_1` devuelve `float3(shade, pw, r)`, donde `r` es el radio de la superficie en ese
+   anillo (ya lo calcula la biseccion).
+2. `ComponentMask(B)` → `VertexInterpolator` → `Divide` por un escalar nuevo **`RevealFade`**
+   (default 3.0) → `Saturate` → multiplicar contra lo que ya alimenta `MP_Opacity`
+   (`Multiply_2` = `OneMinus(ChainTransparency) × BenchGate`).
+👉 Un anillo sin superficie (su gota no nacio, o cae en un hueco) queda **transparente** en vez
+de colapsar al eje. Bonus: tambien limpia los huecos si alguna vez las gotas se separan.
+⚠ Quedo a medio aplicar cuando se cayo el MCP; **nada de esto llego al disco**, el material en
+git es el anterior. Rehacer entero.
+
 ## TODO
 - [ ] 🔴 **Visor** con el secuenciador corriendo: que las esferas insertadas pulsen y tiñan.
 - [ ] Medir el costo con el banco (`-Modos 0,5,3`) — ⚠ la última medición quedó **saturada** contra

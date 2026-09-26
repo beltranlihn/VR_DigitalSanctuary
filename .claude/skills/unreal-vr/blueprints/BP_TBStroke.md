@@ -994,6 +994,74 @@ coordenada local, asi que coinciden. Solo se ve el circulo cromatico en sentido 
 `BaseColor` **al empezar** el trazo, asi que cambiarlo a mitad no altera el trazo en curso.
 ⬜ Sin visor.
 
+## 2026-09-26 (3h) - Punta visible, grosor por joystick, y la rueda corrida
+
+### 1. `SM_Tip`: la esfera desde donde nace todo
+Beltran: *"al controller le falta alguna esfera chiquitita al frente, que sea desde donde nace el
+dibujo y el punto desde donde se seleccionan las cosas. Sino es muy dificil con el control tan
+grande."*
+
+Componente nuevo en `BP_TBDrawRig`: **`SM_Tip`** (esfera de motor, escala 0.012 = 1,2 cm),
+material `MI_TB_Tip` (instancia de `M_TBHand_NC` con `Tint` claro), invisible en reposo.
+`MountTip` la attachea a `RightAim` con `KeepRelative` y la enciende — offset **(2.5, 0, 0)**,
+editable en el panel.
+
+🔑 **Y pasa a ser el TIP de todo**: `DoInstall` le manda `SM_Tip` (no `RightAim`) al
+`Setup` de la herramienta, y `MountPalette` se lo manda al `Setup` de la paleta. O sea que la
+misma esfera es el origen del trazo Y el puntero de seleccion — que es justo lo que pidio.
+
+🔴 **Hay que RECOLOCAR el rig en el nivel**: gotcha 396, una instancia ya puesta no recibe
+componentes nuevos (los crea con `staticMesh: None` y transform en cero).
+
+### 2. Grosor por el joystick derecho, con la curva de TB
+
+De su fuente (`PointerScript.BrushSize01` + `DevOptions.BrushLerp = Default`):
+```csharp
+_FromRadius(x) = sqrt(x)              // BrushLerp.Default == SqrtRadius
+BrushSizeAbsolute = _ToRadius( Lerp( sqrt(min), sqrt(max), Clamp01(t) ) )   // = (...)^2
+```
+🔑 **No es un lerp lineal: interpola en la RAIZ del tamano**, que es lo que hace que el extremo
+fino tenga resolucion fina. Portado literal en `ApplySizeSlider` (llamada al final de
+`ApplyPreset`, o sea despues de que el preset fijo sus valores):
+```
+BrushSize = ( lerp( sqrt(SizeMins[Preset]), sqrt(BrushSize), Size01 ) )^2
+```
+`BrushSize` del preset **ya era** el maximo de TB (regla `max*2`), asi que sirve de `max` sin
+tocar los nueve `Brush_*`. Los minimos van en **un array** `SizeMins[9]` en el CDO — una sola
+escritura en vez de 18 nodos, y editable en el panel:
+`[0.05, 0.05, 0.05, 0.75, 0.2, 0.1, 0.02, 0.2, 0.1]` (= `m_BrushSizeRange.x * 2`; Light lleva el
+mismo x7,5 que su maximo, por lo del bloom).
+
+**El input, sin crear assets:** `IMC_Default` **no mapea** el eje X del stick derecho (solo
+`Left_Thumbstick_X` y `Right_Thumbstick_Y`), asi que no habia accion que leer. En vez de fabricar
+un `IA`+`IMC` se lee la tecla cruda:
+```
+Rig.Tick -> Tool.AdjustSize( GetInputAnalogKeyState(PC, "OculusTouch_Right_Thumbstick_X"), DeltaSeconds )
+```
+`AdjustSize` tiene zona muerta 0,15 y `SizeRate` 0,6 (unidades 0-1 por segundo), y clampea.
+`Size01` vive en la herramienta y **`BeginStroke` lo copia al trazo** junto al color — o sea que
+mover el stick a mitad de un trazo no lo altera.
+
+⚠ **`Size01` arranca en 1.0 a proposito**: hoy los pinceles estaban dibujando en el MAXIMO de TB,
+asi que el default preserva exactamente lo aprobado y el stick solo achica. Para agrandar mas hay
+que subir el `BrushSize` del preset (que es el maximo) — no es una limitacion nuestra, es el rango
+de TB.
+
+### 3. La barra de grosor y la rueda corrida
+`M_TB_Slider` (unlit, `Fill` escalar) pinta una barra; `BuildSlider` la crea como una seccion mas
+del mismo mesh y guarda su MID en `SliderMid`; `UpdateSlider` (en `PickSlot`, cada tick) le pasa
+`Tool.Size01`. Perillas: `SliderOffset` (0,0,-4.6), `SliderHalfW` 3.0, `SliderHalfH` 0.35.
+
+🔑 **El espejado de la paleta ataca otra vez**: la U local crece hacia +Y, que se ve a la
+IZQUIERDA. Sin corregir, la barra creceria de derecha a izquierda. Va un `OneMinus` sobre la U
+**en el material de la barra** (no en el compartido), asi crece de izquierda a derecha como el
+stick. Mismo tipo de error que el `-d.z` de la rueda: **cuando una superficie se ve espejada, todo
+mapeo pantalla-a-dato hay que revisarlo de a uno.**
+
+Rueda de color: `WheelOffset.y` −5.6 → **−7.4** (mas a la derecha para el que mira).
+
+⬜ Sin visor. 🔴 Recolocar el rig antes de probar.
+
 
 ## Session log
 - **2026-09-25** — Completo y compilando: motor + herramienta + pawn + nivel de prueba.
@@ -1003,6 +1071,11 @@ coordenada local, asi que coinciden. Solo se ve el circulo cromatico en sentido 
   despues de cada tanda**. **Dos** crashes de Unreal, los dos por el Undo de un
   script fallido (gotchas 383-384). 🟢 **Visor OK, mecánica aprobada.** Un bug (secciones sin material) arreglado.
 
+- **2026-09-26 (3h)** — 🎯 `SM_Tip`: esfera de 1,2 cm en `RightAim` que es **origen del trazo y
+  puntero de seleccion** a la vez (🔴 recolocar el rig). 📏 Grosor por stick derecho con la curva
+  real de TB (**lerp en la raiz**, `BrushLerp.Default = SqrtRadius`), minimos en un array
+  `SizeMins[9]`; el eje se lee con `GetInputAnalogKeyState` porque `IMC_Default` no mapea el
+  stick derecho en X. Barra de grosor en la paleta (con `OneMinus` por el espejado). ⬜ Sin visor.
 - **2026-09-26 (3g)** — 🎨 **Paleta reducida a 4 + rueda de color.** La paleta se ve
   **espejada** (Yaw 180): su numeracion es la fila invertida, confirmado por dos evidencias.
   Sus 3/4/6/9 = TaperedMarker, OilPaint, Light, WetPaint. Ahora la paleta es un array
