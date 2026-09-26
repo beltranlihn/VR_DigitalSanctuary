@@ -97,3 +97,106 @@ Tres salidas, en orden de lo que yo elegiría:
 2. Una **malla puente** aparte que nace cuando la esfera se acerca.
 3. Dejar la fusión como raymarch **solo ahí** (superficie chica = costo chico) y la cadena por malla.
 Se decide mirando el paso 4.
+
+---
+
+## 🔬 2026-09-26 — La caza del "en PC si, en la Quest no"
+
+`M_BlobMesh_SC` sobre `SM_BlobTube_SC` se ve en el editor (Beltran trabaja **en Vulkan Mobile
+Preview**, asi que el shader movil ya se compila y dibuja bien en PC) y **no se ve en la Quest**.
+Sin error de compilacion, sin advertencia en el log del device.
+
+### Descartado de escritorio, sin visor
+- **Opacidad**: `ChainTransparency` default 0 → opacidad 1.
+- **El gate del banco**: `BenchGate` apaga la opacidad solo en `PerfMode` 3 o 5, y el MPC
+  `MPC_Perf_SC` tiene `PerfMode` con default **0**.
+- **La malla y el cook**: el intercambio material/malla ya habia probado que el tubo dibuja.
+
+### 🔴 La tanda de CUBOS fue un test invalido (ver gotcha 397)
+A (plano) se veia, B (+WPO) **solo por un ojo**, C (+normal por interpolador) se veia, D no.
+Parecia el WPO. **No lo era**: un cubo tiene 8 vertices, el WPO los manda a la superficie de la
+cadena y queda una lasca degenerada; con el material a una cara, se ve desde un ojo y se descarta
+por backface culling desde el otro. Lo unico que esa tanda dejo en firme: **el setup del material
+y `Custom_1` con el `VertexInterpolator` dibujan bien en la Quest**.
+
+### Escalera 1 — sobre la MALLA REAL (medida en visor)
+| | material | resultado |
+|---|---|---|
+| T1 | plano, sin WPO | 🟢 se ve |
+| T2 | WPO **constante** (sube 300 uu locales) | 🟢 se ve |
+| T3 | WPO desde un Custom que usa `TransformPosition(WorldPosition→Local)` | 🟢 se ve |
+| T4 | el material real | 🔴 no se ve |
+| T5 | el real con nodo `LocalPosition` + sin el MPC en el vertex shader | 🔴 no se ve |
+
+**Conclusiones firmes:** el WPO funciona en el visor; un Custom en el vertex shader que usa la
+posicion local funciona; el ida y vuelta por coordenadas de mundo **no** es el problema (T3 lo usa);
+el MPC en el vertex shader **no** es el problema (T5 no lo tiene). Queda el **cuerpo del Custom grande**.
+
+### Escalera 2 — dentro del Custom grande (empaquetada 2026-09-26, pendiente de visor)
+Todas con **color plano** (o sea `Custom_1` NO entra al vertex shader) salvo T4.
+| | material | que aisla |
+|---|---|---|
+| T1 | `M_DIAG_A_plano` | ancla |
+| T5 | `M_T5_solowpo` — el cuerpo original tal cual | `Custom_0` **solo**, sin `Custom_1` en el mismo VS |
+| T6 | `M_T6_sintiempo` — idem con `Tt = 0.0` | cierra la familia `ResolvedView` / multi-view |
+| T4 | `M_BlobMesh_SC` | control, el real |
+| T7 | `M_T7_reescrito` — cuerpo **reescrito** | topes de bucle constantes, cero indexado dinamico |
+
+🔴 **Y las tres nuevas llevan un tope FISICO al desplazamiento** (400 uu) en lugar del guardia viejo
+de 1e12 sobre el cuadrado (= un millon de uu). El guardia viejo dejaba pasar cualquier basura finita
+y la malla se iba fuera de cuadro: el sintoma era **"no se ve"** cuando en realidad era **"calcula
+mal"**. Con el tope fisico los dos casos se distinguen a ojo.
+
+### Por que el reescrito
+El cuerpo original tiene los topes de bucle en variables (`ND`, `NP`, `NA`, derivadas de `NBlobs`)
+y lee `P[]`, `R[]`, `TG[]`, `ACC[]` con indice dinamico. Eso impide desenrollar y manda los arreglos
+a *indexable temp*; en el vertex shader de un Adreno es terreno de bugs de driver, y el Vulkan de
+escritorio no lo acusa. El reescrito deja **todos** los topes constantes (8 o 9) y decide quien
+participa con un **peso `A[j]` de 0 o 1** — el blend del smin con peso 0 es la identidad exacta,
+asi que el resultado es el mismo. Silueta verificada contra el original en el viewport.
+
+### ✅ Escalera 2 — resultado y CAUSA RAIZ (2026-09-26)
+| | material | visor |
+|---|---|---|
+| T1 | plano, sin WPO | 🟢 los dos ojos |
+| T5 | `Custom_0` original **solo** | 🟡 **un solo ojo** |
+| T6 | idem con `Tt = 0.0` | 🟡 **un solo ojo** (igual que T5 → el reloj queda descartado) |
+| T4 | el real (los dos Custom en el mismo VS) | 🔴 ningun ojo |
+| T7 | el cuerpo **reescrito** | 🟢 **los dos ojos, sin problemas** |
+
+🔴 **CAUSA: arreglos locales con INDICE DINAMICO en el vertex shader del Adreno** (gotcha 399).
+Los topes de bucle eran variables (`ND`/`NP`/`NA`, derivadas de `NBlobs`), asi que el compilador
+no podia desenrollar y `P[]`/`R[]`/`TG[]`/`ACC[]` caian en *indexable temp*. El Vulkan de escritorio
+lo resuelve; el Adreno no. Y como el vertex shader corre **por vista** bajo multi-view, la corrupcion
+toca una vista y la otra no → **el sintoma es un ojo**. La gravedad escala con el tamaño del shader:
+un Custom = un ojo, dos Custom = los dos.
+
+**Aplicado a `M_BlobMesh_SC`**: `Custom_0` (desplazamiento) y `Custom_1` (normal) reescritos con
+topes constantes y peso `A[j]`, mas el tope fisico de 400 uu. Silueta verificada contra el cuerpo
+original en el viewport (mismo instante, misma camara relativa). Empaquetado e instalado 22:12.
+
+### 📊 Medicion 2026-09-26 22:36 — `-Modos 0,5,3` (CSVs en `perf/malla-2026-09-26/`)
+Escena: la cadena raymarch **fuera** de la escena, los 5 tubos de prueba bajados 1.000 m,
+en la estacion solo `BlobTubeTest` (malla con `MI_BlobMesh_SC`).
+
+| modo | que dibuja | ms (promedio de 2 pasadas) |
+|---|---|---|
+| 0 | esferas + **malla** | **14,00** |
+| 5 | solo esferas | 14,23 |
+| 3 | nada | 13,90 |
+
+🔴 **El instrumento esta SATURADO y por eso no hay un numero para la malla.** Los tres modos
+caen en una franja de 0,33 ms pegada al cap de 72 Hz, y hay una **inversion**: el modo 5, que
+dibuja MENOS, mide MAS que el modo 0. Eso es fisicamente imposible → lo que separa a los modos
+es ruido. ⚠ Y la "resolucion del instrumento" que imprime el resumen (0,02 ms) es la
+**repetibilidad de una pasada**, no la incertidumbre de la comparacion: creerle habria hecho
+pasar los 0,10 ms por un costo medido. El resumen ahora detecta este caso y lo dice
+(guardia de saturacion en `resumen_modos.py`).
+
+✅ **Lo que si queda afirmado:** el cuadro entero entra en presupuesto **en todos los modos**;
+la estacion corre a 72 Hz. Contra el 2026-09-25 con el raymarch: modo 0 daba **22,8 ms** y la
+cadena sola **17,02**. La malla baja la estacion de 22,8 a 14,0 → **~8,8 ms recuperados**, que
+era exactamente el agujero. Coincide con lo que reporto Beltran a ojo ("performance excelente").
+
+⬜ Para ponerle numero al margen que sobra hay que **salir del cap**: subir la carga por igual en
+las dos fases (`vr.PixelDensity 1.4`) y repetir el mismo A/B. Una sesion de 2 minutos.

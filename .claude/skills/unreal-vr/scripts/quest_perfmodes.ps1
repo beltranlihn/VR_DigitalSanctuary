@@ -39,6 +39,20 @@
     Decide cuanto rinde reemplazar SOLO las esferas por malla (enfoque C) y si la
     cadena necesita trabajo propio. resumen_modos.py imprime esta cuenta solo.
 
+    LA MALLA DEL ENFOQUE C (2026-09-26). M_BlobMesh_SC (el tubo por vertices que
+    reemplaza la cadena raymarch) lee el MISMO gate: en los modos 3 y 5 apaga la
+    opacidad Y colapsa la geometria al origen del objeto (WPO = -LocalPos), asi que
+    en esos modos NO rasteriza nada. Es el unico apagado valido para una malla
+    translucida: con opacidad 0 el pixel shader igual corre y igual mezcla.
+      -Modos 0,5,3   con la cadena raymarch FUERA de la escena:
+          malla   = (modo 0) - (modo 5)     <- las esferas son identicas en los dos
+          esferas = (modo 5) - (modo 3)
+      OJO con el modo 3: suele quedar pegado al cap de 72 Hz y entonces el piso real
+      no se ve. Si los tres dan parecido y clavados en ~13,9, la lectura correcta no
+      es "cuesta 0" sino "entra en presupuesto"; para sacarle un numero hace falta el
+      piso derivado, como en el split del 2026-09-25.
+      Referencia contra la que se compara: cadena raymarch >= 8,93 ms, esferas 5,81 ms.
+
     Dos trampas de PowerShell 5.1 que este archivo esquiva (igual que sus hermanos):
       1. NADA de $ErrorActionPreference='Stop' con exes nativos: adb escribe cosas
          inocuas en stderr y PS 5.1 las convierte en error terminante.
@@ -59,7 +73,7 @@ param(
     # como 453 con separador de miles). Aca se extraen los DIGITOS, venga como venga:
     # -Modos 0,4,5,3  |  -Modos '0 4 5 3'  |  -Modos 0453   -> todos dan 0,4,5,3.
     [string[]]$Modos = @('0', '1', '2', '3'),
-    # 🔴 2026-09-25: NO LANZAR LA APP POR INTENT. Arrancarla con 'am force-stop' + 'am start'
+    # ???? 2026-09-25: NO LANZAR LA APP POR INTENT. Arrancarla con 'am force-stop' + 'am start'
     # la deja sin una sesion de VR bien establecida y aparece el APP_CMD_LOST_FOCUS ->
     # APP_CMD_PAUSE -> deadlock del camino de suspension de UE en Android (imagen
     # congelada, sonido siguiendo, GPU en 0, proceso vivo). Beltran lo aislo abriendo la
@@ -125,7 +139,7 @@ $orden = @($lista) + @($lista[($lista.Count - 1)..0])
 
 if ((Adb devices) -notmatch "`tdevice") { Say 'ERROR: no hay ninguna Quest conectada.' 'Red'; exit 1 }
 
-# 🔴 EL CASCO VA PRIMERO, LA APP DESPUES (2026-09-25). Con el visor fuera de la cabeza la
+# ???? EL CASCO VA PRIMERO, LA APP DESPUES (2026-09-25). Con el visor fuera de la cabeza la
 # Quest manda la app a segundo plano en segundos, y el camino de suspension de UE en Android
 # se DEADLOCKEA: el log queda en "SuspendApp_EventThread -> ERROR: backgrounding callback,
 # not responded in timely manner" + "Blocking renderer on suspended window", y la app no

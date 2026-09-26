@@ -624,6 +624,133 @@ agrego mandos a mano, hay que leer su `MotionSource`, no confiar en el nombre**.
 ⚠ **Y si el rig gana componentes DESPUES de colocarlo, hay que volver a colocarlo**: recompilar
 no actualiza una instancia ya puesta (gotcha 396). Vale tanto para este nivel como para Soul Charger.
 
+## 2026-09-26 (3a) - PETAL: tres causas, y la tercera no era geometria
+
+Reporte de Beltran en visor: *"el pincel de petal esta saliendo gigantesco y como que los petalos
+nunca se abren... los tres tubos gordisimos todos juntos y no se ve como una flor"*.
+Su descripcion del original era exacta: **parte en punta y son tres tubos que se abren como flor.**
+
+### 1. `BrushSize` 12.0 -> 2.0 (el 6x de "gigantesco")
+
+Auditoria de los nueve contra `m_BrushSizeRange.y` de Tilt Brush. **La regla que se uso al
+portarlos es `BrushSize = maximo de TB x 2`**, y la cumplen ocho de nueve:
+
+| # | Pincel | TB max | x2 | puesto | |
+|---|---|---|---|---|---|
+| 0 | TaperedMarkerFlat | 1.0 | 2.0 | 2.0 | ✓ |
+| 1 | DoubleTaperedFlat | 3.0 | 6.0 | 6.0 | ✓ |
+| 2 | SoftHighlighter | 2.0 | 4.0 | 4.0 | ✓ |
+| 3 | Light | 0.2 | 0.4 | 0.8 | 2x, se deja (0.4 cm es un pelo invisible) |
+| 4 | CelVinyl | 1.5 | 3.0 | 3.0 | ✓ |
+| 5 | OilPaint | 1.5 | 3.0 | 3.0 | ✓ |
+| 6 | WetPaint | 1.25 | 2.5 | 2.5 | ✓ |
+| 7 | **Petal** | **1.0** | **2.0** | **12.0** | 🔴 el bug |
+| 8 | Spikes | 2.0 | 4.0 | 4.0 | ✓ |
+
+### 2. El empuje del petalo estaba a la MITAD
+
+TB (`TubeBrush.cs:773-777, 790`):
+```csharp
+petalAmtCacheValue = m_PetalDisplacementAmt * POINTER_TO_LOCAL * m_BaseSize_PS;   // = 1.5 * S
+curve  = abs(sin(t*PI));
+offset = m_geometry.m_Normals[vert] * pow(t, exp) * petalAmtCacheValue * smoothedPressure;
+vertex = offset + center + radius * dir * curve;     // radius = S * 0.5
+```
+✅ **Confirmado leyendo `MakeClosedCircleSoftEdges`: el normal del vertice ES `dir`, la direccion
+radial** (`AppendVert(..., center + radius*dir, dir, ...)`). Asi que sumar el empuje al radio es
+correcto — eso del tracker estaba bien.
+
+🔴 Lo que estaba mal: en `EmitPassTube` el termino era `S * 0.5 * (t^exp * PetalAmt * p)`. El
+`0.5` es del RADIO, el empuje **no lo lleva**. Resultado: la campana abria a 0.75·S en vez de
+1.5·S, o sea **1,5x el radio medio en vez de 3x** — no se leia como apertura.
+Arreglado en el `MakeLiteralFloat` exclusivo de ese termino (0.5 -> 1.0); `PetalAmt` queda en 1.5,
+fiel. Silueta correcta: punta en t=0, radio maximo S·0.5 en t=0.5, y anillo abierto de radio
+1.5·S en t=1.
+
+### 3. 🔴 Lo de fondo: Petal en Tilt Brush NO es color plano
+
+Petal vive en **`ob-tools/Runtime/Shaders/4_DiffuseSpecials/Petal/`** — familia DIFUSA, con su
+propio `Petal.hlsl`:
+```hlsl
+float4 darker_color = vertexColor * 0.6;
+finalColor = lerp(vertexColor, darker_color, 1 - uv.x);   // = vc * (0.6 + 0.4*u)
+fAO = vface == -1 ? .5 * uv.x : 1;                        // cara trasera: interior mas oscuro
+```
+`uv.x` es la distancia normalizada = nuestro `K_U` (UVStyle Stretch). **Nuestro `M_TB_Solid` era
+emisivo = vertex color: una silueta absolutamente plana, sin relieve interno.** Con la geometria
+correcta igual se habria visto un bulto, porque no habia NADA que leyera la forma.
+
+Portado literal dentro de `M_TB_Solid`, con parametro escalar **`PetalShade`, default 0 = NEUTRO**
+(regla del `BeadAmp`, gotcha 375: un parametro nuevo en material compartido no puede degradar lo
+aprobado — Spikes y DoubleTaperedFlat siguen exactamente igual):
+```
+u        = TexCoord0.x
+grad     = lerp(0.6, 1.0, u)
+backMask = -0.5 * TwoSidedSign + 0.5          // 0 cara frontal, 1 trasera
+ao       = lerp(1.0, 0.5*u, backMask)
+emissive = VertexColor * lerp(1.0, grad*ao, PetalShade)
+```
+`MI_TB_Petal` (nueva) pone `PetalShade = 1`, y `Brush_Petal` apunta ahi en vez de al maestro.
+
+⬜ **Los tres arreglos estan sin ver en visor.**
+
+### Deviacion del tubo que SIGUE abierta
+`m_HardEdges: 1` en Petal (y en TB los anillos son `points*2` vertices con normal por cara).
+Nuestro anillo es de N vertices compartidos. Con el sombreado por `u` no cambia nada — el
+gradiente va A LO LARGO del trazo, no alrededor del anillo. Solo importaria con iluminacion real.
+
+## 2026-09-26 (3b) - El "color rojizo" NO era color: era ancho
+
+Reporte con fotos: *"el primer pincel de lapiz sale con un color mas rojizo que naranjo"* y
+*"Light sale blanco"*.
+
+### Lo que dijeron los pixeles (gotcha 402)
+
+Midiendo las capturas en vez de mirarlas:
+
+| | ancho | opacidad efectiva | a color pleno |
+|---|---|---|---|
+| Pincel 0 (TaperedMarker Flat) | **8 px** | mediana **0,23** | **0,1%** |
+| El comparado (DoubleTaperedFlat) | 58 px | 1,00 | 95,3% |
+
+🔑 **El nucleo de los DOS trazos es exactamente (255, 140, 50)** — el naranja elegido, exacto.
+El color esta bien. Lo que pasa es que el pincel 0 sale **tan fino que casi no llega a pintar**:
+naranja al 23% sobre el fondo azul marino da rosa sucio, que es lo que se ve.
+
+✅ **Y de yapa:** que diera (255,140,50) y no (213,124,40) **prueba que el preview Android NO
+aplica tonemapper** (consistente con `r.MobileHDR=False`). Toda la linea de investigacion del
+tonemapper quedo descartada por medicion, no por opinion.
+
+### El ancho: la presion
+
+`TaperedMarker` tiene `PressureSizeMin = 0.0` (fiel a TB: `m_PressureSizeRange {0,1}`), asi que
+su ancho **es** `BrushSize * presion`. Con 6 cm = 58 px, los 8 px del pincel 0 implican ~1-2 mm
+de geometria real, o sea **presion del orden de 0,05-0,1**. ⬜ Sonda puesta para saber el valor
+exacto (abajo) en vez de seguir infiriendo.
+
+⚠ **Correccion de la gotcha 395, que estaba mal:** `IA_Hand_IndexCurl_Right` **SI es el gatillo**
+— esta mapeada a `OculusTouch_Right_Trigger_Axis`, el eje analogico. La capacitiva es
+`IA_Hand_Point_*` (`Trigger_Touch`). Confirmado por eliminacion sobre `IMC_Hands`.
+`IA_Shoot_Right` (el gate) esta en `IMC_Weapon_Right` sobre `Trigger_Click` y es **Boolean**.
+🔴 `ObjectTools.get_properties(<IMC>, ["Mappings"])` devuelve `[]` aunque el IMC tenga mapeos: hay
+que leer las teclas con `grep -a` sobre el `.uasset`.
+
+### `MI_TB_Light`: Gain 180.03 -> 4.0
+
+El 180,03 era **literal de TB** (`_EmissionGain: 0.45` y `2*exp(gain*10)` en su `Bloom.shader`),
+pero es un valor **HDR**: alla lo de arriba de 1 se vuelve bloom. Con `r.MobileHDR=False` no hay
+rango: **todo pixel con alfa > 1/180 clipea a blanco** → el pincel entero sale blanco.
+Con ganancia `G` se quema la parte del trazo donde `alfa > 1/G`; **`G = 4`** quema el cuarto mas
+denso y deja el resto como caida de color (nucleo blanco, halo naranja). `Gain` es la perilla.
+Ver gotcha 401.
+
+### Sonda temporal puesta
+`BPC_TBTool_NC:EventTick`, dentro de `if bDrawing`, despues de `FeedStroke`:
+`PrintString(ToString(Pressure))` con **Key = "PRESION"** (reescribe la misma linea en vez de
+apilar). 🔴 **Sacarla cuando se sepa el valor.** De paso se borro la sonda vieja
+`"TOOL gate release"` de `GateStop`, que ya estaba validada.
+
+
 ## Session log
 - **2026-09-25** — Completo y compilando: motor + herramienta + pawn + nivel de prueba.
   Diseno escrito desde el codigo fuente clonado. Motor construido entero,
@@ -632,6 +759,15 @@ no actualiza una instancia ya puesta (gotcha 396). Vale tanto para este nivel co
   despues de cada tanda**. **Dos** crashes de Unreal, los dos por el Undo de un
   script fallido (gotchas 383-384). 🟢 **Visor OK, mecánica aprobada.** Un bug (secciones sin material) arreglado.
 
+- **2026-09-26 (3b)** — 🔬 **El "rojizo" no era color: era ancho.** Midiendo los pixeles de la
+  captura, el nucleo de los dos trazos daba (255,140,50) exacto; el pincel 0 salia a 8 px con
+  0,1% a color pleno. Light: `Gain` 180->4 (el 180 era fiel pero HDR, y aca no hay HDR).
+  Corregida la gotcha 395: `IndexCurl` **si** es el eje del gatillo. ⬜ Sonda de presion puesta.
+- **2026-09-26 (3a)** — 🔧 **Petal: tres causas.** `BrushSize` 12->2 (el 6x), el empuje del
+  petalo estaba a la mitad (el `0.5` del radio colado en el offset), y lo de fondo: **Petal en TB
+  es un shader DIFUSO con gradiente 0.6->1 a lo largo del trazo + AO en la cara trasera**, y
+  nuestro `M_TB_Solid` era color plano. Portado con `PetalShade` (default 0 = neutro) +
+  `MI_TB_Petal`. Y medido por que el naranja se ve rojo (3b). ⬜ Sin visor.
 - **2026-09-26 (2a)** — 🟢 **Rig VALIDADO EN VISOR.** Cuatro bugs en cuatro pasadas: `EnableInput`
   mal targeteado (394), malla sin asignar en la instancia (396), el corte del trazo colgado del
   sensor del dedo en vez del gatillo (395), y los mandos con `SnapToTarget` + material lit. Los
@@ -645,3 +781,7 @@ no actualiza una instancia ya puesta (gotcha 396). Vale tanto para este nivel co
 - `TrimShortStrokeAfterBreak` (borra tiras de menos de 6 nudos tras una rotura).
 - Varianza determinista con `HashFloat01` — el descriptor ya tiene `SizeVariance`, falta el hash.
 - Las 72 texturas reales del repo (Apache 2.0) en vez de las generadas con PIL.
+- 🔴 **`ApplyShapeToSize` multiplica `K_Size` EN SU LUGAR.** Hoy no acumula porque `FramePass`
+  reescribe `K_Size` entero cada cuadro (verificado) — pero es una mina: cualquier cambio que
+  deje de reescribirlo convierte esto en `size * curve^cuadros` -> el trazo se desvanece.
+- Petal: `m_HardEdges` sin portar (irrelevante sin iluminacion real).

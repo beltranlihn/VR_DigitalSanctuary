@@ -113,7 +113,36 @@ def main():
         print("  cuesta TODA la tecnica          : %6.2f ms" % cuesta)
         print("  presupuesto para 72 Hz          : %6.2f ms" % PRESUPUESTO)
         print("")
-        if cuesta < peor_sep:
+        # GUARDIA DE SATURACION (2026-09-26). Si TODOS los modos caen en una franja
+        # pegada al cap de 72 Hz, el numero lo fija el vsync y las restas no miden costo.
+        # La prueba mas dura es una INVERSION: un modo que dibuja MENOS midiendo MAS que
+        # uno que dibuja mas. Cuando eso pasa, la incertidumbre real del instrumento es
+        # el ancho de la franja, no la repetibilidad de una pasada (que puede dar 0,02 ms
+        # y hacer creer que una diferencia de 0,10 significa algo).
+        medias = sorted(resumen[c][0] for c in resumen)
+        franja = medias[-1] - medias[0]
+        menos = None
+        for clave in resumen:
+            if clave.startswith("modo5"):
+                menos = resumen[clave][0]
+        invertido = (menos is not None and menos > actual + 1e-9)
+        saturado = (medias[0] <= PRESUPUESTO + 0.10) and (franja < 1.0)
+
+        if saturado or invertido:
+            print("  VEREDICTO: EL INSTRUMENTO ESTA SATURADO -- no midas costo con estos numeros.")
+            if saturado:
+                print("  Los %d modos caen en una franja de %.2f ms pegada al cap de 72 Hz (%.2f)."
+                      % (len(medias), franja, PRESUPUESTO))
+            if invertido:
+                print("  Y hay una INVERSION: el modo 5 (dibuja MENOS) mide %.2f ms contra %.2f del"
+                      % (menos, actual))
+                print("  modo 0 (dibuja MAS). Eso es fisicamente imposible: lo que separa a los")
+                print("  modos es ruido, no costo.")
+            print("  LO QUE SI SE PUEDE AFIRMAR: el cuadro entero ENTRA en presupuesto en todos")
+            print("  los modos, o sea la escena corre a 72 Hz. El margen que sobra queda sin medir.")
+            print("  Para sacarle un numero hay que SALIR del cap subiendo la carga en las dos")
+            print("  fases por igual (p.ej. vr.PixelDensity 1.4) y repetir el mismo A/B.")
+        elif cuesta < peor_sep:
             print("  VEREDICTO: la tecnica NO se distingue del ruido. El coste esta")
             print("  en otro lado -- no tiene sentido seguir optimizando este material.")
         elif gratis > PRESUPUESTO + 1.0:
