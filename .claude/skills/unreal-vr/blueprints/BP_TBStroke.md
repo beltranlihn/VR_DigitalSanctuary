@@ -1062,6 +1062,62 @@ Rueda de color: `WheelOffset.y` −5.6 → **−7.4** (mas a la derecha para el 
 
 ⬜ Sin visor. 🔴 Recolocar el rig antes de probar.
 
+## 2026-09-26 (3i) - El rig se CONFIGURA SOLO, y el slider con marcador
+
+### La esfera no se veia: gotcha 396 medida otra vez, y la salida definitiva
+
+La instancia colocada tenia `SM_Tip` con `staticMesh: None`, transform en cero y sin material.
+Se intento parchear la instancia y **volvio a pasar exactamente lo de la 396**: la escritura
+devolvio `true` y **solo entro `staticMesh`** — location, scale y `overrideMaterials` se
+rechazaron en silencio. Se revirtio para no dejar una esfera de 1 m en el viewport.
+
+✅ **La salida no es recolocar el actor: es que el rig se configure a si mismo.** `InstallTip`
+(reemplaza a `MountTip`) hace en runtime TODO lo que la instancia no hereda:
+```
+SetStaticMesh(SM_Tip, /Engine/BasicShapes/Sphere)
+SetMaterial(SM_Tip, 0, MI_TB_Tip)
+SetRelativeScale3D(SM_Tip, TipScale)          ; variable nueva, 0.012
+IsValid(RightAim) -> Attach(SM_Tip, RightAim) ; KeepRelative
+                     SetRelativeLocation(SM_Tip, TipOffset)   ; variable nueva, (2.5,0,0)
+                     SetVisibility(SM_Tip, true)
+```
+🔑 **Regla general para este rig, y para la migracion a Soul Charger: un actor autoinstalable no
+puede depender del estado de su instancia.** Todo lo que un componente necesite (malla, material,
+escala, offset) se escribe en `BeginPlay` desde VARIABLES del BP — que si viajan bien — en vez de
+dejarlo en el template del componente, que NO llega a las instancias ya puestas.
+⚠ Efecto colateral bueno: `TipOffset`/`TipScale` quedan como perillas en el panel **y funcionan
+en la instancia**, cosa que el transform del componente no hacia.
+
+🔴 **Renombrar una funcion cuesta un paso extra:** `remove_function_graph("MountTip")` +
+`add_function_graph("MountTip")` devuelve **`MountTip_0`** (el nombre sigue reservado), y mientras
+exista un nodo de llamada a la funcion borrada **el BP no compila** y `write_graph_dsl` falla con
+*"Could not find a function named X"*. Orden correcto: **borrar el nodo de llamada primero**,
+despues la funcion, y usar un nombre nuevo.
+
+### El slider: de barra llena a barra con MARCADOR
+
+Beltran: *"que sea un slider visible que nos muestre donde estamos en la linea de grosor"*.
+`M_TB_Slider` pasa de `lleno/vacio` a tres zonas, con `v = 1 - U`:
+```
+relleno = (v <= Fill) ? 0.45 : 0.12          ; pista oscura + parte llena
+marca   = (|v - Fill| < 0.05) ? 1.0 : 0.0    ; el POMO, donde estas parado
+salida  = max(relleno, marca)
+```
+
+### Y el slider se toca, igual que la rueda
+Para no depender de que el stick funcione (el eje se lee crudo con `GetInputAnalogKeyState`, sin
+accion de input que lo respalde), `TestSlider` lo hace arrastrable con la punta:
+```
+Size01 = clamp( (HalfW - dy) / (2*HalfW) )    ; dy = Y local respecto de SliderOffset
+```
+🔑 El `(HalfW - dy)` y no `(dy + HalfW)` **por el espejado**: local +Y se ve a la izquierda, asi
+que la barra crece de la izquierda del usuario hacia la derecha, y el stick a la derecha tambien
+agranda. Los dos caminos escriben el mismo `Size01`, asi que conviven.
+Cadena final del tick de la paleta:
+`FacePlayer -> TestSlot xN -> ApplyHighlight -> PushSelection -> TestWheel -> TestSlider -> UpdateSlider`
+
+⬜ Sin visor.
+
 
 ## Session log
 - **2026-09-25** — Completo y compilando: motor + herramienta + pawn + nivel de prueba.
@@ -1071,6 +1127,11 @@ Rueda de color: `WheelOffset.y` −5.6 → **−7.4** (mas a la derecha para el 
   despues de cada tanda**. **Dos** crashes de Unreal, los dos por el Undo de un
   script fallido (gotchas 383-384). 🟢 **Visor OK, mecánica aprobada.** Un bug (secciones sin material) arreglado.
 
+- **2026-09-26 (3i)** — 🔑 **El rig se configura solo**: la instancia volvio a rechazar las
+  escrituras (396 otra vez, solo entro `staticMesh`), asi que `InstallTip` pone malla, material,
+  escala y offset **en runtime desde variables** — ya no hace falta recolocar el actor, y las
+  perillas funcionan en la instancia. Slider con **marcador de posicion** y **arrastrable con la
+  punta** (no depende del stick). ⬜ Sin visor.
 - **2026-09-26 (3h)** — 🎯 `SM_Tip`: esfera de 1,2 cm en `RightAim` que es **origen del trazo y
   puntero de seleccion** a la vez (🔴 recolocar el rig). 📏 Grosor por stick derecho con la curva
   real de TB (**lerp en la raiz**, `BrushLerp.Default = SqrtRadius`), minimos en un array
