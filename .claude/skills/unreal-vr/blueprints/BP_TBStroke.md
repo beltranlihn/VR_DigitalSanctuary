@@ -1118,6 +1118,92 @@ Cadena final del tick de la paleta:
 
 ⬜ Sin visor.
 
+## 2026-09-27 - UNDO, muestra de color, y la esfera que toma el pincel
+
+### El rango del slider, remapeado
+`SizeLo` = **0.25** y `SizeHi` = **1.5** (variables nuevas en `BP_TBStroke`, panel). El slider
+remapea ANTES de entrar en la curva de TB:
+```
+t' = lerp(SizeLo, SizeHi, clamp(Size01))          ; 0 -> 0.25,  1 -> 1.5
+BrushSize = ( lerp( sqrt(min), sqrt(max), t' ) )^2
+```
+🔑 `Math|Float|Lerp` **no clampea el alfa**, asi que `t' = 1.5` EXTRAPOLA por encima del maximo
+del pincel — que es lo que faltaba para poder agrandar. El piso deja de ser el pelo invisible.
+
+### Boton de UNDO, disparado por FLANCO
+Tool: `UndoLast()` (no hace nada si `bDrawing`, para no matar el trazo en curso) →
+`UndoPop(I)` (saca del `StrokeHistory` y `DestroyActor`).
+Paleta: seccion `n+2` con `M_TB_Undo` (glifo de flecha curva por `Custom` sobre la UV).
+```
+(fn TestUndo ()  ... _in = punta dentro del cuadro ...
+  (if (and _in (not bUndoWasIn)) (FireUndo)  (else (SetUndoWasIn _in))))
+```
+🔴 **El flanco NO es opcional**: la rueda y el slider escriben mientras el dedo este dentro, y
+copiar ese patron aca **borraria un trazo por cuadro**. `FireUndo` pone `bUndoWasIn = true` y
+llama a `UndoLast`.
+
+### Muestra de color (el feedback que faltaba)
+Seccion `n+3` con `M_TB_Swatch` (un `VectorParameter "Col"` al emisivo) y su MID en `SwatchMid`.
+`UpdateSlider` ahora, dentro del mismo `IsValid`, setea `Fill` **y** `Col = Tool.BrushColor`.
+
+### La esfera de punta: mitad de tamano y con el color del pincel
+`TipScale` 0.012 → **0.006**. Y `UpdateTipColor` (Tick del rig) hace
+`SetVectorParameterValueonMaterials(SM_Tip, "Tint", Tool.BrushColor)` — **ese nodo crea el MID
+internamente**, asi que no hace falta variable ni tocar `InstallTip`.
+⚠ Sirve porque `SM_Tip` tiene UNA sola ranura; sobre la paleta (8 secciones en un componente)
+habria tenido que ser un MID por seccion.
+
+### 🔴 Dos trampas del DSL pagadas aca
+1. **`CreateDynamicMaterialInstance` resuelve a DOS sobrecargas distintas segun el grafo.** En
+   `BuildSlider` cayo en la de Kismet (`Parent`) y quedo bien; en `BuildExtras` cayo en la de
+   **PrimitiveComponent** (`self`/`ElementIndex`/`SourceMaterial`) y el path del material **no
+   aterrizo en ningun pin** → *"This blueprint (self) is not a PrimitiveComponent"*. El mensaje
+   no nombra el nodo: hay que ir nodo por nodo mirando los pines.
+2. **`Rendering|Material|SetVectorParameterValue` esta DUPLICADO** (coleccion de parametros vs
+   MID) y el parser tomo el de coleccion → *"Could not connect pin SwatchMid to Collection"*. Se
+   resuelve con **`create_node` + `declaring_class`** (`/Script/Engine.MaterialInstanceDynamic`);
+   por DSL no hay forma de desambiguar. `find_node_types` lo delata: el mismo nombre dos veces.
+
+⬜ Sin visor.
+
+## 2026-09-27 (2a) - "El undo no funciona": diagnosticado SIN visor, con PIE
+
+Toda la cadena (`TestUndo` -> `FireUndo` -> `UndoLast` -> `UndoPop`) estaba logicamente bien al
+leerla. En vez de seguir infiriendo, **se arranco PIE** (los MotionController existen como
+componentes sin casco, asi que el rig se instala igual) y se leyo el estado REAL de la paleta
+spawneada:
+
+| variable | valor en PIE | que prueba |
+|---|---|---|
+| `SwatchMid` | MID valido | **`BuildExtras` SI corre** → el boton existe |
+| `SliderMid` | MID valido | el slider tambien |
+| `Tool` | `BP_TBDrawRig_C_1.TBTool` | la herramienta esta enganchada |
+| `Tip` | `BP_TBDrawRig_C_1.SM_Tip` | el puntero es la esfera nueva |
+| `bUndoWasIn` | false | el flanco arranca limpio |
+
+🔑 **Con eso, lo unico que quedaba era la DETECCION.** Y comparando las zonas de acierto de la
+paleta salta a la vista:
+
+| elemento | zona |
+|---|---|
+| ranura de pincel | **radio 3 cm (3D)** |
+| rueda | radio 2,4 |
+| barra | 3,0 x 1,35 |
+| **undo (antes)** | **caja de ±1,2** ← el doble de exigente que todo lo demas |
+
+**Arreglo**: la deteccion pasa a distancia 3D como las ranuras —
+`inside = Distance(tipLocal, UndoOffset) < UndoPick`, con `UndoPick` = **2.0** (variable nueva).
+El boton se movio a `z = 5.6` y crecio a `UndoHalf = 1.4`: con radio 2,0 la esfera de acierto
+llega hasta z=3,6 y el borde de la rueda esta en 2,4 → **1,2 cm de separacion**, suficiente para
+no disparar undo al tocar la rueda. Esa separacion es la que fija el techo de `UndoPick`.
+
+⚠ **Sondas temporales puestas**: `TestUndo` imprime `inside` cada tick (key **`BTN`**) y
+`FireUndo` imprime **`UNDO FIRE`**. Sacarlas cuando se valide.
+
+🔑 **La leccion de metodo:** cuando todo el codigo se lee bien, el siguiente paso NO es releerlo —
+es **medir el estado en PIE**. Aca costo 4 llamadas y descarto de una toda la mitad "el boton no
+existe / no esta cableado", que era donde yo iba a seguir buscando.
+
 
 ## Session log
 - **2026-09-25** — Completo y compilando: motor + herramienta + pawn + nivel de prueba.
@@ -1127,6 +1213,16 @@ Cadena final del tick de la paleta:
   despues de cada tanda**. **Dos** crashes de Unreal, los dos por el Undo de un
   script fallido (gotchas 383-384). 🟢 **Visor OK, mecánica aprobada.** Un bug (secciones sin material) arreglado.
 
+- **2026-09-27 (2a)** — 🔬 **"El undo no funciona" resuelto sin visor**: PIE + leer las
+  variables de la paleta spawneada probo que el boton existe y esta cableado (`SwatchMid`,
+  `Tool`, `Tip` validos) → el fallo era la **zona de acierto**, una caja de ±1,2 cm contra los
+  3 cm de radio de las ranuras. Pasa a distancia 3D con `UndoPick` = 2.0. ⚠ sondas `BTN` y
+  `UNDO FIRE` puestas.
+- **2026-09-27** — 🎨 Slider remapeado (`SizeLo` 0.25 / `SizeHi` 1.5, extrapola arriba del
+  maximo), **boton de UNDO por flanco** (copiar el patron de la rueda habria borrado un trazo por
+  cuadro), **muestra de color** en la paleta, y la esfera a la mitad tomando el color del pincel.
+  🔴 Dos trampas: `CreateDynamicMaterialInstance` resuelve a dos sobrecargas segun el grafo, y
+  `SetVectorParameterValue` esta duplicado → `declaring_class`. ⬜ Sin visor.
 - **2026-09-26 (3i)** — 🔑 **El rig se configura solo**: la instancia volvio a rechazar las
   escrituras (396 otra vez, solo entro `staticMesh`), asi que `InstallTip` pone malla, material,
   escala y offset **en runtime desde variables** — ya no hace falta recolocar el actor, y las

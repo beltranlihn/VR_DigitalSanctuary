@@ -119,3 +119,52 @@ Propuesta: **(a) primero**, porque decide el ojo y es gratis; **(b)** si no conv
   esfera está lejos de la cadena.
 - ⚠ **Ediciones estructurales del BP con instancias colocadas** (gotcha 402): acá no hace falta tocar
   el BP, y esa es justamente la razón de mantener los nombres de parámetro.
+
+
+---
+
+# ✅ CONSTRUIDO (2026-09-27)
+
+## Lo que decia el PASO 0, resuelto con datos
+- **`MI_OrbBlob_SC`** (instancia del master del raymarch): `BlobCount` 1 · **`ROrb` 0** ·
+  `Rad0` (38,38,38) · `Smooth` 18 · `SizeVariation` 0 · `EndBoost` 0 · **`MinScale` 1** ·
+  `SwellAmount` (default del master, 0,3) · `FloatAmount` 7 / `Speed` 0,4 / **`Along` 1** ·
+  `ChainTransparency` 0 · `TintGain` 0 · `WobbleAFS` (0,09 · 4 · 0,35).
+- 🔴 **`ROrb` = 0 y nadie lo empuja → NA = 1: cada esfera es UNA sola bola.** El segundo
+  lobulo que describe el tracker del 2026-09-24 **no esta activo**. Queda como decision
+  aparte si se revive (empujar `ROrb` desde `ApplyLook` alcanzaria).
+- ⚠ **Me equivoque una vez en el camino**: afirme que tampoco se empujaba `COrb`, barriendo
+  los 27 grafos de `BP_SoundOrb_SC`. **`ApplyLook` no vive ahi, vive en `BP_OrbDirector_SC`**,
+  y si empuja `COrb`, `WobbleAFS`, `FloatSpeed`, `ChainColorHigh` y `ChainColorLow`. O sea que
+  **la semilla por esfera (`ps`, que sale de `COrb`) esta VIVA** y las 20 no respiran al unisono.
+  Barrer el Blueprint equivocado da un negativo que parece un hallazgo.
+
+## No hizo falta malla nueva
+**`SM_AlmaSphere` ya es una icoesfera de 2.665 verts / 5.120 tris con radio exactamente 50**,
+que es el lienzo ideal. El generador `scripts/gen_blob_orb.py` queda escrito por si mas adelante
+conviene una version de menos vertices (20 esferas x 2.665 verts es el unico costo a vigilar).
+
+## Y no hizo falta biseccion
+Con UNA bola, la superficie es cerrada y se escribe directo: `destino = centro(t) + u·radio(u,t)`,
+donde `u` es la direccion del vertice. **Cero iteraciones por vertice**, contra los 28 pasos de
+raymarch POR PIXEL de antes. El wobble, el swell y el flotar son las formulas del master, copiadas
+del codigo real.
+🔴 Si algun dia se revive el segundo lobulo, esto deja de valer y hay que volver a la biseccion
+del gusano: dos bolas fundidas ya no son radiales desde un centro.
+
+## Las piezas
+- **`M_BlobOrb_SC`** — duplicado de `M_BlobMesh_SC` (asi hereda el sombreado, el tinte y el
+  `RevealFade` ya hechos), con los dos Custom reemplazados y un input nuevo `WobAFS`.
+  🔴 **El gate del banco esta INVERTIDO respecto del gusano**: la esfera apaga en los modos
+  **3 y 4** (el 4 es "solo cadena"), el gusano en 3 y 5. Si no, el banco mide al reves.
+- **`MI_BlobOrb_SC`** — con los mismos valores que `MI_OrbBlob_SC`.
+- **El swap**: `PreviewMaterial` en la instancia **`BP_OrbDirector_SC_C_0`**. Ese era el punto,
+  no el template de `BP_SoundOrb_SC` (que tiene `Sphere` + `MI_AttractOrb`, o sea esta viejo).
+  El CDO del director sigue apuntando al raymarch, asi que la version vieja se recupera sola.
+
+## Verificado
+- Las dos esferas lado a lado, aisladas sobre negro: **mismo tamano, mismo color, mismo wobble**.
+- **En PIE**: los 20 orbes tienen su MID con padre `MI_BlobOrb_SC`.
+- ⬜ Falta el ojo de Beltran en VR Preview, y medir (`-Modos 0,4,5,3`; referencia: 5,81 ms).
+- ⚠ A vigilar: facetado de la silueta (la icoesfera es lineal entre vertices y el wobble la
+  curva) y el coste de vertices x20 objetos.
