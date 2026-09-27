@@ -168,3 +168,60 @@ del gusano: dos bolas fundidas ya no son radiales desde un centro.
 - ⬜ Falta el ojo de Beltran en VR Preview, y medir (`-Modos 0,4,5,3`; referencia: 5,81 ms).
 - ⚠ A vigilar: facetado de la silueta (la icoesfera es lineal entre vertices y el wobble la
   curva) y el coste de vertices x20 objetos.
+
+
+---
+
+## 2026-09-27 — sombreado: la normal va POR PIXEL, no por vértice
+
+Beltrán: *"los veo totalmente planos. Solo se nota la deformación por el contorno"* y, clave,
+*"Ya lo habiamos construido en las esferas originales que tenian el material de raymach"*.
+
+### 🔴 Mi primer diagnóstico fue falso
+Vi que el `Custom` de malla cerraba con un **half-lambert** (`dot(n,L)*0.5+0.5`), que nunca da
+sombra en el terminador, y lo cambié por una luz de 3 puntos + un Fresnel de borde. **No mejoró
+nada, y no podía mejorar**: al ir a leer el material que YA ANDABA (`M_SlotChain_SC`, el del
+raymarch) resulta que usa **exactamente el mismo half-lambert** —`Saturate_1 = dot*0.5+0.5`— y la
+**misma** dirección de luz (`Constant3Vector` 0.4 / 0.3 / 0.866). La curva nunca fue el problema.
+
+### La diferencia real: DÓNDE se evalúa la normal
+El raymarch termina con `return float4(nrm, hit)`: **devuelve la normal y la luz se resuelve
+después, por píxel**, con un gradiente de 4 taps del campo evaluado en cada píxel. Así cada bulto
+del wobble tiene su propia normal.
+
+La versión de malla resolvía la luz **adentro del `Custom`, por vértice**, y por el
+`VertexInterpolator` viajaba un escalar ya iluminado. Sobre una icoesfera de 642 vértices eso
+promedia el wobble entre triángulos: la deformación sobrevive en la **silueta** (los vértices sí
+están desplazados) pero desaparece del sombreado. Es literalmente lo que Beltrán describió.
+
+### Lo aplicado
+**`Custom_3` (`BlobOrbNormalPS`), en el pixel shader** — mismo gradiente de 4 taps, misma luz,
+misma curva:
+```
+Pos (interpolado) -> 4 taps del campo -> nrm -> saturate(dot(nrm, L)*0.5 + 0.5)
+```
+`Pos` es el punto de superficie en espacio **local**, que se arma en el grafo como
+`TransformPosition_0 (LocalPos) + Custom_0` — 🔑 `Custom_0` devuelve `destino - LocalPos` en local
+(lo transforma a mundo recién el `Transform_0` que va a WPO), así que la suma da el punto
+desplazado — y viaja por un `VertexInterpolator` nuevo.
+
+El costo es **muy** inferior al raymarch que reemplazó: 4 taps de una gota contra 32 pasos × 8
+gotas.
+
+### Perillas nuevas, dejadas en NEUTRO a propósito
+`ShadeFloor` **1.0** y `RimGain` **0.0**: así lo que se ve es el sombreado del raymarch y no una
+mezcla con mis agregados. `ShadeFloor` < 1 oscurece de verdad el lado en sombra (multiplica
+luminancia, no solo interpola el tono); `RimGain` ≠ 0 agrega borde. Están para subir **después**
+de validar la base, no antes.
+
+### 🔑 La lección
+La regla del proyecto —*antes de construir, leer lo que ya anda*— acá se pagó al revés: dos
+cirugías de material antes de abrir `M_SlotChain_SC`. Y el síntoma que Beltrán dio
+(*"solo se nota por el contorno"*) **ya contenía el diagnóstico**: silueta sí, sombreado no, es
+exactamente la firma de algo resuelto por vértice.
+
+### Deuda
+Quedaron ~5 expresiones huérfanas de los intentos previos (`Add_3`, `Saturate_4`, `Multiply_8`,
+`Constant3Vector_2` y una `Constant` de 0.5). No afectan el shader compilado (el compilador poda lo
+muerto) pero ensucian el grafo. ⚠ Borrarlas va en una llamada **aparte**, sin `recompile` en la
+misma tanda: ver gotcha 401.

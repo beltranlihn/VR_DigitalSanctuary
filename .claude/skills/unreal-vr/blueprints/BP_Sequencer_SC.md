@@ -408,3 +408,43 @@ valores del asset sin leerlos antes. Es [[no-pisar-los-valores-del-editor]] apli
 Compila limpio (`GetSystemCompileState`: sin errores ni warnings) y los tres params estan **linkeados**, que
 es la verificacion que exige el gotcha de Niagara. Pero **nadie lo vio correr**: los numeros son una primera
 apuesta y seguro haya que moverlos mirando.
+
+### 2026-09-27: la esfera vuelve a casa CHICA y crece al llegar (`BP_SoundOrb_SC.UpdateVisual`)
+**Síntoma (Beltrán):** al soltar lejos de un slot, la esfera se agrandaba de golpe mientras volvía.
+**Causa:** el tamaño objetivo es `SelectFloat(AnchorSize, OrbScale, (Grabbed || Placed) && bUseAnchor)`. Al soltar, `Grabbed` y `Placed` caen a falso y el objetivo pasa a `OrbScale` en el mismo cuadro; `FInterpTo` a `ScaleSpeed` 3 la infla durante el viaje.
+**Arreglo (cirugía aditiva, 11 nodos puros, sin estado nuevo):** la entrada B del `SelectFloat` ahora es
+```
+SelectFloat( Lerp(AnchorSize, OrbScale, t), OrbScale, bUseAnchor )
+t = Max( MapRangeClamped(|Actor − HomeLoc|, GrowDist, 0, 0, 1),   ← cercanía a casa
+         Clamp(|TargetLoc − HomeLoc|, 0, 1) )                       ← 1 si el viaje NO es a casa
+```
+- Viajando a casa se mantiene en `AnchorSize` y crece en los últimos **`GrowDist` cm** (var nueva, `0-Config`, **CDO 50**; las esferas se spawnean, así que se ajusta en los *Class Defaults* de `BP_SoundOrb_SC`). **`GrowDist` 0 = comportamiento anterior.**
+- En casa y quieta: distancia 0 → `t = 1` → tamaño completo. Los viajes de `GoTo` (fila final, etc.) no se tocan porque su destino ≠ `HomeLoc`. Sin `bUseAnchor` (previa del editor), nada cambia.
+- El desalojo por swap usa el mismo `ReturnHome`, así que también vuelve chica.
+- ⚠ `ReturnHome` usa `VInterpTo` (frenada exponencial): el tramo final es lento, así que el crecimiento dura más de lo que sugieren los 50 cm.
+- ✅ **Probado por Beltrán**: vuelve chica. Pidió que empiece a crecer antes → `GrowDist` **50 → 100** (CDO).
+
+### 2026-09-27: al agarrar, la esfera PULSA en su tamaño de agarrada y recién después viaja
+**Pedido (Beltrán):** que se note que se disparó el sample: pulso al sonar, desde el tamaño de tomada, y recién ahí que se acerque.
+**Antes:** `GrabStart` hacía sonar la voz y en el mismo cuadro la esfera empezaba a seguir el beam (`GrabSpeed` 3) y a encogerse (`FInterpTo` a `AnchorSize`); no había pulso al agarrar (solo en el beat).
+**Ahora — dos funciones NUEVAS (escritas con DSL en grafos vacíos) y un empalme por grafo:**
+- `GrabKick()` — colgada de `GrabStart` entre `ApplyColor` y el `IsValid`: `GrabT0 = GetGameTimeInSeconds`, `PulseT = 1` (el mismo pulso del beat: `PulseAmount` 0,35, dura 1/`PulseDecay` = 0,2 s) y `ScaleMul = AnchorSize` **de golpe** (si `bUseAnchor`), así el pulso nace desde el tamaño de tomada.
+- `HoldGrab()` — en el Tick entre `FollowBeam` y `StepMove`: si está agarrada y pasaron menos de `GrabDelay` s desde `GrabT0`, pisa `TargetLoc` con la posición actual → `StepMove` no la mueve.
+- Vars nuevas: **`GrabDelay`** (`0-Config`, CDO **0,3 s**; Class Defaults de `BP_SoundOrb_SC`) y `GrabT0` (`Z-Estado`).
+- ⚠ `GetGameTimeInSeconds` se escribe **`Utilities|Time|GetGameTimeinSeconds`** (con `in` minúscula) al crear; el read lo muestra con mayúscula. `bUseAnchor` = `Variables|Z-Estado|GetUseAnchor`.
+- ⬜ Sin probar en visor.
+
+### 2026-09-27: las esferas salen del DOMO del director
+- **`SpawnDome()`** (función nueva, DSL en grafo vacío): castea el director, `for i < OrbCount` → spawn en `DomePos(i)`, `SetLookIndex(i)`, `Setup(... clip, clipId)` con la **misma fórmula de clip de `SpawnOneOrb`** (→ `i % ClipsPerModule`, así se repiten si sobran esferas), `Reveal`.
+- **`SpawnOrbs`** ahora es `SetSpawnIdx 0 → SpawnDome → Print`; el loop viejo sobre target points se borró (`SpawnOneOrb` queda como función sin llamar).
+- **`PullSounds()`** (nueva), colgada en `Boot` justo después de `PickPad`: copia del director `PadSound` y, si `OrbClips` no está vacío, `ModuleSounds = OrbClips`, `ClipsPerModule = len`, `ModuleIndex = 0`. Así **todos** los consumidores viejos (esferas, esfera de instrucciones, duración del paso) toman los sonidos del director sin tocarlos. ⚠ Si se deja `PadSound` vacío en el director, no hay pad.
+- En `BP_SoundOrb_SC.Setup`, las 5 llamadas de look (`ApplyLook`, `LookColor`, `LookScale`, `LookSpinAxis`, `LookOffset`) leen **`LookIndex`** (var nueva, `Z-Estado`, 0 por defecto = la esfera de instrucciones como antes).
+- ✅ PIE: `SEQ: sonidos del director = 20`, `SEQ: esferas=20` (y 24 con `OrbCount` 24), sin `Accessed None`.
+
+### 2026-09-27 (corrección): el pulso es sobre el tamaño ACTUAL y encoge mientras viaja
+Beltrán: *"al tomarla se achicó de una, sin considerar el tamaño actual"*. Lo que pidió: pulso **sobre el tamaño que ya tiene**, recién al terminar el pulso empieza a acercarse, y **baja de tamaño a medida que se acerca**.
+- `GrabKick` ya **no** salta a `AnchorSize`: guarda `GrabLoc0` (dónde estaba), `GrabScale0` (su `ScaleMul`) y `GrabProg = 0`, además del `GrabT0` y el pulso.
+- **`TrackGrab()`** (nueva, en el Tick entre `StepMove` y `UpdateVisual`): si está agarrada, `GrabProg = max(GrabProg, recorrido / (recorrido + restante))` con recorrido = |pos − `GrabLoc0`| y restante = |pos − `TargetLoc`|. El `max` la hace **monótona**: una vez chica no vuelve a crecer si se aleja el beam. Durante la espera (`HoldGrab` pisa `TargetLoc` con la posición) da 0.
+- `UpdateVisual`: la entrada A del `SelectFloat` de tamaño es ahora `SelectFloat(Lerp(GrabScale0, AnchorSize, GrabProg), AnchorSize, Grabbed)` → agarrada = encoge por progreso; colocada = `AnchorSize` como antes.
+- ⚠ El `FInterpTo` a `ScaleSpeed` sigue suavizando encima (≈0,3 s de retraso).
+- ⬜ Sin probar con los mandos (el agarre no se puede disparar por MCP).

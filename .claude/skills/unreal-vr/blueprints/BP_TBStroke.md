@@ -1204,6 +1204,465 @@ no disparar undo al tocar la rueda. Esa separacion es la que fija el techo de `U
 es **medir el estado en PIE**. Aca costo 4 llamadas y descarto de una toda la mitad "el boton no
 existe / no esta cableado", que era donde yo iba a seguir buscando.
 
+## 2026-09-27 (3a) - El undo disparaba y no borraba: un nodo PURO leyendo estado ya mutado
+
+`BTN` daba true, `UNDO FIRE` salia, la llamada a `UndoLast` estaba bien cableada (verificado por
+pines) — y el trazo seguia ahi. El bug estaba en `UndoPop`:
+
+```
+(bind _s (Utilities|Array|Get(acopy) _historial I))   ; nodo PURO
+(Utilities|Array|RemoveIndex _historial I)            ; <- corre PRIMERO
+(Utilities|IsValid _s (:"Is Valid" (Actor|DestroyActor _s)))
+```
+
+🔴 **El `Array Get` no corre donde esta escrito.** Se inlinea justo antes del nodo impuro que lo
+consume — o sea **despues** del `RemoveIndex`. Ahi el indice ya no existe, devuelve `None`,
+`IsValid` falla y no se destruye nada. **El `bind` del DSL no es una asignacion: es un nombre para
+la salida de un pin.**
+
+✅ Arreglado invirtiendo el orden: `IsValid -> DestroyActor -> RemoveIndex`. Ver gotcha 409.
+
+### El camino hasta encontrarlo (util como receta)
+1. Leer las 4 funciones: todas correctas → no seguir releyendo.
+2. **PIE + estado del actor spawneado**: `SwatchMid`/`SliderMid` validos, `Tool`/`Tip` apuntando
+   bien, y `overrideMaterials` del ProcMesh con **8 entradas** → toda la UI existe y esta
+   materializada. Descartada la mitad "no existe / no esta cableado".
+3. **PIE + forzar la condicion** (`UndoPick = 500`): `UNDO FIRE` una sola vez → el flanco latea y
+   la llamada se hace. Descartada la logica de deteccion.
+4. Reubicado el boton (estaba fuera del campo visual) → Beltran confirma `UNDO FIRE`.
+5. Con "se llama" y "esta bien cableado" en verde, el unico hueco que queda es **el orden de
+   evaluacion**. Ahi aparecio.
+
+### Sondas
+Sacadas las que imprimian cada cuadro (`BTN` en `TestUndo`, `PRESION` en el Tick de la
+herramienta). ⚠ **Quedan puestas** `UNDO FIRE` (en `FireUndo`) y `UL_N`/`UL_D` (en `UndoLast`),
+que solo imprimen al tocar el boton. Sacarlas cuando se valide.
+
+
+## 2026-09-27 (4a) - REDO, y el piso del slider mas abajo
+
+Beltran, despues de validar el undo en visor: *"Funciona. Agrega un boton de Re Do. El valor
+minimo del slider que sea .25 del actual"*.
+
+### Contra Tilt Brush primero: el undo de TB NO destruye, ESCONDE
+
+`SketchMemoryScript` tiene **dos pilas** (`m_OperationStack` / `m_RedoStack`) y comandos con
+`Undo()`/`Redo()`:
+```csharp
+public void StepBack()    { var c = m_OperationStack.Pop(); c.Undo(); m_RedoStack.Push(c); }
+public void StepForward() { var c = m_RedoStack.Pop();      c.Redo(); m_OperationStack.Push(c); }
+```
+Y el trazo se apaga con `Stroke.Uncreate()` / se rehace con `Recreate()` — hay incluso un TODO en
+su fuente pidiendo que el *rewind* use "el mecanismo de ocultar de las operaciones de undo".
+🔑 **O sea que nuestro undo estaba mal de raiz para soportar redo: destruia el actor.** Sin el
+actor no hay nada que rehacer. El cambio de fondo de esta pasada es ese.
+
+Tercer detalle que se copio de TB: **`MemorizeBrushStroke` arranca con `ClearRedo()`**, y
+`ClearRedo` hace `Dispose()` de cada comando antes de vaciar la pila. Un trazo nuevo invalida el
+futuro **y libera la geometria**.
+
+### Lo que cambio en `BPC_TBTool_NC`
+
+Variable nueva: **`RedoStack`** (array de `BP_TBStroke`, igual que `StrokeHistory`).
+
+| funcion | que hace |
+|---|---|
+| `UndoPop(I)` | **ya no destruye**: llama a `StashStroke` y saca del historial |
+| `StashStroke(S)` | `SetActorHiddenInGame(S, true)` + `Add(RedoStack, S)` |
+| `RedoLast()` | espejo exacto de `UndoLast`: si no esta dibujando y hay pila, `RedoPop(n-1)` |
+| `RedoPop(I)` | `SetActorHiddenInGame(false)` + `Add(StrokeHistory)` + `RemoveIndex(RedoStack)` |
+| `ClearRedo()` | destruye cada actor escondido y vacia la pila; **primera linea de `BeginStroke`** |
+
+🔴 **`RedoPop` respeta el orden que costo la gotcha 409**: todos los usos de `_output` (el `Array
+Get` puro) van ANTES del `RemoveIndex`. Si el `Add` quedara despues del remove, leeria `None` y el
+trazo se perderia en silencio — el mismo bug, del otro lado.
+
+`UndoPop` se cambio por **cirugia de un nodo**: se creo `CallFunction|StashStroke`, se le paso la
+salida del `Array Get` y se borro el `DestroyActor`. La logica de "sacar del historial" no se
+toco.
+
+### Lo que cambio en `BP_TBPalette`
+
+Variables nuevas (panel): `RedoOffset` **(0, 6.5, -4.6)**, `RedoHalf` 1.6, `RedoPick` 2.2,
+`bRedoWasIn`. Seccion **`n+4`** del mismo ProceduralMesh (la novena) con `M_TB_Redo`.
+Funciones `BuildRedo` / `TestRedo` / `FireRedo`, calcadas de las de undo — **flanco incluido**, que
+en un boton no es opcional.
+
+Mapa final de la paleta en local (recordar el **Yaw 180**: +Y se ve a la IZQUIERDA):
+
+| elemento | Y | Z | seccion |
+|---|---|---|---|
+| rueda de color | −7.4 | 0 | n |
+| muestra de color | −7.4 | −4.2 | n+3 |
+| 4 pinceles | ±1.7 | ±1.7 | 0..n−1 |
+| barra de grosor | 0 | −4.6 | n+1 |
+| **undo** | +6.5 | 0 | n+2 |
+| **redo** | **+6.5** | **−4.6** | **n+4** |
+
+Queda simetrico: rueda+muestra a la derecha del usuario, undo+redo a la izquierda. Separacion
+undo↔redo = 4.6 cm contra 2.2+2.2 de radio de acierto → **0.2 cm de aire**, y el borde de la
+barra (Y=3) queda a 1.1 del radio del redo. Esos dos numeros son los que fijan el techo de
+`RedoPick`.
+
+`M_TB_Redo` es un **duplicado** de `M_TB_Undo` con UNA linea mas en el `Custom`: `p.x = -p.x`.
+Espeja el glifo, asi que las dos flechas se leen opuestas **sin importar como se vea el espejado
+de la paleta** — que era el riesgo de dibujar un glifo nuevo a mano.
+
+### El piso del slider - PRIMER INTENTO, MAL LEIDO (ver 4b)
+
+`SizeLo` **0.25 -> 0.0625**. Lei *"el valor minimo del slider que sea .25 del actual"* como un
+cuarto del VALOR (0.25 -> 0.0625) y era al revés de lo que queria: **queria SUBIR el minimo para
+que no fuera tan delgado**. Quedo en 0.0625 y en visor salio un pelo. Corregido en 4b.
+
+⚠ Lo que si queda aprendido de aca: **la curva es al cuadrado, asi que un cuarto del valor no es
+un cuarto del grosor** — `size = ( lerp(sqrt(min), sqrt(max), t) )^2`. Y el piso de cada pincel
+es su minimo real de TB (`SizeMins`), asi que por abajo hay un tope que no se puede pasar.
+
+### Sondas: SACADAS todas
+`UNDO FIRE` (de `FireUndo`) y `UL_N`/`UL_D` (de `UndoLast`). El grafo de `UndoLast` quedo
+`entry → Branch` directo, sin los dos `PrintString` ni sus `ToString`.
+
+### Verificado en PIE (no en visor)
+`overrideMaterials` del ProcMesh de la paleta spawneada: **9 entradas**, la 8 = `M_TB_Redo` →
+`BuildRedo` corre y la seccion existe materializada. `Tool` y `Tip` enganchados al rig,
+`bRedoWasIn` en false. ⬜ Falta el visor: que el boton dispare y que el trazo reaparezca.
+
+
+## 2026-09-27 (4b) - El piso del slider al revés, y la paleta sin nada seleccionado
+
+Dos correcciones de la misma pasada de visor. 🟢 **El undo funciona** (confirmado por Beltran).
+
+### 1. `SizeLo` 0.0625 -> 0.5: yo lo habia bajado y el lo queria SUBIR
+
+*"Lo del slider me equivoque, quedo demasiado delgado. El minimo yo queria subirlo para que no
+fuera tan delgado."* La pedida original (*"el valor minimo del slider que sea .25 del actual"*)
+admitia las dos lecturas y tome la que iba en la direccion contraria.
+
+Numeros reales, ahora con los maximos **leidos de la tabla de presets** (la vez pasada asumi
+max ~1.0 para el pincel 0 y el valor real es **2.0** — el error hizo que el efecto pareciera mas
+suave de lo que fue):
+
+| pincel (slot) | min / max | t=0.0625 | t=0.25 | **t=0.5** | t=1.5 (tope) |
+|---|---|---|---|---|---|
+| 0 TaperedMarkerFlat | 0.05 / 2.0 | 0.089 | 0.272 | **0.671** | 4.04 |
+| 5 OilPaint | 0.1 / 3.0 | 0.149 | 0.420 | **0.938** | 5.66 |
+| 3 Light | 0.75 / 3.0 | 0.847 | 1.172 | **1.688** | 4.92 |
+| 6 WetPaint | 0.02 / 2.5 | 0.054 | 0.251 | **0.742** | 4.76 |
+
+`SizeLo` = **0.5** deja el extremo fino en ~2,5x el que tenia ANTES de todo esto, y el rango
+completo del slider queda en ~6x de ancho. La perilla sigue siendo `SizeLo` en `BP_TBStroke`.
+🔑 Light casi no se mueve porque su piso (0.75) esta muy arriba: **el mismo `SizeLo` da rangos
+muy distintos segun el pincel**, y eso es de TB, no nuestro.
+
+### 2. La paleta arrancaba sin nada seleccionado (y dibujando con otra cosa)
+
+*"La paleta deberia mostrarnos el pincel seleccionado cuando parte la obra... igual dibuja al
+principio, solo que no se con cual pincel."*
+
+Diagnostico por defaults, sin visor:
+
+| variable | default | consecuencia |
+|---|---|---|
+| `BP_TBPalette.Selected` | **-1** | `ApplyHighlight` pone 0.3 en TODAS (highlight = `Selected == i`) |
+| | | `PushSelection` esta guardado con `if (>= Selected 0)` → no manda nada |
+| `BPC_TBTool_NC.BrushIndex` | **-1** | y -1 es la **rama Default** del switch de `ApplyPreset`: el "look aprobado", que NO es ninguno de los 9 |
+
+O sea que los dos sintomas que describio son **el mismo hecho**: nadie habia elegido todavia.
+Dibujaba con el look viejo de la rama default.
+
+✅ **Arreglo sin un solo nodo nuevo**: `Selected` default **0** y `BrushIndex` default **0**.
+`ApplyHighlight` ilumina el slot 0 en el primer cuadro y `PushSelection` empuja `BrushIds[0]`;
+el `BrushIndex` en 0 cubre el intervalo antes del primer tick, asi que no hay ni un cuadro con el
+preset -1.
+🔑 **`TestSlot` nunca escribe `Selected` cuando no hay nada cerca** (el `if` solo tiene rama
+verdadera), asi que un default distinto de -1 **sobrevive** — eso es lo que hace que alcance con
+el default. Verificado leyendo la funcion antes de tocar nada.
+⚠ Por el espejado, el slot 0 se ve **arriba a la DERECHA** del usuario, no a la izquierda. Es
+`BrushIds[0]` = TaperedMarkerFlat. Para arrancar con otro, cambiar el default de `Selected`.
+
+
+## 2026-09-27 (4c) - EL VAIVEN PORTADO DEL PINCEL VIEJO
+
+Pedido: *"traer el sistema de animacion que teniamos en nuestro pincel antiguo. Que hace que los
+trazos se muevan manteniendo fijo su punto de partida."*
+
+### Lo que habia, leido de su tracker (`BPC_DrawTool_NC.md`)
+```
+mask  = saturate(UV.Y / SwaySpan)                    ; base quieta, punta suelta
+phase = dot(WorldPos.xy, (1, 0.7)) * SwayScale + Time * SwaySpeed
+sway  = SwayDir * sin(phase) * SwayStrength * mask * SwayOn
+WPO   = taper + sway
+```
+Valores **aprobados en visor** el 2026-09-24: `SwaySpan` 40 · `SwayStrength` 1.5 · `SwaySpeed` 0.5
+· `SwayScale` 0.03 · `SwayDir` (1, 0.6, 0.15) · `SwayFade` 1.2 s. Se portaron **tal cual**.
+🔑 El termino espacial (`dot(WorldPos.xy, …)`) es lo que da el aire de ruido con **un solo seno**:
+cada trazo y cada zona entra con fase distinta. Sin el, todo se mueve al unisono.
+🔴 Y el encendido **va con rampa**: en el pincel viejo poner `SwayOn = 1` de golpe hizo que
+Beltran viera *"se glitchea y se reposiciona"* al soltar — el WPO salta de 0 a pleno en un cuadro.
+
+### Lo que hubo que cambiar, y por que
+
+**1. La mascara ya no puede salir de la UV.** En la cinta vieja `UV.Y = TotalDistance` (cm desde
+el nacimiento). Acá la UV es la de Tilt Brush: `V_UV = (K_U[i], AtlasV)`, y **`K_U` cambia de
+significado con `UVStyle`** — `NormalizeU` hace `StretchAccum` (acumula `K_Len`, o sea cm) cuando
+`UVStyle == 1` y `StretchNorm` (0..1) cuando no. O sea que la misma cuenta daria distinto por
+pincel.
+✅ **Salida elegida: distancia de MUNDO al punto de nacimiento**, con el origen pasado como
+parametro:
+```
+mask = saturate( distance(AbsoluteWorldPosition, SwayOrigin) / SwaySpan )
+```
+Y `SwayOrigin = K_Pos[0]`, que es el primer nudo (`StartStroke` mete dos `AddKnot` en la misma
+posicion). Funciona porque el actor del trazo se spawnea en el origen: **sus vertices ya estan en
+coordenadas de mundo**, asi que `K_Pos` y `AbsoluteWorldPosition` son la misma cosa.
+⚠ **Desviacion consciente:** no es longitud de arco. En un trazo que se enrosca y vuelve cerca de
+su nacimiento, esa vuelta queda mas rigida de lo que correspondia. Para hacerlo por arco hay que
+meter la distancia acumulada en **UV1** — el pin ya existe en el `CreateMeshSection` de
+`RebuildChunk` (hoy recibe 0) — y llenarlo en `EmitPass` **y** en `EmitTubeHard`. Se descarto
+por ahora: toca las dos funciones mas delicadas del motor, recien validadas.
+
+**2. No hay MID por trazo** (decision de diseño: el color va en los vertices). Y el vaivén
+necesita dos datos por trazo: `SwayOrigin` y `SwayOn`.
+✅ **Salida: `SetVectorParameterValueOnMaterials` / `SetScalarParameterValueOnMaterials` sobre el
+componente.** Esos nodos **crean el MID adentro** (el mismo truco de `UpdateTipColor`), asi que no
+hay que crear ni guardar nada — y de paso cubren **todas** las secciones si el trozeado volviera.
+🔴 Ojo con lo que NO se hizo: `CreateDynamicMaterialInstance` tiene dos sobrecargas y ya costo un
+bug (gotcha 406). Este camino lo esquiva por completo.
+
+**3. El WPO estaba LIBRE** (`get_property_input(M_TB_Solid, MP_WorldPositionOffset)` = `None`),
+al contrario que en la cinta vieja, donde el taper de las puntas ya lo ocupaba y el vaivén tuvo
+que sumarse. Acá el taper es **geometria de verdad**, asi que el WPO es solo vaivén.
+
+### Como quedo
+
+**`MF_TB_Sway`** (función de material nueva, 23 expresiones) con los 7 parametros. Enchufada al
+`MP_WorldPositionOffset` de los **cuatro maestros**: `M_TB_Solid`, `M_TB_Additive`,
+`M_TB_Masked`, `M_TB_Paint`. Una sola copia de la cuenta en vez de cuatro.
+🔴 **`SwayOn` nace en 0 = NEUTRO**, asi que los cuatro maestros siguen dando exactamente lo
+aprobado hasta que el codigo enciende el vaivén. Es la regla de gotcha 375 aplicada a proposito.
+
+En `BP_TBStroke`, variables nuevas `SwayFade` (1.2, panel, categoria **05 VAIVEN**), `SwayT`,
+`bSwayRamp`, y dos funciones:
+```
+EndStroke:  RebuildChunk -> SwayArm
+SwayArm:    SetVectorParameterValueOnMaterials(Mesh, "SwayOrigin", K_Pos[0])
+            SetScalarParameterValueOnMaterials(Mesh, "SwayOn", 0)
+            SwayT = 0 ; bSwayRamp = true
+EventTick:  SwayStep(DeltaSeconds)
+SwayStep:   if bSwayRamp:
+              SwayT = min(SwayT + DT/SwayFade, 1)
+              SetScalarParameterValueOnMaterials(Mesh, "SwayOn", SwayT)
+              bSwayRamp = (SwayT < 1)
+```
+🔑 **`bSwayRamp = (SwayT < 1)` en vez de un `if` anidado**: la rampa se apaga sola, la funcion
+queda plana y no hay segunda rama que revisar.
+🔑 Y el `Get` de `SwayT` **despues** del `Set` lee el valor nuevo — es el mismo mecanismo de la
+gotcha 409, pero acá jugando a favor: un nodo puro se re-evalua en cada uso.
+⚠ El `EventTick` de `BP_TBStroke` estaba **vacio** (implementado, sin nodos), asi que no hubo que
+pelear con nada existente.
+
+### Para afinarlo
+Los parametros viven en `MF_TB_Sway` y se exponen en los cuatro maestros. Para tocar **un pincel**
+sin recompilar: override en su `MI_TB_*`. Para cambiar el default de todos: editar `MF_TB_Sway` y
+`MaterialTools.recompile` (la funcion **y** los maestros).
+💡 `BP_DrawDirector_NC` ya tiene las perillas `SwaySpan/Strength/Speed/Scale/Dir/Fade` del pincel
+viejo — cuando se conecte el director a este pincel, salen de ahi.
+
+⬜ **Sin visor.** Lo verificado: los 4 maestros compilan y exponen los 7 parametros
+(`list_parameters`), el WPO de cada uno recibe la salida `Sway` de la funcion, y `BP_TBStroke`
+compila con la cadena entera. Lo que falta mirar: que al soltar el trazo entre suave (la rampa),
+que la base quede realmente clavada, y si 1.5 cm de amplitud sigue siendo el valor que le gusto.
+
+
+## 2026-09-27 (4d) - EL VAIVEN EN VISOR: rigido y todos iguales. Las dos causas
+
+Beltran: *"Siento que la animacion no se nota, porque todos los trazos estan adoptando la misma
+oscilacion y velocidad. Debieran poder diferenciarse. Ahora senti que los trazos se movian
+completos, no como un wobble suave en cada trazo."*
+
+Las dos cosas estaban en la cuenta, y las dos se leen directo de ella.
+
+### 1. "Se movian completos" — la fase casi no cambiaba A LO LARGO del trazo
+El unico termino espacial era `dot(WorldPos.xy, (1, 0.7)) * SwayScale` con `SwayScale = 0.03`.
+Eso da **0,03 rad por cm**: sobre un trazo de 20 cm la fase cambia ~0,7 rad, o sea que es
+practicamente **constante**. Todos los vertices van al mismo lado en el mismo instante y la
+mascara solo escala la amplitud → **traslacion rigida**, no onda. Y peor: el termino usa solo XY,
+asi que **un trazo vertical no tiene ninguna variacion de fase a lo largo**.
+🔑 El dato correcto ya estaba calculado: la **distancia al nacimiento** (el numerador de la
+mascara). Sumandola a la fase sale una onda que **viaja** por el trazo:
+```
+d     = distance(WorldPos, SwayOrigin)
+phase = d * SwayWave + dot(WorldPos.xy,(1,0.7)) * SwayScale + Time * speed
+```
+`SwayWave` = **0.18** rad/cm → longitud de onda `2π/0.18` = **35 cm**, una ondulacion completa por
+cada 35 cm de trazo. Es la perilla del "cuanto se ondula"; mas alto = onda mas corta.
+⚠ Que no se rompe: los nudos caen cada ~0,2 cm (`GetSpawnInterval`), asi que 35 cm de longitud de
+onda se muestrean con ~175 nudos. No hay riesgo de quedar facetado.
+
+### 2. "Todos la misma oscilacion y velocidad" — porque literalmente lo eran
+`Time * SwaySpeed` es **global**: identico para todos los trazos. Y la unica diferencia entre
+trazos era su posicion de mundo en ese `dot`, que para dos trazos cercanos da casi lo mismo.
+✅ **Semilla por trazo.** `SwaySeed` (0..1) se escribe en `SwayArm` con un `RandomFloat`, y modula
+la velocidad:
+```
+speed = SwaySpeed * (1 + (SwaySeed - 0.5) * SwaySpeedVar)
+```
+Con `SwaySpeedVar` = **0.6** las velocidades caen en `[0.35, 0.65]` (periodos de 10 a 18 s).
+🔑 **No hace falta sumar tambien un desfase por semilla**: como `Time` es grande (cientos de
+segundos), velocidades distintas ya dejan las fases completamente descorrelacionadas. Se evaluo y
+se descarto — dos expresiones menos en un shader de Quest.
+
+### El estado de la cuenta
+```
+d      = distance(AbsoluteWorldPosition, SwayOrigin)       ; SwayOrigin = K_Pos[0]
+mask   = saturate(d / SwaySpan)                            ; 40 cm
+speed  = SwaySpeed * (1 + (SwaySeed - 0.5) * SwaySpeedVar) ; 0.5, semilla, 0.6
+phase  = d * SwayWave + dot(WorldPos.xy,(1,0.7)) * SwayScale + Time * speed
+sway   = SwayDir * sin(phase) * SwayStrength * mask * SwayOn
+```
+10 parametros en `MF_TB_Sway`, expuestos en los 4 maestros. `SwayOn` y `SwaySeed` los pone el
+codigo; los otros 8 son perillas.
+
+### Las perillas, y que mueve cada una
+| perilla | hoy | que cambia |
+|---|---|---|
+| `SwayWave` | 0.18 | **cuanto ondula**. Longitud de onda = 2π/valor (0.18 → 35 cm) |
+| `SwaySpeedVar` | 0.6 | **cuanto se diferencian** entre si. 0 = todos iguales otra vez |
+| `SwayStrength` | 1.5 | amplitud en cm |
+| `SwaySpeed` | 0.5 | velocidad media (periodo medio 12,6 s) |
+| `SwaySpan` | 40 | en cuantos cm pasa de rigido a suelto desde la base |
+| `SwayScale` | 0.03 | diferencia de fase **entre trazos alejados** (ya no es la del wobble) |
+| `SwayDir` | (1,0.6,0.15) | eje del vaivén |
+| `SwayFade` | 1.2 s | la rampa de encendido (esta en `BP_TBStroke`) |
+
+⚠ Lo que sigue igual para todos es la **direccion**: todos se inclinan sobre el mismo eje. Si con
+esto todavia se ven emparentados, el siguiente paso es **rotar `SwayDir` por la semilla** en el
+plano XY (~9 expresiones mas). Se dejo afuera a proposito por presupuesto de Quest.
+
+🟢 **VALIDADO EN VISOR** (2026-09-27): *"se ve bastante bien, estamos con eso por ahora"*.
+Los 8 valores quedan como estan. La direccion compartida no hizo falta diferenciarla.
+
+
+## 2026-09-27 (5a) - EL DIRECTOR: el rig pasa a ser el sistema entero
+
+Pedido de Beltran, en tres mensajes que se fueron precisando: *"quiero que lo armemos con un
+director desde donde podamos controlar varios parametros"* entonces *"que el sistema sea migrable a
+cualquier otro proyecto donde yo simplemente lo arrastro al world y reconoce al pawn con el que
+estoy trabajando"* entonces *"este director debiera contener tanto los motion controllers como los
+pinceles, los sonidos, todo"*.
+
+### La decision de arquitectura: NO es un actor nuevo
+
+`BP_TBDrawRig` **ya era** eso: autoinstalable, validado en visor, con el input, la paleta, las
+mallas de mando, la punta y la herramienta adentro. Crear un director aparte habria dado **dos**
+cosas que arrastrar, justo lo contrario de lo que pidio. Asi que el rig **se renombro a
+`BP_TBDirector_NC`** y se le colgaron las perillas.
+- `get_referencers` antes de renombrar: **solo `L_TBTest`**. Renombre seguro.
+- Verificado despues: la instancia colocada sigue resolviendo sus valores (`TipOffset`,
+  `TipScale`) y el BP compila.
+
+### Y la portabilidad ya estaba resuelta, mejor de lo que yo creia
+```
+(fn FindControllers ()
+  (for _c (Actor|GetComponentsByClass (Game|GetPlayerPawn 0) "MotionControllerComponent")
+    (SortController self _c)))
+```
+**El director no trae motion controllers: usa los del pawn poseido**, sin clase hardcodeada. Eso
+es exactamente *"reconoce al pawn con el que estoy trabajando"*, y de paso esquiva la gotcha del
+sistema viejo (un MotionController en un actor sin Owner no trackea jamas). Si el pawn no tiene
+ninguno, `bReady` queda en false y `CheckController` lo reintenta cada cuadro: degrada, no explota.
+
+### Las 28 perillas, por categoria
+`01 COLOR`: `ColorMode` (0=rueda, 1=4 colores), `SlotColorA[4]`, `SlotColorB[4]`,
+`bColorGradient`, `BrushIds`
+`02 ANIMACION`: `bSwayEnabled`, `SwayStrength`, `SwayWave`, `SwaySpeed`, `SwaySpan`,
+`SwaySpeedVar`, `SwayScale`, `SwayDir`, `SwayFade`
+`03 SKETCH`: `HideTime`, `ShowTime`, `SketchGap`, `bCenterZ`
+`04 AUDIO`: `BrushLoop[]`, `BrushLoopVol[]`, `LoopFade`, `ClickSound`, `ClickVol`,
+`HideSound`, `ShowSound`, `SfxVol`
+`05 HAPTICA`: `DrawHapAmp`, `DrawHapFreq`, `ClickHapAmp`, `ClickHapDur`
+Todas **instance-editable**, para tocarlas en el actor colocado sin abrir el BP.
+
+### El hallazgo que definio como viajan los datos
+**Las variables del director NO son visibles como nodos desde otros Blueprints.**
+`find_node_types` con filtro `GetSwaySpeedVar` devuelve `[]` desde un grafo de `BP_TBStroke`,
+mientras que las del director VIEJO (`Class|BPDrawDirectorNC|GetSwayStrength`) si aparecen. O sea
+que es **cache del node database para una clase recien renombrada**, no una regla del motor, pero
+en esta sesion es un hecho con el que hay que convivir.
+**Conclusion: el director EMPUJA, nadie lo lee.** Los `Class|BPCTBToolNC|Set*` y
+`Class|BPTBStroke|Set*` si estan registrados, asi que la direccion contraria funciona perfecto.
+
+Cadena final de la configuracion:
+```
+Director.DoInstall -> PushConfig()          ; 9 Set* sobre el componente TBTool
+Tool.Release       -> CloseStroke(S)        ; reemplaza la llamada directa a EndStroke
+                        -> S.SwayConfig(9 valores)   ; los escribe en el MID del trazo
+                        -> S.EndStroke()             ; arranca la rampa, ya con SwayFade nuevo
+```
+**`bSwayEnabled` no necesito una rama**: `SwayConfig` escribe `select(Enabled, Strength, 0)` en
+`SwayStrength`. Apagar la animacion es amplitud 0, y el resto del shader queda igual. Cero
+estructura nueva.
+
+### Verificado con CONTROL NEGATIVO (no solo "los valores coinciden")
+Primera lectura en PIE: el `TBTool` spawneado tenia `CfgWave = 0.18`, que es **tambien** el default
+del componente, asi que no probaba nada. Se puso el default del componente en **99**, se relanzo
+PIE y la lectura dio **0.18**: el `PushConfig` del director realmente corre y pisa el default.
+Despues se restauro el 0.18.
+
+### Lo que NO se hizo con Material Parameter Collection, y por que
+Un MPC era el camino natural para los valores globales y se llego a construir. Se descarto al
+descubrir que **`MaterialExpressionCollectionParameter` resuelve por `ParameterId`, y el MCP no
+puede leer ni escribir ese campo** (`get_properties` lo rechaza explicitamente). Compilar no tiro
+error, pero **un 0 silencioso tampoco lo tiraria**, y el vaiven ya estaba aprobado en visor: no se
+deja una funcion validada apoyada en un mecanismo que no se puede verificar. El MPC queda como la
+opcion limpia para cuando se pueda comprobar en visor.
+
+### CLEAR SKETCH
+`BPC_TBTool_NC.ClearAll()`: si no esta dibujando, `ClearRedo` (destruye los escondidos) + destruye
+todo `StrokeHistory` + `Clear`. Boton en la **seccion n+5** de la paleta (`M_TB_Clear`, glifo de X
+en tono rojizo, duplicado de `M_TB_Undo` con otro `Custom`), en `ClearOffset (0, 6.5, 4.6)`,
+arriba del undo. Deteccion por distancia 3D con flanco, igual que undo/redo.
+Mapa de la paleta ahora, en local (**+Y se ve a la IZQUIERDA** por el Yaw 180):
+
+| elemento | Y | Z | seccion |
+|---|---|---|---|
+| rueda de color | -7.4 | 0 | n |
+| muestra | -7.4 | -4.2 | n+3 |
+| 4 pinceles | +-1.7 | +-1.7 | 0..n-1 |
+| barra de grosor | 0 | -4.6 | n+1 |
+| undo | +6.5 | 0 | n+2 |
+| redo | +6.5 | -4.6 | n+4 |
+| **clear** | **+6.5** | **+4.6** | **n+5** |
+
+Verificado en PIE: el ProcMesh de la paleta spawneada tiene **10 secciones**, la 9 con
+`M_TB_Clear`.
+
+### ZUMBIDO HAPTICO AL DIBUJAR
+`DrawHaptic(Held)` en el Tick del director, **por flanco** con `bHapOn`:
+`SetHapticsByValue(GetPlayerController(0), select(Held, DrawHapFreq, 0), select(Held, DrawHapAmp, 0), Right)`.
+Vive en el director y no en la herramienta **porque el Tick del director ya tiene el estado del
+gatillo** (`IA_Shoot_Right`): cero plomeria nueva.
+El type_id del getter de input es `Input|EnhancedActionValues|IA_Shoot_Right`, **sin el `Get`**
+que imprime el read. Otra vuelta de la gotcha 413.
+
+### LO QUE QUEDO SIN HACER (y por que se dejo SIN EMPEZAR, no a medias)
+1. **Paleta de 4 colores + degrade por slot.** Las perillas existen (`ColorMode`, `SlotColorA/B`,
+   `bColorGradient`) pero **nada las lee todavia**. El degrade exige tocar `EmitPass` y
+   `EmitTubeHard` para que el color del vertice sea `lerp(A, B, t)`.
+2. **Save Sketch + animacion de desaparicion/aparicion.** Diseno decidido: `K_Arc`/`K_T` por nudo
+   hacia **`V_UV1`** (el pin UV1 ya existe en el `CreateMeshSection` de `RebuildChunk`, hoy recibe
+   0), parametro `Reveal` por trazo, `visible = K_T <= Reveal`, undraw 1 a 0 y draw 0 a 1. El
+   centro sale del bounding box de todos los nudos y los trazos se reubican sumando un delta a
+   `K_Pos` y reconstruyendo **una vez** (no por cuadro: a 20 trazos por 200 nudos, rebuildear por
+   cuadro en BP no entra en presupuesto).
+   El boton NO se puso: un boton que no hace nada es peor que ningun boton.
+3. **Audio** (loop por pincel con fade, click, sonidos de hide/show). Las perillas existen, nada
+   las lee.
+
+Las tres comparten un prerequisito: **la cirugia de `EmitPass` + `EmitTubeHard`** (arco y degrade
+en la misma pasada). Son las dos funciones mas delicadas del motor y estan recien validadas; se
+decidio no abrirlas al final de una tanda larga sin nadie que pueda probar en visor.
+
 
 ## Session log
 - **2026-09-25** — Completo y compilando: motor + herramienta + pawn + nivel de prueba.
@@ -1213,6 +1672,37 @@ existe / no esta cableado", que era donde yo iba a seguir buscando.
   despues de cada tanda**. **Dos** crashes de Unreal, los dos por el Undo de un
   script fallido (gotchas 383-384). 🟢 **Visor OK, mecánica aprobada.** Un bug (secciones sin material) arreglado.
 
+- **2026-09-27 (5a)** - 🎛️ **EL DIRECTOR.** El rig se renombro a `BP_TBDirector_NC` y ES el
+  sistema: un actor que se arrastra, que usa **los motion controllers del pawn poseido** (ya era
+  portable). 28 perillas en 6 categorias. 🔴 Las variables del director **no son legibles desde
+  otros BP** en este MCP → el director **empuja** (`PushConfig` → `CfgX` del tool → `CloseStroke`
+  → `SwayConfig` → MID). Verificado con **control negativo** (default 99 vs 0.18). + **Clear
+  Sketch** (seccion n+5) y **zumbido haptico** al dibujar. ⬜ Sin empezar: 4 colores + degrade,
+  Save Sketch y audio.
+- **2026-09-27 (4d)** - 🌊 **El vaiven en visor: rigido y todos iguales.** Dos causas en la misma
+  cuenta: la fase casi no cambiaba **a lo largo** del trazo (`SwayScale` 0.03 = 0,7 rad en 20 cm, y solo
+  en XY) → se suma **`d * SwayWave`**, la distancia al nacimiento que ya estaba calculada; y la
+  velocidad era **global** → **`SwaySeed`** por trazo modula `SwaySpeed`. 🟢 **Aprobado en visor.**
+- **2026-09-27 (4c)** - 🌿 **VAIVEN portado del pincel viejo** con sus valores aprobados.
+  Dos cosas no se podian copiar: la mascara ya no sale de la UV (`K_U` cambia de significado con
+  `UVStyle`) → **distancia de mundo a `K_Pos[0]`**; y no hay MID por trazo →
+  **`Set*ParameterValueOnMaterials`**, que lo crea adentro. `MF_TB_Sway` al WPO de los 4 maestros,
+  con `SwayOn` en 0 = neutro. ⬜ Sin visor.
+- **2026-09-27 (4b)** - 🔁 Dos correcciones de visor: `SizeLo` 0.0625 -> **0.5** (yo habia
+  BAJADO el piso y el lo queria subir; de paso la tabla anterior usaba un maximo mal leido), y la
+  paleta arrancaba **sin nada seleccionado** dibujando con el preset -1 (la rama default). Los dos
+  sintomas eran el mismo hecho. Arreglado con **dos defaults**: `Selected` 0 y `BrushIndex` 0.
+  🟢 El undo funciona en visor.
+- **2026-09-27 (4a)** - 🔁 **REDO.** El cambio de fondo: el undo pasa de **destruir** a
+  **esconder** (`SetActorHiddenInGame` + `RedoStack`), que es como lo hace TB (`StepBack`/
+  `StepForward` sobre dos pilas, `Stroke.Uncreate/Recreate`). Un trazo nuevo llama a `ClearRedo`,
+  que destruye los escondidos. Boton nuevo en la paleta (seccion n+4, `M_TB_Redo` = el glifo del
+  undo espejado con una linea), simetrico con la rueda. `SizeLo` 0.25 -> 0.0625. **Todas las
+  sondas sacadas.** Gotchas 413-414. Verificado en PIE (9 secciones); ⬜ falta visor.
+- **2026-09-27 (3a)** — 🐞 **El undo disparaba y no borraba**: `bind` de un `Array Get` (nodo
+  PURO) **antes** del `RemoveIndex` → se evaluaba despues de la mutacion y devolvia `None`.
+  Arreglado invirtiendo el orden. Gotcha 409. La receta de caza (PIE + estado + forzar la
+  condicion) quedo anotada.
 - **2026-09-27 (2a)** — 🔬 **"El undo no funciona" resuelto sin visor**: PIE + leer las
   variables de la paleta spawneada probo que el boton existe y esta cableado (`SwatchMid`,
   `Tool`, `Tip` validos) → el fallo era la **zona de acierto**, una caja de ±1,2 cm contra los
@@ -1278,4 +1768,149 @@ existe / no esta cableado", que era donde yo iba a seguir buscando.
 - 🔴 **`ApplyShapeToSize` multiplica `K_Size` EN SU LUGAR.** Hoy no acumula porque `FramePass`
   reescribe `K_Size` entero cada cuadro (verificado) — pero es una mina: cualquier cambio que
   deje de reescribirlo convierte esto en `size * curve^cuadros` -> el trazo se desvanece.
-- Petal: `m_HardEdges` sin portar (irrelevante sin iluminacion real).
+- ~~Petal: `m_HardEdges` sin portar~~ — **PORTADO** el 2026-09-26 (3d): era el mecanismo de la
+  forma, no un detalle de sombreado. Ver `EmitTubeHard`.
+
+## 2026-09-27 (5b) - LO QUE FALTABA DEL DIRECTOR: 4 colores + degradado, Save Sketch, audio, clic, Target Point
+
+Retomado por la mañana (*"Pensé que dejarías lista toda la instrucción. Continúa"*). Todo compila, PIE limpio;
+**nada de esto pasó todavía por el visor**.
+
+### La idea que destrabó las tres cosas: UN dato nuevo por vértice
+`EmitExtras()` (función nueva, llamada en `RebuildChunk` entre `EmitDispatch` y `CreateMeshSection`) **no toca los
+emisores** (`EmitPass`/`EmitTubeHard` quedan como estaban). Hace una pasada aparte sobre `V_Pos`:
+- `K_Arc[i]` = largo recorrido acumulado en cm (misma suma que `StretchAccum`, pero **incremental desde `ChunkStart`**).
+- `V_UV1 = (arco, off.x)`, `V_UV2 = (off.y, off.z)`, con `off` = vértice − centro de su nudo. Centro: en la cinta, el
+  punto medio del par (que es el centro suavizado exacto); en el tubo, `K_Pos[k]`.
+- Los pines UV1/UV2 del `CreateMeshSection`, que recibían 0, ahora reciben esos arreglos.
+
+### Degradado — `MF_TB_Grad` (nueva) en los 4 maestros
+`Tint = lerp(GradA, GradB, saturate(UV1.x / StrokeLen))`, multiplicado **al final** de la cadena del emisivo
+(`Multiply` nuevo antes de `MP_EmissiveColor` en Solid/Additive/Masked/Paint; las 4 cadenas terminan en un Multiply,
+o sea que son lineales en el color). **Neutro por defecto**: `GradA = GradB = (1,1,1)` → multiplicar por 1 exacto.
+- En modo degradado el trazo pone `BaseColor` en blanco (`SetLook`) y el color lo dan `GradA/GradB` por MID.
+- `StrokeLen` se actualiza **en vivo** mientras se dibuja (`LookStep` al frente de `UpdatePosition`, solo si
+  `bGradient`) y al cerrar (`PushLook` al final de `EndStroke`, siempre). Default del parámetro **10000**, no 0: con 0
+  el colapso del reveal escondería todo el trazo (y 1e5 desborda fp16 en el pixel shader).
+- **`bPrimaryAtTip` (default true)**: el color primario va en la PUNTA (lo que se está dibujando, igual que la esfera
+  de la punta y la muestra), el secundario queda en la cola. En `false` se invierte.
+
+### Save Sketch — el colapso por WPO, sin rebuild por cuadro
+En `MF_TB_Sway` (ya estaba en los 4 maestros) se agregó un `Custom` `RevealCollapse`:
+```
+h   = saturate((arco - Reveal*(StrokeLen+Taper)) / Taper + 1)
+WPO = lerp(vaiven, -offMundo, h)       ; offMundo = TransformVector(Local->World, (UV1.y, UV2.xy))
+```
+Lo no revelado **colapsa sobre el eje del trazo**: triángulos de área cero = invisibles, **también en el material
+opaco** (que no puede esconderse con máscara). El borde queda como una **punta afilada** de `Taper` cm (perilla
+`RevealTaper`, 6). El vaivén se apaga en lo colapsado para que el par de vértices no se separe (si no, quedaba una
+astilla de ~0,5 cm). **Neutro por defecto**: `Reveal = 1`.
+Máquina de estados en `BPC_TBTool_NC` (`SketchStep` desde el Tick del director): fase 1 `SketchHide` (Reveal 1→0 con
+smoothstep, sonido de ocultar) → `SketchRelocate` → fase 2 `SketchWait` (`SketchGap`, sonido de mostrar) → fase 3
+`SketchShow` (0→1). `SaveSketch` exige no estar dibujando y fase 0; vacía el redo (como TB) y **fotografía** el
+historial en `SketchSet`, así lo que se dibuje durante la animación no entra.
+
+### Reubicación: composición de transforms, y el TARGET POINT (pedido de Beltrán a mitad de la tanda)
+*"incluir en el mundo un target point que define donde aparece nuestro dibujo guardado... si achicamos, rotamos o
+movemos el target point, afecta al dibujo"*.
+`SketchRelocate` arma `N` = llevar el dibujo a un marco canónico: centro del **bounding box** (ancho/alto/profundo
+máximos, `GetActorBounds` de cada trazo) al origen, su **frente** (lado que miraba al usuario) hacia **+X**, escala 1.
+Después compone con el destino:
+- con **`SketchTarget`** asignado → el transform del actor (posición, rotación **y escala**). **La flecha +X del
+  Target Point es hacia donde mira el frente del dibujo.**
+- sin target → frente al usuario a `SketchDist` (90 cm), mirándolo; `bCenterZ`/`SketchUp` solo aplican acá.
+Cada trazo recibe `Compose(su transform, M)` vía `SetPlacementXf`, que también reubica `SwayOrigin`. La escala es
+**absoluta** (N divide por la escala actual), así guardar dos veces con el target a 0,5 no da 0,25.
+En `L_TBTest` se colocó un **`TargetPoint` "SketchTarget"** en (-195, 0, 150), Yaw 180 (1,2 m frente al pawn, flecha
+hacia él), asignado en la instancia del director.
+
+### 4 colores en la paleta
+`ColorMode = 1` (y `SlotColorA/B` de 4) reemplaza la sección de la rueda por **4 cuadrados 2×2** con color por vértice
+(`M_TB_UIColor`, nuevo: unlit, emisivo = VertexColor) que muestran **solo el primario**. `TestColor` despacha a
+`TestColors` o al `TestWheel` de siempre (cirugía en `PickSlot`: el nodo `TestWheel` se reemplazó). Elegir uno pone en
+la herramienta `BrushColor = A[k]`, `GradColorB = B[k]`, `CfgGradOn = bColorGradient`. Orden visto por el usuario:
+0 arriba-izq, 1 arriba-der, 2 abajo-izq, 3 abajo-der (+Y local es la IZQUIERDA por el espejo).
+✅ PIE, contra el modo 0 como control: sección 4 = `M_TB_ColorWheel`/`CfgGradOn false` en modo 0;
+`M_TB_UIColor`/`BrushColor = A[0]`/`GradColorB = B[0]`/`CfgGradOn true` en modo 1. **La instancia quedó en modo 1.**
+
+### Botón SAVE
+Sección n+6, `M_TB_Save` (duplicado de `M_TB_Clear`, glifo de **marco con un rombo**, dorado; simétrico en los dos
+ejes para no depender de la orientación de las UV), en `SaveOffset (0, -7.4, 4.6)` = arriba a la derecha vista por el
+usuario, espejo de Clear. ✅ PIE: 11 secciones, la 10 con `M_TB_Save`.
+
+### Audio y háptica (todo en el director, `DirectorStep` reemplazó a `DrawHaptic` en el Tick)
+- **Loop por pincel**: flanco de `bDrawing` de la herramienta (no del gatillo: suena solo si de verdad se dibuja).
+  `SpawnSoundAttached` a la punta + `FadeIn(LoopFade, BrushLoopVol[slot])`; al soltar `FadeOut` (el componente se
+  autodestruye). El slot sale de `FindItem(BrushIds, BrushIndex)`. `FadeIn/FadeOut` van en envoltorios
+  (`AudioFadeIn/Out`) creados por cirugía con `declaring_class AudioComponent` (gotcha 40: el DSL agarra el de Synth).
+  Defaults: los 3 loops del pincel viejo (`/Game/Drawing/Sound/`, los tres con `bLooping=true`); el slot 4 repite el
+  primero hasta que Beltrán elija otro.
+- **Clic**: la paleta cuenta (`ClickScan` al final de `PickSlot`: cambio de pincel, de color, flanco de entrada a la
+  rueda, escalón del 10% del grosor, flanco de cualquier botón) y el director compara `ClickCount` → `PlaySound2D` +
+  pulso háptico de `ClickHapDur`. `bClickArmed` evita el clic falso del primer cuadro (verificado: `ClickCount 0`).
+- **Háptica unificada** (`HapticStep`): estado 2 = clic, 1 = dibujo, 0 = nada; **se reenvía cada cuadro** mientras
+  hay vibración (por si el runtime de OpenXR aplica duración mínima al valor). `DrawHapPulse` (Hz, 0 = continuo)
+  convierte el zumbido en pulsos.
+- Sonidos por defecto del motor (one-shots, `bLooping=false` verificado): clic `VR_click1`, ocultar
+  `VR_shep_scale_down_02`, mostrar `VR_shep_scale_up_02` (`/Engine/VREditor/Sounds/`).
+- 🔴 La **instancia** del director tenía `BrushLoop` vacío y sonidos en `None` (valores capturados antes): se
+  asignaron en la instancia, además del CDO.
+
+### Perillas nuevas del director
+`01 COLOR`: `bPrimaryAtTip` · `03 SKETCH`: `SketchTarget`, `SketchDist`, `SketchUp`, `RevealTaper` · `05 HAPTICA`:
+`DrawHapPulse`. Empujadas por `PushExtras` + `PushPalette` + `PushTarget` al final de `DoInstall`.
+
+### Sin verificar (necesita visor)
+El degradado sobre un trazo real, la animación de Save (colapso, punta, sonidos, reubicación y que el target
+escale/rote bien), los loops y el clic. PIE solo probó la configuración y la paleta.
+
+## 2026-09-27 (5c) - Primera vuelta de visor de 5b: *"wwwow. Está increíble"* + cuatro ajustes de paleta
+
+1. **Paleta fija en la mano.** Giraba porque `FacePlayer` (en `PickSlot`) le hacía `SetWorldRotation` hacia la
+   cámara **cada cuadro**. Se sacó de la cadena (el nodo, no la función). La orientación ahora es la relativa del
+   componente `Mesh` respecto del grip izquierdo, y pasó a perilla del director (**07 PALETA**: `PaletteOffset`
+   (6,0,6), `PaletteRot` (Pitch -35, Yaw 180), aplicadas por `PlacePalette` al final de `DoInstall`). Son los valores
+   de diseño originales del componente, **nunca probados en visor sin FacePlayer**: si la paleta queda mal inclinada,
+   se ajusta `PaletteRot.Pitch`. ✅ PIE: la rotación relativa se mantiene en (-35,180,0) en ejecución.
+2. **Zona sin dibujo.** `PaletteExtras` (nueva, al final de `PickSlot`) pone `Tool.bCanDraw = distancia(punta,
+   NoDrawCenter) > NoDrawRadius` (14 cm alrededor del centro de la paleta, (0,-0.8,0) local). `Press` ya exigía
+   `bCanDraw` → **no se puede EMPEZAR** un trazo con la punta cerca de la paleta. Un trazo ya empezado que pasa por la
+   zona no se corta. ✅ PIE con control: radio 14 → `false` (en escritorio los dos mandos quedan juntos), radio 0 →
+   `true`.
+3. **Lo seleccionado se adelanta** `SelectLift` (1,2 cm) hacia el usuario (+X local del `Mesh`, el eje que usaba
+   `FacePlayer` para mirar a la cámara). Pinceles: WPO nuevo en `M_TB_Icon` (`Lift`, neutro en 0, dirección =
+   `TransformVector(Local->World, (1,0,0))`), fijado por slot desde `PaletteExtras` vía `MidLift` (envoltorio por
+   cirugía con `declaring_class MaterialInstanceDynamic`: `SetScalarParameterValue` está duplicado MID/MPC).
+   Colores: `BuildSwatches` (copia de `BuildColors` con X desplazada para `ColorSel`), llamada al final de `PickColor`.
+4. **Clic al tocar lo ya seleccionado.** Antes solo sonaba al CAMBIAR la selección. `PaletteExtras` suma el flanco de
+   "tocar" (un pincel: `BestDist < PickRadius`; un color en modo 1: dentro de la grilla). Si cambia y toca a la vez
+   suman 2 al contador, pero el director compara `!=` → suena una vez.
+
+### Actores de `L_TBTest` (pregunta de Beltrán)
+`BP_TBDrawRig_C_1` = el director TB (etiqueta vieja, clase `BP_TBDirector_NC`) — necesario. `BP_TBPawn_C_0` = pawn VR
+pelado de prueba — hace falta UN pawn VR, cualquiera. `BP_DrawDirector_NC_C_0` = director del **pincel viejo**
+(`BPC_DrawTool_NC`/`BP_Stroke`); el sistema TB no lo referencia (`get_dependencies`) → prescindible en este nivel.
+No se sacó: pendiente de su confirmación.
+
+## 2026-09-27 (5d) - Segunda vuelta de visor: cuatro ajustes más
+1. **El seleccionado se iba hacia ATRÁS.** Con la paleta fija, el +X local del `Mesh` apunta hacia afuera (con
+   `FacePlayer` apuntaba a la cámara, por eso lo supuse al revés). La perilla sigue positiva ("cuánto se adelanta");
+   `PlacePalette` empuja a la paleta `-SelectLift` vía `MapRangeUnclamped(0→0, 1→-1)`. Afecta pinceles (WPO) y
+   colores (`BuildSwatches`) por igual. ⚠ La macro `Math|Float|NegateFloat` NO es un negado puro: es la macro que
+   modifica una variable por referencia (tiene exec) — no sirve para esto.
+2. **Paleta 4 cm a la izquierda**: `PaletteOffset` (6, -4, 6) en CDO e instancia (−Y del grip = izquierda).
+3. **Sonido propio del slider, más sutil**: `SliderScan` (paleta, entre `ClickScan` y `PaletteExtras`) cuenta los
+   escalones del 10% en `SliderCount`; `SliderStep` (director, al final de `DirectorStep`) toca `SliderSound`
+   (`VR_click2`, 0,38 s) a `SliderVol` 0,3, sin háptica. El escalón se sacó del clic general **sin romper nodos**: el
+   `!=` de `ClickScan` ahora compara `PrevDetent` consigo mismo (siempre falso). `SliderPrev = -1` evita un tic al
+   arrancar (verificado: `SliderCount 0`).
+4. **Grosor inicial 45%**: el `Size01` de la plantilla del componente `TBTool` en el director y de la instancia
+   estaban en **0** (por eso arrancaba al mínimo). Perilla nueva `StartSize` (0,45, 07 PALETA), empujada por
+   `PushStartSize` al final de `DoInstall`. ✅ PIE: `Size01 = 0.45`.
+
+### 5e - `L_TBTest` limpio (pedido explícito de Beltrán: "solo los actores necesarios + la esfera de color")
+Sacados: `BP_DrawDirector_NC_C_0` (director del pincel viejo, sin referencias desde el sistema TB) y `PlayerStart`
+(el pawn tiene `autoPossessPlayer = Player0`, no se usaba). Conteo 14 → 12. Quedan: `BP_TBDrawRig_C_1` (director),
+`BP_TBPawn_C_0`, `TargetPoint_0` (SketchTarget), `BP_Sky_Sphere_C_1` (la esfera de color) + los actores del motor
+(WorldSettings, Brush, PhysicsVolume, NavData, debuggers, BuoyancyManager, LevelScript). ✅ PIE: un solo pawn,
+paleta instalada, herramienta configurada.

@@ -383,3 +383,75 @@ subieron **exactamente 40 en Z** y no se movieron en X ni en Y.
 ⚠ La alternativa habria sido usar la transformada del director como offset, que es lo que uno espera al
 arrastrarlo. Se descarto: obligaria a guardar una posicion "origen" de referencia y se rompe el dia que el
 director se mueva por orden, no por diseno.
+
+## 🆕 2026-09-27 — las perillas del sombreado, en el panel del director
+
+Pedido: *"Necesito poder tener acceso a las variables desde el editor"*. Las tres del sombreado
+por píxel de `M_BlobOrb_SC` vivían solo como parámetros del material; ahora son variables del
+director y `ApplyLook` las empuja, al lado de `ShadeColor`.
+
+| Variable | Tipo | Grupo | Default | Qué hace |
+|---|---|---|---|---|
+| `LightDir` | Vector | `1-Color` | 0,4 / 0,3 / 0,866 | de dónde viene la luz (espacio **local** de la esfera: si gira, la luz gira con ella) |
+| `ShadeContrast` | Float | `1-Color` | 0,5 | dureza. **0,5 = idéntico al raymarch** (`dot*0.5+0.5`); 1,0 = lambert puro, medio cuerpo en `ChainColorLow` |
+| `ShadeFloor` | Float | `1-Color` | 1,0 | cuánto **oscurece** el lado en sombra. Es lo único que baja luminancia; el resto solo interpola tono. 1,0 = no oscurece |
+| `ShadowColor` | LinearColor | `1-Color` | 0,05 / 0,06 / 0,3 | color que **rellena** la sombra (2026-09-27) |
+| `ShadowTint` | Float | `1-Color` | **0 = neutro** | intensidad del relleno. Con 0 el material queda idéntico a antes |
+| `Brightness` | Float | `1-Color` | **1,0 = neutro** | empuja `ChainBrightness` (antes solo vivía en `MI_BlobOrb_SC`, que también vale 1) |
+
+**Las 3 líneas nuevas al final de `ApplyLook`:**
+```
+(Rendering|Material|SetVectorParameterValueOnMaterials Comp "LightDir" (Variables|1-Color|GetLightDir))
+(Rendering|Material|SetScalarParameterValueOnMaterials Comp "ShadeContrast" (Variables|1-Color|GetShadeContrast))
+(Rendering|Material|SetScalarParameterValueOnMaterials Comp "ShadeFloor" (Variables|1-Color|GetShadeFloor))
+```
+
+### Cómo se hizo sin romper nada (receta contra la gotcha 402)
+1. Guardar el nivel y **contar actores** (52). Repetir el conteo después de **cada** `compile_blueprint`: quedó 52 en las tres tandas.
+2. `add_variable` → `compile` → defaults en el **CDO** → `compile` (el CDO no acepta el valor antes de compilar).
+3. Cirugía **aditiva** en `ApplyLook`: crear los 6 nodos y cablearlos entre sí **primero**, y recién al final empalmar el exec. Si algo falla antes, el grafo queda intacto con nodos huérfanos — nunca roto. 🔴 Nada de `write_graph_dsl` sobre un grafo existente (lo duplica).
+4. 🔴 **Poner los valores en la INSTANCIA colocada**: nacieron en `0 / 0 / 0`, `0`, `0` — el clásico [[instance-editable-nace-en-cero]]. Con `ShadeContrast` en 0 el sombreado se apaga entero.
+5. Verificación de punta a punta: leer los `scalarParameterValues`/`vectorParameterValues` del **MID** de una esfera y confirmar que llegaron los tres valores. Es lo único que prueba que el push funciona.
+
+💡 **Los pines no se adivinaron**: `SetScalar/VectorParameterValueOnMaterials` exponen `execute:0, self:1, ParameterName:2, ParameterValue:3`, y el `FunctionEntry` de `ApplyLook` da `then:0, Comp:1`. Se leyeron con `get_node_infos` sobre un nodo recién creado, que es más barato que parsear los existentes.
+
+⚠ **Ojo con `MI_BlobOrb_SC`**: los tres parámetros siguen existiendo ahí, pero ahora el director los
+**pisa** en cada `ApplyLook`. A partir de acá se autora en el panel del director, no en la instancia
+del material.
+
+### 2026-09-27 (tarde): color de sombra + brillo
+- **`ShadowColor` es un RELLENO, no un tinte**: `Emissive = (lo de antes) + ShadowColor × ShadowTint × (1 − luminancia)`, donde la luminancia es la misma `Saturate_3` que usa `ShadeFloor`. Primero se armó como `lerp` antes del multiplicado de luminancia y se descartó al leer la instancia: con `ShadeFloor` en **0,036** (lo que eligió Beltrán) el color quedaba aplastado a negro justo donde se quería ver. En el material: `OneMinus_3(Saturate_3) × ScalarParameter_24 × VectorParameter_21.RGB` → `Add_4(Multiply_7, …)` → Emissive.
+- ⚠ No confundir con **`ShadeColor`** (que ya existía): esa es el **segundo tono** del bicolor (`ChainColorLow`) y se mezcla por `ShadeContrast`; `ShadowColor` solo aparece donde hay oscuridad real.
+- **`Brightness`** → `ChainBrightness`. 🔴 En la instancia nació en **0** (gotcha 420): se puso en 1 antes de cablear el push.
+- Receta igual a la de arriba, 55 → 55 actores en cada compile. ⚠ La gotcha 418 mordió acá: un script fallido deshizo la última conexión del material **y se guardó así**; se detectó releyendo los pines y se rehízo.
+- ✅ **Limpieza hecha** (2026-09-27): 20 huérfanos borrados de `M_BlobOrb_SC` (incluida la cadena vieja de sombreado por vértice `VertexInterpolator_0 → DotProduct_0 → Multiply_0 → Add_0 → Saturate_0`, reemplazada por `Custom_3`). Quedan **84 expresiones, las 84 alcanzables** desde Emissive/Opacity/WPO; ningún parámetro se perdió. Compila limpio. Costó un crash del editor en el primer intento (gotcha 421).
+
+## 🌐 2026-09-27 — DOMO: el director reparte las esferas (adiós a las 20 anclas)
+Pedido de Beltrán: *"que el director las reparta en un sistema de domo, con una perilla de desordenarlas… definir la cantidad… si son más esferas que sonidos se repiten… si muevo el domo me mueve todas las esferas"*. Más: los 20 clips y el pad expuestos en el director, y el radio como perilla.
+
+**El actor del director ES el centro del domo** (posición y rotación). Colocado en la PlayerStart a 120 cm (ojos sentado): `(362700, 100000, 120)`. Moverlo o rotarlo mueve todo, en la previa y en juego. `GroupOffset` quedó redundante pero sigue sumando (la instancia tiene z = 43).
+
+| Perilla | Grupo | Default | Qué hace |
+|---|---|---|---|
+| `OrbCount` | `5-Constelacion` | 20 | cantidad de esferas |
+| `DomeRadius` | `5-Constelacion` | 350 cm | qué tan cerca/lejos (las filas viejas estaban a 330 y 390) |
+| `DomeElevMin` / `DomeElevMax` | `5-Constelacion` | 0° / 80° | franja de altura: 0 = a la altura de los ojos, 90 = cenit |
+| `DomeArc` | `5-Constelacion` | 360° | abanico horizontal centrado en el frente del director; 360 = adelante, arriba y atrás |
+| `Spread` / `SpreadSeed` | `5-Constelacion` | (los de antes) | **el desorden**, sumado encima del domo (sin cambios) |
+| `ScaleMin` / `ScaleMax` | `2-Esfera` | (los de antes) | variación de tamaños |
+| `OrbClips` | `9-Sonido` | los 20 de Module1 | clip de cada esfera: la esfera *i* suena `OrbClips[i % N]` |
+| `PadSound` | `9-Sonido` | `PadM1` | el pad de base (define también la duración del paso) |
+
+**`DomePos(Index) → Pos`** — espiral de Fibonacci sobre el casquete (reparto parejo, sin filas):
+`t = (i+0,5)/N` · `z = lerp(sin ElevMax, sin ElevMin, t)` · `r = √(1−z²)` · `az = (frac(i·0,618034) − 0,5)·Arc` · `Pos = ActorLoc + RotateVector((r·cos az, r·sin az, z)·Radius, ActorRot)`.
+⚠ Es función **impura** (las creadas con `add_function_graph` lo son): en `RebuildPreview` va en la cadena de exec, antes de `SetWorldLocation`.
+
+**Quién la usa:** `RebuildPreview` (previa: loop a `OrbCount`, posición `DomePos(i)` + `LookOffset(i)`) y `BP_Sequencer_SC.SpawnDome` (juego). **Mismo índice en los dos** → la previa y el juego coinciden: verificado en PIE, `LookIndex` 0 en (−53, z 551) y 1 en (148, z 601), idéntico al viewport.
+
+🔑 **El look pasó a indexarse por ESFERA (`LookIndex`), no por sonido (`ClipId`).** Antes dos esferas con el mismo sonido habrían salido gemelas (mismo color, tamaño y desorden). Resuelve también el riesgo "previa indexa por array, juego por ClipId" anotado arriba.
+📏 Verificado en PIE con `OrbCount` 24: la 21 (`LookIndex` 20) suena `M1S1` como la 1, en otro lugar y con otro tamaño; la 24 repite `M1S4`.
+⚠ Con `Spread.z` = 197 (heredado de cuando había dos filas planas) hay esferas que bajan hasta el piso (z mundo 0). Sugerido 40–60 por eje.
+⬜ Las 20 anclas `orb_attracting` quedaron colocadas y sin uso (sacarlas se pregunta). La esfera de instrucciones y el destino final siguen con sus target points.
+
+### 2026-09-27: `GrabSpeed` al panel (`7-Movimiento`)
+La velocidad con que la esfera viaja hacia la mano al agarrarla (un `VInterpTo`, como `ReturnSpeed`: más alto = llega antes). Vivía escondida en el CDO de la esfera (3); Beltrán la sintió muy rápida con el domo (esferas hasta ~4,7 m) → **1,5**, y la pidió como variable. La copia `BP_SoundOrb_SC.Setup` al final, después de `ReturnSpeed` (reentrar a PIE para verla cambiar). Verificado en PIE: las esferas reciben 1,5.
