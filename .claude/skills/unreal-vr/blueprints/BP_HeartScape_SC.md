@@ -153,12 +153,21 @@ Investigación de solo lectura con simulación cuadro a cuadro (workflow de 3 au
 - **Verificado**: 0 errores de shader; preview (amebas de tamaños distintos, la onda sale del hoyuelo); **PIE 33 s**: 25 latidos cardíacos → pulsos cada 2,0 s exactos (19,5 / 21,5 / 23,5), `Beat` y `BeatP` coherentes en los tres MIDs, 12 esferas (una por pulso), `SpacingS` 844 (= 2 s · 420), espectador (−600, 0), 0 `Accessed None`. APK instalado 23:11. **Medido en visor (23:15, 45 s): 72-73 fps sostenidos, App 9,1-11,8 ms (mediana ≈ 11,0), GPU 76-87 %** — igual que la v5 (el preludio de 3 latidos y el pulso por esfera no se notan; la rama de esferas perdió atan2 y colinas).
 - ⚠ `GetActorOfClass` en el Construction Script **falla en el mundo de la miniatura** que arma `save_assets` (no hay PlayerStart): "Accessed None" que la tool devuelve como error aunque el guardado se haga. Arreglo: función aparte con `IsValid` (`FindViewer`).
 
+## 🔌 Enganche al sensor del pecho (2026-09-29)
+- **`BeginPlay`**, después de `BootOrbs`: `GetActorOfClass(BP_HeartManager_SC)` → `IsValid` → `Assign OnHeartBeat` → evento `OnHeartBeat_Event` → `OnHeartBeat(-1.0)`. Hecho por cirugía de nodos: el `Assign` se creó con `declaring_class` del manager, porque este BP también tiene una función `OnHeartBeat` (gotcha 175).
+- 🔴 **Se usa -1, no 1.0.** Con una intensidad ≤ 0, `EmitPulse` usa `DemoI` (el `PreviewIntensity` del MI) con su variación, que es la intensidad **aprobada en visor**. Con 1.0 empujaría más fuerte que lo aprobado.
+- **Un solo divisor:** el manager emite a ritmo cardíaco (`BeatDiv` 1) y la membrana divide (`BeatDivider` 2).
+- En `Test_Heart` la instancia quedó con `bDemo` = false. Sin manager en el nivel no pasa nada (el `IsValid` lo corta).
+- ✅ **PIE:** manager con `bFakeBeat` y zona forzada → un latido por segundo, `LastBeat − PrevBeat` = 2,0 s en la membrana, 0 `Accessed None`.
+
 ## Pendiente
 1. **Nivel `Test_Heart` + PIE** (normal y Simulate) cuando el editor esté libre; verificar por log que `Wave0..7` y `Beat` cambian en el MID.
 2. Juicio de Beltrán en el viewport (la instancia anima sola) y en el visor.
 3. **Fase 4**: esferas que emergen (ISM, `Part` 3, `PerInstanceCustomData`). Los `Bump0..3` ya están cableados en el VS y apagados (`Bump.z` = 0).
 4. Medir con el banco (modos: todo / sin membrana / sin línea de cresta (`LineGlow` 0) / nada).
-5. Enganche a `BP_HeartManager_SC.OnHeartBeat` → `TriggerHeartbeat(1)`.
+5. ~~Enganche al manager~~ ✅ hecho el 2026-09-29 (ver abajo).
 
 ## Session log
 - **2026-09-27** — fases 1 a 3 construidas sin abrir niveles. Decisiones que cambiaron respecto del plan: (a) **un solo master con `Part`** en vez de materiales separados, para tener **una sola superficie de autoría**; (b) **MIDs en vez de `MPC_Heart_SC`** (no es global y esquiva la gotcha 416 del `ParameterId`); (c) la autoría de la forma vive en la **MI** (rangos y descripciones gratis), no en variables del actor. Gotchas nuevas: 446-452.
+- **2026-09-29** — enganchado a `BP_HeartManager_SC` en `Test_Heart` (con `BP_BioHub` y el manager colocados); `bDemo` apagado en la instancia. Verificado en PIE.
+- **2026-09-29** — decisiones de Beltrán: **esfera central SUAVE** (lóbulos 2,6/3,4/2,0/4,2, la del disco y el commit; no la "coliflor" del APK de las 23:11), y **que se hunda un poco en el agua tras el empuje es intencional** (sale de la lista de robustez v7).

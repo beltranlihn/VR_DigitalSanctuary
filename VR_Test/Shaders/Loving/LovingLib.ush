@@ -1,0 +1,1065 @@
+// =====================================================================================
+// LovingLib.ush — la libreria de campo de la celula de Loving (BP_LovingCell_SC)
+// =====================================================================================
+// FUENTE UNICA DE VERDAD de todo el HLSL de Loving. Hoy se PEGA dentro de cada nodo Custom
+// (lo arma scripts/compose_loving.py a partir de este archivo + un wrapper por Custom).
+// Cuando el editor se reinicie con VR_Test/Shaders presente, UE monta la carpeta como
+// /Project y los Custom pueden pasar a IncludeFilePaths="/Project/Loving/LovingLib.ush"
+// sin tocar una linea: por eso todo vive dentro de un struct (el mismo texto sirve pegado
+// dentro de la funcion del Custom o incluido fuera de ella).
+//
+// 🔴 REGLA ADRENO (gotcha 399, la malla invisible en un ojo): CERO arreglos, ningun indice
+// variable, bucles solo con TOPE CONSTANTE. Quien participa lo decide un peso w de 0/1
+// (el smin con w = 0 es la identidad EXACTA). Datos por bola en float4 CON NOMBRE.
+// 🔴 REGLA DE NO-PLIEGUE (prueba del juez, 2026-09-27): cada rayo de un lienzo cruza su
+// superficie UNA sola vez si todas las primitivas son (M) monotonas a lo largo del rayo o
+// (K) convexas y contienen el origen del rayo. Se rompe con pesos fraccionarios: una
+// primitiva se apaga achicando su RADIO y su k, nunca con w entre 0 y 1.
+//
+// Espacio: LOCAL del actor (componentes en transform relativo identidad, asi el nodo
+// LocalPosition del material = espacio del actor). Unidades: uu (cm).
+// @section markers: el compositor copia solo las funciones que usa cada Custom.
+// =====================================================================================
+
+struct LVLib
+{
+    // @fn Smin ------------------------------------------------------------------------
+    // smin polinomico del proyecto (el MISMO de M_BlobMesh_SC): banda k, hundimiento max
+    // k/4. El gradiente es EXACTAMENTE lerp(g, gs, h) (df/dd = 1-h, df/dds = h): la
+    // normal sale de UNA evaluacion del campo. Devuelve h (peso de juntura).
+    float Smin(inout float d, inout float3 g, float ds, float3 gs, float k, float w)
+    {
+        float kk = max(k, 0.01);
+        float h  = saturate(0.5 + 0.5 * (d - ds) / kk) * w;
+        d = lerp(d, ds, h) - kk * h * (1.0 - h);
+        g = lerp(g, gs, h);
+        return h;
+    }
+    // @end
+
+    // @fn SminS -----------------------------------------------------------------------
+    // Solo el valor (para la biseccion, donde no hace falta gradiente).
+    float SminS(float d, float ds, float k, float w)
+    {
+        float kk = max(k, 0.01);
+        float h  = saturate(0.5 + 0.5 * (d - ds) / kk) * w;
+        return lerp(d, ds, h) - kk * h * (1.0 - h);
+    }
+    // @end
+
+    // @fn SminH -----------------------------------------------------------------------
+    // Valor + devuelve h (para el peso de juntura J = 4h(1-h)).
+    float SminH(inout float d, float ds, float k, float w)
+    {
+        float kk = max(k, 0.01);
+        float h  = saturate(0.5 + 0.5 * (d - ds) / kk) * w;
+        d = lerp(d, ds, h) - kk * h * (1.0 - h);
+        return h;
+    }
+    // @end
+
+    // @fn Sph -------------------------------------------------------------------------
+    float Sph(float3 p, float4 s, out float3 g)
+    {
+        float3 v = p - s.xyz;
+        float  L = length(v);
+        g = v / max(L, 1.0e-4);
+        return L - s.w;
+    }
+    // @end
+
+    // =================================================================================
+    // LA FORMA COMO FUNCION PURA DEL ESTADO. El Blueprint solo integra el tiempo (estado
+    // suavizado, fase de respiracion, resortes de los centroides) y empuja 5 vectores
+    // globales + el centroide de cada grupo. TODO lo demas sale de aca, identico en el
+    // racimo, el brazo y el puente (una sola fuente -> las costuras coinciden).
+    //   LV0 = (centro del nucleo, radio base Rc0)
+    //   LV1 = (State 0-1, fase de respiracion [0,2pi), Agitation, ColorTemp)
+    //   LV2 = (GroupSize, GroupSpread, CenterAttraction, ConnectionStrength)
+    //   LV3 = (MembraneThickness, MembraneOpacity, NoiseAmount, OrganicMotion)
+    //   LV4 = (normal del plano de la figura, EnvelopeHug)
+    //   LV5 = (SizeVariation, StrandCurl, WaterLight, WaterLightShell)   [.z .w = luz del agua, F5: ver WaterLight]
+    //   GI  = (centroide del grupo, INDICE del grupo 0-9)  <- entero: exacto tambien en half
+    // =================================================================================
+
+    // @fn SS --------------------------------------------------------------------------
+    float SS(float a, float b, float x)
+    {
+        float t = saturate((x - a) / (b - a));
+        return t * t * (3.0 - 2.0 * t);
+    }
+    // @end
+
+    // @fn Hash ------------------------------------------------------------------------
+    // Hash de un ENTERO (el indice del grupo): da lo mismo en el vertex y en el pixel shader.
+    // 🔴 Es CAOTICO (x 43758): un ulp del argumento (idx 4-9 -> argumento 68-133, ulp 7,6e-6) lo mueve
+    //    hasta 0,67. Solo coincide consigo mismo evaluado EN EL GPU con un indice de uniform (vertex y pixel
+    //    del mismo dispositivo). Un indice LITERAL lo pliega el compilador en el host (otro redondeo, otro
+    //    seno) y el BP lo calcula en doble: ahi da OTRO numero. Nada que deba coincidir entre un wrapper con
+    //    indice literal (LovingOuterVS), el BP y las partes de la celula puede salir de aca: ver GroupScale.
+    // 🔴 precise (revision 2026-09-28): BallsVS dibuja las bolas y BallsPS REHACE la misma disposicion para la
+    //    normal por pixel; las dos etapas tienen que dar el MISMO Hash. Un mul+add fusionado (FMA) en una etapa y
+    //    separado en la otra (el driver decide por etapa, y puede evaluar lo que solo depende de uniforms en su
+    //    preambulo) lo movia hasta 0,67 para idx >= 4 -> la normal de otra bola: una bola gris o una fusion rara.
+    //    precise = NoContraction en SPIR-V: el mismo redondeo en las dos etapas. Costo ~0.
+    float Hash(float n)
+    {
+        precise float a = n * 12.9898 + 4.1414;
+        precise float h = sin(a) * 43758.5453;
+        return frac(h);
+    }
+    // @end
+
+    // @fn Shape -----------------------------------------------------------------------
+    // Todos los tamaños que dependen del estado. Tramos del brief:
+    //   0-0.3 los grupos se acercan (lo hace el BP) · 0.3-0.6 la membrana se estira, las
+    //   junturas engordan, las masas se deforman hacia el centro · 0.6-0.8 puentes claros ·
+    //   0.8-1 estructura integrada, el nucleo crece.
+    void Shape(float4 LV0, float4 LV1, float4 LV2, float4 LV3,
+               out float Rc, out float rb, out float gap, out float Renv,
+               out float rMid, out float rEnd, out float lam, out float kC, out float kN, out float kE,
+               out float Ratt, out float MoundH, out float kBall, out float WobA)
+    {
+        float S = saturate(LV1.x), ph = LV1.y;
+        float wIn = SS(0.0, 0.3, S), wStr = SS(0.3, 0.6, S), wCon = SS(0.6, 0.8, S), wFuse = SS(0.8, 1.0, S);
+        float GSz = max(LV2.x, 0.05), CA = LV2.z, CS = max(LV2.w, 0.0), MT = max(LV3.x, 0.0);
+        // 2026-09-28, pedido de Beltran al ver la propuesta: "lo que los une sigue siendo DELGADO, no
+        // grueso" y "no hagamos esa union (fea)". La hebra ya NO engorda con la calma (antes llegaba a
+        // ~4 cm de radio con cuellos enormes): 0,3 -> 0,6 cm. Ensanches, filetes y abultamientos del
+        // nucleo moderados; el nucleo crece poco (+12 %). La calma se lee por la CERCANIA y la quietud.
+        Rc     = LV0.w * (1.0 + 0.12 * (0.4 * wCon + 0.6 * wFuse) * CA) * (1.0 + 0.025 * sin(ph));
+        rb     = 3.4 * GSz * (1.0 + 0.02 * sin(ph - 0.8));
+        gap    = rb * (0.3 + MT * (0.12 + 0.15 * wStr + 0.2 * wFuse)) * (1.0 + 0.15 * sin(ph - 1.1));
+        Renv   = 1.6 * rb + gap;
+        rMid   = CS * (0.3 + 0.3 * S);
+        rEnd   = Renv * lerp(0.3, 0.42, S);
+        lam    = lerp(1.5, 2.8, S);
+        kC     = lerp(1.2, 2.2, SS(0.3, 1.0, S));
+        kN     = Renv * lerp(0.28, 0.36, S);
+        kE     = 0.9 * rb;
+        Ratt   = 0.25 * Renv * wStr * (1.0 - 0.5 * wFuse);
+        MoundH = CA * 0.08 * Rc * wStr;
+        kBall  = 0.3 * rb * (1.0 + 0.5 * wFuse);
+        WobA   = 0.75 * LV3.z;   // sin uso fuera de aca: la amplitud REAL de la ameba es CoreWob
+    }
+    // @end
+
+    // @fn GroupScale ------------------------------------------------------------------
+    // Tamano propio de cada grupo (perilla SizeVariation = LV5.x; pedido de Beltran 2026-09-28:
+    // "a ver si hacemos unos mas grandes"). 0 = todos iguales; 1 = de 0,6x a 1,8x (sesgo a
+    // grandes). Sale del INDICE del grupo: cluster, brazo, puente, membrana del nucleo, particulas y
+    // la envoltura exterior lo calculan igual -> costuras exactas y la envoltura encierra cada bolsa.
+    // 🔴 V4 (revision adversarial 2026-09-28): la fraccion es una secuencia de baja discrepancia
+    //    frac(0,41421356 idx + 0,33) (razon de plata), NO Hash: LovingOuterVS pasa el indice LITERAL
+    //    (0..9) y el compilador pliega la cuenta en el host, mientras las bolsas la evaluan en el GPU desde
+    //    GI.w; con el Hash caotico las dos diferian hasta 0,96 en GroupScale (SV = 1) y la envoltura dejaba
+    //    afuera partes de la bolsa (particulas hasta 2,9 cm con OuterMargin 0). Esta cuenta es un producto y
+    //    un frac: un ulp la mueve ~1e-6, y el valor mas cercano a un salto de frac (idx 4: 0,987) queda a
+    //    0,013 -> igual en el GPU, plegada, en half y en el BP. Ademas reparte bien los tamanos (con 5
+    //    grupos: 1,0 · 1,49 · 0,79 · 1,29 · 1,78 con SV = 1; siempre hay grandes y pequenos) y es independiente
+    //    de la secuencia aurea del BP (_g = frac(0,618034 i + 0,2): periodos del vaiven), asi el tamano no
+    //    queda atado al ritmo. El BP NO replica esta cuenta: usa la cota 1 + 0,8 SV (LifeExtra, RMin).
+    float GroupScale(float idx, float4 LV5)
+    {
+        return 1.0 + max(LV5.x, 0.0) * (1.2 * frac(0.41421356 * idx + 0.33) - 0.4);
+    }
+    // @end
+
+    // @fn BallsLayout -----------------------------------------------------------------
+    // Las 2-3 bolas de un grupo, relativas a su centroide G, desde el INDICE del grupo.
+    // Orientacion al azar (determinista), 30% de los grupos con 2 bolas, radios +-12%,
+    // un vaiven lento por bola y la atraccion hacia el nucleo (tramo 0.3-0.6).
+    // 2026-09-28 (Beltran: "los grupos dentro de cada bolsa deben estar deformandose, vivos,
+    // agrandandose y achicandose, y la membrana con ellos"): cada bola RESPIRA con su ritmo
+    // (+-16 %, con calma se alinean con la respiracion por mezcla de AMPLITUDES, nunca de fases),
+    // el grupo RUEDA en su plano y el plano PRECESA despacio. La envoltura del brazo sale de
+    // estas mismas bolas (Surr) -> se agranda y achica con ellas.
+    // 🔴 Se recorta |desfase| <= 0.85 r: cada bola contiene a G -> la union es estrellada
+    // respecto de G y la biseccion radial no pliega (y la envoltura del brazo tampoco).
+    // 🔴 Velocidades CONSTANTES x GameTime (sin datos vivos en la fase): calma y Agitation van a la amplitud.
+    void BallsLayout(float idx, float rb, float3 toC, float wStr, float CA, float T, float OM, float4 LV1,
+                     out float4 B0, out float4 B1, out float4 B2)
+    {
+        float Coh = Calm(LV1), Ag = saturate(LV1.z);
+        float Rr  = OM * (1.0 - 0.6 * Coh) * (1.0 + 0.5 * Ag);
+        float a1 = Hash(idx + 0.31) * 6.2831853 + 0.35 * Rr * sin(0.11 * T + 6.2831853 * Hash(idx + 0.47));
+        float cz = Hash(idx + 0.77) * 2.0 - 1.0;
+        float sz = sqrt(saturate(1.0 - cz * cz));
+        float3 nrm = float3(sz * cos(a1), sz * sin(a1), cz);
+        float3 hlp = (abs(nrm.z) < 0.9) ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
+        float3 tA0 = normalize(cross(nrm, hlp));
+        float3 tB0 = cross(nrm, tA0);
+        float phi = Rr * (0.8 * sin(0.19 * T + 6.2831853 * Hash(idx + 0.13)) + 0.5 * sin(0.33 * T + 6.2831853 * Hash(idx + 0.29)));
+        float cp = cos(phi), sp = sin(phi);
+        float3 tA = cp * tA0 + sp * tB0;
+        float3 tB = cp * tB0 - sp * tA0;
+        float three = step(0.3, Hash(idx + 0.53));
+        float dd = rb * lerp(0.75, 0.8, three);
+        float3 d0 = tA;
+        float3 d1 = lerp(-tA, -0.5 * tA + 0.866 * tB, three);
+        float3 d2 = -0.5 * tA - 0.866 * tB;
+        float Ab = 0.16 * OM * (1.0 - 0.35 * Coh) * (1.0 + 0.3 * Ag);
+        float r0 = rb * (1.0 + 0.24 * (Hash(idx + 0.11) - 0.5));
+        float r1 = rb * (1.0 + 0.24 * (Hash(idx + 0.23) - 0.5));
+        float r2 = rb * (1.0 + 0.24 * (Hash(idx + 0.41) - 0.5)) * three;
+        r0 *= 1.0 + Ab * ((1.0 - Coh) * sin(T * (0.62 + 0.3 * Hash(idx + 0.61)) + 6.2831853 * Hash(idx + 0.71)) + Coh * sin(LV1.y - 0.8));
+        r1 *= 1.0 + Ab * ((1.0 - Coh) * sin(T * (0.55 + 0.3 * Hash(idx + 0.63)) + 6.2831853 * Hash(idx + 0.83)) + Coh * sin(LV1.y - 2.1));
+        r2 *= 1.0 + Ab * ((1.0 - Coh) * sin(T * (0.69 + 0.3 * Hash(idx + 0.67)) + 6.2831853 * Hash(idx + 0.97)) + Coh * sin(LV1.y - 3.4));
+        float w  = 0.08 * rb * OM;
+        float3 att = toC * (0.25 * CA * wStr * rb);
+        float3 o0 = d0 * dd + att + w * float3(sin(T * 0.53 + idx * 1.7), sin(T * 0.41 + idx * 2.3), sin(T * 0.37 + idx * 3.1));
+        float3 o1 = d1 * dd + att + w * float3(sin(T * 0.47 + idx * 2.9), sin(T * 0.59 + idx * 1.3), sin(T * 0.43 + idx * 3.7));
+        float3 o2 = d2 * dd + att + w * float3(sin(T * 0.39 + idx * 3.3), sin(T * 0.51 + idx * 2.1), sin(T * 0.61 + idx * 1.1));
+        o0 *= min(1.0, 0.85 * r0 / max(length(o0), 1.0e-4));
+        o1 *= min(1.0, 0.85 * r1 / max(length(o1), 1.0e-4));
+        o2 *= min(1.0, 0.85 * max(r2, 1.0e-3) / max(length(o2), 1.0e-4));
+        B0 = float4(o0, r0);
+        B1 = float4(o1, r1);
+        B2 = float4(o2, r2);
+    }
+    // @end
+
+    // @fn CoreWob ---------------------------------------------------------------------
+    // Parametros de la ameba del nucleo: (A, WMIN, -, -). V4 (2026-09-28, Beltran: "que la ameba
+    // central sea mas ameba, con un poco mas de deformacion, menos esfera").
+    //   A    = excursion maxima hacia AFUERA en fraccion de Rc. El campo normalizado de CentreR
+    //          tiene maximo CERTIFICADO <= 1 (0,99994; alcanzado 0,99988): el punto mas salido de
+    //          la ameba queda en Rc*(1 + A), nunca mas afuera.
+    //   WMIN = minimo CERTIFICADO del campo normalizado (-0,43732, redondeado hacia abajo): el punto
+    //          mas hundido queda en Rc*(1 + A*WMIN) o mas afuera. Lo usa ArmSetup (esfera-raiz).
+    //   Cotas por ramificacion y poda de 2o orden sobre TODAS las alturas alcanzables de los pares
+    //   (scripts/loving_amoeba/bounds_bnb.py). Si se toca un lobulo, se recalculan.
+    // 🔴 Las VELOCIDADES viven en CentreR y son CONSTANTES x GameTime (gotcha 329): la fase es
+    // GameTime x velocidad, y GameTime llega a miles de segundos. Todo lo vivo va a la AMPLITUD,
+    // que cambia sin saltos: 0,75 x NoiseAmount x (1 + 0,4 Agitation) x (1 -> 0,5 con la calma:
+    // el cuerpo se aquieta y se redondea).
+    // 🔴 El BP replica esta cuenta en LifeStep (RMin): _rc*(1 + 0.75*NA*(1+0.4ag)*(1-0.5*Coh)) (sin el tope de 0,85: queda
+    // CONSERVADOR, los grupos nunca mas cerca de lo debido).
+    // Si se toca 0,75 / 0,4 / 0,5 aca, se toca alla (y en scripts/loving_life_phase1.dsl).
+    // V4b (2026-09-28, Beltran: "le falta deformacion a la esfera central, esta como una pelota,
+    // deberia ser como una ameba"): la constante paso de 0,26 a 0,75 (elegida mirando 0,5 / 0,75 / 1,0
+    // en el editor) con TOPE A <= 0,85: la curvatura manda (radios minimos medidos, x Rc: A 0,75 ->
+    // convexo 0,28 / concavo 0,12; 0,85 -> ~0,25 / ~0,10; 1,05 -> 0,21 / 0,06 = un pliegue de 1 cm).
+    // Agitation suma poco arriba del default (0,75 -> 0,85). r_max/r_min 1,35 -> ~2,3.
+    float4 CoreWob(float4 LV1, float4 LV3)
+    {
+        return float4(min(0.75 * max(LV3.z, 0.0) * (1.0 + 0.4 * saturate(LV1.z)) * lerp(1.0, 0.5, Calm(LV1)), 0.85), -0.4374, 0.0, 0.0);
+    }
+    // @end
+
+    // @fn Calm ------------------------------------------------------------------------
+    // Coherencia de la calma (0 = cada parte con su ritmo, 1 = una sola respiracion). La misma
+    // cuenta que el BP (Coh), para que forma y movimiento se sincronicen igual.
+    float Calm(float4 LV1)
+    {
+        return SS(0.5, 0.9, saturate(LV1.x)) * (1.0 - 0.7 * saturate(LV1.z));
+    }
+    // @end
+
+    // @fn NeckBreath ------------------------------------------------------------------
+    // Respiracion del cuello de un brazo: con actividad cada brazo con un desfase propio (hash,
+    // sin direccion alrededor del anillo); con calma todos respiran juntos con el nucleo.
+    float NeckBreath(float4 LV1, float idx)
+    {
+        float c = Calm(LV1);
+        return 1.0 + (0.08 + 0.04 * c) * sin(LV1.y - 0.4 - 6.2831853 * Hash(idx + 0.19) * (1.0 - c));
+    }
+    // @end
+
+    // @fn CentreGap -------------------------------------------------------------------
+    // La MEMBRANA DEL NUCLEO (pedido de Beltran, 2026-09-27: "la esfera central tambien debe
+    // estar envuelta en esa membrana"). Hueco entre la ameba opaca y su pelicula: ~12-18 % del
+    // radio, lo escala MembraneThickness, respira desfasado. La pelicula del nucleo es la ameba
+    // (con sus abultamientos) + este hueco.
+    float CentreGap(float4 LV1, float4 LV3, float Rc)
+    {
+        float S = saturate(LV1.x);
+        return Rc * (0.12 + 0.06 * S) * max(LV3.x, 0.3) * (1.0 + 0.15 * sin(LV1.y - 1.1));
+    }
+    // @end
+
+    // @fn ArmSetup --------------------------------------------------------------------
+    // Del centroide + globales al empaquetado AP0..AP6 que usan ArmRay / ArmField3.
+    // El brazo nace de la MEMBRANA del nucleo: su esfera-nucleo (Rcm) queda un poco POR DEBAJO
+    // de la pelicula central (asi el filete la atraviesa) y el contacto (AP6.x) se mide contra
+    // la pelicula, no contra la ameba opaca.
+    // LV5 = (SizeVariation, StrandCurl, -, -): el tamano de ESTE grupo escala LV2.x (GroupSize)
+    // antes de Shape -> bolas, envoltura, cuellos y ensanches del grupo crecen juntos.
+    void ArmSetup(float4 GI, float4 LV0, float4 LV1, float4 LV2, float4 LV3, float4 LV4, float4 LV5, float T,
+                  out float4 AP0, out float4 AP1, out float4 AP2, out float4 B0, out float4 B1, out float4 B2,
+                  out float4 AP3, out float4 AP4, out float4 AP5, out float4 AP6)
+    {
+        float Rc, rb, gap, Renv, rMid, rEnd, lam, kC, kN, kE, Ratt, MoundH, kBall, WobA;
+        float4 LV2g = float4(LV2.x * GroupScale(GI.w, LV5), LV2.yzw);
+        Shape(LV0, LV1, LV2g, LV3, Rc, rb, gap, Renv, rMid, rEnd, lam, kC, kN, kE, Ratt, MoundH, kBall, WobA);
+        float S = saturate(LV1.x);
+        float3 C = LV0.xyz;
+        float3 toC = normalize(C - GI.xyz + float3(1.0e-4, 0.0, 0.0));
+        BallsLayout(GI.w, rb, toC, SS(0.3, 0.6, S), LV2.z, T, LV3.w, LV1, B0, B1, B2);
+        float gC  = CentreGap(LV1, LV3, Rc);
+        float4 Wob = CoreWob(LV1, LV3);                     // amplitud REAL (con Agitation)
+        float Rcm = Rc * (1.0 + Wob.x * Wob.y) + 0.3 * gC;  // Wob.y = minimo CERTIFICADO: siempre bajo la membrana
+        float rm  = rMid * NeckBreath(LV1, GI.w);
+        // ANCLA DEL ENSANCHE (V4). El ensanche de la hebra es un cilindro de radio rEnd hasta zCs y despues cae
+        // (StrandR). Con el ancla fija en el radio nominal Rc, los lobulos de la ameba V4 (+26 % / -11 % de Rc)
+        // dejaban asomar un munon de hasta 1,8 cm donde el eje cae en un hundimiento. Anclarlo en la ameba REAL
+        // sobre el EJE (primera integracion) lo arreglaba solo en el eje: con pendiente, el borde del cilindro
+        // (a rEnd del eje) asomaba del lado que baja hasta 1,1 cm (defaults; 2,1 con GroupScale 1,8) y el
+        // comentario decia "siempre bajo la membrana" (revision adversarial 2026-09-28, medido).
+        // Ahora el ancla se INCLINA con la membrana: zCs(n) = AP5.x + dot(AP2.xyz, n), con AP2.xyz = gAx rEnd/rAx
+        // (la pendiente tangencial de la ameba en el eje, cm por radian, por el angulo que abre rEnd): el borde
+        // del cilindro sigue a la membrana en cada azimut (primer orden exacto). El segundo orden (esfera +
+        // curvatura convexa de los lobulos) se cubre bajando AP5.x en rEnd^2/rAx (2x el de la esfera). Medido en
+        // Python (scripts/loving_outer/verify_flare.py, 500 ejes, tiempos e indices por caso): pared max 0,11 cm con los
+        // defaults (con el ancla solo en el eje: 1,51), 0,21 con Agitation 1, 0,12 con SizeVariation 1, 0,02 a
+        // S = 0,45, 0,75 en el extremo NoiseAmount 2 + Agitation 1 (antes 3,66). El ensanche que queda en la union
+        // es ~0,84 del pleno; bajar el ancla PAREJO por la pendiente (la otra opcion) lo dejaba en 0,72 (min 0,36).
+        // Cuesta el gradiente de CentreR en el eje (antes el compilador lo eliminaba) + un dot por evaluacion de
+        // StrandR: ~0,14 ms de vertices con 5 grupos (regla de conteo calibrada con Heart), lo mismo que costaba
+        // bajar el ancla parejo. El curl (ArmWindow) arranca despues de |AP2.xyz| para no mover el cilindro.
+        // 🔴 OuterEnv (Win.x) usa el MINIMO de AP5.x con este descuento: si cambia, se cambia alla.
+        float3 gAx;
+        float  rAx = CentreR(-toC, Rc, LV1, LV3, T, gAx);
+        float  iAx = rEnd / max(rAx, 1.0);
+        AP0 = float4(C, Rcm);
+        AP1 = float4(GI.xyz, gap);
+        AP2 = float4(gAx * iAx, LV4.w);            // .xyz = inclinacion del ancla (NO la normal del plano: esa es LV4.xyz)
+        AP3 = float4(rm, rEnd, lam, kN);
+        AP4 = float4(kC, kE, Ratt, 0.5 * Renv);
+        // V4b: con la ameba de A 0,75 la curvatura convexa (radio >= 0,25 Rc) supera a la de la esfera rAx:
+        // el descenso de segundo orden tiene un PISO 2,7 A rEnd^2/Rc (verify_flare: pared <= 0,25 cm).
+        AP5 = float4(rAx - rEnd * max(iAx, 2.7 * Wob.x * rEnd / Rc) + gC + 0.8 * MoundH, lam, lerp(0.35, 0.22, S), 0.62);
+        AP6 = float4(Rc + gC, MoundH, 0.55, Rc);   // .w = Rc: el brazo reconstruye la ameba EXACTA (CentreR)
+    }
+    // @end
+
+    // (ArmRootField se BORRO el 2026-09-27: la membrana del nucleo recortaba contra una raiz
+    //  simplificada — sin zEs = Lx - Enear ni el filete kN con la envoltura — y para S >= 0,55 el
+    //  hueco quedaba hasta 2 cm mas chico que el brazo real: doble capa + dos lineas de Plateau.
+    //  Ahora recorta contra ArmField3 del brazo mas cercano; ver LovingCentreFilmVS.)
+
+    // @fn BridgeSetup -----------------------------------------------------------------
+    // Puente del grupo A al B con progreso p (0 = no existe; lo decide el BP con histeresis).
+    // p 0 -> 0,5 = ALCANZAR: un dedo que sale de cada envoltura; su punta queda EXACTAMENTE a
+    //   rh*Xr del borde (tip = lam*ln(1 + rE/(-w)) con w = -rE/(e^(rh*Xr/lam) - 1)).
+    // p 0,5 -> 1 = CERRAR: las puntas avanzan hasta tocarse en el medio (Fz = 0,6) y despues
+    //   la cintura pasa de negativa a positiva = cuello.
+    // Continuo en p = 0,5 y en Fz = 0,6. Antes (w = lerp(-3rE, rho, p)) todo el cruce visible
+    // pasaba en dS ~ 0,013 de estado: un salto que con el EEG ruidoso parpadeaba.
+    void BridgeSetup(float4 GA, float4 GB, float p, float4 LV0, float4 LV1, float4 LV2, float4 LV3,
+                     out float4 BA, out float4 BB, out float4 BS)
+    {
+        float Rc, rb, gap, Renv, rMid, rEnd, lam, kC, kN, kE, Ratt, MoundH, kBall, WobA;
+        Shape(LV0, LV1, LV2, LV3, Rc, rb, gap, Renv, rMid, rEnd, lam, kC, kN, kE, Ratt, MoundH, kBall, WobA);
+        float S  = saturate(LV1.x);
+        float Lb = length(GB.xyz - GA.xyz);
+        float pp = saturate(p), rh = saturate(2.0 * pp), Fz = saturate(2.0 * pp - 1.0);
+        float lamB = lerp(2.0, 4.0, S);
+        float xh = max(0.5 * Lb - Renv, 1.0);                   // del borde de la envoltura al medio
+        float Xr = min(0.45 * xh, 2.5 * lamB);                  // hasta donde llega el dedo
+        // el munon crece desde radio 0 (antes aparecia/desaparecia un cilindro de hasta 2,4 cm);
+        // la punta no depende de la escala de rE (lam*ln(1 + rE/-w)), el mapeo queda igual
+        float rE = 0.8 * Renv * lerp(0.55, 1.0, SS(0.0, 1.0, Fz)) * SS(0.0, 0.15, pp);
+        float rho = max(LV2.w, 0.0) * lerp(0.6, 0.4 * Renv, SS(0.8, 1.0, S));
+        float wR = -rE / max(exp(rh * Xr / lamB) - 1.0, 0.02);
+        float xz = lerp(Xr, xh, SS(0.0, 1.0, Fz / 0.6));
+        float wZ = -rE / max(exp(min(xz / lamB, 20.0)) - 1.0, 1.0e-4);
+        float wC = -rE / max(exp(min(xh / lamB, 20.0)) - 1.0, 1.0e-4);
+        float w  = lerp(wR, lerp(wZ, lerp(wC, rho, SS(0.6, 1.0, Fz)), step(0.6, Fz)), step(0.5, pp));
+        BA = float4(GA.xyz, rE);
+        BB = float4(GB.xyz, w);
+        BS = float4(Renv, max(Lb - Renv, Renv), lamB, step(0.002, pp));   // = umbral de visibilidad del BP
+    }
+    // @end
+
+    // =================================================================================
+    // RACIMO (2-3 bolas fundidas). Espacio relativo al centroide G del grupo.
+    // B = (desfase desde G, radio). B.w <= 0 apaga la bola.
+    // Estrellado respecto de G si cada bola contiene a G: el BP limita |desfase| <= 0.85 rb.
+    // =================================================================================
+
+    // @fn BallsRay --------------------------------------------------------------------
+    // Campo a lo largo del rayo G + u*m. bb = u.Bj, cc = |Bj|^2 (constantes por rayo).
+    float BallsRay(float m, float3 bb, float3 cc, float4 B0, float4 B1, float4 B2, float k)
+    {
+        float mm = m * m;
+        float d  = 1.0e5;
+        d = SminS(d, sqrt(max(mm - 2.0 * m * bb.x + cc.x, 0.0)) - B0.w, k, step(1.0e-3, B0.w));
+        d = SminS(d, sqrt(max(mm - 2.0 * m * bb.y + cc.y, 0.0)) - B1.w, k, step(1.0e-3, B1.w));
+        d = SminS(d, sqrt(max(mm - 2.0 * m * bb.z + cc.z, 0.0)) - B2.w, k, step(1.0e-3, B2.w));
+        return d;
+    }
+    // @end
+
+    // @fn HitBalls --------------------------------------------------------------------
+    // 6 biseccion + 1 secante (contra 12 del gusano). Devuelve el radio del impacto.
+    float HitBalls(float3 u, float4 B0, float4 B1, float4 B2, float k)
+    {
+        float3 bb = float3(dot(u, B0.xyz), dot(u, B1.xyz), dot(u, B2.xyz));
+        float3 cc = float3(dot(B0.xyz, B0.xyz), dot(B1.xyz, B1.xyz), dot(B2.xyz, B2.xyz));
+        float rmax = max(max(sqrt(cc.x) + B0.w, sqrt(cc.y) + B1.w), sqrt(cc.z) + B2.w) + 0.25 * k + 1.0;
+        float f0  = BallsRay(0.0, bb, cc, B0, B1, B2, k);
+        float fhi = BallsRay(rmax, bb, cc, B0, B1, B2, k);
+        float lo = 0.0, hi = rmax, flo = f0;
+        [loop] for (int it = 0; it < 6; it++)
+        {
+            float mr = 0.5 * (lo + hi);
+            float fm = BallsRay(mr, bb, cc, B0, B1, B2, k);
+            float in0 = step(fm, 0.0);
+            lo = lerp(lo, mr, in0); flo = lerp(flo, fm, in0);
+            hi = lerp(mr, hi, in0); fhi = lerp(fm, fhi, in0);
+        }
+        float r = lo + (hi - lo) * saturate(flo / min(flo - fhi, -1.0e-4));
+        return r * step(f0, 0.0);
+    }
+    // @end
+
+    // @fn Balls3 ----------------------------------------------------------------------
+    // Campo 3D del racimo con gradiente (UNA evaluacion) y pliegue = max 4h(1-h).
+    // La normal que sale de aca es el gradiente EXACTO del smin (df = lerp(g, gs, h)): medido
+    // contra diferencias centrales en float64, error <= 0,0001 grados, tambien en la fusion. El
+    // gradiente de 4 taps del secuenciador (BlobOrbNormalPS) sobre este mismo campo erra 0,7-0,9
+    // grados de media y hasta 1,9 en fp32, y hasta 8 en half: aca NO se usa, la analitica gana.
+    // 2026-09-28: arranca con la bola 0 en vez de un centinela d = 1e5. En exacto es identico
+    // (el primer smin con d = 1e5 da h = 1 -> d = di, g = gi), ahorra un smin y deja de ser
+    // una bomba en half: 1e5 no existe en fp16 (max 65504) -> inf -> lerp(inf, di, 1) = NaN.
+    // 🔴 B0 existe SIEMPRE (BallsLayout: r0 >= 0,8 rb). Si algun dia puede apagarse, volver al
+    // centinela o a un peso: con B0.w = 0 esta version la trata como una bola de radio 0.
+    float Balls3(float3 p, float4 B0, float4 B1, float4 B2, float k, out float3 g, out float crease)
+    {
+        float3 gi; float di, h;
+        float d = Sph(p, B0, g);
+        di = Sph(p, B1, gi); h = Smin(d, g, di, gi, k, step(1.0e-3, B1.w)); crease = 4.0 * h * (1.0 - h);
+        di = Sph(p, B2, gi); h = Smin(d, g, di, gi, k, step(1.0e-3, B2.w)); crease = max(crease, 4.0 * h * (1.0 - h));
+        return d;
+    }
+    // @end
+
+    // =================================================================================
+    // NUCLEO (ameba). Superficie cerrada r(u): sin biseccion. Normal analitica
+    // n = normalize(u - gT / r), con gT = gradiente tangencial del radio.
+    // =================================================================================
+
+    // @fn AmPod ----------------------------------------------------------------------
+    // Un PSEUDOPODO de la ameba (V4, 2026-09-28): phi(q) = 2 q^10 - q^5 con q = (1 + u.D)/2 =
+    // cos^2(angulo/2). Vale 1 en D, ancho a media altura 47 grados; el termino -q^5 abre un CUELLO
+    // suave alrededor (hondo -1/8 a 59 grados del eje): se lee como algo que SALE del cuerpo, no
+    // como un grano. Se resta su media sobre la esfera (2/11 - 1/6 = 1/66): el volumen casi no
+    // cambia cuando crece. Polinomio de grado 10 en u -> solo armonicos l <= 10: longitud de onda
+    // >= 34 grados = 16 separaciones de vertice (la normal POR VERTICE no lo aplana). Sin picos ni
+    // pliegues: con NoiseAmount 1 y Agitation 1, radio de curvatura >= 0,39 Rc en lo convexo y
+    // >= 0,43 Rc en lo concavo (scripts/loving_amoeba/verify_amoeba.py). Acumula h*dphi/du en g.
+    float AmPod(float3 u, float3 D, float h, inout float3 g)
+    {
+        float q  = 0.5 + 0.5 * dot(u, D);
+        float q2 = q * q, q4 = q2 * q2, q5 = q4 * q;
+        g += (h * (10.0 * q5 * q4 - 2.5 * q4)) * D;           // 0,5 D (20 q^9 - 5 q^4)
+        return h * (2.0 * q5 * q5 - q5 - 0.015151515);
+    }
+    // @end
+
+    // @fn AmBody ---------------------------------------------------------------------
+    // Una masa ANCHA del cuerpo (sin cuello): phi = q^6, media 1/7. Da la asimetria de fondo (el
+    // lado "de atras" redondeado frente al lado de los pseudopodos). Grado 6.
+    float AmBody(float3 u, float3 D, float h, inout float3 g)
+    {
+        float q  = 0.5 + 0.5 * dot(u, D);
+        float q2 = q * q, q3 = q2 * q;
+        g += (h * 3.0 * q3 * q2) * D;                          // 0,5 D 6 q^5
+        return h * (q3 * q3 - 0.14285714);
+    }
+    // @end
+
+    // @fn CentreR ---------------------------------------------------------------------
+    // La AMEBA del nucleo (V4, 2026-09-28; antes: dos senos viajeros de +-6,75 %, se leia esfera).
+    // Cuatro PSEUDOPODOS (AmPod) agrupados de un lado y dos masas ANCHAS (AmBody) del otro: una
+    // celula POLARIZADA, no una papa simetrica. Van en TRES PARES: la altura de uno sube cuando la
+    // de su pareja baja (h = H (0,55 +- 0,45 sin)), como si el citoplasma pasara de un pseudopodo
+    // al vecino; nunca estan todos retraidos (la forma no vuelve a la esfera) ni todos afuera. El
+    // marco de los lobulos GIRA despacio alrededor del Z local (0,05 rad/s, ~2 min por vuelta):
+    // los pseudopodos derivan. Velocidades con 4 decimales (0,1713 / 0,2291 / 0,1307 / 0,0503):
+    // el conjunto no se repite en horas.
+    // Excursion: +75 % de Rc como maximo (x1,4 con Agitation, x0,5 con la calma; tope +85 %), -33 % en el
+    // punto mas hundido. Cotas CERTIFICADAS en CoreWob (A, WMIN): las usan ArmSetup y el BP.
+    // 🔴 Velocidades CONSTANTES x GameTime; el estado solo toca la amplitud (Wob.x).
+    // 🔴 Adreno: seis llamadas con nombre, sin arreglos; cada lobulo en su propia sentencia (dos
+    //    inout sobre g en una misma expresion no tienen orden definido).
+    // 🔴 Nucleo, membrana del nucleo, contacto del brazo, ancla del ensanche, puente y particulas
+    //    llaman a ESTA funcion con los mismos LV y el mismo GameTime: no pueden divergir.
+    // gT = gradiente TANGENCIAL del radio (normal: n = normalize(u - gT/r)).
+    float CentreR(float3 u, float Rc, float4 LV1, float4 LV3, float T, out float3 gT)
+    {
+        float4 Wob = CoreWob(LV1, LV3);
+        float cr = cos(0.0503 * T), sr = sin(0.0503 * T);
+        float3 v = float3(cr * u.x + sr * u.y, cr * u.y - sr * u.x, u.z);     // u en el marco de los lobulos
+        float s0 = 0.45 * sin(0.1713 * T + 0.4);
+        float s1 = 0.45 * sin(0.2291 * T + 2.1);
+        float s2 = 0.45 * sin(0.1307 * T + 4.3);
+        float3 gv = float3(0.0, 0.0, 0.0);
+        float w = 0.0;
+        w += AmPod (v, float3( 0.5412,  0.4388,  0.7174),        (0.55 + s0), gv);   // par 0
+        w += AmPod (v, float3(-0.1572,  0.6399,  0.7522), 0.80 * (0.55 - s0), gv);
+        w += AmPod (v, float3( 0.6578,  0.5251, -0.5400), 0.90 * (0.55 + s1), gv);   // par 1
+        w += AmPod (v, float3(-0.5148,  0.8567,  0.0322), 0.85 * (0.55 - s1), gv);
+        w += AmBody(v, float3(-0.1029, -0.7544, -0.6483), 0.60 * (0.55 + s2), gv);   // par 2 (masas)
+        w += AmBody(v, float3(-0.2722, -0.1838, -0.9445), 0.60 * (0.55 - s2), gv);
+        float3 gw = float3(cr * gv.x - sr * gv.y, cr * gv.y + sr * gv.x, gv.z);   // de vuelta al marco local
+        float  k  = Rc * Wob.x * 1.2074;                     // 1,2074 = 1/max del campo crudo (certificado)
+        float3 g  = k * gw;
+        gT = g - u * dot(u, g);
+        return Rc + k * w;
+    }
+    // @end
+
+    // @fn Mound -----------------------------------------------------------------------
+    // Abultamiento del nucleo hacia un brazo: M = (direccion unitaria, altura). c0 = coseno
+    // del borde del abultamiento. Acumula su gradiente en gm.
+    float Mound(float3 u, float4 M, float c0, inout float3 gm)
+    {
+        float s = 1.0 / max(1.0 - c0, 1.0e-3);
+        float x = saturate((dot(u, M.xyz) - c0) * s);
+        gm += M.w * 6.0 * x * (1.0 - x) * s * M.xyz;
+        return M.w * x * x * (3.0 - 2.0 * x);
+    }
+    // @end
+
+    // =================================================================================
+    // SOMBREADO "del secuenciador" (pixel shader, ~20 instr, cabe en half). 2026-09-28, Beltran
+    // mirando un grupo de cerca: "esa sombra de la ameba del grupo es media rara. Debe ser como
+    // las que ya habiamos construido en el mesh del sequencer, que trabajaba super bien las
+    // normales". Es la cadena de M_BlobOrb_SC (Custom_3 BlobOrbNormalPS + el grafo que va a
+    // Emissive) escrita en una sola funcion, con los valores que Beltran dejo en el director:
+    //   s   = saturate(N.L * Contraste + (1 - Contraste)) * ao    (0,5 = el dot*0,5+0,5 del raymarch)
+    //   lum = saturate(lerp(Piso, 1, s) + Borde * Fresnel(N.V, Potencia))
+    //   col = lerp(ColorSombra, ColorLuz, s) * Brillo * lum + Relleno * Tinte * (1 - lum)
+    // El relleno SUMA (no es un lerp): con el piso casi en 0 un lerp previo quedaba negro justo
+    // donde tenia que verse (la misma leccion del secuenciador, 2026-09-27).
+    // Por que reemplaza a Clay (V3), medido sobre la misma geometria (2026-09-28, port numpy validado contra la captura):
+    //  - el punto blanco: Blinn^40 SUMADO sobre un albedo que ya pasaba de 1 (Alb*(amb*Ka + Kd)
+    //    = 1,07 en azul). En el APK no hay tonemapper (MobileHDR off): se recorta, 18-58 % de los
+    //    pixeles de una bola con un canal en 1 y el brillo llegaba a 1,45. Aca el tope es ColorLuz.
+    //  - el gris del pliegue y de la bola en sombra: el borde (1 - N.V)^3 tambien se enciende
+    //    DENTRO de los pliegues (ahi N.V baja igual que en la silueta) y sumaba un gris azulado;
+    //    el AO lo multiplicaba sin color. Aca el pliegue baja s -> se va al color de sombra con
+    //    su relleno: una sombra VIOLETA, no gris. El borde queda en 0 por defecto por eso mismo.
+    // Hi  = (ColorLuz, Brillo)        · Lo  = (ColorSombra, Contraste)
+    // Fil = (Relleno, Tinte)          · Flr = (Piso, Borde, Potencia del borde, -)
+    // ao  = oclusion (pliegue, cara hacia el nucleo) que entra a s, como menos luz.
+    // 🔴 Todo en [0, ~2], sin restar numeros parecidos ni productos grandes: exacto en half (el
+    // nucleo recibe sus entradas en half; las bolas corren en full por la disposicion, no por esto).
+    // =================================================================================
+
+    // @fn SeqShade --------------------------------------------------------------------
+    float3 SeqShade(float3 N, float3 V, float3 L, float4 Hi, float4 Lo, float4 Fil, float4 Flr, float ao)
+    {
+        float cc  = max(Lo.a, 0.0);
+        float s   = saturate(dot(N, L) * cc + (1.0 - cc)) * saturate(ao);
+        float f1  = max(1.0 - saturate(dot(N, V)), 1.0e-3);
+        float fr  = 0.04 + 0.96 * exp2(max(Flr.z, 0.5) * log2(f1));   // = nodo Fresnel de UE (base 0,04)
+        float lum = saturate(lerp(Flr.x, 1.0, s) + Flr.y * fr);
+        float3 col = lerp(Lo.rgb, Hi.rgb, s) * max(Hi.a, 0.0);
+        return col * lum + Fil.rgb * (max(Fil.a, 0.0) * (1.0 - lum));
+    }
+    // @end
+
+    // =================================================================================
+    // LUZ DEL AGUA (F5 del fluido cerebral, 2026-09-28; Beltran: "¿la caustica esta puesta?"). La celula
+    // recibe la MISMA caustica que las celulas medias de BP_FluidMedium_SC: misma red (Caustic, copia
+    // literal), mismo tamano (Caus.y), misma fase (Phase.y en juego; T x Caus.z en el editor = LiveClock
+    // de FluidLib), anclada al MUNDO (el fluido va en el origen sin rotar: su espacio ES el mundo) y solo
+    // en lo que mira hacia arriba (max(N.z, 0), como alli). La celula flota POR DEBAJO de la luz.
+    // Wp = posicion de mundo del PIXEL con los offsets del material: la superficie deformada se desliza
+    // bajo la red, que no la sigue.
+    // 🔴 PERILLAS NEUTRAS (BP_LovingCell_SC, categoria 8-Agua; viajan en LV5, que PushGlobals ya empuja):
+    //    LV5.z = WaterLight (0 por defecto): nucleo y bolas; 1 = la cantidad de las celulas medias.
+    //    LV5.w = WaterLightShell: la parte de esa luz que cae en la envoltura (x LV5.z; 0 = solo nucleo
+    //    y bolas). Los wrappers llaman esto dentro de [branch] if (LV5.z > 0.0) (la envoltura: si
+    //    min(LV5.z, LV5.w) > 0): con WaterLight 0 no se evalua NADA y el pixel es el de antes, bit a bit.
+    //    Mecanica PORTABLE: sin el fluido la MPC queda en sus defaults (Caus.x 0,6, reloj propio), asi
+    //    que la unica llave es la perilla, que nace en 0.
+    // 🔴 APK sin tonemapper: NO es el c (1 + x) de las celulas medias. Arriba del nucleo el canal mayor esta
+    //    en 0,84-0,98: x 1,6 recorta por canal y vira a blanco (render proxy: 417-1190 pixeles del nucleo
+    //    pasan de 1). WaterGain comprime el aumento contra el margen del canal mayor (sin meseta).
+    // 🔴 Precision: M_LovingCentre_SC y M_LovingOuter_SC reciben las entradas en HALF (Wp, Caus, Phase).
+    //    Wp: ulp 0,125 cm entre 128 y 256 cm (Test_Fluid): error <= 0,3 niveles sRGB; a 30 m del origen
+    //    (ulp 2 cm) <= 4,3; a mas de 655 m no entra en half (inf) -> la guarda devuelve 0 (se apaga).
+    //    Phase.y (hasta 20 pi): ulp 0,031 en la mitad alta del ciclo -> en juego la red avanza a saltos de
+    //    ~19 Hz, <= 2,5 niveles sRGB por salto en lo mas oscuro (fase float: <= 0,74 por cuadro). Si se ve
+    //    en el visor: que BP_FluidMedium_SC envuelva la fase en [-10 pi, 10 pi) (mismo patron, salto a la
+    //    mitad) o pasar el nucleo a calculo por vertice (fp32). Las bolas (MFPM_Full) no tienen nada de esto.
+    //    Caus.z en half (0,6 -> 0,60010): en el EDITOR (reloj propio) la red de la celula se desfasa de la de
+    //    las medias ~1e-4 T rad (0,35 rad por hora de editor abierto); en juego las dos leen Phase.y.
+    // =================================================================================
+
+    // @fn Caustic ---------------------------------------------------------------------
+    // 🔴 COPIA LITERAL de VR_Test/Shaders/Fluid/FluidLib.ush :: Caustic (el compositor lee una sola
+    //    libreria). Si cambia alli, se cambia aqui en el MISMO commit: check_loving_hlsl.py compara los dos
+    //    cuerpos sin comentarios y FALLA si difieren.
+    float Caustic(float2 p, float t)
+    {
+        float a = sin(p.x + sin(p.y * 0.8 + t * 0.7) + t * 0.4);
+        float b = sin(p.y * 1.1 + sin(p.x * 0.9 - t * 0.6) - t * 0.5);
+        float c = sin((p.x + p.y) * 0.7 + t * 0.3);
+        float v = (a + b + c) * 0.3333333;
+        float r = max(1.0 - abs(v) * 1.8, 0.0);
+        return r * r * r;
+    }
+    // @end
+
+    // @fn WaterLight ------------------------------------------------------------------
+    // Luz RELATIVA de la caustica en un punto (0 = nada; con k = 1 es la cs de las celulas medias).
+    //   Wp = posicion en MUNDO (cm) · Nz = normal.z en espacio LOCAL del actor (= mundo mientras el actor solo
+    //   gire en yaw: la inclinacion de la figura la hace el shader, no el actor) · Caus, Phase = MPC_Fluid_SC
+    //   T = ResolvedView.GameTime · k = perilla (LV5.z; en la envoltura LV5.z x LV5.w).
+    // Guarda: una posicion o fase no finita da 0, nunca NaN, y nunca negativo (WaterGain lo exige).
+    float WaterLight(float3 Wp, float Nz, float4 Caus, float4 Phase, float T, float k)
+    {
+        float live = step(0.5, Phase.w);
+        float ph   = lerp(T * Caus.z, Phase.y, live);          // = phC de LiveClock (FluidLib)
+        float x    = max(k, 0.0) * max(Caus.x, 0.0) * Caustic(Wp.xy / max(Caus.y, 1.0), ph) * max(Nz, 0.0);
+        return (x >= 0.0 && x < 1.0e4) ? x : 0.0;
+    }
+    // @end
+
+    // @fn WaterGain -------------------------------------------------------------------
+    // Suma la luz relativa x a un color c SIN recortar: el aumento se comprime contra el margen del canal
+    // mayor, h = 1/max - 1:  x' = x h / (x + h). Donde c es oscuro (h grande) x' ~ x (lo de las celulas
+    // medias); cerca del tope x' -> h sin llegar: el canal mayor queda < 1 y la proporcion entre canales (el
+    // tono) no cambia. Es suave: no deja la meseta de un tope duro (dentro de la linea el relieve del
+    // sombreado se sigue leyendo). x = 0 -> c bit a bit (0 x finito = 0; h <= 999 por el piso de m).
+    // Un color con un canal > 1 (ColorTemp alto en las bolas) no recibe luz (h = 0): ya estaba en el tope.
+    // Canal mayor 0,84 (arriba del nucleo) con x 0,6: 0,96 (+14 niveles sRGB); 0,30: 0,44 (+29).
+    float3 WaterGain(float3 c, float x)
+    {
+        float m = max(max(c.r, c.g), max(c.b, 1.0e-3));
+        float h = max(1.0 / m - 1.0, 0.0);
+        return c + c * (x * h / (x + h + 1.0e-4));
+    }
+    // @end
+
+    // =================================================================================
+    // BRAZO DE MEMBRANA (hebra + cuello + envoltura en UN lienzo por grupo).
+    // Eje: del centro Pc al centroide G. Parametros empaquetados:
+    //   AP0 = (Pc, Rcm)        centro y radio de la esfera-pelicula (DEBAJO del nucleo opaco)
+    //   AP1 = (G, gap)         centroide del grupo y el inflado de la envoltura
+    //   AP2 = (tilt, hug)      inclinacion del ancla del ensanche (zCs(n) = AP5.x + tilt.n, n = direccion
+    //                          lateral desde el eje; ver ArmSetup) y "abrazo". La normal del plano de la
+    //                          figura (marco sin volteos) se lee de LV4.xyz (antes viajaba en AP2.xyz).
+    //   B0..B2                 bolas del grupo (desfase desde G, radio)
+    //   AP3 = (rMid, rEnd, lamE, kN)    cintura de la hebra, radio en las puntas, largo del
+    //                                   ensanche en la envoltura, filete hebra-envoltura
+    //   AP4 = (kC, kE, Ratt, dzAtt)     filete con el centro, fusion de la envoltura,
+    //                                   esfera de atraccion (radio, retroceso desde G)
+    //   AP5 = (zCs, lamC, t1, t2)       ancla del ensanche en el nucleo (sobre el eje; + AP2.xyz . n), su largo, zonas de anillos
+    // Envoltura = sustitutos POR AZIMUT centrados en el eje: una esfera en el eje cuyo radio
+    // es la salida exacta del azimut n por la bola inflada. Monotonos en todo rayo -> sin pliegues.
+    // =================================================================================
+
+    // @fn Surr ------------------------------------------------------------------------
+    void Surr(float4 B, float3 ax, float3 nn, float gap, float hug, out float a, out float e, out float x, out float A)
+    {
+        a = dot(B.xyz, ax);
+        float3 v = B.xyz - ax * a;
+        float R  = B.w + gap + (1.0 - hug) * length(v);
+        float3 q = v * hug;
+        float p  = dot(q, nn);
+        float Q  = dot(q, q);
+        e = p + sqrt(max(R * R - Q + p * p, 0.0));   // salida en el plano de la bola
+        x = sqrt(max(R * R - Q, 0.0));               // alcance sobre el eje (valor en el polo)
+        A = step(1.0e-3, B.w);
+    }
+    // @end
+
+    // @fn StrandR ---------------------------------------------------------------------
+    // Perfil "reloj de arena" (membrana-tether): delgado al medio, se ensancha hacia el
+    // nucleo (anclado en zCs) y hacia la envoltura (anclado en zEs).
+    float StrandR(float z, float zCs, float zEs, float4 AP3, float lamC)
+    {
+        float eC = exp(-max(z - zCs, 0.0) / max(lamC, 0.1));
+        float eE = exp(-max(zEs - z, 0.0) / max(AP3.z, 0.1));
+        return AP3.x + (AP3.y - AP3.x) * saturate(eC + eE);
+    }
+    // @end
+
+    // @fn ArmRay ----------------------------------------------------------------------
+    // Campo a lo largo del rayo p = Pc + ax*(z0 + m*sa) + n*(m*ca). Todo lo que no depende
+    // de m viene precalculado (D = z0 - centro de cada sustituto, re = su radio).
+    float ArmRay(float m, float z0, float sa, float Rcm, float pr, float kC, float3 D, float3 re,
+                 float3 Aw, float DA, float Ratt, float kAt, float Aat, float kE, float kN)
+    {
+        float mm = m * m;
+        float F = sqrt(max(mm + 2.0 * z0 * sa * m + z0 * z0, 0.0)) - Rcm;
+        F = SminS(F, m - pr, kC, 1.0);
+        float E = 1.0e5;
+        E = SminS(E, sqrt(max(mm + 2.0 * D.x * sa * m + D.x * D.x, 0.0)) - re.x, kE, Aw.x);
+        E = SminS(E, sqrt(max(mm + 2.0 * D.y * sa * m + D.y * D.y, 0.0)) - re.y, kE, Aw.y);
+        E = SminS(E, sqrt(max(mm + 2.0 * D.z * sa * m + D.z * D.z, 0.0)) - re.z, kE, Aw.z);
+        E = SminS(E, sqrt(max(mm + 2.0 * DA * sa * m + DA * DA, 0.0)) - Ratt, kAt, Aat);
+        return SminS(F, E, kN, 1.0);
+    }
+    // @end
+
+    // @fn ArmField3 -------------------------------------------------------------------
+    // El MISMO campo como funcion 3D (normales por 4 taps y recorte de los puentes).
+    // Coincide con ArmRay sobre cada rayo del lienzo (verificado en el diseño).
+    float ArmField3(float3 p, float4 AP0, float4 AP1, float4 AP2, float4 B0, float4 B1, float4 B2,
+                    float4 AP3, float4 AP4, float4 AP5, out float J)
+    {
+        float3 Pc = AP0.xyz; float Rcm = AP0.w;
+        float3 ax = AP1.xyz - Pc; float Lx = max(length(ax), 1.0); ax /= Lx;
+        float gap = AP1.w, hug = saturate(AP2.w);
+        float3 w  = p - Pc; float z = dot(w, ax); float3 vv = w - ax * z;
+        float r   = length(vv); float3 nn = vv / max(r, 1.0e-4);
+        float zq  = max(z - Lx, 0.0); float s2 = zq * zq / (zq * zq + r * r + 1.0e-4);
+        float a0, e0, x0, A0, a1, e1, x1, A1, a2, e2, x2, A2;
+        Surr(B0, ax, nn, gap, hug, a0, e0, x0, A0);
+        Surr(B1, ax, nn, gap, hug, a1, e1, x1, A1);
+        Surr(B2, ax, nn, gap, hug, a2, e2, x2, A2);
+        float Enear = max(max(A0 * (x0 - a0), A1 * (x1 - a1)), A2 * (x2 - a2));
+        float zEs  = Lx - Enear;
+        float kC = AP4.x, kE = AP4.y, Ratt = AP4.z, zat = Lx - AP4.w;
+        float kAt = max(kE * saturate(Ratt / 2.0), 0.05), Aat = step(1.0e-3, Ratt);
+        float zc = clamp(z, 0.0, Lx);
+        float F  = length(float2(z, r)) - Rcm;
+        float dS = length(float2(z - zc, r)) - StrandR(zc, AP5.x + dot(AP2.xyz, nn), zEs, AP3, AP5.y);   // ancla inclinada
+        float hC = SminH(F, dS, kC, 1.0);
+        float E = 1.0e5;
+        E = SminS(E, length(float2(z - (Lx + a0), r)) - lerp(e0, x0, s2), kE, A0);
+        E = SminS(E, length(float2(z - (Lx + a1), r)) - lerp(e1, x1, s2), kE, A1);
+        E = SminS(E, length(float2(z - (Lx + a2), r)) - lerp(e2, x2, s2), kE, A2);
+        E = SminS(E, length(float2(z - zat, r)) - Ratt, kAt, Aat);
+        float hN = SminH(F, E, AP3.w, 1.0);
+        J = max(4.0 * hC * (1.0 - hC), 4.0 * hN * (1.0 - hN));
+        return F;
+    }
+    // @end
+
+    // =================================================================================
+    // PUENTE entre dos grupos vecinos: forma CERRADA (sin biseccion).
+    //   BA = (A, rEnd) · BB = (B, rMidSigned) · BS = (sA, sB, lam, wB) · PN = (normal del plano, -)
+    // rMidSigned < 0: dos munones que salen de las envolturas; 0: contacto; > 0: cuello.
+    // =================================================================================
+
+    // @fn ArmWindow -------------------------------------------------------------------
+    // El TRAMO LIBRE de la hebra de un brazo [zW0, zW1] (distancias desde el centro del nucleo
+    // sobre el eje): arranca pasando la membrana del nucleo + su filete + el ensanche, termina
+    // antes del ensanche + filete de la envoltura (alcance maximo de las bolas infladas).
+    // Independiente del azimut: el curl es un corte limpio. Lo usan el brazo y las particulas.
+    // V4: AP5.x (ancla del ensanche SOBRE EL EJE) sigue a la ameba REAL del eje menos rEnd^2/rAx (ArmSetup),
+    // asi que zW0 se mueve suave con los pseudopodos. El ancla se INCLINA con la membrana (AP2.xyz): del lado
+    // que sube el ensanche termina hasta |AP2.xyz| mas arriba (<= ~1,6 cm con defaults, hasta 4,5 con
+    // NoiseAmount 2 + Agitation + grupos grandes); el tramo libre arranca despues de ese punto en TODOS los
+    // azimuts, asi el curl nunca desplaza el cilindro del ensanche (radio rEnd > la lente de la hebra).
+    // 🔴 OuterEnv (Win.x) usa el MINIMO de zW0: si cambia esta cuenta o el ancla, se cambia alla (y se
+    // vuelve a correr scripts/loving_outer/verify_outer.py).
+    void ArmWindow(float4 AP1, float4 AP2, float4 AP3, float4 AP4, float4 AP5, float4 B0, float4 B1, float4 B2, float Lx,
+                   out float zW0, out float zW1)
+    {
+        float gap = AP1.w;
+        float Ebc = max(max(step(1.0e-3, B0.w) * (B0.w + gap + length(B0.xyz)),
+                            step(1.0e-3, B1.w) * (B1.w + gap + length(B1.xyz))),
+                            step(1.0e-3, B2.w) * (B2.w + gap + length(B2.xyz)));
+        zW0 = AP5.x + length(AP2.xyz) + AP4.x + AP5.y + 1.0;
+        zW1 = Lx - Ebc - AP3.w - AP3.z;
+    }
+    // @end
+
+    // @fn StrandCurl ------------------------------------------------------------------
+    // CURL de una hebra, v4 (2026-09-28, Beltran al ver V3: "evitaria que las ondulaciones de las
+    // tiras sean tan pequenas, que sean mas suaves"). La v3 (ventana 64 q^3, angosta, por dos ondas
+    // de 1,5 pi y 2,5 pi en ejes cruzados) era un sacacorchos: radio de curvatura minimo ~4,7 cm,
+    // pendiente hasta 39 grados y, con los anillos del lienzo cada ~2,2 cm, facetas de hasta 25
+    // grados entre anillos. Ahora, curvas LARGAS (medido en Python sobre la hebra tipica a S = 0:
+    // radio minimo 12,5 cm, pendiente 22 grados, giro entre anillos 10 grados, desplazamiento 4,5 cm):
+    //   - ventana ANCHA sin^2(pi zt): vale 0 con pendiente 0 en las dos puntas (las uniones con la
+    //     membrana del nucleo y con el cuello de la bolsa no se mueven) y es casi la de menor
+    //     curvatura posible para un arco empotrado en los dos extremos (2 pi^2 contra 16 del optimo);
+    //   - UNA comba que viaja hacia afuera (k = pi: media longitud de onda en el tramo -> se lee un
+    //     arco que se corre del nucleo a la bolsa y cambia de lado, nunca varias ondas cortas), en un
+    //     plano cercano al de la figura (Vb: se ve de frente), con un sesgo propio por hebra y una
+    //     deriva lenta (+-0,8 rad como maximo, siempre legible);
+    //   - un arco lento perpendicular (0,55; casi en profundidad) que da volumen en estereo.
+    // Cortes perpendiculares al eje SOLO en [zW0, zW1] (independiente del azimut). Devuelve el
+    // desplazamiento y en sdz su derivada respecto de z para la normal: N' = normalize(N - ax*dot(sdz, N))
+    // (el mapa es el cizallamiento I + sdz ax^T con sdz perpendicular al eje: det J = 1).
+    // K = StrandCurl (LV5.y). Fuerte separada, casi quieta en calma (x0,25), +40 % con Agitation.
+    // 🔴 Velocidades CONSTANTES x GameTime (tempo propio por hebra desde el hash, nunca del estado);
+    //    el estado, Agitation y la perilla solo tocan la AMPLITUD.
+    // 🔴 INVARIANTE con CurlEnv (la envoltura exterior la usa para garantizar que la hebra queda
+    //    ADENTRO): |desplazamiento| <= 0,10 sqrt(1 + 0,55^2) = 0,114 x K x calma x (1 + 0,4 Ag) x Lw
+    //    x SS(3,10,Lw), contra 0,140 de CurlEnv. Si sube la amplitud (0,10), el arco (0,55) o la
+    //    ventana deja de ser <= 1 y nula en las puntas, se sube CurlEnv en el MISMO cambio.
+    float3 StrandCurl(float3 p, float3 Pc, float3 ax, float3 U, float3 Vb, float zW0, float zW1,
+                      float S, float Ag, float K, float idx, float T, out float3 sdz)
+    {
+        float Lw   = max(zW1 - zW0, 1.0);
+        float zt   = saturate((dot(p - Pc, ax) - zW0) / Lw);
+        float sw   = sin(3.14159265 * zt);
+        float cw   = cos(3.14159265 * zt);
+        float win  = sw * sw;                                // 0 y pendiente 0 en zt = 0 y 1
+        float dwin = 6.2831853 * sw * cw;                    // d win / d zt
+        float swr  = 0.75 + 0.5 * Hash(idx + 0.2);           // tempo de ESTA hebra (constante)
+        float gust = 0.6 + 0.4 * sin(0.19 * T + 6.2831853 * Hash(idx + 0.83));
+        float As   = max(K, 0.0) * 0.10 * Lw * SS(3.0, 10.0, Lw) * (1.0 - 0.75 * SS(0.3, 0.9, S)) * gust * (1.0 + 0.4 * Ag);
+        // plano de la comba: cerca del de la figura, sesgo propio + deriva lenta (|be| <= 0,8 rad)
+        float be   = 0.45 * (2.0 * Hash(idx + 0.37) - 1.0) + 0.35 * sin(0.047 * T + 6.2831853 * Hash(idx + 0.43));
+        float cb   = cos(be);
+        float sb   = sin(be);
+        float3 dA  = Vb * cb + U * sb;                       // plano de la comba
+        float3 dB  = U * cb - Vb * sb;                       // perpendicular a dA y al eje
+        // tempo 0,6 swr = el de la onda principal de la v3 (periodo 8-14 s). Con 0,42 (la primera v4) la
+        // hebra separada se movia a la MITAD de la velocidad lateral de la v3 (0,46 contra 0,92 cm/s rms) y se
+        // perdia el "separadas: mas movimiento" ya aprobado; con 0,6 vuelve a 0,64 cm/s con la forma larga.
+        // Es una VELOCIDAD constante x GameTime: no toca curvaturas ni la cota de CurlEnv (que es de amplitud).
+        float p1   = 3.14159265 * zt - (0.6 * swr * T + 6.2831853 * Hash(idx + 0.61));
+        float s1   = sin(p1);
+        float c1   = cos(p1);
+        float sway = 0.55 * sin(0.23 * swr * T + 6.2831853 * Hash(idx + 0.87));
+        float3 shp = dA * s1 + dB * sway;
+        sdz = (As / Lw) * (dwin * shp + (win * 3.14159265 * c1) * dA);
+        return As * win * shp;
+    }
+    // @end
+
+    // @fn RayExit ---------------------------------------------------------------------
+    // Salida del rayo G + d*t de la bola inflada B (B = desfase desde G, radio): como cada bola
+    // contiene a G, siempre > 0. Para poner particulas sobre la envoltura de un grupo.
+    float RayExit(float3 d, float4 B, float gap)
+    {
+        float R = B.w + gap;
+        float b = dot(d, B.xyz);
+        return step(1.0e-3, B.w) * (b + sqrt(max(R * R - dot(B.xyz, B.xyz) + b * b, 0.0)));
+    }
+    // @end
+
+    // @fn BridgeR ---------------------------------------------------------------------
+    float BridgeR(float s, float4 BA, float4 BB, float4 BS, out float dpr)
+    {
+        float eA = exp(-max(s - BS.x, 0.0) / max(BS.z, 0.1));
+        float eB = exp(-max(BS.y - s, 0.0) / max(BS.z, 0.1));
+        float sm = eA + eB;
+        float raw = BB.w + (BA.w - BB.w) * saturate(sm);
+        float d = (BA.w - BB.w) * step(sm, 1.0)
+                * (-eA * step(BS.x, s) + eB * step(s, BS.y)) / max(BS.z, 0.1);
+        dpr = BS.w * d * step(0.0, raw);
+        return BS.w * max(raw, 0.0);
+    }
+    // @end
+
+    // @fn BridgeSDF -------------------------------------------------------------------
+    // Distancia (con signo) al solido del puente, para recortar la pelicula del brazo.
+    float BridgeSDF(float3 p, float4 BA, float4 BB, float4 BS)
+    {
+        float3 d = BB.xyz - BA.xyz; float Lb = max(length(d), 0.1); d /= Lb;
+        float s = clamp(dot(p - BA.xyz, d), 0.0, Lb);
+        float dpr;
+        float pr = BridgeR(s, BA, BB, BS, dpr);
+        return length(p - (BA.xyz + d * s)) - pr + step(BS.w, 1.0e-3) * 1.0e4;
+    }
+    // @end
+
+    // =================================================================================
+    // PELICULA (pixel shader, ~40 instr). Blend = AlphaComposite (premultiplicado):
+    // Emissive = color ya multiplicado por alfa + reflejos aditivos; Opacity = alfa.
+    //   Col = (color de pelicula, sigma) · K = (espesor, ganancia de juntura, rimLo, rimHi)
+    //   Sky = (reflejo arriba, ganancia de reflejo) · Gnd = (reflejo abajo, alfa del borde)
+    //   Rim = (color de borde/menisco, alfa del menisco)
+    // Opacidad Beer-Lambert racional x/(1+x) sobre el camino por la cascara: clara de frente,
+    // visible en la silueta, mas densa en las junturas (J).
+    // =================================================================================
+
+    // @fn Film ------------------------------------------------------------------------
+    float3 Film(float3 N, float3 V, float J, float keepC, float keepR, float pb,
+                float4 Col, float4 K, float4 Sky, float4 Gnd, float4 Rim, float2 svpos, out float alpha)
+    {
+        float nv = max(abs(dot(N, V)), 0.06);
+        float x  = Col.a * K.x * (1.0 + J * K.y) / nv;
+        float a  = x / (1.0 + x);
+        float f1 = 1.0 - nv; float f2 = f1 * f1;
+        float F  = 0.03 + 0.97 * f2 * f2 * f1;                 // Schlick
+        float3 R = reflect(-V, N);
+        float3 env = lerp(Gnd.rgb, Sky.rgb, saturate(R.z * 0.5 + 0.5));
+        float rim = smoothstep(K.z, K.w, f1);                   // borde desde la silueta GEOMETRICA
+        float dz = (frac(svpos.x * 0.7548777 + svpos.y * 0.5698403) - 0.5) / 255.0;   // dither R2
+        alpha = saturate((a + rim * Gnd.a) * keepC + pb * Rim.a) * keepR;
+        float3 col = (Col.rgb * a + env * F * Sky.a + Rim.rgb * rim * Gnd.a) * keepC * keepR + Rim.rgb * pb * Rim.a * keepR;
+        alpha = saturate(alpha + dz);
+        return col + dz;
+    }
+    // @end
+
+    // =================================================================================
+    // ENVOLTURA EXTERIOR (2026-09-28, Beltran: "envuelve toda la celula en una ameba translucida
+    // tambien, con deformacion. Bastante opacidad" + "siempre pensando que corra en un APK").
+    // Una sola membrana CERRADA alrededor de todo: nucleo + su membrana + cada bolsa + cada hebra
+    // con su curl + la nube de particulas, con un margen GARANTIZADO. Forma cerrada r(u) sobre una
+    // icoesfera centrada en el nucleo (estrellada respecto de C): CERO iteraciones, normal analitica,
+    // y ningun BallsLayout por grupo (cada bolsa entra por una COTA cerrada de su tamano).
+    //   r(u) = [ rB(u)^p + sum_k (w_k P_k exp((u.q_k - 1)/sg_k))^p ]^(1/p) * (1 + Aw W(u,T))
+    //   rB   = membrana del nucleo EXACTA (CentreR + 10 Mound + CentreGap) + margen + OuterBody
+    //   lobulo k (pseudopodo): gaussiana angular hacia el grupo, punta P_k = D_k + Rt_k (+ estiramiento)
+    // Por que encierra (verificado en Python: .claude/skills/unreal-vr/scripts/loving_outer/verify_outer.py):
+    //   - la norma p de terminos >= 0 es >= a cada termino (union suave que solo AGREGA material);
+    //   - la gaussiana con sg >= Rt/D contiene la esfera (centro a D, radio Rt): tangencia de 2o orden
+    //     en la punta (el radio de curvatura de la punta es exactamente Rt) y holgura en el resto;
+    //     se usa 1,15x (umbral exacto 1,0, loving_outer/study_sigma.py);
+    //   - la hebra con curl es una LENTE alrededor del eje; su sg sale de una cota sin logaritmo
+    //     (ln x >= 1 - 1/x), con holgura 1,23x sobre el peor caso (loving_outer/study_sigma3.py);
+    //   - el estiramiento y la ondulacion son POSITIVOS: nunca achican (el margen no se pierde).
+    // 🔴 Velocidades CONSTANTES x GameTime (pseudopodos y ondulacion): calma, Agitation y las perillas
+    //    tocan la AMPLITUD.
+    // 🔴 PRESENCIA BINARIA (M_i.w = 0 o 1; PushOuter empuja select(n > i, 1, 0)). El peso multiplica la PUNTA
+    //    del lobulo, pero la bolsa, el brazo y las particulas NO se achican con M.w (se encienden por
+    //    visibilidad / step(0,5)): con M.w = 0,5 la punta queda a la mitad y la bolsa a 72 cm queda 30 cm
+    //    AFUERA (medido). Un fundido de presencia tiene que escalar bolsa, brazo y lobulo JUNTOS (p. ej.
+    //    GroupSize x w y la punta P = lerp(radio del cuerpo, D + Rt, w)); nunca solo la envoltura.
+    // 🔴 Adreno: sin arreglos; el wrapper llama OuterLobe 10 veces con variables con nombre.
+    // =================================================================================
+
+    // @fn CurlEnv ---------------------------------------------------------------------
+    // Cota del curl de una hebra por cm de tramo libre: |StrandCurl| <= CurlEnv * Lw * SS(3,10,Lw).
+    // 🔴 INVARIANTE con StrandCurl (v4, 2026-09-28: ventana sin^2 <= 1 y nula en las puntas, UNA comba
+    //    de amplitud 0,10 + un arco perpendicular de 0,55 -> |shp| <= sqrt(1 + 0,55^2) = 1,1413, gust
+    //    <= 1): la envolvente real es 0,114 x K x calma x (1 + 0,4 Ag). Esta cota vale 1,1662 x 0,12 =
+    //    0,140 (la de la v3, que tenia amplitud 0,12 y |shp| <= sqrt(1 + 0,6^2)): holgura 1,23x con la
+    //    v4, y el encierro se verifico con la v4 integrada. Si cambia la AMPLITUD de StrandCurl (o la
+    //    ventana deja de ser <= 1 y nula en los extremos), se cambia aca en el mismo commit: si no, la
+    //    envoltura exterior deja de garantizar que la hebra queda adentro. La FRECUENCIA de la onda
+    //    no importa (la cota es de amplitud).
+    float CurlEnv(float S, float Ag, float K)
+    {
+        return 1.1662 * 0.12 * max(K, 0.0) * (1.0 - 0.75 * SS(0.3, 0.9, S)) * (1.0 + 0.4 * Ag);
+    }
+    // @end
+
+    // @fn OuterEnv --------------------------------------------------------------------
+    // Cotas GLOBALES (una vez por vertice) desde las salidas de Shape con GroupScale 1 (todo lo de
+    // la bolsa es LINEAL en rb, asi que por grupo alcanza con multiplicar por GroupScale):
+    //   Env.x = R1: radio acotante de la bolsa desde su centroide G. Cada bola entra al brazo por su
+    //           sustituto (Surr: esfera de centro a ax + hug v y radio r + gap + (1-hug)|v|; la tapa
+    //           interpola dos salidas de ESA esfera): alcance <= k(hug)|o| + r + gap, con k = 1 en hug 1
+    //           (la bola inflada exacta) y sqrt2 en hug 0; la recta 1,414 - 0,414 hug lo acota
+    //           (loving_outer/study_reach.py: k real 1,25 / 1,12 / 1,02 en hug 0,25 / 0,5 / 0,8). |o| <= 0,85 r
+    //           (recorte de BallsLayout), r <= 1,12 rb (1 + Ab) (radios +-12 % y respiracion de las
+    //           bolas); + 0,09 rb (= 0,1 kE) por los filetes: en el extremo lejano no actuan porque las
+    //           otras bolas quedan a mas de kE (verificado con la superficie REAL del brazo).
+    //   Env.y = Ac (CurlEnv) · Env.z = estiramiento de los pseudopodos (fraccion de Rt) ·
+    //   Env.w = amplitud de la ondulacion (fraccion del radio). Las dos ultimas >= 0 y acotadas.
+    //   Win   = (zW0 MINIMO del tramo libre, Q1 = alcance minimo de la bolsa hacia el nucleo + kN
+    //           por unidad de GroupScale, lam, radio maximo de la hebra 1,12 rMid) -> cota del largo
+    //           del tramo libre de cada hebra: Lw <= D - GS*Q1 - lam - zW0 (ArmWindow con Ebc >= r+gap).
+    //           Desde V4 el ancla del ensanche (ArmSetup, AP5.x) es la ameba REAL sobre el eje de cada brazo
+    //           (nunca baja de rAm = Rc (1 + A WMIN), CoreWob, cota certificada) menos rEnd^2/rAx (el segundo
+    //           orden del ancla inclinada), que es <= rEm^2/rAm con rEm = rEnd del grupo mas grande posible
+    //           (GroupScale <= 1 + 0,8 SV; rEnd es lineal en GroupScale). Con ese minimo el tramo sale lo
+    //           mas LARGO posible (curl mas grande) y la lente queda lo mas cerca del nucleo (sg mas ancho,
+    //           mientras zc < 2P/3): las dos del lado seguro.
+    void OuterEnv(float Rc, float rb, float gap, float gC, float rMid, float rEnd, float lam, float kC, float kN, float MoundH,
+                  float4 LV1, float4 LV3, float4 LV4, float4 LV5, float4 OuterK, out float4 Env, out float4 Win)
+    {
+        float Coh = Calm(LV1), Ag = saturate(LV1.z), S = saturate(LV1.x);
+        float Ab   = 0.16 * max(LV3.w, 0.0) * (1.0 - 0.35 * Coh) * (1.0 + 0.3 * Ag);   // = BallsLayout
+        float live = min(max(LV3.z, 0.0) * (1.0 + 0.4 * Ag) * (1.0 - 0.5 * Coh) * max(OuterK.w, 0.0), 2.5);
+        float kH   = 1.414 - 0.414 * saturate(LV4.w);                                   // EnvelopeHug
+        Env = float4(rb * (1.12 * (1.0 + 0.85 * kH) * (1.0 + Ab) + 0.09) + gap, CurlEnv(S, Ag, LV5.y), 0.5 * live, 0.09 * live);
+        float4 Wob = CoreWob(LV1, LV3);                                                // (A, WMIN)
+        float  rAm = max(Rc * (1.0 + Wob.x * Wob.y), 1.0);                             // ameba minima (cota certificada)
+        float  rEm = (1.0 + 0.8 * max(LV5.x, 0.0)) * rEnd;                             // rEnd del grupo MAS grande
+        Win = float4(rAm - rEm * rEm * max(1.0 / rAm, 2.7 * Wob.x / Rc) + gC + 0.8 * MoundH + kC + lam + 1.0, 0.88 * (1.0 - Ab) * rb + gap + kN, lam, 1.12 * rMid);
+    }
+    // @end
+
+    // @fn OuterLobe -------------------------------------------------------------------
+    // Un pseudopodo hacia el grupo idx (M = centroide, presencia 0-1). Acumula la potencia p del
+    // lobulo (sE) y su gradiente (gE = sum E q / sg: el gradiente de ln r es el promedio pesado de los
+    // lobulos, la r se cancela) y, en (rm, gm), el abultamiento de la membrana del nucleo (la MISMA
+    // Mound de LovingCentreFilmVS: el cuerpo es esa membrana, exacta). u.q se comparte entre los dos.
+    //   Rt = GS*R1 + m (bolsa + margen) · P = D + Rt · sg = max(1,15 Rt/D, lente de la hebra, 0,04)
+    //   lente: Y = Ac Lw SS(3,10,Lw) + 1,12 rMid + m, centro zc; sgL = Y^2 P / (2 zc^2 (P - zc)).
+    // El estiramiento mezcla AMPLITUDES (separada: ritmo propio del grupo; calma: la respiracion),
+    // nunca fases; su tasa sale del hash del INDICE (constante). Ese Hash puede plegarse distinto que en el
+    // GPU (indice literal) y no importa: solo elige un ritmo. El TAMANO de la bolsa (gs) si tiene que
+    // coincidir con el de las partes: por eso GroupScale no usa Hash.
+    // Un grupo AUSENTE (M.w = 0) aporta E ~ (1e-4)^p ~ 1e-16 contra E0 ~ 8e-3 (debajo del epsilon de fp32)
+    // y un abultamiento de altura 0: el wrapper lo omite con [branch] (condicion uniforme por dibujo).
+    void OuterLobe(float3 u, float3 C, float4 M, float idx, float4 Env, float4 Win, float4 LV1, float4 LV5,
+                   float MoundH, float m, float p, float Coh, float T,
+                   inout float sE, inout float3 gE, inout float rm, inout float3 gm)
+    {
+        float3 v  = M.xyz - C;
+        float  D  = max(length(v), 1.0);
+        float3 q  = normalize(v + float3(1.0e-4, 0.0, 0.0));
+        rm += Mound(u, float4(q, MoundH * M.w), 0.55, gm);
+        float  h  = Hash(idx + 0.93);                // solo el ritmo del estiramiento
+        float  gs = GroupScale(idx, LV5);            // = el de la bolsa (GI.w), bit a bit en la practica
+        float  Rt = gs * Env.x + m;
+        float  z1 = D - gs * Win.y - Win.z;
+        float  Lw = max(z1 - Win.x, 0.0);
+        float  Y  = Env.y * Lw * SS(3.0, 10.0, Lw) + Win.w + m;
+        float  zc = max(0.5 * (Win.x + max(z1, Win.x)), 1.0);
+        float  P  = D + Rt;
+        float  sg = max(max(1.15 * Rt / D, Y * Y * P / (2.0 * zc * zc * max(P - zc, 1.0))), 0.04);
+        float  mx = (1.0 - Coh) * sin(T * (0.21 + 0.08 * frac(h * 5.3)) + 6.2831853 * frac(h * 13.7))
+                  + Coh * sin(LV1.y - 1.6);
+        P += Env.z * Rt * (0.5 + 0.5 * mx);
+        // norma p en unidades de 1 m (0,01): sin desbordes en fp32; exp2 de un negativo grande = 0
+        float  E  = exp2(p * (log2(max(saturate(M.w) * P, 0.01) * 0.01) + (dot(u, q) - 1.0) * 1.442695 / sg));
+        sE += E;
+        gE += (E / sg) * q;
+    }
+    // @end
+
+    // @fn OuterWob --------------------------------------------------------------------
+    // Ondulacion lenta de la envoltura, en [0, 1] (POSITIVA: se aplica como r * (1 + Aw W)). Dos
+    // ondas viajeras cruzadas de baja frecuencia (longitud de onda ~2 rad, >= 25 separaciones de
+    // vertice de la icoesfera de 2562) + un armonico. Velocidades FIJAS. Devuelve su gradiente en gW.
+    float OuterWob(float3 u, float T, out float3 gW)
+    {
+        float3 F3 = float3(0.662, -0.419, 0.621);
+        float3 F4 = float3(0.286, 0.911, -0.297);
+        float a1 = dot(u, F3) * 3.0 + T * 0.16;
+        float a2 = dot(u, F4) * 3.93 - T * 0.12;
+        float a3 = a1 * 1.7 + a2 * 0.6 + 2.1;
+        gW = (cos(a1) * sin(a2) + 0.595 * cos(a3)) * 1.1111 * F3
+           + (sin(a1) * cos(a2) + 0.21 * cos(a3)) * 1.4556 * F4;
+        return 0.5 + (sin(a1) * sin(a2) + 0.35 * sin(a3)) * 0.37037;
+    }
+    // @end
+
+    // @fn OuterFilm -------------------------------------------------------------------
+    // PELICULA EXTERIOR (pixel shader liviano y apto half: ~200 instr. DXIL con entradas half, 25 % menos
+    // que Film; sin arreglos ni texturas). AlphaComposite premultiplicado.
+    //   Col  = (color de la luz, alfa DE FRENTE) · Sh = (color de la sombra, wrap de la luz)
+    //   Look = (ganancia del reflejo, alfa del borde, borde desde, borde hasta)  [en 1 - N.V]
+    // Opacidad Beer-Lambert racional sobre el camino por la cascara (x/(1+x), como Film) calibrada
+    // para que DE FRENTE valga exactamente Col.a y suba sola hacia la silueta (0,5 -> 0,83 a N.V 0,2).
+    // Luz de DOS TONOS envolvente (el volumen de la ameba) + reflejo de hemisferio con Schlick + borde.
+    // 🔴 APK sin tonemapper (MobileHDR off): lo que pasa de 1 se recorta POR CANAL y vira a blanco (el
+    //    punto duro de la arcilla V3). Con los defaults, reflejo + borde llegan a 1,25 en la silueta
+    //    (N.V < 0,19): se divide por el canal mayor cuando pasa de 1, asi el borde conserva su tono.
+    // xw = LUZ DEL AGUA (WaterLight, F5) sobre el CUERPO de la pelicula: la gelatina lechosa dispersa la luz
+    //    que la atraviesa, la caustica se ve en su parte de arriba. Entra antes del alfa (premultiplicado) y
+    //    con WaterGain (sin pasar de 1). xw = 0 -> la rama no corre -> body bit a bit el de antes.
+    float3 OuterFilm(float3 N, float3 V, float3 Ld, float4 Col, float4 Sh, float4 Look, float xw, float2 svpos, out float alpha)
+    {
+        float nv  = max(abs(dot(N, V)), 0.05);
+        float aF  = clamp(Col.a, 0.0, 0.95);
+        float x   = aF / ((1.0 - aF) * nv);
+        float a   = x / (1.0 + x);
+        float wr  = saturate((dot(N, Ld) + Sh.a) / (1.0 + Sh.a));
+        float dif = wr * wr * (3.0 - 2.0 * wr);
+        float3 body = lerp(Sh.rgb, Col.rgb, dif);
+        [branch] if (xw > 0.0) { body = WaterGain(body, xw); }
+        float f1 = 1.0 - nv; float f2 = f1 * f1;
+        float F  = 0.04 + 0.96 * f2 * f2 * f1;                 // Schlick
+        float3 R = reflect(-V, N);
+        float3 env = lerp(Sh.rgb * 0.5, Col.rgb + 0.4, saturate(R.z * 0.5 + 0.5));
+        float rim = smoothstep(Look.z, Look.w, f1);
+        float dz = (frac(svpos.x * 0.7548777 + svpos.y * 0.5698403) - 0.5) / 255.0;   // dither R2
+        alpha = saturate(a + rim * Look.y + dz);
+        float3 c = body * a + env * (F * Look.x) + Col.rgb * (rim * Look.y);
+        c *= 1.0 / max(max(max(c.r, c.g), c.b), 1.0);
+        return c + dz;
+    }
+    // @end
+};

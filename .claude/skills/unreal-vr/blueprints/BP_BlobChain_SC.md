@@ -134,3 +134,17 @@ git es el anterior. Rehacer entero.
       el cap de 72 Hz; para un número hay que subir la carga (`vr.PixelDensity 1.4`) en las dos fases.
 - [ ] La novena gota (`COrb`/`ROrb`, la esfera agarrada) sin probar en la malla.
 - [ ] Decidir qué pasa con el raymarch: hoy queda **intacto y parkeado** en z+100000 con sus tags.
+
+## 🧩 2026-09-27 (noche): los 8 SLOTS son hijos del gusano, y el gusano puede rotar y escalar
+Pedido de Beltrán (mecánicas migrables, la menor cantidad de BPs sueltos): mover/rotar/escalar el gusano tiene que llevar los slots.
+- **8 `ChildActorComponent` `Slot0..Slot7`** (clase `BP_SeqSlot_SC_C`) en posiciones relativas: (−18,22, −62,37, −20) · (−0,5, −49,5, −20) · (12,37, −31,78, −20) · (19,14, −10,95, −20) y el espejo en Y para 4-7. Instancia **re-colocada** como `GAL_12_BlobChain` (tags `GALSTATION`, `GAL_12`) — los componentes nuevos no llegan a una instancia vieja (gotcha 396/404).
+- **Espacio local de verdad**: `PushCenters` usa `C_i = InverseTransformLocation(GetActorTransform, GetBlobCenter i)` → el material recibe centros locales y su WPO los lleva a mundo con la transformada completa del actor. `GetBlobFitScale` se multiplica por `GetActorScale3D.x`. Antes el actor tenía que quedar sin rotar ni escalar.
+- **`NumberSlots`** (primer nodo del CS): `SetStepIndex 0..7` en cada `GetChildActor`. 🔴 **El CS no corre en play para los ChildActors** → en PIE los 8 salían con `StepIndex` 0 (y a veces aparecían 16) → **`AdoptSlots`** (primer nodo de `BeginPlay`): `NumberSlots` + destruye los `BP_SeqSlot` adjuntos que no sean el hijo de uno de los 8 componentes. Medido en PIE: exactamente 8, numerados 0-7.
+- 21 valores que vivían solo en la instancia vieja (`BlobRadius` 8,50, `Smooth` 17,68, colores…) se pasaron al **CDO** antes de re-colocar.
+- Los marcadores de los slots quedan **invisibles en editor y en juego** (CS del slot: `SetVisibility(Marker,false)` + `SetHiddenInGame(Marker,true)`; plantilla `bVisible` false). La esfera de `SnapZone` (wireframe de colisión) sigue viéndose en editor.
+- ⬜ Visor: la forma del gusano con el actor rotado/escalado.
+
+### 🩹 2026-09-27 (noche, después de la prueba): `PushFuse` de la esfera leía un `ChainRef` que ya no existe
+Beltrán corrió el cierre completo y salieron **262 `Attempted to access missing property 'none'`**, todos de `BP_SoundOrb_SC.PushFuse` (nodo `IsValid`). `PushFuse` hacía `SnapSlot.ChainRef` → `SetFuseOrb`, pero `ChainRef` ya no existe en `BP_SeqSlot_SC`. Además ese `ChainRef` era de tipo `BP_SlotChain_SC` (el raymarch parkeado), así que la fusión **nunca le llegaba al gusano**.
+✅ Ahora: `IsValid(SnapSlot)` → **`Cast To BP_BlobChain_SC (SnapSlot.GetParentActor())`** → `BP_BlobChain_SC.SetFuseOrb(ActorLocation, ScaleMul·50)`. El padre del slot es el gusano porque los slots son sus ChildActors. Como la fusión antes no llegaba, **en visor puede verse algo nuevo**: el gusano se abomba hacia la esfera mientras está en la SnapZone. La perilla es `OrbFuse`, que está en 0,872; 0 la apaga.
+💡 Para buscar quién lee una variable borrada: `grep -rla <Nombre> --include=*.uasset Content/`.

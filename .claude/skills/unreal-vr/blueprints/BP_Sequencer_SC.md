@@ -8,6 +8,25 @@
 > Colocados en **`MapsV2/RoomsV2/L_Attracting_SC`**: `Sequencer_Attracting` (5720,0,60) · 8 `SeqSlot_0..7` (X=5720, Y=−105..+105 cada 30, Z=85, `StepIndex` 0-7 izquierda→derecha) · `SaveMelody_Attracting` (5720,0,62, pitch 90) · `TP_orb_intro_attracting` (5745,0,115, en el panel) · **20 `BP_Anchor` `TP_orb_attracting_01..20` DETRÁS del widget** (x 5850-6250, y ±180, z 105-190 — una por sonido del módulo).
 > **Estado: 🟢 flujo intro → pad alineado → esferas verificado en PIE por log y medición; beam en DOS manos verificado con manos posadas; 🔴 falta visor (todo el tacto).**
 
+## 🧳 Contrato TOUR (2026-09-29) — para cargar la etapa dentro de otro nivel sin que se instale
+`Test_Recorrido` carga `Test_Sequencer` entero como LevelInstance. Si hay **algún actor con tag `"TOUR"`** en el mundo,
+la etapa nace **dormida**. Sin ese actor (como en `Test_Sequencer`), nada cambia.
+- **API pública, sin parámetros, idempotente:** **`TourWake()`** = despierta al rig (`CallRigWake`) y, si `Phase`==0, `SeqIntro`.
+  **`TourSleep()`** = corta los timers `SeqIntroGo`/`StartPad` → `Phase` 0 (**antes** de apagar el rig, así `WatchStage` no
+  hace `CloseGuts` ni dispara el fin) → `IntroReady` false → `CallRigSleep` → `Stop` del `PadAudio` → `HideSlots`.
+- `CallRigWake`/`CallRigSleep` hacen `FindRig` primero: sirven aunque lleguen antes del `Boot` (0,3 s).
+- `GalleryStart` = `DebugTourPoll` → `TourCheck` → la condición de siempre **y** `not TourDormant`.
+- Variables `Z-Estado`: `TourDormant`, `TourChecked`. **`DebugTourCmd`** (int, editable en instancia, cat. `9-Debug`): 1 = `TourWake`, 2 = `TourSleep`, vuelve a 0. Existe para probar por MCP (no se pueden llamar funciones en PIE).
+- ✅ **Verificado en PIE:**
+  - Sin TOUR: igual que antes, 0 `Accessed None`.
+  - Con un TargetPoint temporal tag TOUR:
+    - Al cargar: dormido (rig sin instalar, `Phase` 0).
+    - `TourWake`: rig instalado con input, `Phase` 2, pad ON.
+    - `TourSleep`: rig `InputReady`/`Active` false, `CtrlR/L` invisibles, `HandLeft/Right` del `BP_VRPawn_SC` visibles, `Phase` 0, sin `CloseGuts`.
+  - El actor temporal se sacó; canario 25.
+- ⚠ **Wake → Sleep → Wake re-siembra las esferas**: `SpawnOrbs` corre al terminar cada intro (+68). El recorrido llama `TourWake` una sola vez.
+- ⚠ Si desde afuera se apaga el Tick de este actor o del rig, hay que prenderlo **antes** de `TourWake`: el rig se instala en su Tick y el playhead corre en `TickSeq`.
+
 ## La mecánica (spec de Beltrán, 2026-08-26)
 1. Al entrar aparece Alma (flujo normal del guión).
 2. Al **moverse Alma al costado** (`ShowPanel`, sub 2): aparecen **instrucciones (1 sola página, sin botón)** + **los 8 slots** + el botón SAVE MELODY, se **enciende el beam** ([[BP_Sensor_Soul]] modo 4) y aparece **UNA esfera sola, junto al widget de instrucciones**.
@@ -448,3 +467,38 @@ Beltrán: *"al tomarla se achicó de una, sin considerar el tamaño actual"*. Lo
 - `UpdateVisual`: la entrada A del `SelectFloat` de tamaño es ahora `SelectFloat(Lerp(GrabScale0, AnchorSize, GrabProg), AnchorSize, Grabbed)` → agarrada = encoge por progreso; colocada = `AnchorSize` como antes.
 - ⚠ El `FInterpTo` a `ScaleSpeed` sigue suavizando encima (≈0,3 s de retraso).
 - ⬜ Sin probar con los mandos (el agarre no se puede disparar por MCP).
+
+### 2026-09-27: desatado del sensor, del director y del panel (Fase 2 del secuenciador portable)
+Ahora habla con **`BP_SeqRig_SC`** (`RigRef`, lo busca `FindRig` en `Boot`). Cuerpos reescritos (borrando todo menos la entrada y escribiendo con DSL, sin duplicar):
+- `ArmBeamNow` / `BeamOff` → `Rig.SetRigActive(true/false)`.
+- `WatchStage` → cierra si el rig se apagó **con `Phase` 2, o 1 con `IntroReady`** (esquiva la trampa de la ventana `IntroDelay` que antes obligaba a encender el sensor antes de `SeqIntro`).
+- `GalleryStart` → con `bAutoStart` y `Phase` 0, `SeqIntro` (ya no toma el alma ni pone modo 4).
+- `TellDirector` → dispara **`OnMelodyFinished`** (la etapa se engancha; ya no conoce a `BP_Director_Story`).
+- Panel: `ShowPanelNow` → **`OnIntroShown`**, `FinishPanel` → **`OnIntroFinished`**, `CachePanel` borrado, `TickIntro` → completa la intro sola salvo **`bWaitIntroConfirm`** (0-Config, false = lo de siempre sin panel); con true, la etapa llama `IntroDone()` cuando su panel confirma.
+- Borradas `SensorRef`, `PanelRef`, `DirRef`. `PanelTag` queda sin uso.
+- El pin `Sensor` de `BP_SoundOrb_SC.Setup` se eliminó (la esfera busca el rig sola).
+
+### 2026-09-27: el CIERRE nuevo — la mesa se va y REAPARECE en el target point
+Pedido de Beltrán: al guardar, la mesa (slots + gusano + esferas) **desaparece animada y deja de sonar**, **reaparece en el TP** `seq_final_attracting` con su **transform completo**, **empieza a sonar**, da **dos vueltas**, **para** y **desaparece animada**; al final avisa **`OnStageFinished`** para que la mecánica general del juego continúe. El botón y el láser desaparecen al guardar (ya lo hacían `HideNow` + `BeamOff`).
+
+**Cómo (reusando la mesa real, sin copiar el gusano):**
+- 🔑 **Un solo knob esconde todo**: el radio de cada gota es `BlobRadius × slot.RevealT × pulso` y las esferas colocadas toman su tamaño de su gota (`PushOrbSizes`) → **`Hide`/`Show` de los slots anima slots, gusano, esferas y núcleos juntos**.
+- 🔑 **El gusano se puede mover y rotar moviendo solo los slots**: sus centros son `slot − chain` en coordenadas de MUNDO, y el material trabaja en el espacio local del actor de la cadena, que queda sin rotar ni escalar → mundo = local. Se traslada el actor de la cadena (no se rota) y la **escala del TP va a `BlobRadius` y `FloatAmount`**.
+- Fases: **5** = saliendo (`FinaleExit`: `AdjustVolume` del pad a 0 en `ExitTime` + `HideSlots`) → a los `ExitTime` s **`FinaleAppear`**: `Stop` pad → **`Teleport`** → `Show` solo de los slots (🔴 **no `ShowSlots`**: ese también re-muestra el botón) → `StepTimer = −PadDelay` + `StartPad` por timer (el paso 0 no se dispara invisible) → **3** = sonando; `HandleWrap` ahora cierra con **`>=` FinalPasses** (exacto dos pasadas; antes contaba una pasada parcial) → `CloseOut` → `CloseGuts` (**4**) → a los `ExitTime` s **`FinaleEnd`**: **9** + `TellDirector` → **`OnStageFinished`**.
+- `Teleport`: por slot, `TransformLocation(TP, InverseTransformLocation(pivote, slot))` + rotación igual + escala del actor × escala del TP; el pivote es la transformada del secuenciador (el TP marca dónde queda el origen del secuenciador, la misma convención que usaba `RaiseSlots`). Sin TP: `FinalOffset`.
+- Perilla nueva: **`ExitTime`** (0-Config, 1,5 s): cuánto tarda en irse y en qué momento reaparece; también la espera antes de `OnStageFinished`.
+- ✅ **Verificado en PIE forzando `Phase` = 5**: reaparece → pad a los 0,9 s → cierre a los **10,67 s = dos pasadas exactas** → `OnStageFinished` a los 1,5 s. **Las posiciones calculadas a mano con el TP real (pitch 20°, escala 1,555) coinciden al décimo** con las de PIE (slot 0 en 363097,8 / 99903,0 / 141,9). ⬜ Sin visor: la forma del gusano con el TP rotado y la salida animada de la mesa.
+- `RaiseSlots`/`RaiseOneSlot` quedan sin llamar (el viaje viejo). `OnMelodyFinished` quedó sin uso (se reemplazó por `OnStageFinished`).
+- (tarde) `BeamOff` ahora llama **`Rig.Retire()`** (láser + mandos se van animados). `Teleport` escala también el **`Smooth`** de la cadena con la escala del TP: sin eso, al agrandar el TP crecían las gotas pero no la fusión y el gusano se veía cortado. Con eso **todo el metaball escala proporcional** (`BlobRadius`, `FloatAmount`, `Smooth`; las esferas toman el tamaño de su gota).
+- El botón: `HideNow` ya no apaga el label de golpe; **`ScaleLabel`** (al final de su `UpdateVisual`) lo encoge con el mismo `RevealT` que el cuerpo → el botón entero se va animado.
+- 🧹 `Test_Sequencer` limpio (a pedido de Beltrán): se borraron `GAL_12_Sensor`, `ControllerRig_L/R`, los 3 hubs y las 21 anclas viejas (20 `orb_attracting` + `GAL_12_Anchor`). Quedan 25 actores; PIE sano.
+- ❓ Si se mueve SOLO `GAL_12_BlobChain`, el gusano **no** se mueve: cada gota se dibuja en la posición de MUNDO de su slot; el actor es solo la referencia (y lejos de los slots el tubo base puede recortarse). **Para reubicar la mesa se mueven los slots (y la cadena con ellos)**; el secuenciador es el pivote del cierre.
+- 🔴 **El glitch antes de reaparecer** (Beltrán: *"aparece y desaparece el worm frente a nosotros"*). Dos causas en el código: (1) `RevealT` se interpola y **nunca llega a 0 exacto**, y el radio del gusano además lo sigue con retardo (`PulseSmooth`) → al teleportar quedaba una lonja; (2) peor, **`ApplyAll` de la cadena empuja las gotas a radio COMPLETO** (`PushCenters` pone `Rad0..2 = BlobRadius`) → si la cadena ya había tickeado ese cuadro, **un cuadro con el gusano entero**. ✅ `Teleport` ahora pone **todo en 0 exacto antes de mover** (`RevealT` de cada slot, `RadS0..2` de la cadena y `Rad0..2` del material, `ScaleMul` de la esfera de cada slot vía `ZeroOccupant`) y empuja `Smooth`/`BlobRadius` directo al material **sin `ApplyAll`**. Corre de punta a punta en PIE; ⬜ el glitch en sí se confirma en visor.
+
+### 2026-09-27 (noche): los slots viven DENTRO del gusano; sin esfera de intro
+Pedido de Beltrán: *"meter los slot dentro del BP de blob chain… si agrando, muevo o achico el gusano, los slot se adaptan junto a él"* — elegido **gusano + slots** (el secuenciador sigue aparte) y **sacar la esfera de intro**.
+- ⚠ **Reemplaza** el "❓ si se mueve SOLO `GAL_12_BlobChain`…" de arriba: ahora **mover, rotar o escalar `GAL_12_BlobChain` lleva los 8 slots** (son `ChildActorComponent`s del gusano; ver `BP_BlobChain_SC.md`).
+- **`Teleport` simplificado**: pone todo en 0 exacto (como antes, contra el glitch) y después **mueve SOLO el actor del gusano**: `SetActorTransform(chain, chain × inversa(secuenciador) × TP)` — el secuenciador sigue siendo el pivote, el TP marca dónde queda su origen. Ya no escala `BlobRadius`/`Smooth`/`FloatAmount` a mano: **la escala del actor la toma el material** (el gusano trabaja en su espacio local).
+- 🧹 Intro sin esfera: borradas `SpawnIntroOrb`, `DropIntroOrb`, `SpawnOneOrb`, `RaiseSlots`, `RaiseOneSlot` y las variables `IntroOrb`/`IntroTag`. `SeqIntroGo` = Print → `ShowPanelNow` → `ShowSlots` → `ArmBeamNow` → `SetIntroReady`. El TP `IntroTP` se borró del nivel.
+- ✅ Verificado en PIE (`Phase` forzado a 5 y **devuelto a no-editable** después): 8 slots numerados 0-7, la mesa reaparece, dos pasadas, `OnStageFinished`; slot 0 en **(363124,4 / 99903,0 / 98,2)** y slot 7 en su espejo Y, escala **1,555** = la del TP. `Test_Sequencer`: 24 actores, guardado.
+- Dependencias del gusano medidas: `BP_SeqSlot_SC`, `BP_Sequencer_SC`, `BP_SoundOrb_SC`, sus materiales y mallas. **El paquete de la mesa = `BP_BlobChain_SC` + `BP_SeqSlot_SC`.**

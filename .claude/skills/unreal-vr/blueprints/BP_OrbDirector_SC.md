@@ -455,3 +455,13 @@ Pedido de Beltrán: *"que el director las reparta en un sistema de domo, con una
 
 ### 2026-09-27: `GrabSpeed` al panel (`7-Movimiento`)
 La velocidad con que la esfera viaja hacia la mano al agarrarla (un `VInterpTo`, como `ReturnSpeed`: más alto = llega antes). Vivía escondida en el CDO de la esfera (3); Beltrán la sintió muy rápida con el domo (esferas hasta ~4,7 m) → **1,5**, y la pidió como variable. La copia `BP_SoundOrb_SC.Setup` al final, después de `ReturnSpeed` (reentrar a PIE para verla cambiar). Verificado en PIE: las esferas reciben 1,5.
+
+### 2026-09-28 (noche): por qué las esferas se veían GRISES aunque tuvieran color — y `OwnShade`
+Beltrán: *"a pesar de que tienen color, se ven un poco grises"*. Traza real del emisivo de `M_BlobOrb_SC` (leída con `get_property_input` + `get_expression_inputs`):
+```
+Emissive = lerp(lerp(ChainColorLow, ChainColorHigh, sombreado), ChainColorPulse, tinte) × ChainBrightness × lum
+         + ShadowColor × ShadowTint × (1 − lum)            lum = saturate(lerp(ShadeFloor, 1, sombreado) + Fresnel·RimGain)
+```
+🔴 **Causa**: `ChainColorLow` era **`ShadeColor`, UN color compartido por todas**. Cada esfera mezclaba SU tono con ese tono común en todo el lado en sombra: naranja + verde salvia (el `ShadeColor` que había) = marrón grisáceo. Además `ShadeFloor` 0,036 oscurecía la sombra casi a negro y el relleno `ShadowColor` azulado viraba los amarillos a oliva.
+✅ **`OwnShade` / `OwnShadeDepth`** (nuevas, `1-Color`, editables): en `ApplyLook`, `ChainColorLow = lerp(ShadeColor, lerp(negro, ColorPropio, OwnShadeDepth), OwnShade)` — la sombra de cada esfera es **su propio color más hondo**. CDO: `OwnShade` **0 = idéntico a antes** (no degrada lo ya aprobado en otros niveles); `OwnShadeDepth` 0,55. Cirugía de 4 nodos (2 `Lerp(LinearColor)` + 2 getters), compila con advertencias como errores, 25 actores.
+En `Test_Sequencer` (instancia): `OwnShade` 1 · `OwnShadeDepth` 0,7 · `ShadeFloor` **0,45** (era 0.03626) · `ShadowTint` **0,15** (era 0.517923) — junto con la paleta pastel (valores previos en `BP_ChladniFloor_SC.md`). Resultado verificado por captura: mantequilla, salmón, lila y pervinca limpios, sombreado suave, sin gris.

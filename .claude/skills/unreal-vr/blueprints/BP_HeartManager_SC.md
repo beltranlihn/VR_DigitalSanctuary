@@ -3,7 +3,7 @@
 > `/Game/SoulCharger/Mechanics/Heart/BP_HeartManager_SC` · creado 2026-09-19 · **una instancia** en `/Game/TestMeshes` (`Galeria/_Sistema`).
 > Pedido de Beltrán: *"en esta estación vas a quitar la respiración y traer la mecánica de ritmo cardíaco, en la que el usuario tiene que poner el control en su corazón y cuando reconozca que está en el umbral de quietud va a generar un pulso háptico con cada ritmo cardíaco y con cada nacimiento de la ola, y además emitir el sonido de pulso"*.
 > Es el **paso 4 del plan de extracción** de [`docs/MECANICAS-PORTABLES.md`](../../../../docs/MECANICAS-PORTABLES.md) §4.8.
-> **Estado: 🟡 construido y compilando. ⬜ SIN PIE y SIN visor.**
+> **Estado: 🟢 PIE ok (2026-09-29, en `Test_Heart` con la membrana). ⬜ SIN visor.**
 
 ## Qué es
 El modo 2 de [[BP_Sensor_Soul]] (`TickHeart` + `HeartBeatStep` + `HeartZoneFx`) **sacado del sensor**, con el mismo patrón que [[BP_BreathManager_SC]]: no conoce al pawn por clase, no conoce directores, no es dueño del input y no tiene etapas. `BP_Sensor_Soul` **no se tocó**.
@@ -111,3 +111,15 @@ bQuiet = velocidadesQuietas AND (trackingVálido OR bIgnoreTracking)
 - **Se conservó la protección a propósito**: si un mando se queda sin batería en la instalación, el bool de validez sigue cerrando el umbral en vez de dejar que una posición fantasma abra la zona.
 
 ✅ **Verificado en PIE** con el robot moviendo la mano: el umbral abre, la señal oscila y los consumidores reaccionan. Detalle y números en [[BP_Robot]].
+
+## 🚶 Contrato TOUR (2026-09-29, pedido de Narrativa para `Test_Recorrido`)
+`Test_Recorrido` carga `Test_Heart` entero con `LoadLevelInstance`, así que el manager no puede arrancar solo en las etapas que no le tocan.
+- **`BeginPlay`**: si `GetAllActorsWithTag("TOUR")` devuelve algo → `TourSleep`.
+- **`TourSleep()`** (pública, sin parámetros, idempotente): `SetActorTickEnabled(false)`, `bHeartZone`/`bWasHeartZone` = false, `BeatEnv` 0, `ZoneTimer` 0, `BeatTimer` 9999, y háptica 0 en las dos manos (guardado por `IsValid` del PlayerController). Dormido no hay latidos, ni háptica, ni sonido, ni `OnHeartBeat`. El pawn no se toca.
+- **`TourWake()`** (pública, sin parámetros, idempotente): `ZoneTimer` 0, `BeatTimer` 9999, `SetActorTickEnabled(true)`. Arranca como al empezar la etapa: el primer latido sale en cuanto se abre el umbral.
+- Se eligió apagar el Tick y no un bool de estado: es el mínimo de nodos y no toca `TickHeart`.
+
+## Uso en `Test_Heart` (2026-09-29)
+Actor con label `HeartManager` (`BeatDiv` 1) + `BioHub`. Su consumidor es [[BP_HeartScape_SC]] (`Assign OnHeartBeat` en su `BeginPlay`). **Modo de prueba sin sensor: `bFakeBeat`** (E - Prueba), guardado en **false**. Para PIE de escritorio, además `HeartVDropMin` −100 y `bIgnoreTracking` true (guardados en 10 / false).
+⚠ Sin verificar: con `bFakeBeat` false y sin OSC, si `HeartSmooth` de BioHub queda en 0, `ReadBPM` lo clampa a 30 lpm (un latido lento, no ausencia de latido).
+- **2026-09-29** — ✅ primer PIE real: `HEART: listo`, `UMBRAL IN`, latido cada 1,0 s a 60 BPM, 0 `Accessed None`.

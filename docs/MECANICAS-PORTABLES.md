@@ -79,6 +79,13 @@ Estas muerden en CUALQUIER mecánica; van antes que cualquier ficha:
 
 ## 4. Fichas de empaque por mecánica
 
+> 🖌️ **Dibujo estilo Tilt Brush (2026-09-27) — ya transplantado, y es el modelo a seguir.** Vive en
+> `/Game/NeuralCanvas/` (carpeta raíz propia, cero dependencias fuera de ella, input propio no consumidor). Un solo
+> actor (`BP_TBDirector_NC`) + un `TargetPoint` + `BP_TBTable`. Receta completa en
+> [`BP_TBStroke.md` §5o](../.claude/skills/unreal-vr/blueprints/BP_TBStroke.md). El método — **mover primero todo a una
+> carpeta raíz única en el proyecto origen, verificar por grep que nada apunte afuera, y recién ahí copiar la carpeta** —
+> es lo que evita chocar con assets de igual nombre del destino (SC tiene su propio `/Game/Drawing`).
+
 > Formato fijo: **Paquete** (qué se copia) · **Enchufe** (qué necesita el nivel/pawn) · **API** (verbos y señales) · **Receta** (pasos) · **Estado** · **Deuda** (qué falta para que sea instantáneo). Detalle profundo: el tracker de cada BP.
 
 ---
@@ -180,6 +187,25 @@ Los motores (`BP_SoundOrb_SC`, `BP_SeqSlot_SC`, `BP_SaveMelody_SC`) están limpi
 - **Estado:** 🟢 compila estricto, dependencias medidas limpias, PIE (manos resueltas sin cast, respiración de prueba publicando, cero `Accessed None`), y consumidor de CPU medido de punta a punta. ⬜ **visor** (umbral, háptica, cambio automático de mano).
 - **Deuda:** `BP_Sensor_Soul` (la obra) todavía usa su copia — migrarlo a consumidor después del visor. El resolvedor de manos va por su 4ª copia (falta `BPFL_XRHands`).
 
+#### 4.7.b 🟢 ENTERING COMPLETA portable (2026-09-27) — rig + metaball + pacer + etapa
+La etapa entera, al modo del secuenciador y el dibujo. Nivel de test: **`/Game/Test_Entering`** (vacío negro, GameMode `BP_XRGameMode` → `BP_VRPawn_SC`, PlayerStart en el piso).
+- **Paquete:** `Mechanics/Breath/` (`BP_BreathRig_SC`, `BP_BreathBlob_SC` + `M_BreathBlob_SC`, `BP_BreathStage_SC`, `M_BreathCtrl_SC`, `MPC_Breath`) + `Mechanics/Pacer/` (`BP_Pacer_SC`, `M_Pacer_SC`, `MI_Pacer_SC`) + meshes `/Game/ControllerL|R`, `/Game/BreathL|R` + `SKM_MannyXR_*` + `GrabHapticEffect`. `Migrate` los arrastra solos (dependencias medidas: nada del pawn ni de directores).
+- **Enchufe:** colocar los 4 actores (rig, metaball, pacer, etapa) · pawn con cámara y `HandRight`/`HandLeft` hijos de los Grips. **Sin IMC** (no hay botones). 🔴 No colocar `BP_BreathManager_SC` en el mismo nivel (los dos escriben `MPC_Breath`).
+- **Flujo:** Play → (1,5 s) el rig se activa: mandos + sensor en las manos, manos del pawn escondidas → el metaball crece → (2 s) el pacer arranca → al completar sus `Cycles` el pacer se achica → el metaball se achica → el rig se retira y devuelve las manos → `OnBreathStageDone`.
+- **Obra:** `bAutoStart = false` en la etapa; el director llama `StageStart()` y escucha `OnBreathStageDone`.
+- **Recorrido (contrato TOUR, 2026-09-29):** con un actor tagueado `TOUR` en el mundo la etapa nace dormida (`TourSleep` en su `BeginPlay`); el director la maneja SOLO con `TourWake()`/`TourSleep()` (públicas, sin parámetros, idempotentes) y no toca su Tick. 🔴 La etapa ahora depende de la clase `BP_ValleyLife_SC` (`StageLife`); para portar Entering sin la vida, vaciar `StageLife`. Detalle: tracker `BP_BreathStage_SC.md`, "Contrato TOUR".
+- **Estado:** 🟢 PIE + Simulate, cero `Accessed None`. ⬜ visor. Trackers: `BP_BreathRig_SC.md`, `BP_BreathBlob_SC.md`, `BP_BreathStage_SC.md`.
+
+#### 4.7.c 🟡 El aliento visible + el valle que respira (2026-09-28) — `BP_BreathAir_SC` + capa viva de `BP_BreathValley_SC`
+Consumidores de `MPC_Breath` que se suman a la etapa de 4.7.b. Plan: [`PLAN-RESPIRACION-ENTORNO-2026-09-28.md`](PLAN-RESPIRACION-ENTORNO-2026-09-28.md). Trackers: `BP_BreathAir_SC.md`, `BP_BreathValley_SC.md`.
+- **Paquete del aire:** `Mechanics/Breath/Air/` (`BP_BreathAir_SC`, `SM_BreathAir_SC`, `M_BreathAir_SC`, `MI_BreathAir_SC`) + `MPC_Breath`. Nada del pawn ni de directores: la cámara la pide al rig.
+- **Paquete del valle:** `Mechanics/Breath/Valley/` (BP, mallas, `M_`/`MI_BreathValley_SC`) + `MPC_Breath`. La capa viva viaja dentro del BP y del material; sin rig en el nivel el valle queda en su look autoral (`On` 0).
+- **Enchufe del aire:** 🔴 **necesita `BP_BreathRig_SC` en el mismo nivel** (es el único que conoce al pawn; el aire hace `GetActorOfClass(BP_BreathRig_SC)` → `CamRef` y se cuelga de esa cámara con `SnapToTarget`). Colocar `Entering_Aire` a la altura de los ojos del usuario sentado (sobre el `PlayerStart`, Z ≈ 120) sin rotar: esa posición solo sirve para la vista previa del editor; en Play el aire se muda a la cámara. Sin rig: no monta, no dibuja, cero errores (verificado en Simulate). 🔴 Si otro nivel usa `BP_BreathManager_SC` en vez del rig, el aire **no monta** (busca la clase del rig): habría que darle la cámara por otro camino.
+- **Enchufe del valle:** colocar `BP_BreathValley_SC` (escala 1, se puede rotar en yaw); el look en las perillas de la instancia (`ApplyLook`); las familias de la capa viva en el CDO (`L-Respira`). Al traer el material nuevo a un nivel que ya tenía el valle colocado, **recargar el nivel** antes de juzgar la vista previa (MIDs viejos).
+- **Receta de prueba sin gafas (PIE):** `bFakeBreath` true en la instancia de PIE del rig, `Cycles` 0 en el pacer de PIE → leer `bMounted`, `Flow`, `Tin`/`Tout`, `RateBpm`, `Glob` del aire y `LiveS` del valle (con trazas por cuadro dentro de un `execute_tool_script`: cada llamada es un cuadro). Para girar la cabeza: `ActorTools.set_actor_transform` sobre el pawn de PIE, nunca `set_properties` sobre su cámara (gotcha 488).
+- **Estado:** 🟢 editor (vista previa del aire y del valle desde el ojo) · 🟢 PIE y Simulate (ver trackers) · ⬜ banco en la Quest (`quest_entering_perf.ps1 -Modos 0,4,5,6`: AIRE = m5 − m6, FONDO = m0 − m4) · ⬜ visor (primero el ruido real con `ke * AirDbg`).
+- **Deuda:** el aire depende de la clase del rig; si la respiración se unifica en un solo manager, conviene que la cámara salga de una interfaz común (o del resolvedor de manos/cámara pendiente, §5). `Mechanics/Breath/Air/`, `Valley/` y `Test_Entering.umap` están sin versionar.
+
 **Lo que sigue valiendo para la obra (el sensor de Entering, sin migrar):** motor+manager+etapa+háptica comparten BP con las otras 4 mecánicas, y **los ~25 valores afinados en visor viven en la INSTANCIA del nivel**, no en el CDO.
 
 - **Paquete:** `BP_Sensor_Soul` + `MI_Sensor` (con todo lo que arrastra, ver §2) + consumidores opcionales: `BP_BreathOrb_SC` (esfera), `BP_BreathRing_SC` + `WBP_BreathRing_SC` + `M_SoulRing` + `M_BreathDot_SC` + `M_BreathWord_SC` + `MI_Word_*` + `T_Word_*` (el reloj). El sensor histórico `Stages/Breath/BP_BreathSensor_V2` es un **segundo motor divergente** (señal por inclinación, no `GeomHoriz`): decidir cuál viaja; su `Step` es NO-reescribible (solo cirugía).
@@ -217,6 +243,22 @@ Motores puros; el único acople es que **son actores que hay que colocar** — y
 - **🔴 La decisión de diseño (Beltrán, y tenía razón):** el HapticHub sirve para consumidores que YA viven en el persistente; para **actores de sublevel o portables, el patrón correcto es `PlayHapticEffect` directo al PlayerController** (no depende de nada colocado). Así migró el timbre — y por eso vibra en cualquier nivel.
 - **Estado:** 🟢 verificado por log con catálogo vacío y con Loving/ceremonia cableados. ⬜ nunca en visor; catálogo real por cargar (insumo de Beltrán).
 - **Deuda:** consumidores sin migrar (Breath, Heart, Attracting, Intro, Hall siguen con clips locales). `SetHapticsByValue` continuo PISA los pulsos (mismo canal): el pulso viaja EN el zumbido (`lerp(amp, 1.0, BeatEnv)`), no en canal aparte.
+
+### 4.10 🟡 Célula de Loving + fluido cerebral — `BP_LovingCell_SC` / `BP_FluidMedium_SC` (2026-09-28)
+Dos mecánicas procedurales (todo en el vertex shader, fuente única en texto: `VR_Test/Shaders/Loving/LovingLib.ush`,
+`VR_Test/Shaders/Fluid/FluidLib.ush`; el BP solo integra el tiempo). Trackers: `BP_LovingCell_SC.md`, `BP_FluidMedium_SC.md`.
+- **Paquete Loving:** `Mechanics/Loving/` (BP, 7 materiales, mallas). **🔴 Desde F5 los materiales `M_LovingCentre_SC`,
+  `M_LovingBalls_SC` y `M_LovingOuter_SC` REFERENCIAN `Mechanics/Fluid/MPC_Fluid_SC`** (la luz del agua): al trasplantar
+  Loving hay que llevar esa MPC aunque el nivel no tenga fluido. Sin fluido la perilla `WaterLight` va en **0** (su
+  default): el pixel es el aprobado, bit a bit; la MPC solo se lee si la perilla está encendida.
+- **Paquete fluido:** `Mechanics/Fluid/` (BP, MPC, 6 materiales, 7 mallas) + `Core/Light/SM_GanzShell` (el fondo).
+- **Enchufe:** colocar los dos en el origen del usuario sentado, fluido SIN rotar (su espacio local es el mundo). El fondo
+  reemplaza al Ganzfeld: ocultarlo (no borrarlo) en el nivel.
+- **Entrada:** una sola para los dos, **EEG 0-1** (0 activo, 1 calma): hoy son DOS perillas separadas (`EEG` del fluido y
+  `GlobalState` de la célula): el manager de la etapa tiene que alimentar las dos con el mismo valor.
+- **Trampas que ya costaron:** gotcha 478 (instancia colocada sin componentes/variables nuevas), 481 (hash de seno en un
+  Custom con WPO + interpoladores), 485 (mezcla en lineal vs el prototipo web), 486 (A2C cuantizado en el móvil).
+- **Estado:** 🟢 editor y PIE · ⬜ visor · ⬜ medición (F6 del plan del fluido).
 
 ---
 

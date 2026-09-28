@@ -94,6 +94,9 @@ El motor de señal + umbral + háptica de la esfera de Entering (modo 1 de [[BP_
 - PIE en `TestMeshes`: `HandR` = `MotionControllerRightGrip`, `HandL` = `MotionControllerLeftGrip`, `CamRef` = `Camera`; con `bFakeBreath`: `BreathSigned` −1↔+1, `BreathOn` → 1, `FlowIn` crece solo en la fase +, `FlowOut` solo en la −.
 - De punta a punta con un consumidor de CPU: los haces de la estación 1 abren el cono y el pozo con los números exactos de la fórmula (ver [[BP_LightShaft_SC]]).
 
+## 🧬 2026-09-27 — tiene un sucesor: [[BP_BreathRig_SC]]
+Duplicado para la etapa Entering portable (motor idéntico + mandos/sensores montados en las manos + activación). Este manager **no se tocó** y sigue para la galería. ⚠ **Bug conocido, no corregido acá**: `FindHandMC` tira `Accessed None` cada tick con un pawn sin `HandRight/HandLeft` (gotcha 430); en el rig ya está arreglado.
+
 ## TODO
 - [ ] 🔴 **Visor**: umbral con el mando en la panza (derecha e izquierda), zumbido, pulso del IN, y que el cambio automático de mano no moleste.
 - [ ] Afinar `SignedGain` en gafas (hoy 1,5: una respiración normal llega a ±0,8-1).

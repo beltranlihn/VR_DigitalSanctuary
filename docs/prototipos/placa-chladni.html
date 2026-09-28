@@ -1,0 +1,1094 @@
+<meta charset="utf-8">
+<title>Placa de Chladni</title>
+<meta name="description" content="Lookdev en navegador del entorno de Attracting: un salar al ocaso cuya sal se reordena en figuras de Chladni con la melodía del secuenciador, vista desde los ojos del usuario sentado">
+<!--
+  =====================================================================================
+  PROTOTIPO WEB DEL SALAR DE CHLADNI (lookdev del entorno de Attracting) - Soul Charger
+  =====================================================================================
+  v4 (Beltrán, 2026-09-28): "quizás es mucha info entre las partículas y el piso; basta con que el
+  piso tome las figuras con cada pulso donde se agregan notas. Con el efecto que usa el mesh de
+  Heart, pero en vez de ondas, patrones Chladni, y una textura de grano. Como si los patrones del
+  salar se formaran con cada sonido."
+  (v1 placa oscura · v2 salar pastel + granos sin estado · v3 arena con física: descartadas.)
+
+  LA IDEA
+    - Mesa vacía: el salar de Uyuni con sus polígonos de sal, luz rasante de un sol bajo pastel
+      (estética Six N. Five) y grano fino de desierto blanco (Piratas del Caribe).
+    - v6: centro calmo (los pétalos de cada modo NACEN a un radio, como con Bessel J_n en una placa
+      circular real: nada converge en puntas hacia el usuario) + deformación orgánica fija de la placa.
+    - v5: el patrón cambia SOLO al empezar cada vuelta del secuenciador (el BPM es alto); el relieve
+      del mandala es GEOMETRÍA (lomas suaves sobre las líneas nodales, como las ondas de Heart), y el
+      piso lleva motas de granito.
+    - Cambiar el patrón (al empezar la vuelta) = UNA ola de la membrana, como el "pum" de Heart
+      (la curva x²·e^(2(1−x))): el piso se hincha con la FORMA de ese modo de Chladni (lóbulos que
+      suben y bajan, líneas nodales quietas) y, mientras sube, talla las crestas de sal sobre sus
+      líneas nodales. Con varias notas, el salar alrededor tuyo es el mandala de tu melodía
+      (simetría 5, rima con Surrounding). Al sacar la esfera, su figura se erosiona despacio.
+    - Sin pulso rítmico: el sonido de cada paso no toca el piso (Beltrán: "no haría lo de los
+      pulsos"). Queda como opción apagada (bPulsePerStep).
+
+  CAPAS (en Unreal: BP_ChladniFloor_SC, hermano de BP_HeartScape_SC; nombres de perillas = los suyos)
+    1. Membrana: malla polar densa en el centro (la misma receta que SM_HeartMembraneLite_SC:
+       192 sectores, anillos de 6 cm hasta 30 cm y geométricos después, ~32 mil vértices). El VS
+       desplaza con la ola de formación (los modos de las notas recién agregadas).
+    2. Crestas de sal por pixel: relieve por distancia a la línea nodal de la figura formada y a los
+       bordes de los polígonos; la normal sale de la pendiente y la ilumina el sol. Grano de
+       desierto anclado al mundo. Reflejo del cielo por Fresnel. Bruma.
+    3. Cielo y sol: degradado pastel + disco solar grande y suave cerca del horizonte.
+    4. Referencia (NO es parte del entorno): el gusano (raymarch con los slots de BP_BlobChain_SC)
+       y el domo de esferas de BP_OrbDirector_SC.
+
+  REGLAS DEL PORT A UNREAL (Quest 3 standalone, renderer móvil forward, MobileHDR OFF)
+    - Heart enseñó que los VÉRTICES son lo caro (5,4 ms de 7,4): malla liviana y corte por
+      ola (un modo sin ola no se evalúa). El gradiente de la vibración, analítico en el VS
+      e interpolado (como HeartGradVS), no por diferencias finitas como acá.
+    - Polígonos: textura horneada (distancia + dirección al borde), no Voronoi en vivo.
+    - Pesos con nombre (W0..W7 formación, V0..V7 vibración): nada de índices dinámicos en el VS.
+    - Hash entero en cualquier Custom con WPO (gotcha 481). Unlit, cero luces; SunDir lo empuja el BP.
+    - x*x, nunca pow(x, 2.0) con base negativa (NaN).
+
+  EJES Y UNIDADES (1 unidad de three = 1 cm, igual que Unreal)
+    Unreal: X adelante, Y derecha, Z arriba.   three.js: X derecha, Y arriba, -Z adelante.
+      UE (x, y, z)    -> three (y, z, -x)
+    Ojos del usuario sentado UE (0, 0, 120). La mesa, delante (TableDist, 0, TableHeight).
+
+  COLOR: todo en LINEAL, sin tonemapper; la OETF sRGB se aplica a mano al final de cada shader.
+
+  CÓMO ABRIRLO
+    Doble clic (file://). three.js r160 se baja de cdn.jsdelivr.net (hace falta internet).
+    En la Quest (WebXR): cd docs/prototipos && python -m http.server 8123
+      adb reverse tcp:8123 tcp:8123  ->  http://localhost:8123/placa-chladni.html -> "Entrar en VR"
+  =====================================================================================
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --ink:#3a3350;
+  --ink-soft:#766d8c;
+  --line:rgba(70,58,100,.13);
+  --panel:rgba(251,246,243,.78);
+  --panel-edge:rgba(255,255,255,.7);
+  --field:rgba(255,255,255,.66);
+  --accent:#7f86bf;
+  --ground:#d9c6cf;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ground);color:var(--ink);font:14px/1.45 "Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#stage canvas.pick{cursor:pointer}
+
+.tag{position:fixed;left:16px;top:calc(env(safe-area-inset-top,0px) + 16px);max-width:min(470px,calc(100% - 32px - 352px));pointer-events:none;color:#fffaf6;text-shadow:0 1px 10px rgba(70,50,90,.35)}
+.tag h1{margin:0;font-size:16px;font-weight:600;letter-spacing:.01em}
+.tag p{margin:4px 0 0;font-size:12.5px;max-width:54ch;text-wrap:pretty;opacity:.95}
+
+.bar{position:fixed;left:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:calc(100% - 32px - 352px)}
+.btn{font:inherit;font-size:13px;font-weight:500;color:var(--ink);background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;padding:7px 12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);cursor:pointer;box-shadow:0 4px 18px rgba(70,50,90,.12)}
+.btn:hover{background:rgba(255,251,249,.94)}
+.btn:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,.dot:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn[aria-pressed="true"]{background:#e6e4f4;border-color:rgba(127,134,191,.5)}
+.seq{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;padding:7px 10px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.dot{width:16px;height:16px;border-radius:50%;border:1px solid rgba(70,58,100,.3);background:transparent;padding:0;cursor:pointer;transition:transform .12s}
+.dot.now{transform:scale(1.28);border-color:var(--ink)}
+.readout{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink-soft);background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;padding:7px 12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+
+#panel{position:fixed;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:336px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--panel-edge);border-radius:14px;box-shadow:0 12px 44px rgba(70,50,90,.2);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);overflow:hidden}
+.phead{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.phead h2{margin:0;font-size:12.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft)}
+.phead p{margin:6px 0 0;font-size:11.5px;color:var(--ink-soft)}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.presets .btn{padding:5px 9px;font-size:12px;box-shadow:none}
+#groups{overflow:auto;padding:0 16px 8px;flex:1;overscroll-behavior:contain}
+details{border-bottom:1px solid var(--line)}
+details:last-child{border-bottom:0}
+summary{cursor:pointer;padding:11px 0;font-weight:600;font-size:13.5px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-weight:400;color:var(--ink-soft)}
+details[open] summary::after{content:"\2013"}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:5px 0 9px;align-items:center}
+.row .lab{font-size:12.5px;line-height:1.3}
+.row .pn{display:block;font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);margin-top:1px}
+.row .val{display:flex;align-items:center;gap:4px}
+.row .num{width:74px;font-family:var(--mono);font-size:11.5px;text-align:right;border:1px solid var(--line);border-radius:6px;background:var(--field);color:var(--ink);padding:3px 5px}
+.row .u{font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);min-width:22px}
+.row input[type=range]{grid-column:1/-1;width:100%;margin:2px 0 0;accent-color:var(--accent)}
+.row input[type=color]{width:46px;height:26px;border:1px solid var(--line);border-radius:6px;padding:0 2px;background:var(--field);cursor:pointer}
+.row input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.row select{font:inherit;font-size:12px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+.note{font-size:11.5px;color:var(--ink-soft);margin:0;padding:4px 0 10px;text-wrap:pretty}
+.pfoot{padding:12px 16px 14px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.pfoot .btn{flex:1 1 auto;box-shadow:none}
+#copyout{display:none;width:100%;height:120px;font:11px/1.35 var(--mono);border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.85);color:var(--ink)}
+#copyout.show{display:block}
+.toggle-panel{display:none}
+#fail{position:fixed;left:16px;right:16px;top:50%;transform:translateY(-50%);max-width:60ch;margin:0 auto;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:18px 20px;font-size:13px;z-index:5}
+@media (max-width:760px){
+  #panel{left:16px;right:16px;width:auto;top:auto;height:52%}
+  body.pclosed #panel{display:none}
+  .bar{max-width:calc(100% - 32px);bottom:calc(52% + 28px + env(safe-area-inset-bottom,0px))}
+  body.pclosed .bar{bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
+  .toggle-panel{display:inline-block}
+  .tag{max-width:calc(100% - 32px)}
+  .tag p{display:none}
+}
+@media (prefers-reduced-motion:reduce){.dot{transition:none}}
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+
+<div id="stage" aria-label="Vista 3D de la etapa Attracting desde los ojos del usuario sentado"></div>
+
+<header class="tag">
+  <h1>Salar de Chladni</h1>
+  <p>Al empezar cada vuelta del secuenciador, el salar toma la figura de tu melodía: una sola ola y queda en relieve. Clic en una esfera: a la mesa o de vuelta. Arrastrar: mirar alrededor.</p>
+</header>
+
+<div class="bar">
+  <button class="btn" id="btnSound" type="button" aria-pressed="false">Activar sonido</button>
+  <button class="btn" id="btnAuto" type="button" aria-pressed="true">Componer solo</button>
+  <button class="btn" id="btnClear" type="button">Vaciar la mesa</button>
+  <div class="seq" role="group" aria-label="Los 8 slots del secuenciador" id="seq"></div>
+  <span class="readout" id="stats">– fps</span>
+  <button class="btn" id="btnVR" type="button" hidden>Entrar en VR</button>
+  <button class="btn toggle-panel" id="btnPanel" type="button">Perillas</button>
+</div>
+
+<aside id="panel" aria-label="Perillas del salar">
+  <div class="phead">
+    <h2>Perillas · BP_ChladniFloor_SC</h2>
+    <p>Cada nombre en gris es la variable que tendría el actor en Unreal.</p>
+    <div class="presets" role="group" aria-label="Paletas">
+      <button class="btn" type="button" data-preset="ocaso">Ocaso pastel</button>
+      <button class="btn" type="button" data-preset="lila">Mañana lila</button>
+      <button class="btn" type="button" data-preset="rosa">Duna rosa</button>
+    </div>
+  </div>
+  <div id="groups"></div>
+  <div class="pfoot">
+    <button class="btn" id="btnCopy" type="button">Copiar valores</button>
+    <button class="btn" id="btnReset" type="button">Restablecer</button>
+    <textarea id="copyout" readonly aria-label="Valores en JSON"></textarea>
+  </div>
+</aside>
+
+<div id="fail" hidden></div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* =====================================================================================
+   PERILLAS (nombres = variables del futuro BP_ChladniFloor_SC). Colores en sRGB en la UI.
+   ===================================================================================== */
+const PRESETS = {
+  ocaso: { SkyTop:'#8ea3cb', SkyMid:'#cbb3cc', SkyHorizon:'#f2cbb2', SunColor:'#ffd6b0', SaltLit:'#fff4ea', SaltShade:'#b7b0d0', SandLit:'#f3dcc6', SandShade:'#8e83aa', SunAzimuth:-24, SunElev:2.5 },
+  lila:  { SkyTop:'#a4b3dc', SkyMid:'#d5c9e2', SkyHorizon:'#f3e0db', SunColor:'#fff0dd', SaltLit:'#fbf6f4', SaltShade:'#c0bddb', SandLit:'#efe0da', SandShade:'#9590b8', SunAzimuth:-40, SunElev:6 },
+  rosa:  { SkyTop:'#7c8dbd', SkyMid:'#d2a8b6', SkyHorizon:'#efbb9f', SunColor:'#ffc89e', SaltLit:'#fcebe4', SaltShade:'#a99fc4', SandLit:'#f0cdb8', SandShade:'#86799f', SunAzimuth:-12, SunElev:1.5 },
+};
+const PALETTES = {
+  pastel:   { Color1:'#eea592', Color2:'#efd08e', Color3:'#a3d2c2', Color4:'#aab3e8', ShadeColor:'#8f88a8',
+              ColorLow:'#b4a7d6', ColorHigh:'#fbe8df', ChainBrightness:1.0 },
+  // los valores reales de hoy: Color1..4/ShadeColor del CDO de BP_OrbDirector_SC, ColorLow/High del de BP_BlobChain_SC
+  proyecto: { Color1:[1,0.25,0.18], Color2:[1,0.8,0.25], Color3:[0.2,0.85,0.65], Color4:[0.35,0.4,1], ShadeColor:[0.16,0.19,0.26],
+              ColorLow:[0.286,0.146,0.072], ColorHigh:[0.578,0.600,0.522], ChainBrightness:1.54 },
+};
+
+const GROUPS = [
+  { title:'Cómo se forma el patrón', open:true, items:[
+    { k:'ChangeOn', label:'Cuándo cambia el patrón', type:'select', def:'vuelta', options:[['vuelta','Al empezar cada vuelta del secuenciador'],['inmediato','Apenas llega la esfera']],
+      note:'Vuelta: lo que agregas o sacas espera al paso 1 y ahí el salar cambia una sola vez (cada 8 pasos = 5,3 s). El BPM es alto: así no cambia a cada rato.' },
+    { k:'VibAmp', label:'Altura de la ola al cambiar', min:0, max:30, step:0.1, def:8, u:'cm', note:'Al cambiar el patrón, la membrana se hincha UNA vez con la forma de las figuras nuevas (como el "pum" de Heart). Los lóbulos suben y bajan; las líneas nodales no se mueven.' },
+    { k:'FormTime', label:'Tiempo de formación', min:0.2, max:6, step:0.05, def:1.6, u:'s', note:'La curva suave de Heart, x²·e^(2(1−x)), sin rebote: hasta la cima de la ola y hasta que la figura queda marcada.' },
+    { k:'FormDecay', label:'Erosión al sacar la esfera', min:0.5, max:30, step:0.1, def:5, u:'s' },
+    { k:'bPulsePerStep', label:'Pulso también con cada paso', type:'check', def:false, note:'Apagado: el salar solo cambia al agregar o sacar notas. Encendido: cada nota que suena vuelve a hinchar su figura.' },
+    { k:'StepTint', label:'Las crestas toman el color de la nota que suena', min:0, max:1, step:0.01, def:0, note:'En 0, el sonido no toca el piso: solo el agregar o sacar notas.' },
+    { k:'FlashDecay', label:'Duración del color', min:0.1, max:3, step:0.05, def:0.9, u:'s' },
+    { k:'PolygonsFade', label:'Cuánto borra el mandala a los polígonos', min:0, max:2, step:0.01, def:1.0 },
+    { k:'Symmetry', label:'Simetría (ejes)', min:2, max:12, step:1, def:5, note:'Todos los modos comparten esta simetría: la suma siempre es un mandala. 5 rima con Surrounding.' },
+    { k:'RadialFreq', label:'Anillos', min:1, max:10, step:0.05, def:3.5 },
+    { k:'BaseRings', label:'Peso de los anillos', min:0, max:1.5, step:0.01, def:0.3 },
+    { k:'CenterCalm', label:'Centro calmo', min:0, max:500, step:5, def:160, u:'cm', note:'Alrededor tuyo solo quedan anillos suaves; los pétalos de las figuras nacen más afuera. Así las líneas no terminan en puntas hacia el centro.' },
+    { k:'Organic', label:'Irregularidad orgánica', min:0, max:2, step:0.01, def:0.5, note:'Una deformación suave y fija, como la de una placa real: las figuras dejan de parecer una textura perfecta.' },
+    { k:'PlateRadius', label:'Radio del mandala', min:200, max:2000, step:10, def:720, u:'cm', note:'Afuera, el salar sigue con sus polígonos hasta el horizonte.' },
+    { k:'PlateCenterX', label:'Centro del mandala (adelante)', min:-300, max:400, step:1, def:0, u:'cm', note:'0 = debajo del usuario: el mandala nace de ti.' },
+  ]},
+  { title:'Salar y desierto', open:true, items:[
+    { k:'SaltLit', label:'Sal al sol', type:'color' },
+    { k:'SaltShade', label:'Sal en sombra', type:'color' },
+    { k:'FlatTone', label:'Tono del piso plano', min:0, max:1, step:0.01, def:0.7 },
+    { k:'SandGrain', label:'Grano', min:0, max:1, step:0.01, def:0.6, note:'Grano fino anclado al mundo: se ve de cerca y se funde en blanco liso a lo lejos.' },
+    { k:'Granite', label:'Motas de granito', min:0, max:1, step:0.01, def:0.6, note:'Motas chiquitas de tres tonos (lavanda gris, tibia y clara), pocas, como en la piedra.' },
+    { k:'SandGrainSize', label:'Tamaño del grano', min:0.1, max:2, step:0.01, def:0.3, u:'cm' },
+    { k:'ReliefHeight', label:'Relieve del mandala', min:0, max:30, step:0.1, def:7, u:'cm', note:'Lomas suaves de geometría real sobre las líneas nodales, como las ondas de la membrana de Heart: se leen por la luz sobre la forma.' },
+    { k:'ReliefWidth', label:'Ancho de las lomas', min:0.05, max:0.8, step:0.005, def:0.22, note:'Chico = lomas angostas y marcadas; grande = colinas anchas y suaves.' },
+    { k:'CrestLine', label:'Arista de sal en la cima', min:0, max:2, step:0.01, def:0.3 },
+    { k:'LightGain', label:'Contraste de la luz rasante', min:0.3, max:4, step:0.01, def:1.6 },
+    { k:'RidgeHeight', label:'Crestas de los polígonos', min:0, max:3, step:0.01, def:0.55, note:'0 = desierto liso, sin polígonos.' },
+    { k:'RidgeWidth', label:'Ancho de las crestas de los polígonos', min:1, max:20, step:0.1, def:5, u:'cm' },
+    { k:'CellSize', label:'Tamaño de los polígonos', min:40, max:400, step:1, def:150, u:'cm' },
+    { k:'CellJitter', label:'Irregularidad', min:0, max:1, step:0.01, def:0.8 },
+    { k:'SaltNoise', label:'Manchas de la costra', min:0, max:1, step:0.01, def:0.3 },
+    { k:'Wetness', label:'Agua (refleja el cielo)', min:0, max:1, step:0.01, def:0.45 },
+  ]},
+  { title:'Cielo y sol', items:[
+    { k:'SkyTop', label:'Arriba', type:'color' },
+    { k:'SkyMid', label:'Al medio', type:'color' },
+    { k:'SkyHorizon', label:'Horizonte', type:'color' },
+    { k:'SunColor', label:'Sol', type:'color' },
+    { k:'SunAzimuth', label:'Sol: dirección', min:-180, max:180, step:1, def:-24, u:'°', note:'0 = adelante, negativo = a la izquierda. La luz rasante sobre las crestas sale de acá.' },
+    { k:'SunElev', label:'Sol: altura', min:-6, max:30, step:0.1, def:2.5, u:'°' },
+    { k:'SunSize', label:'Sol: tamaño', min:1, max:20, step:0.1, def:7, u:'°' },
+    { k:'SunGlow', label:'Sol: halo', min:0, max:2, step:0.01, def:0.55 },
+    { k:'Haze', label:'Bruma del horizonte', min:0, max:1, step:0.01, def:0.55 },
+    { k:'FogDist', label:'Distancia de la bruma', min:300, max:8000, step:10, def:2600, u:'cm' },
+  ]},
+  { title:'Esferas (domo)', items:[
+    { k:'Palette', label:'Paleta de esferas y gusano', type:'select', def:'pastel', options:[['pastel','Pastel (propuesta)'],['proyecto','La del proyecto hoy']],
+      note:'La paleta real (Color1..4 del director, ColorLow/High del gusano) es saturada y pelea con el salar. La pastel es la propuesta.' },
+    { k:'OrbCount', label:'Cantidad', min:4, max:68, step:1, def:20, rebuild:true },
+    { k:'DomeRadius', label:'Radio del domo', min:150, max:1000, step:5, def:350, u:'cm', rebuild:true },
+    { k:'DomeElevMax', label:'Altura máxima', min:10, max:89, step:1, def:80, u:'°', rebuild:true },
+    { k:'OrbSize', label:'Radio de la esfera', min:4, max:30, step:0.5, def:11, u:'cm' },
+    { k:'Color1', label:'Color 1', type:'color' },
+    { k:'Color2', label:'Color 2', type:'color' },
+    { k:'Color3', label:'Color 3', type:'color' },
+    { k:'Color4', label:'Color 4', type:'color' },
+    { k:'ShadeColor', label:'Tono de sombra', type:'color' },
+  ]},
+  { title:'Secuenciador (referencia)', items:[
+    { k:'StepTime', label:'Duración de cada paso', min:0.25, max:1.5, step:0.005, def:0.667, u:'s', note:'0,667 s = 8 pasos en 5,33 s (las dos pasadas del cierre medidas en PIE duran 10,67 s).' },
+    { k:'TableDist', label:'Mesa: distancia', min:30, max:160, step:1, def:62, u:'cm', note:'Estimada: el nivel no se pudo leer. Ajustar a la real.' },
+    { k:'TableHeight', label:'Mesa: altura', min:60, max:140, step:1, def:100, u:'cm' },
+    { k:'BlobRadius', label:'Radio de cada gota', min:3, max:16, step:0.1, def:8.5, u:'cm' },
+    { k:'Smooth', label:'Fusión entre gotas', min:2, max:30, step:0.1, def:17.7, u:'cm' },
+    { k:'WormOpacity', label:'Opacidad del gusano', min:0.2, max:1, step:0.01, def:0.75 },
+    { k:'ChainBrightness', label:'Brillo del gusano', min:0.2, max:3, step:0.01, def:1.35 },
+    { k:'ColorLow', label:'Gusano: color en sombra', type:'color' },
+    { k:'ColorHigh', label:'Gusano: color con luz', type:'color' },
+  ]},
+  { title:'Vista y sonido', items:[
+    { k:'FOV', label:'Campo de visión', min:50, max:110, step:1, def:78, u:'°' },
+    { k:'bHeadSway', label:'Simular movimiento de cabeza', type:'check', def:true },
+    { k:'AutoEvery', label:'Componer solo: cada', min:1.5, max:15, step:0.5, def:5, u:'s' },
+    { k:'Volume', label:'Volumen', min:0, max:1, step:0.01, def:0.55 },
+  ]},
+];
+
+/* ---------- color: sRGB <-> lineal ---------- */
+const s2l = v => (v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+const l2s = v => (v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055);
+const hex2lin = hex => { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => s2l(v / 255)); };
+const lin2hex = c => '#' + c.map(v => Math.round(Math.min(Math.max(l2s(Math.min(Math.max(v, 0), 1)), 0), 1) * 255).toString(16).padStart(2, '0')).join('');
+const toLin = v => (typeof v === 'string' ? hex2lin(v) : v.slice());
+
+const P = {};
+function defaults(){
+  for (const g of GROUPS) for (const it of g.items) if (it.type !== 'color') P[it.k] = it.def;
+  applyPalette('pastel', false);
+  applyPreset('ocaso', false);
+}
+function applyPreset(name, refresh = true){
+  const pr = PRESETS[name];
+  for (const k in pr) P[k] = typeof pr[k] === 'string' ? hex2lin(pr[k]) : pr[k];
+  if (refresh) syncUI();
+}
+function applyPalette(name, refresh = true){
+  const pl = PALETTES[name];
+  for (const k in pl) P[k] = typeof pl[k] === 'number' ? pl[k] : toLin(pl[k]);
+  P.Palette = name;
+  if (refresh) syncUI();
+}
+
+/* =====================================================================================
+   GLSL COMPARTIDO — cuentas en coordenadas UE (X adelante, Y derecha, Z arriba, cm)
+   ===================================================================================== */
+const GLSL_COMMON = `
+uniform float uTime;
+uniform float uW[8];        // cuánto está TALLADA la figura de cada slot (en UE: W0..W7)
+uniform float uV[8];        // pulso de vibración de cada slot, la curva de Heart (en UE: V0..V7)
+uniform float uBase;
+uniform float uSym;
+uniform float uKr;
+uniform float uR;           // radio del mandala (cm)
+uniform vec2  uCenter;
+uniform float uOrder;       // 0 = polígonos del salar, 1 = mandala tallado
+uniform float uCell;        // tamaño de polígono (cm)
+uniform float uJit;
+uniform vec3  uSkyTop;
+uniform vec3  uSkyMid;
+uniform vec3  uSkyHor;
+uniform vec3  uSunCol;
+uniform vec3  uSunDir;      // hacia el sol (UE)
+uniform float uSunSize;     // radianes
+uniform float uSunGlow;
+uniform float uHaze;
+uniform vec3  uCamUE;
+
+const float MA[8] = float[8](1., 2., 1., 3., 2., 1., 3., 2.);
+const float MK[8] = float[8](1.0, 1.5, 2.0, 1.25, 2.5, 3.0, 1.75, 2.25);
+const float MP[8] = float[8](0., .5, .5, 0., .5, 0., .5, 0.);
+const float MR[8] = float[8](0.34, 0.46, 0.30, 0.55, 0.40, 0.28, 0.50, 0.38);   // radio donde nacen los pétalos de cada modo
+uniform float uCalm;        // radio del centro calmo (fracción del radio): adentro solo anillos suaves
+uniform float uWarp;        // irregularidad orgánica de la placa
+
+vec3 toThree(vec3 u) { return vec3(u.y, u.z, -u.x); }
+vec3 toUE(vec3 t) { return vec3(-t.z, t.x, t.y); }
+
+vec3 linearToSRGB(vec3 c) {
+  c = clamp(c, 0.0, 1.0);
+  vec3 lo = 12.92 * c;
+  vec3 hi = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;
+  return mix(hi, lo, vec3(lessThanEqual(c, vec3(0.0031308))));
+}
+
+// Como en una placa circular real (Bessel J_n): el modo con lóbulos casi no se mueve cerca del centro,
+// sus pétalos NACEN a un radio. Así las líneas no convergen en puntas hacia el centro.
+// deformación suave y fija de la placa: ninguna placa real es perfecta, y así no parece una textura proyectada
+vec2 plateCoord(vec2 p) {
+  vec2 q = (p - uCenter) / uR;
+  q += uWarp * 0.045 * vec2(sin(q.y * 4.1 + 1.3) + 0.6 * sin(q.x * 7.3 - q.y * 2.2 + 0.4),
+                            sin(q.x * 3.7 + 2.1) + 0.6 * sin(q.y * 6.9 + q.x * 2.6 + 1.7));
+  return q * uR;
+}
+float modeAt(int i, float r, float th) {
+  float on = smoothstep(MR[i] * 0.55, MR[i] * 1.3, r) * smoothstep(uCalm * 0.6, uCalm * 1.4, r);
+  return cos(3.14159265 * uKr * MK[i] * r) * cos(uSym * MA[i] * th + MP[i] * 3.14159265) * on;
+}
+// la figura TALLADA: anillos base + los modos de las notas, cada uno según cuánto lo marcaron sus pulsos
+float chladni(vec2 p) {
+  vec2 q = plateCoord(p);
+  float r = length(q) / uR, th = atan(q.y, q.x);
+  float f = uBase * cos(3.14159265 * uKr * r), ws = uBase;
+  for (int i = 0; i < 8; i++) {
+    if (uW[i] < 0.001) continue;
+    f += uW[i] * modeAt(i, r, th);
+    ws += uW[i];
+  }
+  return f / max(ws, 0.001);
+}
+// la vibración: solo los modos que acaban de sonar (un modo que no suena no se evalúa)
+float vibField(vec2 p) {
+  vec2 q = plateCoord(p);
+  float r = length(q) / uR, th = atan(q.y, q.x);
+  float f = 0.0;
+  for (int i = 0; i < 8; i++) {
+    if (uV[i] < 0.002) continue;
+    f += uV[i] * modeAt(i, r, th);
+  }
+  return f * (1.0 - smoothstep(0.85, 1.05, r));
+}
+vec2 chladniGrad(vec2 p, float f0) {
+  const float e = 1.5;
+  return vec2(chladni(p + vec2(e, 0.0)) - f0, chladni(p + vec2(0.0, e)) - f0) / e;
+}
+float orderAt(vec2 p) { return uOrder * (1.0 - smoothstep(0.86, 1.04, length(p - uCenter) / uR)); }
+
+float hash12(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+vec2 hash2(vec2 p) {
+  p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+  return fract(sin(p) * 43758.5453);
+}
+// Polígonos del salar (Voronoi): x = distancia al borde (en celdas), yz = dirección hacia el borde
+vec3 saltCells(vec2 x) {
+  vec2 n = floor(x), f = fract(x);
+  vec2 mg = vec2(0.0), mr = vec2(0.0);
+  float md = 8.0;
+  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+    vec2 g = vec2(float(i), float(j));
+    vec2 r = g + 0.5 + (hash2(n + g) - 0.5) * uJit - f;
+    float d = dot(r, r);
+    if (d < md) { md = d; mr = r; mg = g; }
+  }
+  md = 8.0;
+  vec2 dir = vec2(1.0, 0.0);
+  for (int j = -2; j <= 2; j++) for (int i = -2; i <= 2; i++) {
+    vec2 g = mg + vec2(float(i), float(j));
+    vec2 r = g + 0.5 + (hash2(n + g) - 0.5) * uJit - f;
+    vec2 dd = r - mr;
+    if (dot(dd, dd) > 1e-5) {
+      vec2 nn = normalize(dd);
+      float d = dot(0.5 * (mr + r), nn);
+      if (d < md) { md = d; dir = nn; }
+    }
+  }
+  return vec3(md, dir);
+}
+
+vec3 skyColor(vec3 d) {
+  float e = d.z;
+  vec3 c = mix(uSkyMid, uSkyTop, smoothstep(0.03, 0.75, e));
+  c = mix(uSkyHor, c, smoothstep(-0.03, 0.26, e));
+  float ang = acos(clamp(dot(d, uSunDir), -1.0, 1.0));
+  float disc = 1.0 - smoothstep(uSunSize * 0.9, uSunSize, ang);
+  c += uSunCol * exp(-ang / (uSunSize * 2.2)) * uSunGlow * 0.3;
+  c = mix(c, uSunCol, disc * 0.92);
+  c = mix(c, uSkyHor, exp(-abs(e) / 0.03) * uHaze * 0.7);
+  return c;
+}
+`;
+
+/* =====================================================================================
+   ESCENA
+   ===================================================================================== */
+const stage = document.getElementById('stage');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  if (!renderer.capabilities.isWebGL2) throw new Error('WebGL2');
+} catch (e) {
+  const f = document.getElementById('fail');
+  f.hidden = false;
+  f.textContent = 'Este navegador no pudo abrir WebGL2, que el prototipo necesita. Prueba con Chrome, Edge o Firefox actualizados.';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.xr.enabled = true;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(78, 1, 1, 120000);
+const rig = new THREE.Group();
+rig.add(camera);
+scene.add(rig);
+const EYE_UE = new THREE.Vector3(0, 0, 120);
+const ue2three = (x, y, z) => new THREE.Vector3(y, z, -x);
+const v3 = a => new THREE.Vector3(a[0], a[1], a[2]);
+
+const U = {
+  uTime: { value: 0 }, uW: { value: new Array(8).fill(0) }, uV: { value: new Array(8).fill(0) }, uBase: { value: 0.45 }, uSym: { value: 5 }, uKr: { value: 3.5 },
+  uR: { value: 820 }, uCenter: { value: new THREE.Vector2() }, uOrder: { value: 0 }, uCell: { value: 150 }, uJit: { value: 0.8 }, uCalm: { value: 0.22 }, uWarp: { value: 0.5 },
+  uSkyTop: { value: new THREE.Vector3() }, uSkyMid: { value: new THREE.Vector3() }, uSkyHor: { value: new THREE.Vector3() },
+  uSunCol: { value: new THREE.Vector3() }, uSunDir: { value: new THREE.Vector3(1, 0, 0) }, uSunSize: { value: 0.12 }, uSunGlow: { value: 0.55 },
+  uHaze: { value: 0.55 }, uCamUE: { value: new THREE.Vector3() },
+};
+
+/* ---------- cielo ---------- */
+const sky = new THREE.Mesh(new THREE.SphereGeometry(60000, 48, 24), new THREE.ShaderMaterial({
+  uniforms: U, side: THREE.BackSide, depthWrite: false,
+  vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: GLSL_COMMON + `varying vec3 vDir; void main(){ vec3 d = normalize(toUE(vDir)); gl_FragColor = vec4(linearToSRGB(skyColor(d)), 1.0); }`,
+}));
+sky.renderOrder = -10;
+sky.frustumCulled = false;
+scene.add(sky);
+
+/* ---------- el salar: una membrana como la de Heart ----------
+   Malla polar densa en el centro (misma receta que SM_HeartMembraneLite_SC). El RELIEVE del mandala
+   es geometría de verdad (el VS la desplaza, como las ondas de Heart) y la luz sale de la pendiente
+   analítica de esa misma altura en el PS: se lee por la luz sobre la forma, no por el color.
+   Encima: grano de granito (motas finas de varios tonos) anclado al mundo. */
+const FU = {
+  uSaltLit: { value: new THREE.Vector3() }, uSaltShade: { value: new THREE.Vector3() }, uFlat: { value: 0.7 },
+  uRidgeH: { value: 0.55 }, uRidgeW: { value: 5 }, uReliefH: { value: 7 }, uReliefW: { value: 0.22 }, uCrest: { value: 0.3 },
+  uNoise: { value: 0.3 }, uSand: { value: 0.6 }, uSandSize: { value: 0.3 }, uGranite: { value: 0.6 },
+  uWet: { value: 0.45 }, uFogDist: { value: 2600 }, uVibAmp: { value: 7 }, uLightGain: { value: 1.6 },
+  uFlash: { value: 0 }, uFlashCol: { value: new THREE.Vector3(1, 1, 1) },
+};
+// altura del mandala: lomas suaves sobre las líneas nodales (F = 0), del ancho de una ola de Heart
+const RELIEF_GLSL = `
+uniform float uReliefH; uniform float uReliefW; uniform float uVibAmp;
+float reliefH(vec2 p, float f) { float x = f / uReliefW; return uReliefH * orderAt(p) * exp(-x * x); }
+`;
+const floorMat = new THREE.ShaderMaterial({
+  uniforms: { ...U, ...FU },
+  vertexShader: GLSL_COMMON + RELIEF_GLSL + `
+attribute vec2 aP;
+varying vec3 vUE;
+void main(){
+  float h = uOrder > 0.001 ? reliefH(aP, chladni(aP)) : 0.0;
+  vec3 ue = vec3(aP, h + uVibAmp * vibField(aP));
+  vUE = ue;
+  gl_Position = projectionMatrix * viewMatrix * vec4(toThree(ue), 1.0);
+}`,
+  fragmentShader: GLSL_COMMON + RELIEF_GLSL + `
+uniform vec3 uSaltLit; uniform vec3 uSaltShade; uniform float uFlat; uniform float uRidgeH; uniform float uRidgeW;
+uniform float uCrest; uniform float uNoise; uniform float uSand; uniform float uSandSize; uniform float uGranite;
+uniform float uWet; uniform float uFogDist; uniform float uLightGain; uniform float uFlash; uniform vec3 uFlashCol;
+varying vec3 vUE;
+float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+  return mix(mix(hash12(i), hash12(i+vec2(1,0)), f.x), mix(hash12(i+vec2(0,1)), hash12(i+vec2(1,1)), f.x), f.y); }
+void main(){
+  vec3 ue = vUE;
+  vec2 p = ue.xy;
+  float fp = length(fwidth(p));                            // cm por pixel: lejos, el detalle se funde en el tono plano
+  vec3 V = normalize(ue - uCamUE);
+  float ord = orderAt(p);
+  vec2 slope = vec2(0.0);                                  // pendiente REAL de la superficie (cm/cm)
+  float crest = 0.0, crestC = 0.0;
+  // polígonos del salar (detalle fino, por pixel): el mandala los va borrando
+  if (ord < 0.999 && uRidgeH > 0.0) {
+    vec3 vc = saltCells(p / uCell);
+    float dv = vc.x * uCell;
+    float x = dv / uRidgeW;
+    float hv = exp(-x * x) * (1.0 - ord) * (1.0 - smoothstep(0.5, 2.5, fp / uRidgeW));
+    slope += 3.5 * uRidgeH * hv * 2.0 * dv / (uRidgeW * uRidgeW) * vc.yz;
+    crest += hv * uRidgeH;
+  }
+  // relieve del mandala: la misma altura que desplaza el VS, con su pendiente analítica
+  if (ord > 0.001) {
+    float f = chladni(p);
+    vec2 g = chladniGrad(p, f);
+    float x = f / uReliefW;
+    float hn = exp(-x * x);
+    slope += uReliefH * ord * hn * (-2.0 * f / (uReliefW * uReliefW)) * g;
+    // arista fina de sal sobre la cima de cada loma (opcional)
+    float gl = length(g) + 1e-9;
+    float dc = f / gl;
+    float xc = dc / 2.5;
+    float hc = exp(-xc * xc) * ord * (1.0 - smoothstep(0.5, 2.5, fp / 2.5));
+    slope += -3.5 * uCrest * hc * 2.0 * dc / 6.25 * (g / gl);
+    crest += hn * ord; crestC = hn * ord;
+  }
+  // la ola de formación
+  const float e = 2.0;
+  float v0 = vibField(p);
+  slope += uVibAmp * vec2(vibField(p + vec2(e, 0.0)) - v0, vibField(p + vec2(0.0, e)) - v0) / e;
+  vec3 n = normalize(vec3(-slope, 1.0));
+  // luz rasante: el plano queda en FlatTone; lo que mira al sol se entibia y lo demás se enfría
+  float t = uFlat + (dot(n, uSunDir) - uSunDir.z) * uLightGain;
+  float nz = (vnoise(p / 38.0) * 0.6 + vnoise(p / 9.0) * 0.4 - 0.5) * uNoise * (1.0 - smoothstep(3.0, 12.0, fp));
+  t += nz * 0.25;
+  // granito: motas de tres tamaños ancladas al mundo; cada una se apaga cuando es más chica que un pixel
+  float gs = uSandSize;
+  float h1 = hash12(floor(p / gs)), h2 = hash12(floor(p / (gs * 2.3)) + 7.0), h3 = hash12(floor(p / (gs * 5.2)) + 13.0);
+  float f1 = 1.0 - smoothstep(0.35, 1.2, fp / gs), f2 = 1.0 - smoothstep(0.35, 1.2, fp / (gs * 2.3)), f3 = 1.0 - smoothstep(0.35, 1.2, fp / (gs * 5.2));
+  t += ((h1 - 0.5) * f1 + (h2 - 0.5) * 0.6 * f2 + (h3 - 0.5) * 0.35 * f3) * uSand * 0.3;
+  vec3 col = mix(uSaltShade, uSaltLit, clamp(t, 0.0, 1.0));
+  col += uSunCol * max(t - 0.85, 0.0) * 0.5;
+  // motas del granito: oscuras (lavanda gris), tibias y claras; pocas, como en la piedra
+  float dark = step(0.93, h2) * f2, warm = step(0.975, h3) * f3, lite = (1.0 - step(0.06, h1)) * f1;
+  col = mix(col, uSaltShade * 0.62, dark * uGranite * 0.8);
+  col = mix(col, col * mix(vec3(1.0), uSunCol, 0.4), warm * uGranite);
+  col = mix(col, uSaltLit * 1.08, lite * uGranite * 0.7);
+  col = mix(col, col * uFlashCol * 1.2, clamp(uFlash, 0.0, 1.0) * crestC);
+  // agua: refleja el cielo en ángulo rasante
+  float cosv = clamp(-V.z, 0.0, 1.0);
+  float fres = pow(1.0 - cosv, 5.0) * uWet * (1.0 - min(crest, 1.0) * 0.8);
+  col = mix(col, skyColor(reflect(V, normalize(mix(vec3(0.0, 0.0, 1.0), n, 0.35)))), clamp(fres, 0.0, 1.0));
+  // bruma
+  float dist = length(ue - uCamUE);
+  col = mix(col, skyColor(normalize(vec3(V.xy, 0.0))), (1.0 - exp(-dist / uFogDist)) * 0.85);
+  gl_FragColor = vec4(linearToSRGB(col), 1.0);
+}`,
+});
+let floor = null;
+function buildFloor(){
+  // 192 sectores; anillos cada 6 cm hasta 30 cm y después geométricos hasta 300 m (como Heart)
+  const S = 192, radii = [0];
+  for (let r = 6; r <= 30; r += 6) radii.push(r);
+  while (radii[radii.length - 1] < 30000) radii.push(radii[radii.length - 1] * 1.043);
+  const nr = radii.length;
+  const aP = new Float32Array((1 + (nr - 1) * S) * 2);
+  const pos = new Float32Array((1 + (nr - 1) * S) * 3);
+  let k = 1;
+  for (let i = 1; i < nr; i++) for (let j = 0; j < S; j++, k++) {
+    const a = j / S * Math.PI * 2;
+    aP[k * 2] = radii[i] * Math.cos(a); aP[k * 2 + 1] = radii[i] * Math.sin(a);
+  }
+  const idx = [];
+  // el paso UE -> three es un espejo (determinante -1): el orden de los triángulos va invertido
+  for (let j = 0; j < S; j++) idx.push(0, 1 + (j + 1) % S, 1 + j);
+  for (let i = 1; i < nr - 1; i++) for (let j = 0; j < S; j++) {
+    const a = 1 + (i - 1) * S + j, b = 1 + (i - 1) * S + (j + 1) % S, c = a + S, d = b + S;
+    idx.push(a, b, c, b, d, c);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('aP', new THREE.BufferAttribute(aP, 2));
+  geo.setIndex(idx);
+  floor = new THREE.Mesh(geo, floorMat);
+  floor.frustumCulled = false;
+  floor.renderOrder = -5;
+  scene.add(floor);
+}
+
+/* ---------- el gusano (referencia: BP_BlobChain_SC, raymarch de 8 gotas) ---------- */
+const SLOT_REL = [[-18.22,-62.37,-20],[-0.5,-49.5,-20],[12.37,-31.78,-20],[19.14,-10.95,-20],[19.14,10.95,-20],[12.37,31.78,-20],[-0.5,49.5,-20],[-18.22,62.37,-20]];
+const WU = {
+  uS: { value: Array.from({ length: 8 }, () => new THREE.Vector3()) }, uRad: { value: new Array(8).fill(8.5) },
+  uCore: { value: new Array(8).fill(0) }, uCoreCol: { value: Array.from({ length: 8 }, () => new THREE.Vector3()) },
+  uSmooth: { value: 17.7 }, uLow: { value: new THREE.Vector3() }, uHigh: { value: new THREE.Vector3() },
+  uTint: { value: new THREE.Vector3() }, uTintAmt: { value: 0 }, uOpacity: { value: 0.75 }, uBright: { value: 1.35 },
+  uBoxMin: { value: new THREE.Vector3() }, uBoxMax: { value: new THREE.Vector3() }, uShadeCol: { value: new THREE.Vector3() },
+};
+const worm = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.ShaderMaterial({
+  uniforms: { ...U, ...WU }, side: THREE.BackSide, transparent: true, depthWrite: false, depthTest: false,
+  vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: GLSL_COMMON + `
+uniform vec3 uS[8]; uniform float uRad[8]; uniform float uCore[8]; uniform vec3 uCoreCol[8];
+uniform float uSmooth; uniform vec3 uLow; uniform vec3 uHigh; uniform vec3 uTint; uniform float uTintAmt;
+uniform float uOpacity; uniform float uBright; uniform vec3 uBoxMin; uniform vec3 uBoxMax; uniform vec3 uShadeCol;
+varying vec3 vW;
+float smin(float a, float b, float k){ float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
+float sdf(vec3 p){ float d = 1e5; for (int i = 0; i < 8; i++) d = smin(d, length(p - uS[i]) - uRad[i], uSmooth); return d; }
+void main(){
+  vec3 ro = uCamUE;
+  vec3 rd = normalize(toUE(vW) - ro);
+  vec3 t0 = (uBoxMin - ro) / rd, t1 = (uBoxMax - ro) / rd;
+  vec3 tn = min(t0, t1), tf = max(t0, t1);
+  float tin = max(max(max(tn.x, tn.y), tn.z), 0.0), tout = min(min(tf.x, tf.y), tf.z);
+  float t = tin; bool hit = false;
+  for (int i = 0; i < 72; i++) {
+    float d = sdf(ro + rd * t);
+    if (d < 0.05) { hit = true; break; }
+    t += max(d, 0.08);
+    if (t > tout) break;
+  }
+  if (!hit) discard;
+  vec3 p = ro + rd * t;
+  const vec2 e = vec2(0.4, 0.0);
+  vec3 n = normalize(vec3(sdf(p + e.xyy) - sdf(p - e.xyy), sdf(p + e.yxy) - sdf(p - e.yxy), sdf(p + e.yyx) - sdf(p - e.yyx)));
+  float hl = dot(n, uSunDir) * 0.5 + 0.5;
+  vec3 c = mix(uLow, uHigh, hl) * uBright;
+  c = mix(c, uTint * (0.55 + 0.55 * hl), uTintAmt);
+  c += skyColor(reflect(rd, n)) * pow(1.0 - abs(dot(n, rd)), 3.0) * 0.35;
+  float tc = 1e9; vec3 cc = vec3(0.0), pc = vec3(0.0);
+  for (int i = 0; i < 8; i++) {
+    if (uCore[i] <= 0.0) continue;
+    vec3 oc = ro - uS[i];
+    float b = dot(oc, rd), q = dot(oc, oc) - uCore[i] * uCore[i], disc = b * b - q;
+    if (disc > 0.0) { float tt = -b - sqrt(disc); if (tt > 0.0 && tt < tc) { tc = tt; cc = uCoreCol[i]; pc = uS[i]; } }
+  }
+  float a = uOpacity;
+  if (tc < 1e8) {
+    vec3 nc = normalize(ro + rd * tc - pc);
+    vec3 core = cc * (0.78 + 0.32 * smoothstep(-0.3, 0.8, dot(nc, uSunDir)));
+    c = mix(core, c, uOpacity * 0.4);
+    a = 1.0;
+  }
+  gl_FragColor = vec4(linearToSRGB(c), a);
+}`,
+}));
+worm.renderOrder = 10;
+worm.frustumCulled = false;
+scene.add(worm);
+
+/* ---------- las esferas (referencia: domo de BP_OrbDirector_SC) ---------- */
+const orbGeo = new THREE.IcosahedronGeometry(1, 5);
+const orbVS = GLSL_COMMON + `
+uniform float uSeed; uniform float uScale; uniform float uFogDist; varying vec3 vN; varying float vFog; varying vec3 vDir;
+void main(){
+  vec3 nn = normalize(position);
+  float w = sin(nn.x * 3.1 + uTime * 1.3 + uSeed) * sin(nn.y * 2.7 - uTime * 1.1 + uSeed * 2.0) * sin(nn.z * 3.3 + uTime * 0.9);
+  vec3 pos = nn * (1.0 + 0.07 * w);
+  vN = toUE(normalize(mat3(modelMatrix) * nn));
+  vec4 wp = modelMatrix * vec4(pos * uScale, 1.0);
+  vec3 dv = toUE(wp.xyz) - uCamUE;
+  vFog = (1.0 - exp(-length(dv) / (uFogDist * 2.0))) * 0.7;
+  vDir = normalize(dv);
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}`;
+const orbFS = GLSL_COMMON + `
+uniform vec3 uCol; uniform vec3 uShade; uniform float uLift;
+varying vec3 vN; varying float vFog; varying vec3 vDir;
+void main(){
+  vec3 n = normalize(vN);
+  float l = smoothstep(-0.25, 0.85, dot(n, uSunDir));      // terminador suave, como las esferas de Six N. Five
+  vec3 c = mix(mix(uShade, uCol, 0.35), uCol, l) * (1.0 + uLift);
+  c += uSkyTop * max(n.z, 0.0) * 0.12;
+  c += skyColor(reflect(vDir, n)) * pow(1.0 - abs(dot(n, -vDir)), 3.0) * 0.25;
+  c = mix(c, skyColor(vDir), vFog);
+  gl_FragColor = vec4(linearToSRGB(c), 1.0);
+}`;
+let orbs = [];
+function domePos(i, n){
+  const eMax = P.DomeElevMax * Math.PI / 180;
+  const z = Math.sin(eMax) * (i + 0.5) / n;
+  const el = Math.asin(z), az = i * 2.39996323;
+  return new THREE.Vector3(Math.cos(el) * Math.cos(az), Math.cos(el) * Math.sin(az), z).multiplyScalar(P.DomeRadius).add(EYE_UE);
+}
+function paletteIndex(i){ const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return Math.floor((x - Math.floor(x)) * 4) % 4; }
+function buildOrbs(){
+  for (const o of orbs) scene.remove(o.mesh);
+  slotOrb.fill(-1);
+  orbs = [];
+  const n = Math.round(P.OrbCount);
+  for (let i = 0; i < n; i++) {
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { ...U, uFogDist: FU.uFogDist, uSeed: { value: i * 1.7 }, uScale: { value: P.OrbSize }, uCol: { value: new THREE.Vector3() },
+                  uShade: { value: new THREE.Vector3() }, uLift: { value: 0 } },
+      vertexShader: orbVS, fragmentShader: orbFS,
+    });
+    const mesh = new THREE.Mesh(orbGeo, mat);
+    mesh.userData.orb = i;
+    const home = domePos(i, n);
+    scene.add(mesh);
+    orbs.push({ mesh, home, pos: home.clone(), state: 'home', slot: -1, t: 0, from: home.clone(), pal: paletteIndex(i), note: i % 20 });
+  }
+}
+
+/* =====================================================================================
+   SECUENCIADOR SIMULADO
+   ===================================================================================== */
+const slotOrb = new Array(8).fill(-1);
+const pulse = new Array(8).fill(0);
+const formT = new Array(8).fill(0);          // cuánto quedó tallada la figura de cada slot (objetivo)
+const formW = new Array(8).fill(0);          // lo mismo, suavizado con la curva del pulso
+const pulseAge = new Array(8).fill(99);      // segundos desde el último pulso de cada slot
+const shown = new Array(8).fill(false);      // qué slots forman parte del patrón que se VE (se actualiza al empezar cada vuelta)
+function commitPattern(){
+  // lo que se agregó o sacó durante la vuelta entra ahora, todo junto, con UNA ola
+  const on = placedSlots();
+  let changed = false;
+  for (let s = 0; s < 8; s++) {
+    const want = on.includes(s);
+    if (want !== shown[s]) { shown[s] = want; changed = true; if (want) formT[s] = 1; }
+  }
+  if (changed) for (let s = 0; s < 8; s++) if (shown[s]) pulseAge[s] = 0;
+}
+let step = -1, stepT = 0, flash = 0;
+const flashCol = new THREE.Vector3(1, 1, 1);
+const tintNow = new THREE.Vector3(), tintTarget = new THREE.Vector3();
+
+const slotUE = i => new THREE.Vector3(P.TableDist + SLOT_REL[i][0], SLOT_REL[i][1], P.TableHeight + SLOT_REL[i][2]);
+const orbColor = o => v3(P['Color' + (o.pal + 1)]);
+const placedSlots = () => { const a = []; for (let s = 0; s < 8; s++) if (slotOrb[s] >= 0 && orbs[slotOrb[s]] && orbs[slotOrb[s]].state === 'placed') a.push(s); return a; };
+
+function place(i){
+  const o = orbs[i];
+  const s = slotOrb.indexOf(-1);
+  if (s < 0) return false;
+  slotOrb[s] = i;
+  o.state = 'going'; o.slot = s; o.t = 0; o.from.copy(o.pos);
+  return true;
+}
+function unplace(i){
+  const o = orbs[i];
+  if (o.slot >= 0) slotOrb[o.slot] = -1;
+  o.state = 'back'; o.t = 0; o.from.copy(o.pos); o.slot = -1;
+}
+function toggle(i){ const o = orbs[i]; if (o.state === 'home' || o.state === 'back') place(i); else unplace(i); }
+function clearTable(){ for (let s = 0; s < 8; s++) if (slotOrb[s] >= 0) unplace(slotOrb[s]); }
+
+function onStep(s){
+  const oi = slotOrb[s];
+  if (oi < 0 || orbs[oi].state !== 'placed') return;
+  const o = orbs[oi], c = orbColor(o);
+  pulse[s] = 1;
+  if (P.bPulsePerStep) pulseAge[s] = 0;
+  flash = 1; flashCol.copy(c);
+  tintTarget.copy(c);
+  playNote(o.note);
+}
+
+/* =====================================================================================
+   SONIDO (aproximado: campanas de placa sintetizadas; en Unreal suenan los clips reales)
+   ===================================================================================== */
+let ac = null, master = null, verb = null;
+function initAudio(){
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  master = ac.createGain(); master.gain.value = P.Volume; master.connect(ac.destination);
+  verb = ac.createGain(); verb.gain.value = 0.32;
+  const d1 = ac.createDelay(1), d2 = ac.createDelay(1), fb = ac.createGain(), lp = ac.createBiquadFilter();
+  d1.delayTime.value = 0.29; d2.delayTime.value = 0.43; fb.gain.value = 0.46; lp.type = 'lowpass'; lp.frequency.value = 2600;
+  verb.connect(d1); d1.connect(d2); d2.connect(lp); lp.connect(fb); fb.connect(d1); lp.connect(master);
+  const drone = ac.createGain(); drone.gain.value = 0.03; drone.connect(master);
+  for (const f of [73.42, 110.0, 146.83]) { const o = ac.createOscillator(); o.frequency.value = f; o.connect(drone); o.start(); }
+}
+const PENTA = [0, 3, 5, 7, 10];
+function playNote(note){
+  if (!ac || ac.state !== 'running') return;
+  const m = 62 + (12 * Math.floor(note / 5)) % 36 + PENTA[note % 5];
+  const f = 440 * Math.pow(2, (m - 69) / 12);
+  const t = ac.currentTime, g = ac.createGain();
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.2, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0008, t + 2.4);
+  g.connect(master); g.connect(verb);
+  for (const [mul, amp] of [[1, 1], [2.76, 0.26], [5.4, 0.08]]) {
+    const o = ac.createOscillator(), a = ac.createGain();
+    o.frequency.value = f * mul; a.gain.value = amp; o.connect(a); a.connect(g); o.start(t); o.stop(t + 2.5);
+  }
+}
+
+/* =====================================================================================
+   VISTA: arrastrar para mirar, clic en una esfera para ponerla o sacarla
+   ===================================================================================== */
+let yaw = 0, pitch = -0.17, dragging = false, moved = 0, lx = 0, ly = 0;
+const cvs = renderer.domElement;
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pickAt(x, y){
+  const r = cvs.getBoundingClientRect();
+  ndc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(orbs.map(o => o.mesh), false);
+  return hits.length ? hits[0].object.userData.orb : -1;
+}
+cvs.addEventListener('pointerdown', e => { dragging = true; moved = 0; lx = e.clientX; ly = e.clientY; cvs.setPointerCapture(e.pointerId); });
+cvs.addEventListener('pointermove', e => {
+  if (dragging) {
+    const dx = e.clientX - lx, dy = e.clientY - ly; moved += Math.abs(dx) + Math.abs(dy);
+    yaw -= dx * 0.004; pitch = Math.max(-1.45, Math.min(1.45, pitch - dy * 0.004));
+    lx = e.clientX; ly = e.clientY;
+  } else cvs.classList.toggle('pick', pickAt(e.clientX, e.clientY) >= 0);
+});
+cvs.addEventListener('pointerup', e => {
+  dragging = false;
+  if (moved < 6) { const i = pickAt(e.clientX, e.clientY); if (i >= 0) { toggle(i); setAuto(false); } }
+});
+
+/* =====================================================================================
+   PANEL
+   ===================================================================================== */
+const groupsEl = document.getElementById('groups');
+const inputs = {};
+for (const g of GROUPS) {
+  const det = document.createElement('details'); if (g.open) det.open = true;
+  const sum = document.createElement('summary'); sum.textContent = g.title; det.appendChild(sum);
+  for (const it of g.items) {
+    const row = document.createElement('div'); row.className = 'row';
+    const lab = document.createElement('label'); lab.className = 'lab'; lab.htmlFor = 'k_' + it.k;
+    lab.innerHTML = `${it.label}<span class="pn">${it.k}</span>`;
+    row.appendChild(lab);
+    const val = document.createElement('div'); val.className = 'val'; row.appendChild(val);
+    let el;
+    if (it.type === 'color') {
+      el = document.createElement('input'); el.type = 'color'; el.id = 'k_' + it.k;
+      el.addEventListener('input', () => { P[it.k] = hex2lin(el.value); });
+      val.appendChild(el);
+    } else if (it.type === 'check') {
+      el = document.createElement('input'); el.type = 'checkbox'; el.id = 'k_' + it.k;
+      el.addEventListener('change', () => { P[it.k] = el.checked; });
+      val.appendChild(el);
+    } else if (it.type === 'select') {
+      el = document.createElement('select'); el.id = 'k_' + it.k;
+      for (const [v, t] of it.options) { const o = document.createElement('option'); o.value = v; o.textContent = t; el.appendChild(o); }
+      el.addEventListener('change', () => { if (it.k === 'Palette') applyPalette(el.value); else P[it.k] = el.value; });
+      row.style.gridTemplateColumns = '1fr'; val.appendChild(el);
+    } else {
+      const num = document.createElement('input'); num.type = 'number'; num.className = 'num'; num.step = it.step; num.min = it.min; num.max = it.max;
+      num.setAttribute('aria-label', it.label);
+      val.appendChild(num);
+      if (it.u) { const u = document.createElement('span'); u.className = 'u'; u.textContent = it.u; val.appendChild(u); }
+      el = document.createElement('input'); el.type = 'range'; el.id = 'k_' + it.k; el.min = it.min; el.max = it.max; el.step = it.step;
+      const set = v => { P[it.k] = v; el.value = v; num.value = +(+v).toFixed(3); };
+      el.addEventListener('input', () => set(+el.value));
+      num.addEventListener('change', () => set(Math.min(it.max, Math.max(it.min, +num.value))));
+      if (it.rebuild) { el.addEventListener('change', rebuildFor(it.k)); num.addEventListener('change', rebuildFor(it.k)); }
+      el._num = num;
+      row.appendChild(el);
+    }
+    inputs[it.k] = { el, it };
+    det.appendChild(row);
+    if (it.note) { const p = document.createElement('p'); p.className = 'note'; p.textContent = it.note; det.appendChild(p); }
+  }
+  groupsEl.appendChild(det);
+}
+function rebuildFor(k){
+  return () => {
+    buildOrbs(); seedTable();
+  };
+}
+function syncUI(){
+  for (const k in inputs) {
+    const { el, it } = inputs[k];
+    if (it.type === 'color') el.value = lin2hex(P[k]);
+    else if (it.type === 'check') el.checked = !!P[k];
+    else if (it.type === 'select') el.value = P[k];
+    else { el.value = P[k]; el._num.value = +(+P[k]).toFixed(3); }
+  }
+}
+document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
+document.getElementById('btnReset').addEventListener('click', () => { defaults(); syncUI(); formT.fill(0); formW.fill(0); shown.fill(false); buildOrbs(); seedTable(); });
+document.getElementById('btnCopy').addEventListener('click', () => {
+  const out = {};
+  for (const k in P) out[k] = Array.isArray(P[k]) ? { R: +P[k][0].toFixed(4), G: +P[k][1].toFixed(4), B: +P[k][2].toFixed(4) } : P[k];
+  const txt = JSON.stringify(out, null, 1);
+  const ta = document.getElementById('copyout'); ta.value = txt; ta.classList.add('show');
+  navigator.clipboard?.writeText(txt).catch(() => { ta.select(); });
+});
+document.getElementById('btnPanel').addEventListener('click', () => document.body.classList.toggle('pclosed'));
+
+/* ---------- barra ---------- */
+const seqEl = document.getElementById('seq');
+const dots = [];
+for (let s = 0; s < 8; s++) {
+  const d = document.createElement('button'); d.type = 'button'; d.className = 'dot';
+  d.setAttribute('aria-label', `Slot ${s + 1}: sacar la esfera`);
+  d.addEventListener('click', () => { if (slotOrb[s] >= 0) { unplace(slotOrb[s]); setAuto(false); } });
+  seqEl.appendChild(d); dots.push(d);
+}
+let auto = true, autoT = 0;
+const btnAuto = document.getElementById('btnAuto');
+function setAuto(v){ auto = v; btnAuto.setAttribute('aria-pressed', String(v)); }
+btnAuto.addEventListener('click', () => setAuto(!auto));
+document.getElementById('btnClear').addEventListener('click', () => { clearTable(); setAuto(false); });
+const btnSound = document.getElementById('btnSound');
+btnSound.addEventListener('click', () => {
+  if (!ac) initAudio();
+  if (ac.state === 'running') { ac.suspend(); btnSound.setAttribute('aria-pressed', 'false'); btnSound.textContent = 'Activar sonido'; }
+  else { ac.resume(); btnSound.setAttribute('aria-pressed', 'true'); btnSound.textContent = 'Silenciar'; }
+});
+const btnVR = document.getElementById('btnVR');
+if (navigator.xr && navigator.xr.isSessionSupported) navigator.xr.isSessionSupported('immersive-vr').then(ok => { if (ok) btnVR.hidden = false; }).catch(() => {});
+btnVR.addEventListener('click', () => {
+  navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor'] })
+    .then(s => { renderer.xr.setReferenceSpaceType('local-floor'); renderer.xr.setSession(s); setAuto(true); })
+    .catch(() => { btnVR.textContent = 'VR no disponible'; });
+});
+
+function autoCompose(){
+  const placed = slotOrb.filter(v => v >= 0).length;
+  const free = orbs.map((o, i) => i).filter(i => orbs[i].state === 'home');
+  if (placed >= 6 || (placed >= 3 && Math.random() < 0.3)) { const on = slotOrb.filter(v => v >= 0); unplace(on[Math.floor(Math.random() * on.length)]); }
+  else if (free.length) place(free[Math.floor(Math.random() * free.length)]);
+}
+function seedTable(){
+  for (const i of [2, 7]) if (orbs[i]) { place(i); const o = orbs[i]; o.state = 'placed'; o.pos.copy(slotUE(o.slot)); }
+  for (const s of placedSlots()) { formT[s] = 1; formW[s] = 1; shown[s] = true; }
+}
+
+/* =====================================================================================
+   BUCLE
+   ===================================================================================== */
+function resize(){
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+const clock = new THREE.Clock();
+let fpsN = 0, fpsT = 0;
+const statsEl = document.getElementById('stats');
+const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const camUE = new THREE.Vector3(), tmp = new THREE.Vector3();
+
+function frame(){
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = (U.uTime.value += dt);
+
+  // cámara
+  if (!renderer.xr.isPresenting) {
+    camera.fov = P.FOV; camera.updateProjectionMatrix();
+    const sw = P.bHeadSway ? 1 : 0;
+    const eye = EYE_UE.clone().add(new THREE.Vector3(Math.sin(t * 0.21) * 2.5, Math.sin(t * 0.17 + 1) * 4, Math.sin(t * 0.13) * 1.5).multiplyScalar(sw));
+    rig.position.copy(ue2three(eye.x, eye.y, eye.z));
+    camera.rotation.set(pitch, yaw, 0, 'YXZ');
+    camera.updateMatrixWorld();
+    camera.getWorldPosition(tmp);
+  } else {
+    rig.position.set(0, 0, 0);
+    renderer.xr.getCamera().getWorldPosition(tmp);
+  }
+  camUE.set(-tmp.z, tmp.x, tmp.y);
+  U.uCamUE.value.copy(camUE);
+
+  // sol
+  const az = P.SunAzimuth * Math.PI / 180, el = P.SunElev * Math.PI / 180;
+  U.uSunDir.value.set(Math.cos(el) * Math.cos(az), Math.cos(el) * Math.sin(az), Math.sin(el));
+
+  // secuenciador
+  stepT += dt;
+  if (stepT >= P.StepTime) { stepT -= P.StepTime; step = (step + 1) % 8; if (step === 0 || P.ChangeOn === 'inmediato') commitPattern(); onStep(step); }
+  if (auto && (autoT += dt) > P.AutoEvery) { autoT = 0; autoCompose(); }
+
+  // esferas: viaje al slot y vuelta
+  for (const o of orbs) {
+    let scale = P.OrbSize;
+    if (o.state === 'going' || o.state === 'back') {
+      o.t = Math.min(1, o.t + dt / 0.9);
+      const k = ease(o.t);
+      const dest = o.state === 'going' ? slotUE(o.slot) : o.home;
+      o.pos.lerpVectors(o.from, dest, k);
+      o.pos.z += Math.sin(Math.PI * k) * 25;
+      const fit = P.BlobRadius * 0.72;
+      scale = o.state === 'going' ? THREE.MathUtils.lerp(P.OrbSize, fit, k) : THREE.MathUtils.lerp(fit, P.OrbSize, k);
+      if (o.t >= 1) {
+        // al llegar a la mesa: UNA ola con la forma de su figura, que la deja tallada en la sal
+        if (o.state === 'going') { o.state = 'placed'; if (P.ChangeOn === 'inmediato') commitPattern(); }
+        else o.state = 'home';
+      }
+    } else if (o.state === 'home') {
+      o.pos.copy(o.home); o.pos.z += Math.sin(t * 0.6 + o.home.x * 0.01) * 3;
+    }
+    o.mesh.visible = o.state !== 'placed';
+    o.mesh.position.copy(ue2three(o.pos.x, o.pos.y, o.pos.z));
+    const m = o.mesh.material.uniforms;
+    m.uScale.value = scale; m.uCol.value.set(...P['Color' + (o.pal + 1)]); m.uShade.value.set(...P.ShadeColor);
+    m.uLift.value = o.state === 'home' ? 0 : 0.15;
+  }
+
+  // el salar: agregar una nota hincha UNA vez la membrana con la forma de su figura (curva de Heart)
+  // y la talla en la sal mientras sube; sacarla la erosiona despacio
+  const g = x => (x <= 0 ? 0 : x * x * Math.exp(2 * (1 - x)));
+  const rise = Math.max(P.FormTime * 0.5, 0.05);          // la ola llega a su cima a mitad de la formación
+  let formSum = 0;
+  for (let s = 0; s < 8; s++) {
+    pulseAge[s] += dt;
+    const live = shown[s];
+    if (!live) formT[s] *= Math.exp(-dt / P.FormDecay);
+    formW[s] += (formT[s] - formW[s]) * (1 - Math.exp(-dt / (rise * 0.6)));
+    U.uW.value[s] = formW[s];
+    U.uV.value[s] = live ? g(pulseAge[s] / rise) : 0;
+    formSum += formW[s];
+  }
+  flash *= Math.exp(-dt / P.FlashDecay);
+  for (let s = 0; s < 8; s++) pulse[s] *= Math.exp(-dt / 0.35);
+  tintNow.lerp(tintTarget, 1 - Math.exp(-dt * 10));
+
+  // uniforms
+  U.uBase.value = P.BaseRings; U.uSym.value = P.Symmetry; U.uKr.value = P.RadialFreq; U.uR.value = P.PlateRadius;
+  U.uCenter.value.set(P.PlateCenterX, 0); U.uOrder.value = Math.min(1, 1 - Math.exp(-formSum * 1.4 * P.PolygonsFade)); U.uCell.value = P.CellSize; U.uJit.value = P.CellJitter;
+  U.uCalm.value = P.CenterCalm / P.PlateRadius; U.uWarp.value = P.Organic;
+  U.uSkyTop.value.set(...P.SkyTop); U.uSkyMid.value.set(...P.SkyMid); U.uSkyHor.value.set(...P.SkyHorizon); U.uSunCol.value.set(...P.SunColor);
+  U.uSunSize.value = P.SunSize * Math.PI / 180; U.uSunGlow.value = P.SunGlow; U.uHaze.value = P.Haze;
+  FU.uSaltLit.value.set(...P.SaltLit); FU.uSaltShade.value.set(...P.SaltShade); FU.uFlat.value = P.FlatTone;
+  FU.uRidgeH.value = P.RidgeHeight; FU.uRidgeW.value = P.RidgeWidth; FU.uReliefH.value = P.ReliefHeight; FU.uReliefW.value = P.ReliefWidth;
+  FU.uCrest.value = P.CrestLine; FU.uLightGain.value = P.LightGain; FU.uGranite.value = P.Granite;
+  FU.uNoise.value = P.SaltNoise; FU.uSand.value = P.SandGrain; FU.uSandSize.value = P.SandGrainSize; FU.uVibAmp.value = P.VibAmp; FU.uWet.value = P.Wetness; FU.uFogDist.value = P.FogDist;
+  FU.uFlash.value = flash * P.StepTint; FU.uFlashCol.value.copy(flashCol);
+
+  // gusano
+  const bmin = new THREE.Vector3(1e9, 1e9, 1e9), bmax = new THREE.Vector3(-1e9, -1e9, -1e9);
+  let best = 0;
+  for (let s = 0; s < 8; s++) {
+    const p = slotUE(s); p.z += Math.sin(t * 1.1 + s * 0.8) * 1.2;
+    WU.uS.value[s].copy(p);
+    WU.uRad.value[s] = P.BlobRadius * (1 + 0.35 * pulse[s]);
+    const oi = slotOrb[s];
+    const on = oi >= 0 && orbs[oi].state === 'placed';
+    WU.uCore.value[s] = on ? P.BlobRadius * 0.72 * (1 + 0.3 * pulse[s]) : 0;
+    if (on) WU.uCoreCol.value[s].set(...P['Color' + (orbs[oi].pal + 1)]).multiplyScalar(1 + 0.4 * pulse[s]);
+    bmin.min(p); bmax.max(p);
+    best = Math.max(best, pulse[s]);
+  }
+  const pad = P.BlobRadius * 1.6 + P.Smooth * 0.5;
+  bmin.subScalar(pad); bmax.addScalar(pad);
+  WU.uBoxMin.value.copy(bmin); WU.uBoxMax.value.copy(bmax);
+  const c3 = bmin.clone().add(bmax).multiplyScalar(0.5), sz = bmax.clone().sub(bmin);
+  worm.position.copy(ue2three(c3.x, c3.y, c3.z)); worm.scale.set(sz.y, sz.z, sz.x);
+  WU.uSmooth.value = P.Smooth; WU.uLow.value.set(...P.ColorLow); WU.uHigh.value.set(...P.ColorHigh); WU.uShadeCol.value.set(...P.ShadeColor);
+  WU.uTint.value.copy(tintNow); WU.uTintAmt.value = best * 0.7; WU.uOpacity.value = P.WormOpacity; WU.uBright.value = P.ChainBrightness;
+
+  if (master) master.gain.value = P.Volume;
+
+  // barra
+  for (let s = 0; s < 8; s++) {
+    const oi = slotOrb[s];
+    dots[s].style.background = oi >= 0 ? lin2hex(P['Color' + (orbs[oi].pal + 1)]) : 'transparent';
+    dots[s].classList.toggle('now', s === step);
+  }
+  fpsN++; fpsT += dt;
+  if (fpsT > 0.5) { statsEl.textContent = `paso ${step + 1}/8 · ${slotOrb.filter(v => v >= 0).length} notas · ${Math.round(fpsN / fpsT)} fps`; fpsN = 0; fpsT = 0; }
+
+  renderer.render(scene, camera);
+}
+
+defaults();
+syncUI();
+resize();
+buildFloor();
+buildOrbs();
+seedTable();
+renderer.setAnimationLoop(frame);
+</script>

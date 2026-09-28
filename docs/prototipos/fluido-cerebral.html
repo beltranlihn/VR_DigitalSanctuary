@@ -1,0 +1,1156 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fluido cerebral</title>
+<meta name="description" content="Lookdev en navegador del entorno líquido de Soul Charger: partículas llevadas por una corriente con remolinos, células desvanecidas en el agua, con la misma matemática que irá a Unreal">
+<!--
+  =====================================================================================
+  PROTOTIPO WEB DEL FLUIDO CEREBRAL (lookdev) - Soul Charger
+  =====================================================================================
+  Idea (Beltrán, 2026-09-28): "hacer sentir al usuario que estamos sumergidos en un entorno
+  líquido, como el líquido del cerebro; que se sienta 3D, amplio, etéreo".
+  Revisión del mismo día: SIN latido ni respiración (eso ya vive en Heart). "Basta con movimiento
+  curl de las partículas en general y que se sienta un movimiento de fluido". Y: "más de estos
+  seres celulares repartidos en el espacio, desvanecidos porque están en el agua".
+  🔴 ENTRADA ÚNICA: el EEG, UNA variable 0-1 (0 = mente activa, 1 = calma; la misma convención que
+  GlobalState de BP_LovingCell_SC). Sin ritmo cardíaco. El EEG solo escala AMPLITUDES y velocidades
+  cuyas fases se integran afuera: activo = remolinos más rápidos y chicos, más estela; calma = el
+  movimiento se aquieta y el agua se aclara (se ve más lejos: el espacio se abre).
+  Plan de construcción en Unreal: docs/PLAN-FLUIDO-CEREBRAL.md (este archivo es su referencia visual).
+
+  CAPAS (en Unreal: un actor portable BP_FluidMedium_SC, cada capa con su perilla para medir):
+    1. Partículas en suspensión en TRES profundidades (cerca / media / lejos), fijas al mundo y
+       recicladas en un cubo alrededor de la cabeza (infinito sin mover la cámara).
+    2. MOVIMIENTO DEL FLUIDO: la corriente arrastra todo (cambia de rumbo despacio: el BP integra el
+       arrastre, uDrift) y un campo CURL sin divergencia de dos escalas mueve cada partícula alrededor
+       de su ancla: vecinos juntos, sin amontonarse. Todo sprite (partículas, células lejanas, velos) se
+       ORIENTA HACIA EL OJO (base construida con la dirección partícula -> cámara), nunca alineado con la
+       pantalla: así jamás se ve un círculo aplanado. Estela opcional (StreakTime, 0 por defecto).
+    3. Absorción por distancia: todo se funde hacia el color del medio EN ESA DIRECCIÓN (el mismo
+       degradado del fondo): lo lejano desaparece dentro del líquido, lo cercano queda nítido.
+    4. Células en el agua: una protagonista (referencia) + células MEDIAS simplificadas (malla baja,
+       opacas: el desvanecido es color, no transparencia) + células LEJANAS como silueta en un solo
+       quad cada una (una sola llamada de dibujo, borde por alpha-to-coverage con el MSAA).
+       Todas llevadas por la misma corriente.
+    5. Luz que atraviesa agua: cáusticas sobre las células, destellos en las partículas, haces
+       tenues desde arriba, velos lejanos de densidad.
+    6. Manos: revuelven el medio (empuje por velocidad + remolino). Escritorio: Shift + mouse.
+
+  REGLAS DEL PORT A UNREAL (Quest 3 standalone, renderer móvil forward, MobileHDR OFF):
+    - Nada de índices dinámicos ni arreglos en el vertex shader: cada mano, haz y velo es un
+      uniform con nombre (en UE: un parámetro de material).
+    - Velocidades: las FASES se integran afuera (uPhase: el BP las acumula con DeltaSeconds), así
+      cambiar una perilla de velocidad nunca hace saltar la fase (gotcha 329). El estado solo toca amplitudes.
+    - Bucles con cota constante (la silueta lejana: 5 satélites fijos).
+    - Partículas y siluetas: quads diminutos ubicados en el vertex shader (técnica SM_LovingDust_SC).
+    - Nada de posproceso (no existe con MobileHDR off): todo en geometría y materiales.
+    - Port HLSL <- GLSL: mix->lerp, fract->frac, clamp(x,0,1)->saturate, cameraPosition -> cámara en
+      espacio local (CamL), las fases -> parámetros empujados por el BP.
+
+  EJES Y UNIDADES (1 unidad de three = 1 cm, igual que Unreal)
+    Unreal: X adelante, Y derecha, Z arriba.   three.js: X derecha, Y arriba, -Z adelante.
+      UE (x, y, z)    -> three (y, z, -x)
+      three (X, Y, Z) -> UE (-Z, X, Y)
+    Ojos del usuario sentado UE (0, 0, 120). Célula de referencia UE (170, 0, 115).
+
+  COLOR
+    Todo en LINEAL, sin tonemapper (como el APK con r.MobileHDR=False); la OETF sRGB se aplica a mano
+    al final de cada shader. Los selectores de color muestran sRGB; el JSON exporta el valor LINEAL.
+
+  CÓMO ABRIRLO
+    Doble clic (file://). three.js r160 se baja de cdn.jsdelivr.net (hace falta internet).
+    En la Quest (WebXR): servir la carpeta y abrirla por localhost (contexto seguro):
+      cd docs/prototipos  &&  python -m http.server 8123
+      adb reverse tcp:8123 tcp:8123
+      Navegador de la Quest -> http://localhost:8123/fluido-cerebral.html -> "Entrar en VR"
+    Paleta por enlace: #frio (por defecto), #tibio, #lavanda.
+  =====================================================================================
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --ink:#1f2547;
+  --ink-soft:#4b5380;
+  --line:rgba(36,44,96,.14);
+  --panel:rgba(238,239,250,.80);
+  --panel-edge:rgba(255,255,255,.62);
+  --accent:#565fb0;
+  --accent-ink:#f5f6ff;
+  --ground:#26357c;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ground);color:var(--ink);font:14px/1.45 "Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#stage canvas:active{cursor:grabbing}
+
+.tag{position:fixed;left:16px;top:calc(env(safe-area-inset-top,0px) + 16px);max-width:min(460px,calc(100% - 32px - 352px));pointer-events:none;color:#f4f5ff;text-shadow:0 1px 10px rgba(20,24,60,.35)}
+.tag h1{margin:0;font-size:16px;font-weight:600;letter-spacing:.01em}
+.tag p{margin:4px 0 0;font-size:12.5px;max-width:52ch;text-wrap:pretty;opacity:.92}
+.tag kbd{font-family:var(--mono);font-size:11px;padding:0 4px;border:1px solid rgba(255,255,255,.45);border-radius:4px}
+
+.bar{position:fixed;left:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:calc(100% - 32px - 352px)}
+.btn{font:inherit;font-size:13px;font-weight:500;color:var(--ink);background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;padding:7px 12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);cursor:pointer;box-shadow:0 4px 18px rgba(36,44,96,.14)}
+.btn:hover{background:rgba(247,248,254,.94)}
+.btn:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn[aria-pressed="true"]{background:#dfe1f6;border-color:rgba(86,95,176,.45)}
+.eegbar{display:inline-block;width:56px;height:6px;border-radius:3px;background:rgba(86,95,176,.18);overflow:hidden}
+.eegbar i{display:block;height:100%;width:0;background:var(--accent)}
+.readout{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;padding:7px 12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+
+#panel{position:fixed;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:336px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--panel-edge);border-radius:14px;box-shadow:0 12px 44px rgba(20,26,70,.22);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);overflow:hidden}
+.phead{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.phead h2{margin:0;font-size:12.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft)}
+.phead p{margin:6px 0 0;font-size:11.5px;color:var(--ink-soft)}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.presets .btn{padding:5px 9px;font-size:12px;box-shadow:none}
+#groups{overflow:auto;padding:0 16px 8px;flex:1;overscroll-behavior:contain}
+details{border-bottom:1px solid var(--line)}
+details:last-child{border-bottom:0}
+summary{cursor:pointer;padding:11px 0;font-weight:600;font-size:13.5px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-weight:400;color:var(--ink-soft)}
+details[open] summary::after{content:"\2013"}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:5px 0 9px;align-items:center}
+.row .lab{font-size:12.5px;color:var(--ink);line-height:1.3}
+.row .pn{display:block;font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);margin-top:1px}
+.row .val{display:flex;align-items:center;gap:4px}
+.row .num{width:74px;font-family:var(--mono);font-size:11.5px;text-align:right;border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.62);color:var(--ink);padding:3px 5px}
+.row .u{font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);min-width:22px}
+.row input[type=range]{grid-column:1/-1;width:100%;margin:2px 0 0;accent-color:var(--accent)}
+.row input[type=color]{width:46px;height:26px;border:1px solid var(--line);border-radius:6px;padding:0 2px;background:rgba(255,255,255,.62);cursor:pointer}
+.row input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.note{font-size:11.5px;color:var(--ink-soft);margin:0;padding:4px 0 10px;text-wrap:pretty}
+.pfoot{padding:12px 16px 14px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.pfoot .btn{flex:1 1 auto;box-shadow:none}
+#copyout{display:none;width:100%;height:120px;font:11px/1.35 var(--mono);border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.85);color:var(--ink)}
+#copyout.show{display:block}
+.toggle-panel{display:none}
+#hand{position:fixed;width:44px;height:44px;margin:-22px 0 0 -22px;border:2px solid rgba(255,255,255,.75);border-radius:50%;pointer-events:none;box-shadow:0 0 18px rgba(255,255,255,.35)}
+#fail{position:fixed;left:16px;right:16px;top:50%;transform:translateY(-50%);max-width:60ch;margin:0 auto;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:18px 20px;font-size:13px;box-shadow:0 12px 44px rgba(36,44,96,.2);z-index:5}
+@media (max-width:760px){
+  #panel{left:16px;right:16px;width:auto;top:auto;height:52%}
+  body.pclosed #panel{display:none}
+  .bar{max-width:calc(100% - 32px);bottom:calc(52% + 28px + env(safe-area-inset-bottom,0px))}
+  body.pclosed .bar{bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
+  .toggle-panel{display:inline-block}
+  .tag{max-width:calc(100% - 32px)}
+  .tag p{display:none}
+}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="stage" aria-label="Vista 3D del fluido desde los ojos del usuario sentado"></div>
+<div id="hand" hidden></div>
+
+<header class="tag">
+  <h1>Fluido cerebral</h1>
+  <p>Todo lo lleva la misma corriente, con remolinos. El EEG (0 activo, 1 calma) la agita o la aquieta. Arrastra para mirar · <kbd>Shift</kbd> + mover el mouse: revolver con la mano · <kbd>W A S D</kbd>: mover la cabeza.</p>
+</header>
+
+<div class="bar">
+  <button class="btn" id="btnSound" type="button" aria-pressed="false">Activar sonido</button>
+  <button class="btn" id="btnPause" type="button" aria-pressed="false">Pausar</button>
+  <button class="btn" id="btnVR" type="button" hidden>Entrar en VR</button>
+  <div class="readout" aria-live="off"><span>EEG</span><span class="eegbar"><i id="eegBar"></i></span><span id="eegVal">0,30</span><span id="stats">– fps</span></div>
+  <button class="btn toggle-panel" id="btnPanel" type="button">Perillas</button>
+</div>
+
+<aside id="panel" aria-label="Perillas del fluido">
+  <div class="phead">
+    <h2>Perillas · BP_FluidMedium_SC</h2>
+    <p>Cada nombre en gris es la variable que tendrá el actor en Unreal.</p>
+    <div class="presets" role="group" aria-label="Paletas">
+      <button class="btn" type="button" data-preset="frio">Frío profundo</button>
+      <button class="btn" type="button" data-preset="tibio">Tibio orgánico</button>
+      <button class="btn" type="button" data-preset="lavanda">Lavanda (Loving)</button>
+    </div>
+  </div>
+  <div id="groups"></div>
+  <div class="pfoot">
+    <button class="btn" id="btnCopy" type="button">Copiar valores</button>
+    <button class="btn" id="btnReset" type="button">Restablecer</button>
+    <textarea id="copyout" readonly aria-label="Valores en JSON"></textarea>
+  </div>
+</aside>
+
+<div id="fail" hidden></div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* =====================================================================================
+   PERILLAS (nombres = variables del futuro BP_FluidMedium_SC). Colores en sRGB en la UI.
+   ===================================================================================== */
+const PRESETS = {
+  frio:    { FluidTop:'#4a64c4', FluidMid:'#26357c', FluidBottom:'#0b1133', GlowColor:'#aac4ff', MoteColor:'#dde8ff', AbsorbDist:800,  GlowAmount:0.45, CellHigh:'#e6dcff', CellLow:'#6f6cc9' },
+  tibio:   { FluidTop:'#d69aa0', FluidMid:'#7e3f58', FluidBottom:'#27101f', GlowColor:'#ffd6b3', MoteColor:'#ffe8da', AbsorbDist:700,  GlowAmount:0.40, CellHigh:'#ffe3d8', CellLow:'#b0607a' },
+  lavanda: { FluidTop:'#9aa6ec', FluidMid:'#8a86c8', FluidBottom:'#5c98a6', GlowColor:'#f1e9ff', MoteColor:'#f7f3ff', AbsorbDist:1100, GlowAmount:0.30, CellHigh:'#e9dcff', CellLow:'#8f86d9' },
+};
+const COLOR_KEYS = ['FluidTop','FluidMid','FluidBottom','GlowColor','MoteColor','CellHigh','CellLow'];
+
+const GROUPS = [
+  { title:'EEG (el único dato de la etapa)', open:true, items:[
+    { k:'EEG', label:'Valor del EEG (0 activo · 1 calma)', min:0, max:1, step:0.01, def:0.3, note:'La misma convención que GlobalState de la célula. En Unreal lo escribe la etapa desde el sensor.' },
+    { k:'bAutoEEG', label:'Señal simulada', type:'check', def:true, note:'Sube y baja sola (ciclo de 60 s) para ver la respuesta. Apagada: mover el valor a mano.' },
+    { k:'EEGSmoothing', label:'Suavizado', min:0.1, max:10, step:0.1, def:2.0, u:'s' },
+    { k:'EEGFlow', label:'Cuánto calma el movimiento', min:0, max:1, step:0.01, def:0.7, note:'Activo: remolinos hasta 1,8× más rápidos y más chicos, más estela. Calma: hasta la mitad de velocidad y casi sin remolinos chicos.' },
+    { k:'EEGClarity', label:'Cuánto aclara el agua', min:0, max:1, step:0.01, def:0.5, note:'En calma la distancia de absorción crece hasta 1,8×: se ve más lejos y el espacio se abre.' },
+  ]},
+  { title:'Movimiento del fluido', open:true, items:[
+    { k:'CurrentSpeed', label:'Corriente: velocidad', min:0, max:30, step:0.1, def:4, u:'cm/s', note:'Todo lo arrastra la misma corriente. El BP integra el arrastre cuadro a cuadro (uDrift), así puede cambiar de rumbo sin saltos.' },
+    { k:'CurrentYaw', label:'Corriente: dirección (giro)', min:-180, max:180, step:1, def:20, u:'°' },
+    { k:'CurrentPitch', label:'Corriente: dirección (altura)', min:-60, max:60, step:1, def:8, u:'°' },
+    { k:'Meander', label:'Corriente: cambio de rumbo', min:0, max:90, step:1, def:35, u:'°', note:'Cuánto se aparta el rumbo, despacio (ciclos de varios minutos).' },
+    { k:'FlowAmp', label:'Remolinos: amplitud', min:0, max:80, step:0.5, def:22, u:'cm' },
+    { k:'FlowScale', label:'Remolinos: tamaño', min:10, max:500, step:1, def:130, u:'cm' },
+    { k:'FlowSpeed', label:'Remolinos: velocidad', min:0, max:1, step:0.005, def:0.14, u:'rad/s' },
+    { k:'Turbulence', label:'Remolinos chicos', min:0, max:2, step:0.01, def:0.7, note:'Segunda escala, 2,3 veces más chica y 1,7 veces más rápida, girada. Las dos son campos sin divergencia: el medio no se comprime ni se amontona.' },
+    { k:'StreakTime', label:'Estela (estira las partículas)', min:0, max:0.8, step:0.01, def:0, u:'s', note:'En 0 cada partícula es un punto redondo que siempre mira al ojo. Subirlo las estira en la dirección del flujo (se ven alargadas).' },
+  ]},
+  { title:'Líquido', open:true, items:[
+    { k:'FluidTop', label:'Color arriba', type:'color' },
+    { k:'FluidMid', label:'Color al medio', type:'color' },
+    { k:'FluidBottom', label:'Color abajo', type:'color' },
+    { k:'GlowColor', label:'Luz desde arriba', type:'color' },
+    { k:'GlowAmount', label:'Intensidad de la luz', min:0, max:2, step:0.01, def:0.45 },
+    { k:'GlowPower', label:'Concentración de la luz', min:1, max:12, step:0.1, def:3 },
+    { k:'AbsorbDist', label:'Distancia de absorción', min:100, max:5000, step:10, def:800, u:'cm', note:'A esta distancia el medio ya se "comió" el 63 % del color de algo. Chico = líquido denso.' },
+    { k:'AbsorbMax', label:'Absorción máxima', min:0, max:1, step:0.01, def:0.92 },
+    { k:'AbsorbAlpha', label:'Pérdida de opacidad lejos', min:0, max:1, step:0.01, def:0.35 },
+  ]},
+  { title:'Partículas en suspensión', items:[
+    { k:'MoteColor', label:'Color', type:'color' },
+    { k:'MoteBright', label:'Brillo', min:0, max:3, step:0.01, def:1.25 },
+    { k:'NearCount', label:'Cantidad cerca (hasta 1,8 m)', min:0, max:2000, step:10, def:600, rebuild:true },
+    { k:'MidCount', label:'Cantidad media (hasta 6 m)', min:0, max:6000, step:50, def:2400, rebuild:true },
+    { k:'FarCount', label:'Cantidad lejos (hasta 20 m)', min:0, max:10000, step:50, def:4000, rebuild:true },
+    { k:'NearSize', label:'Tamaño cerca', min:0.05, max:2, step:0.01, def:0.45, u:'cm' },
+    { k:'MidSize', label:'Tamaño media', min:0.1, max:5, step:0.05, def:1.3, u:'cm' },
+    { k:'FarSize', label:'Tamaño lejos', min:0.5, max:20, step:0.1, def:6.0, u:'cm' },
+    { k:'NearAlpha', label:'Opacidad cerca', min:0, max:1, step:0.01, def:0.85 },
+    { k:'MidAlpha', label:'Opacidad media', min:0, max:1, step:0.01, def:0.60 },
+    { k:'FarAlpha', label:'Opacidad lejos', min:0, max:1, step:0.01, def:0.50 },
+    { k:'Bokeh', label:'Desenfoque de las muy cercanas', min:0, max:8, step:0.1, def:3.0, note:'Las partículas a menos de BokehDist crecen y se vuelven discos suaves, como fuera de foco.' },
+    { k:'BokehDist', label:'Distancia del desenfoque', min:20, max:150, step:1, def:60, u:'cm' },
+  ]},
+  { title:'Células en el agua', open:true, items:[
+    { k:'bReference', label:'Célula protagonista (referencia)', type:'check', def:true },
+    { k:'MidCellCount', label:'Células medias', min:0, max:16, step:1, def:8, note:'Malla baja y OPACAS: el desvanecido es color (absorción), no transparencia. Nacen a más de 3 m y se reciclan en un cubo de 26 m.' },
+    { k:'MidCellScale', label:'Tamaño de las medias', min:0.2, max:1.5, step:0.01, def:0.55 },
+    { k:'FarCellCount', label:'Células lejanas (siluetas)', min:0, max:120, step:1, def:48, rebuild:true, note:'Un quad cada una, todas en una sola llamada de dibujo; borde suave por alpha-to-coverage (el MSAA).' },
+    { k:'FarCellSize', label:'Tamaño de las lejanas', min:10, max:150, step:1, def:55, u:'cm' },
+    { k:'CellFlow', label:'Cuánto las mueven los remolinos', min:0, max:2, step:0.01, def:0.6 },
+    { k:'CellHigh', label:'Color con luz', type:'color' },
+    { k:'CellLow', label:'Color en sombra', type:'color' },
+  ]},
+  { title:'Luz en el agua', items:[
+    { k:'CausticAmount', label:'Cáusticas sobre las células', min:0, max:2, step:0.01, def:0.6 },
+    { k:'CausticScale', label:'Tamaño de las cáusticas', min:5, max:200, step:1, def:18, u:'cm' },
+    { k:'CausticSpeed', label:'Velocidad de las cáusticas', min:0, max:3, step:0.01, def:0.6 },
+    { k:'MoteSparkle', label:'Destellos en las partículas', min:0, max:3, step:0.01, def:0.8 },
+    { k:'ShaftAmount', label:'Haces desde arriba', min:0, max:2, step:0.01, def:0.14 },
+    { k:'VeilAmount', label:'Velos lejanos', min:0, max:2, step:0.01, def:0.5 },
+  ]},
+  { title:'Manos', items:[
+    { k:'StirStrength', label:'Empuje', min:0, max:0.6, step:0.005, def:0.18, u:'s', note:'Desplazamiento = velocidad de la mano × este tiempo, con caída suave alrededor de la mano.' },
+    { k:'StirRadius', label:'Radio', min:5, max:80, step:0.5, def:22, u:'cm' },
+    { k:'StirSwirl', label:'Remolino', min:0, max:3, step:0.01, def:0.8 },
+  ]},
+  { title:'Vista y sonido', items:[
+    { k:'bHeadSway', label:'Simular movimiento de cabeza', type:'check', def:true, note:'En pantalla plana el paralaje solo aparece si la cabeza se mueve.' },
+    { k:'HeadSway', label:'Cuánto se mueve', min:0, max:3, step:0.01, def:1.0 },
+    { k:'FOV', label:'Campo de visión', min:50, max:110, step:1, def:70, u:'°', note:'Solo para la pantalla plana: con un campo amplio, lo que está cerca del borde se estira (una esfera se ve como huevo). En el visor no pasa: cada ojo mira la imagen desde el ángulo correcto.' },
+    { k:'Volume', label:'Volumen', min:0, max:1, step:0.01, def:0.6 },
+    { k:'Muffle', label:'Apagado (filtro)', min:150, max:2000, step:10, def:420, u:'Hz' },
+  ]},
+];
+
+/* ---------- color: sRGB <-> lineal ---------- */
+const s2l = v => (v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+const l2s = v => (v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055);
+function hex2lin(hex){ const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => s2l(v / 255)); }
+function lin2hex(c){ return '#' + c.map(v => Math.round(Math.min(Math.max(l2s(Math.min(Math.max(v, 0), 1)), 0), 1) * 255).toString(16).padStart(2, '0')).join(''); }
+
+const P = {};
+function defaults(){
+  for (const g of GROUPS) for (const it of g.items) if (it.type !== 'color') P[it.k] = it.def;
+  applyPreset('frio', false);
+}
+function applyPreset(name, refresh = true){
+  const pr = PRESETS[name];
+  for (const k of COLOR_KEYS) P[k] = hex2lin(pr[k]);
+  P.AbsorbDist = pr.AbsorbDist; P.GlowAmount = pr.GlowAmount;
+  if (refresh) syncUI();
+}
+
+/* =====================================================================================
+   GLSL COMPARTIDO — cuentas en coordenadas UE (X adelante, Y derecha, Z arriba, cm)
+   ===================================================================================== */
+const GLSL_COMMON = `
+uniform float uTime;
+uniform vec3  uFluidTop;
+uniform vec3  uFluidMid;
+uniform vec3  uFluidBot;
+uniform vec4  uGlow;      // rgb luz desde arriba (lineal), a = intensidad
+uniform vec4  uAbsorb;    // x distancia cm, y maximo, z perdida de opacidad, w concentracion de la luz
+uniform vec4  uCaus;      // x cantidad, y tamano cm, z -, w destellos en particulas
+uniform vec4  uPhase;     // x fase de los remolinos, y fase de las causticas, z velocidad de los remolinos (rad/s)
+uniform vec4  uFlow;      // x amplitud cm, y tamano cm, z -, w remolinos chicos
+uniform vec3  uDrift;     // arrastre ACUMULADO de la corriente (cm) - lo integra el BP
+uniform vec3  uDriftVel;  // velocidad actual de la corriente (cm/s)
+
+vec3 toUE(vec3 t) { return vec3(-t.z, t.x, t.y); }
+vec3 toThree(vec3 u) { return vec3(u.y, u.z, -u.x); }
+
+vec3 linearToSRGB(vec3 c) {
+  c = clamp(c, 0.0, 1.0);
+  vec3 lo = 12.92 * c;
+  vec3 hi = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;
+  return mix(hi, lo, vec3(lessThanEqual(c, vec3(0.0031308))));
+}
+
+// El MEDIO en una direccion: degradado de 3 colores + luz desde arriba.
+// Lo usan el fondo Y la absorcion de todo lo demas: lo lejano se funde EXACTO en el fondo.
+vec3 fluidColor(vec3 d) {
+  float h = clamp(d.z * 0.5 + 0.5, 0.0, 1.0);
+  vec3 c = mix(mix(uFluidBot, uFluidMid, clamp(h * 2.0, 0.0, 1.0)), uFluidTop, clamp(h * 2.0 - 1.0, 0.0, 1.0));
+  return c + uGlow.rgb * (uGlow.a * pow(max(d.z, 0.0), uAbsorb.w));
+}
+float absorbAt(float dist) { return (1.0 - exp(-dist / max(uAbsorb.x, 1.0))) * uAbsorb.y; }
+
+// Cáustica barata: red de lineas en los cruces por cero de tres senos deformados (sin textura)
+float caustic(vec2 p, float t) {
+  float a = sin(p.x + sin(p.y * 0.8 + t * 0.7) + t * 0.4);
+  float b = sin(p.y * 1.1 + sin(p.x * 0.9 - t * 0.6) - t * 0.5);
+  float c = sin((p.x + p.y) * 0.7 + t * 0.3);
+  float v = (a + b + c) * 0.3333333;
+  float r = max(1.0 - abs(v) * 1.8, 0.0);
+  return r * r * r;
+}
+
+// ---- EL FLUIDO: campo CURL sin divergencia, dos escalas ----
+// Cada componente depende solo de los OTROS dos ejes -> div = 0 (el medio no se comprime).
+vec3 sinCurl(vec3 p, float t) {
+  return vec3(sin(p.y + t)                  + 0.5 * sin(p.z * 1.37 + t * 0.71 + 2.1),
+              sin(p.z * 1.13 + t * 1.21 + 1.7) + 0.5 * sin(p.x * 1.51 + t * 0.83 + 0.4),
+              sin(p.x * 0.91 + t * 0.83 + 3.1) + 0.5 * sin(p.y * 1.29 + t * 1.07 + 5.2));
+}
+// Rotacion fija (ortonormal): la segunda escala en otros ejes. R^T G(R p) sigue sin divergencia.
+vec3 rotR(vec3 p)  { return vec3(dot(vec3(0.36, 0.48, -0.8), p), dot(vec3(-0.8, 0.6, 0.0), p), dot(vec3(0.48, 0.64, 0.6), p)); }
+vec3 rotRT(vec3 v) { return vec3(0.36, 0.48, -0.8) * v.x + vec3(-0.8, 0.6, 0.0) * v.y + vec3(0.48, 0.64, 0.6) * v.z; }
+// Base de un sprite ORIENTADO HACIA LA CAMARA (no alineado con la pantalla): el quad queda perpendicular a
+// la direccion particula -> ojo, asi nunca se ve aplastado, ni en los bordes de un FOV amplio ni en el visor
+// (Beltran: "siempre facing a la camara; si no se ven como circulos aplanados muy feos").
+void facingBasis(vec3 P, vec3 camUE, out vec3 f, out vec3 rgt, out vec3 upv) {
+  f = normalize(camUE - P);
+  rgt = normalize(cross(vec3(0.0, 0.0, 1.0), f) + vec3(1.0e-4, 0.0, 0.0));
+  upv = cross(f, rgt);
+}
+vec3 flowAt(vec3 p, float ph) {
+  vec3 q = p / max(uFlow.y, 1.0);
+  vec3 f1 = sinCurl(q, ph);
+  vec3 f2 = rotRT(sinCurl(rotR(q * 2.3), ph * 1.7 + 1.3));
+  return (uFlow.x / 1.5) * (f1 + (uFlow.w * 0.45) * f2);
+}
+`;
+
+/* ---------- fondo: el medio en el infinito (esfera pegada a la cabeza) ---------- */
+const BG_VS = GLSL_COMMON + `
+varying vec3 vDirUE;
+void main() {
+  vDirUE = toUE(normalize(position));
+  gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+  gl_Position.z = gl_Position.w * 0.99999;   // siempre al fondo
+}
+`;
+const BG_FS = GLSL_COMMON + `
+varying vec3 vDirUE;
+void main() {
+  vec3 c = fluidColor(normalize(vDirUE));
+  float n = fract(dot(gl_FragCoord.xy, vec2(0.7548776662, 0.5698402910)));   // dither R2: sin bandas en 8 bits
+  gl_FragColor = vec4(linearToSRGB(c) + (n - 0.5) / 255.0, 1.0);
+}
+`;
+
+/* ---------- particulas en suspension (una malla por capa) ---------- */
+const MOTE_VS = GLSL_COMMON + `
+attribute vec2 aCorner;   // esquina del quad (-1..1)
+attribute vec4 aSeed;     // xyz semilla en el cubo, w fase/tamano
+uniform vec4 uLayerA;     // x lado del cubo cm, y tamano min cm, z tamano max cm, w opacidad
+uniform vec4 uLayerB;     // x/y aparicion por cercania (cm), z distancia del desenfoque, w crecimiento del desenfoque
+uniform vec3 uHeadUE;     // centro del cubo (la cabeza, NO el ojo: igual para los dos ojos)
+uniform vec4 uHand0;      // xyz posicion, w radio cm
+uniform vec4 uHandV0;     // xyz velocidad cm/s, w empuje (s)
+uniform vec4 uHand1;
+uniform vec4 uHandV1;
+uniform vec4 uStir;       // x remolino de la mano, y estela (s)
+uniform vec4 uMote;       // rgb color lineal, a brillo
+varying vec2 vUV;
+varying vec3 vCol;
+varying float vA;
+varying float vBok;
+
+vec3 stir(vec3 p, vec4 H, vec4 V) {
+  vec3 d = p - H.xyz;
+  float R = max(H.w, 1.0);
+  float f = exp(-dot(d, d) / (R * R)) * V.w;
+  return (V.xyz + cross(V.xyz, d) * (uStir.x / R)) * f;
+}
+vec3 wrapHead(vec3 a, float cell) {
+  vec3 rel = a - uHeadUE;
+  return uHeadUE + (fract(rel / cell + 0.5) - 0.5) * cell;   // cubo que acompana a la cabeza (infinito)
+}
+
+void main() {
+  float cell = uLayerA.x;
+  vec3 anchor = wrapHead(aSeed.xyz * cell + uDrift, cell);             // la corriente lleva el ancla
+  vec3 P = anchor + flowAt(anchor, uPhase.x);                           // los remolinos la mueven alrededor
+  // velocidad REAL (para la estela): la misma cuenta 0,2 s antes
+  vec3 aPrev = anchor - uDriftVel * 0.2;
+  vec3 vel = (P - (aPrev + flowAt(aPrev, uPhase.x - uPhase.z * 0.2))) * 5.0;
+  P += stir(P, uHand0, uHandV0) + stir(P, uHand1, uHandV1);
+
+  vec3 camUE = toUE(cameraPosition);
+  vec3 toP = P - camUE;
+  float dist = max(length(toP), 1.0);
+  vec3 dir = toP / dist;
+  vec3 rel = anchor - uHeadUE;
+  float edge  = 1.0 - smoothstep(0.36, 0.5, max(max(abs(rel.x), abs(rel.y)), abs(rel.z)) / cell);
+  float nearF = smoothstep(uLayerB.x, uLayerB.y, dist);
+  float bz    = max(uLayerB.z, 1.0);                                      // smoothstep con bordes iguales es indefinido
+  float bok   = (1.0 - smoothstep(bz * 0.35, bz, dist)) * step(0.001, uLayerB.w);
+  float e     = aSeed.w;
+  float size  = mix(uLayerA.y, uLayerA.z, fract(e * 7.31)) * (1.0 + uLayerB.w * bok);
+  float ab    = absorbAt(dist);
+  float tw    = 0.75 + 0.25 * sin(uTime * (0.6 + 1.3 * fract(e * 3.7)) + 6.2831853 * e);
+  float spark = uCaus.w * caustic(P.xy / max(uCaus.y, 1.0), uPhase.y);
+  vec3 col = mix(uMote.rgb * uMote.a * (1.0 + spark), fluidColor(dir), ab);
+
+  vA   = uLayerA.w * edge * nearF * tw * (1.0 - ab * uAbsorb.z) * (1.0 - 0.6 * bok);
+  vCol = col;
+  vUV  = aCorner;
+  vBok = bok;
+  // quad ORIENTADO HACIA EL OJO; con estela > 0 se estira a lo largo de la velocidad (proyectada en su plano)
+  vec3 f, rgt, upv;
+  facingBasis(P, camUE, f, rgt, upv);
+  vec3 vt = vel - f * dot(vel, f);
+  float sp = length(vt);
+  vec3 ax = sp > 1.0e-3 ? vt / sp : rgt;
+  vec3 pe = cross(f, ax);
+  float len = size + sp * uStir.y * (1.0 - bok);
+  vec3 Pc = P + ax * (aCorner.x * len) + pe * (aCorner.y * size);
+  gl_Position = projectionMatrix * viewMatrix * vec4(toThree(Pc), 1.0);
+}
+`;
+const MOTE_FS = `
+varying vec2 vUV;
+varying vec3 vCol;
+varying float vA;
+varying float vBok;
+vec3 linearToSRGB(vec3 c) {
+  c = clamp(c, 0.0, 1.0);
+  vec3 lo = 12.92 * c;
+  vec3 hi = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;
+  return mix(hi, lo, vec3(lessThanEqual(c, vec3(0.0031308))));
+}
+void main() {
+  float m = clamp(1.0 - dot(vUV, vUV), 0.0, 1.0);
+  float s = mix(m * m, smoothstep(0.0, 0.3, m) * 0.55, vBok);   // punto nitido / disco fuera de foco
+  gl_FragColor = vec4(linearToSRGB(vCol), vA * s);
+}
+`;
+
+/* ---------- celulas opacas (protagonista + medias): sombreado del secuenciador + causticas + absorcion ---------- */
+const OBJ_VS = GLSL_COMMON + `
+varying vec3 vPUE;
+varying vec3 vNUE;
+void main() {
+  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vPUE = toUE(wp.xyz);
+  vNUE = toUE(normalize(mat3(modelMatrix) * normal));
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}
+`;
+const OBJ_FS = GLSL_COMMON + `
+uniform vec4 uHigh;        // luz (rgb), a = brillo
+uniform vec4 uLow;         // sombra (rgb), a = contraste
+uniform vec4 uFill;        // relleno de sombra (rgb), a = tinte
+uniform vec3 uLightUE;
+varying vec3 vPUE;
+varying vec3 vNUE;
+void main() {
+  vec3 N = normalize(vNUE);
+  vec3 L = normalize(uLightUE);
+  float w = mix(1.0, dot(N, L) * 0.5 + 0.5, uLow.a);
+  vec3 c = mix(uLow.rgb, uHigh.rgb, w) * uHigh.a;
+  float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  c += uFill.rgb * uFill.a * (1.0 - lum) * 0.5;
+  c *= 1.0 + uCaus.x * caustic(vPUE.xy / max(uCaus.y, 1.0), uPhase.y) * max(N.z, 0.0);
+  vec3 camUE = toUE(cameraPosition);
+  vec3 toP = vPUE - camUE;
+  float dist = max(length(toP), 1.0);
+  c = mix(c, fluidColor(toP / dist), absorbAt(dist));
+  gl_FragColor = vec4(linearToSRGB(c), 1.0);
+}
+`;
+
+/* ---------- celulas LEJANAS: silueta en un quad (nucleo + 3-5 satelites), una sola llamada ---------- */
+const FAR_VS = GLSL_COMMON + `
+attribute vec2 aCorner;
+attribute vec4 aSeed;
+uniform vec3 uHeadUE;
+uniform vec4 uFarA;       // x lado del cubo cm, y tamano cm, z cuanto las mueven los remolinos, w -
+uniform vec4 uFarB;       // x/y aparicion por cercania (cm)
+varying vec2 vUV;
+varying vec3 vFluid;
+varying float vAb;
+varying float vFade;
+varying float vSeed;
+varying float vRot;
+void main() {
+  float cube = uFarA.x;
+  vec3 rel = aSeed.xyz * cube + uDrift - uHeadUE;
+  rel = (fract(rel / cube + 0.5) - 0.5) * cube;
+  vec3 anchor = uHeadUE + rel;
+  vec3 P = anchor + flowAt(anchor, uPhase.x) * uFarA.z;
+  vec3 camUE = toUE(cameraPosition);
+  vec3 toP = P - camUE;
+  float dist = max(length(toP), 1.0);
+  float edge = 1.0 - smoothstep(0.38, 0.5, max(max(abs(rel.x), abs(rel.y)), abs(rel.z)) / cube);
+  vFade = edge * smoothstep(uFarB.x, uFarB.y, dist);
+  vAb = absorbAt(dist);
+  vFluid = fluidColor(toP / dist);
+  vSeed = aSeed.w;
+  vRot = 6.2831853 * aSeed.w + uTime * 0.03 * (fract(aSeed.w * 5.3) - 0.5);
+  vUV = aCorner;
+  float size = uFarA.y * (0.7 + 0.6 * fract(aSeed.w * 3.1));
+  vec3 f, rgt, upv;
+  facingBasis(P, camUE, f, rgt, upv);
+  gl_Position = projectionMatrix * viewMatrix * vec4(toThree(P + (rgt * aCorner.x + upv * aCorner.y) * size), 1.0);
+}
+`;
+const FAR_FS = GLSL_COMMON + `
+uniform vec4 uHigh;
+uniform vec4 uLow;
+varying vec2 vUV;
+varying vec3 vFluid;
+varying float vAb;
+varying float vFade;
+varying float vSeed;
+varying float vRot;
+void main() {
+  // union de discos (nucleo + satelites): el que gana da la "normal" de una esfera
+  float best = 1.0 - length(vUV) / 0.36;
+  vec3 n = vec3(vUV / 0.36, sqrt(max(1.0 - dot(vUV, vUV) / 0.1296, 0.0)));
+  float nSat = 3.0 + floor(fract(vSeed * 7.7) * 2.999);
+  for (int k = 0; k < 5; k++) {                                   // cota constante (regla Adreno)
+    float fk = float(k);
+    float ang = vRot + fk * 1.2566371 + 0.5 * sin(vSeed * 17.0 + fk * 3.1);
+    vec2 c = 0.62 * vec2(cos(ang), sin(ang));
+    float r = 0.13 + 0.05 * sin(vSeed * 9.0 + fk * 2.3);
+    vec2 d = (vUV - c) / r;
+    float f = (1.0 - length(d)) * step(fk, nSat - 0.5);
+    if (f > best) { best = f; n = vec3(d, sqrt(max(1.0 - dot(d, d), 0.0))); }
+  }
+  float w = mix(1.0, dot(normalize(n), normalize(vec3(-0.35, 0.75, 0.55))) * 0.5 + 0.5, uLow.a);
+  vec3 c = mix(uLow.rgb, uHigh.rgb, w) * uHigh.a;
+  c = mix(c, vFluid, vAb);
+  gl_FragColor = vec4(linearToSRGB(c), smoothstep(0.0, 0.12, best) * vFade);   // alpha -> coverage (MSAA)
+}
+`;
+
+/* ---------- haces desde arriba (aditivos, orientados a la camara alrededor de su eje) ---------- */
+const SHAFT_VS = GLSL_COMMON + `
+attribute vec2 aCorner;   // x = -1..1 a lo ancho, y = 0..1 a lo largo
+uniform vec4 uShaftA;     // xyz arranque (arriba), w largo cm
+uniform vec4 uShaftB;     // xyz eje unitario (hacia abajo), w ancho cm
+uniform vec4 uShaftC;     // x fase, y cantidad global
+varying vec2 vUV;
+varying float vAb;
+varying float vShim;
+void main() {
+  vec3 camUE = toUE(cameraPosition);
+  vec3 C = uShaftA.xyz + uShaftB.xyz * (aCorner.y * uShaftA.w);
+  vec3 side = normalize(cross(uShaftB.xyz, C - camUE) + vec3(0.0, 0.0, 1.0e-4));
+  float wid = uShaftB.w * (0.55 + 0.45 * aCorner.y);                 // se abre hacia abajo
+  vec3 P = C + side * (aCorner.x * wid);
+  vAb = absorbAt(length(P - camUE));
+  vShim = 0.7 + 0.3 * sin(uTime * 0.45 + uShaftC.x + aCorner.y * 5.0);
+  vUV = aCorner;
+  gl_Position = projectionMatrix * viewMatrix * vec4(toThree(P), 1.0);
+}
+`;
+const SHAFT_FS = GLSL_COMMON + `
+uniform vec4 uShaftC;
+varying vec2 vUV;
+varying float vAb;
+varying float vShim;
+void main() {
+  float across = 1.0 - vUV.x * vUV.x;
+  across *= across;
+  float along = pow(sin(3.14159265 * clamp(vUV.y, 0.0, 1.0)), 1.5);
+  float a = uShaftC.y * across * along * vShim * (1.0 - 0.7 * vAb) * 0.18;
+  gl_FragColor = vec4(linearToSRGB(uGlow.rgb * a), 1.0);
+}
+`;
+
+/* ---------- velos lejanos (densidad del medio: manchas enormes y tenues, llevadas por la corriente) ---------- */
+const VEIL_VS = GLSL_COMMON + `
+attribute vec2 aCorner;
+uniform vec3 uHeadUE;
+uniform vec4 uVeil;    // xyz centro, w tamano cm
+uniform vec4 uVeil2;   // x tinte (+ mas claro / - mas oscuro), y fase, z alargamiento, w cantidad global
+varying vec2 vUV;
+varying vec3 vCol;
+varying float vA;
+void main() {
+  float cube = 6000.0;
+  vec3 rel = uVeil.xyz + uDrift * 0.6 - uHeadUE;
+  rel = (fract(rel / cube + 0.5) - 0.5) * cube;
+  vec3 C = uHeadUE + rel;
+  vec3 camUE = toUE(cameraPosition);
+  vec3 toC = C - camUE;
+  float dist = max(length(toC), 1.0);
+  float edge = 1.0 - smoothstep(0.35, 0.5, max(max(abs(rel.x), abs(rel.y)), abs(rel.z)) / cube);
+  vCol = fluidColor(toC / dist) * (1.0 + uVeil2.x);
+  vA = uVeil2.w * edge * (0.6 + 0.4 * sin(uTime * 0.05 + uVeil2.y)) * smoothstep(400.0, 900.0, dist);
+  vUV = aCorner;
+  vec3 f, rgt, upv;
+  facingBasis(C, camUE, f, rgt, upv);
+  vec3 Pv = C + (rgt * (aCorner.x * uVeil2.z) + upv * aCorner.y) * uVeil.w;
+  gl_Position = projectionMatrix * viewMatrix * vec4(toThree(Pv), 1.0);
+}
+`;
+const VEIL_FS = `
+varying vec2 vUV;
+varying vec3 vCol;
+varying float vA;
+vec3 linearToSRGB(vec3 c) {
+  c = clamp(c, 0.0, 1.0);
+  vec3 lo = 12.92 * c;
+  vec3 hi = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;
+  return mix(hi, lo, vec3(lessThanEqual(c, vec3(0.0031308))));
+}
+void main() {
+  float r2 = dot(vUV, vUV);
+  vec2 o = vUV - vec2(0.35, -0.2);
+  float m = max(exp(-r2 * 2.6) + 0.6 * exp(-dot(o, o) * 5.0) - 0.08, 0.0);
+  gl_FragColor = vec4(linearToSRGB(vCol), clamp(vA * m * 0.14, 0.0, 1.0));
+}
+`;
+
+/* =====================================================================================
+   EL MISMO CAMPO EN JS (mueve las celulas medias, que son mallas: la cuenta es identica al GLSL)
+   ===================================================================================== */
+const RR = [[0.36, 0.48, -0.8], [-0.8, 0.6, 0.0], [0.48, 0.64, 0.6]];
+function sinCurl(x, y, z, t){
+  return [Math.sin(y + t) + 0.5 * Math.sin(z * 1.37 + t * 0.71 + 2.1),
+          Math.sin(z * 1.13 + t * 1.21 + 1.7) + 0.5 * Math.sin(x * 1.51 + t * 0.83 + 0.4),
+          Math.sin(x * 0.91 + t * 0.83 + 3.1) + 0.5 * Math.sin(y * 1.29 + t * 1.07 + 5.2)];
+}
+function flowAtJS(p, ph){
+  const L = Math.max(P.FlowScale, 1), q = [p[0] / L, p[1] / L, p[2] / L];   // EFF = perillas ya moduladas por el EEG
+  const f1 = sinCurl(q[0], q[1], q[2], ph);
+  const q2 = [q[0] * 2.3, q[1] * 2.3, q[2] * 2.3];
+  const r = RR.map(row => row[0] * q2[0] + row[1] * q2[1] + row[2] * q2[2]);
+  const g = sinCurl(r[0], r[1], r[2], ph * 1.7 + 1.3);
+  const f2 = [0, 1, 2].map(j => RR[0][j] * g[0] + RR[1][j] * g[1] + RR[2][j] * g[2]);
+  const k = EFF.FlowAmp / 1.5, tb = EFF.Turbulence * 0.45;
+  return [k * (f1[0] + tb * f2[0]), k * (f1[1] + tb * f2[1]), k * (f1[2] + tb * f2[2])];
+}
+
+/* =====================================================================================
+   ESCENA
+   ===================================================================================== */
+const stage = document.getElementById('stage');
+const failBox = document.getElementById('fail');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+} catch (err) {
+  failBox.innerHTML = '<strong>Este navegador no pudo crear un contexto WebGL.</strong><br>Probar con Chrome, Edge o Firefox actualizados.';
+  failBox.hidden = false;
+  throw err;
+}
+renderer.toneMapping = THREE.NoToneMapping;             // sin tonemapper, como el APK
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace; // la OETF la aplica cada shader
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.xr.enabled = true;
+renderer.debug.onShaderError = (gl, program, vs, fs) => {
+  const log = [gl.getProgramInfoLog(program), gl.getShaderInfoLog(vs), gl.getShaderInfoLog(fs)].filter(Boolean).join('\n');
+  console.error('FLUIDO: error de shader\n' + log);
+  failBox.innerHTML = '<strong>Un shader no compiló.</strong><br>El detalle está en la consola del navegador (F12).';
+  failBox.hidden = false;
+};
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(70, 1, 5, 200000);
+const UE = (x, y, z) => new THREE.Vector3(y, z, -x);            // UE -> three
+const toUEArr = v => [-v.z, v.x, v.y];                          // three -> UE
+
+const v3 = (a = [0, 0, 0]) => ({ value: new THREE.Vector3(...a) });
+const v4 = () => ({ value: new THREE.Vector4() });
+const G = {
+  uTime: { value: 0 },
+  uFluidTop: v3(), uFluidMid: v3(), uFluidBot: v3(),
+  uGlow: v4(), uAbsorb: v4(), uCaus: v4(), uPhase: v4(), uFlow: v4(),
+  uDrift: v3(), uDriftVel: v3(), uHeadUE: v3([0, 0, 120]),
+};
+const M = {
+  uHand0: v4(), uHandV0: v4(), uHand1: v4(), uHandV1: v4(),
+  uStir: v4(), uMote: v4(),
+};
+
+// Fondo
+const bg = new THREE.Mesh(new THREE.SphereGeometry(1000, 64, 32),
+  new THREE.ShaderMaterial({ uniforms: G, vertexShader: BG_VS, fragmentShader: BG_FS, side: THREE.BackSide, depthWrite: false, depthTest: false }));
+bg.renderOrder = -10;
+bg.frustumCulled = false;
+scene.add(bg);
+
+// Quads con semilla en los atributos (como SM_LovingDust_SC)
+function rng(seed){ let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function seededQuads(n, seed){
+  const r = rng(seed);
+  const pos = new Float32Array(n * 12), cor = new Float32Array(n * 8), sd = new Float32Array(n * 16), idx = new Uint32Array(n * 6);
+  const C = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  for (let i = 0; i < n; i++) {
+    const s = [r(), r(), r(), r()];
+    for (let k = 0; k < 4; k++) { cor.set(C[k], (i * 4 + k) * 2); sd.set(s, (i * 4 + k) * 4); }
+    idx.set([i * 4, i * 4 + 1, i * 4 + 2, i * 4, i * 4 + 2, i * 4 + 3], i * 6);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('aCorner', new THREE.BufferAttribute(cor, 2));
+  g.setAttribute('aSeed', new THREE.BufferAttribute(sd, 4));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  return g;
+}
+
+// Particulas: tres capas
+const LAYERS = [
+  { key:'Far',  cell:4000, seed:11, fade:[250, 600], bokeh:0, order:3 },
+  { key:'Mid',  cell:1200, seed:23, fade:[40, 110],  bokeh:0, order:4 },
+  { key:'Near', cell:360,  seed:37, fade:[12, 26],   bokeh:1, order:5 },
+];
+for (const L of LAYERS) {
+  L.uA = v4(); L.uB = v4();
+  L.mat = new THREE.ShaderMaterial({
+    uniforms: Object.assign({}, G, M, { uLayerA: L.uA, uLayerB: L.uB }),
+    vertexShader: MOTE_VS, fragmentShader: MOTE_FS, transparent: true, depthWrite: false,
+    side: THREE.DoubleSide,   // la base se arma en UE (mano izquierda): en three el orden de los triangulos se invierte
+  });
+}
+
+// Celulas lejanas: una malla de quads (siluetas), alpha-to-coverage
+const cellColors = { uHigh: { value: new THREE.Vector4() }, uLow: { value: new THREE.Vector4() } };
+const farU = { uFarA: v4(), uFarB: { value: new THREE.Vector4(700, 1100, 0, 0) } };
+const farMat = new THREE.ShaderMaterial({
+  uniforms: Object.assign({}, G, cellColors, farU), vertexShader: FAR_VS, fragmentShader: FAR_FS,
+  alphaToCoverage: true, side: THREE.DoubleSide,
+});
+let farMesh = null, farN = -1;
+
+function rebuildQuads(){
+  for (const L of LAYERS) {
+    const n = Math.round(P[L.key + 'Count']);
+    if (L.mesh && L.n === n) continue;
+    if (L.mesh) { scene.remove(L.mesh); L.mesh.geometry.dispose(); }
+    L.n = n;
+    L.mesh = new THREE.Mesh(seededQuads(Math.max(n, 1), L.seed), L.mat);
+    L.mesh.visible = n > 0; L.mesh.frustumCulled = false; L.mesh.renderOrder = L.order;
+    scene.add(L.mesh);
+  }
+  const nf = Math.round(P.FarCellCount);
+  if (nf !== farN) {
+    if (farMesh) { scene.remove(farMesh); farMesh.geometry.dispose(); }
+    farN = nf;
+    farMesh = new THREE.Mesh(seededQuads(Math.max(nf, 1), 71), farMat);
+    farMesh.visible = nf > 0; farMesh.frustumCulled = false;
+    scene.add(farMesh);
+  }
+}
+
+// Haces: 4, lejanos, desde arriba
+function quadStrip(){
+  const g = new THREE.BufferGeometry();
+  const segs = 8, cor = [], idx = [];
+  for (let j = 0; j <= segs; j++) { const y = j / segs; cor.push(-1, y, 1, y); }
+  for (let j = 0; j < segs; j++) { const a = j * 2; idx.push(a, a + 1, a + 3, a, a + 3, a + 2); }
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array((segs + 1) * 6), 3));
+  g.setAttribute('aCorner', new THREE.BufferAttribute(new Float32Array(cor), 2));
+  g.setIndex(idx);
+  return g;
+}
+const shafts = [];
+[[1700, -650, 2200, 3200, 55, 0.0], [2300, 900, 2500, 3600, 85, 1.9], [1400, 250, 2000, 2800, 40, 3.1], [2900, -1500, 2700, 4000, 110, 4.4]].forEach(([x, y, z, len, wid, ph]) => {
+  const ax = new THREE.Vector3(-0.32, 0.10, -1).normalize();
+  const u = { uShaftA: { value: new THREE.Vector4(x, y, z, len) }, uShaftB: { value: new THREE.Vector4(ax.x, ax.y, ax.z, wid) }, uShaftC: { value: new THREE.Vector4(ph, 0, 0, 0) } };
+  const m = new THREE.Mesh(quadStrip(), new THREE.ShaderMaterial({
+    uniforms: Object.assign({}, G, u), vertexShader: SHAFT_VS, fragmentShader: SHAFT_FS,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  }));
+  m.frustumCulled = false; m.renderOrder = 2; scene.add(m); shafts.push(u);
+});
+
+// Velos lejanos
+function quad(){
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(12), 3));
+  g.setAttribute('aCorner', new THREE.BufferAttribute(new Float32Array([-1, -1, 1, -1, 1, 1, -1, 1]), 2));
+  g.setIndex([0, 1, 2, 0, 2, 3]);
+  return g;
+}
+const veils = [];
+[[1800, -700, 300, 1400, 0.10, 0.3, 1.6], [2400, 900, 700, 1900, -0.08, 1.4, 1.3], [1300, 300, -250, 1000, 0.12, 2.2, 2.0],
+ [-1600, 1200, 400, 1700, 0.08, 3.3, 1.5], [300, -2200, 900, 1600, -0.06, 4.1, 1.2], [600, 2000, -600, 1500, 0.09, 5.2, 1.8]].forEach(([x, y, z, s, t, ph, el]) => {
+  const u = { uVeil: { value: new THREE.Vector4(x, y, z, s) }, uVeil2: { value: new THREE.Vector4(t, ph, el, 0) } };
+  const m = new THREE.Mesh(quad(), new THREE.ShaderMaterial({
+    uniforms: Object.assign({}, G, u), vertexShader: VEIL_VS, fragmentShader: VEIL_FS, transparent: true, depthWrite: false,
+    side: THREE.DoubleSide,
+  }));
+  m.frustumCulled = false; m.renderOrder = 1; scene.add(m); veils.push(u);
+});
+
+// Celulas opacas: la protagonista (referencia) + las medias (malla baja)
+const objU = Object.assign({}, G, cellColors, {
+  uFill: { value: new THREE.Vector4(...hex2lin('#2b2466'), 0.52) },
+  uLightUE: { value: new THREE.Vector3(-0.15, 0.30, 0.94) },
+});
+const objMat = new THREE.ShaderMaterial({ uniforms: objU, vertexShader: OBJ_VS, fragmentShader: OBJ_FS });
+function makeCell(coreR, coreDetail, satDetail, rnd){
+  const g = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(coreR, coreDetail), objMat);
+  g.add(core);
+  const n = 3 + Math.floor(rnd() * 3), sats = [];
+  for (let i = 0; i < n; i++) {
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(coreR * (0.26 + 0.1 * rnd()), satDetail), objMat);
+    m.userData = { a: Math.PI / 2 + i * 2 * Math.PI / n + 0.35 * (rnd() - 0.5), r: coreR * (2.7 + 0.6 * rnd()), dz: coreR * 0.35 * (rnd() - 0.5), ph: rnd() * 6.28 };
+    g.add(m); sats.push(m);
+  }
+  g.userData = { sats };
+  return g;
+}
+const hero = makeCell(16, 5, 3, rng(5));
+scene.add(hero);
+const midCells = [];
+{
+  const r = rng(97);
+  for (let i = 0; i < 16; i++) {
+    const c = makeCell(16, 2, 1, r);                           // ~160 vertices el nucleo, 42 cada satelite
+    c.userData.seed = [r(), r(), r()];
+    c.userData.scale = 0.75 + 0.5 * r();
+    c.userData.spin = (r() - 0.5) * 0.08;
+    scene.add(c); midCells.push(c);
+  }
+}
+function layoutCell(g, t, spin){
+  g.userData.sats.forEach((m, i) => {
+    const d = m.userData, a = d.a + spin + 0.05 * Math.sin(t * 0.21 + d.ph);
+    m.position.set(d.r * Math.cos(a), d.r * Math.sin(a) + d.dz * 0.3, d.dz + 2 * Math.sin(t * 0.33 + d.ph));
+  });
+}
+
+/* =====================================================================================
+   ESTADO VIVO: corriente, fases, manos, cabeza
+   ===================================================================================== */
+let t = 0, paused = false;
+let flowPh = 0, causPh = 0;                                   // fases integradas (como el BP)
+let eegS = 0.3;                                               // EEG suavizado
+const EFF = { FlowAmp: 22, Turbulence: 0.7, FlowSpeed: 0.14, CurrentSpeed: 4, AbsorbDist: 800, StreakTime: 0 };
+const drift = new THREE.Vector3(), driftVel = new THREE.Vector3();   // en UE
+let yaw = 0, pitch = -0.02;
+const keys = new Set();
+const headOff = new THREE.Vector3();
+const hands = [
+  { pos: new THREE.Vector3(0, -9999, 0), prev: null, vel: new THREE.Vector3(), active: false },
+  { pos: new THREE.Vector3(0, -9999, 0), prev: null, vel: new THREE.Vector3(), active: false },
+];
+
+// Sonido (WebAudio): rumor filtrado, como bajo el agua. Arranca solo con un clic.
+let audio = null;
+function startAudio(){
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const master = ctx.createGain(); master.gain.value = P.Volume;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = P.Muffle; lp.Q.value = 0.7;
+  lp.connect(master); master.connect(ctx.destination);
+  const len = ctx.sampleRate * 4, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+  const noise = ctx.createBufferSource(); noise.buffer = buf; noise.loop = true;
+  const nlp = ctx.createBiquadFilter(); nlp.type = 'lowpass'; nlp.frequency.value = 240;
+  const ng = ctx.createGain(); ng.gain.value = 0.45;
+  const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07;
+  const lfoG = ctx.createGain(); lfoG.gain.value = 0.18; lfo.connect(lfoG); lfoG.connect(ng.gain);
+  noise.connect(nlp); nlp.connect(ng); ng.connect(lp);
+  const drone = ctx.createOscillator(); drone.type = 'sine'; drone.frequency.value = 55;
+  const dg = ctx.createGain(); dg.gain.value = 0.05; drone.connect(dg); dg.connect(lp);
+  noise.start(); lfo.start(); drone.start();
+  audio = { ctx, master, lp };
+}
+
+/* =====================================================================================
+   UI
+   ===================================================================================== */
+const groupsEl = document.getElementById('groups');
+const ctrls = {};
+function buildUI(){
+  for (const g of GROUPS) {
+    const det = document.createElement('details'); if (g.open) det.open = true;
+    const sum = document.createElement('summary'); sum.textContent = g.title; det.appendChild(sum);
+    for (const it of g.items) {
+      const row = document.createElement('div'); row.className = 'row';
+      const lab = document.createElement('label'); lab.className = 'lab'; lab.htmlFor = 'k_' + it.k;
+      lab.innerHTML = it.label + '<span class="pn">' + it.k + '</span>';
+      row.appendChild(lab);
+      const val = document.createElement('div'); val.className = 'val'; row.appendChild(val);
+      if (it.type === 'color') {
+        const inp = document.createElement('input'); inp.type = 'color'; inp.id = 'k_' + it.k;
+        inp.addEventListener('input', () => { P[it.k] = hex2lin(inp.value); });
+        val.appendChild(inp); ctrls[it.k] = { set: () => { inp.value = lin2hex(P[it.k]); } };
+      } else if (it.type === 'check') {
+        const inp = document.createElement('input'); inp.type = 'checkbox'; inp.id = 'k_' + it.k;
+        inp.addEventListener('change', () => { P[it.k] = inp.checked; });
+        val.appendChild(inp); ctrls[it.k] = { set: () => { inp.checked = !!P[it.k]; } };
+      } else {
+        const dec = Math.max(0, (String(it.step).split('.')[1] || '').length);
+        const num = document.createElement('input'); num.type = 'number'; num.className = 'num'; num.id = 'k_' + it.k;
+        num.min = it.min; num.max = it.max; num.step = it.step;
+        const u = document.createElement('span'); u.className = 'u'; u.textContent = it.u || '';
+        const rg = document.createElement('input'); rg.type = 'range'; rg.min = it.min; rg.max = it.max; rg.step = it.step;
+        rg.setAttribute('aria-label', it.label);
+        const set = v => { P[it.k] = v; if (it.rebuild) scheduleRebuild(); };
+        rg.addEventListener('input', () => { const v = parseFloat(rg.value); set(v); num.value = v.toFixed(dec); });
+        num.addEventListener('change', () => { let v = parseFloat(num.value); if (!isFinite(v)) v = it.def; v = Math.min(Math.max(v, it.min), it.max); set(v); rg.value = v; num.value = v.toFixed(dec); });
+        val.appendChild(num); val.appendChild(u); row.appendChild(rg);
+        ctrls[it.k] = { set: () => { rg.value = P[it.k]; num.value = Number(P[it.k]).toFixed(dec); } };
+      }
+      det.appendChild(row);
+      if (it.note) { const n = document.createElement('p'); n.className = 'note'; n.textContent = it.note; det.appendChild(n); }
+    }
+    groupsEl.appendChild(det);
+  }
+}
+function syncUI(){ for (const k in ctrls) ctrls[k].set(); rebuildQuads(); }
+let rebuildTimer = 0;
+function scheduleRebuild(){ clearTimeout(rebuildTimer); rebuildTimer = setTimeout(rebuildQuads, 150); }
+
+document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
+document.getElementById('btnReset').addEventListener('click', () => { defaults(); syncUI(); });
+document.getElementById('btnPause').addEventListener('click', e => { paused = !paused; e.currentTarget.setAttribute('aria-pressed', paused); e.currentTarget.textContent = paused ? 'Reanudar' : 'Pausar'; });
+document.getElementById('btnPanel').addEventListener('click', () => document.body.classList.toggle('pclosed'));
+document.getElementById('btnSound').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!audio) { try { startAudio(); } catch (err) { b.textContent = 'Sin sonido'; return; } b.setAttribute('aria-pressed', 'true'); b.textContent = 'Silenciar'; return; }
+  if (audio.ctx.state === 'running') { audio.ctx.suspend(); b.setAttribute('aria-pressed', 'false'); b.textContent = 'Activar sonido'; }
+  else { audio.ctx.resume(); b.setAttribute('aria-pressed', 'true'); b.textContent = 'Silenciar'; }
+});
+document.getElementById('btnCopy').addEventListener('click', () => {
+  const out = {};
+  for (const g of GROUPS) for (const it of g.items) out[it.k] = Array.isArray(P[it.k]) ? P[it.k].map(v => +v.toFixed(4)) : P[it.k];
+  const txt = JSON.stringify({ actor: 'BP_FluidMedium_SC', colores: 'lineales', valores: out }, null, 1);
+  const ta = document.getElementById('copyout'); ta.value = txt;
+  const done = () => { document.getElementById('btnCopy').textContent = 'Copiado'; setTimeout(() => document.getElementById('btnCopy').textContent = 'Copiar valores', 1400); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, () => { ta.classList.add('show'); ta.select(); });
+  else { ta.classList.add('show'); ta.select(); }
+});
+
+// VR (WebXR): solo si el navegador lo soporta (la Quest, servido por localhost)
+const btnVR = document.getElementById('btnVR');
+if (navigator.xr && navigator.xr.isSessionSupported) {
+  navigator.xr.isSessionSupported('immersive-vr').then(ok => { if (ok) btnVR.hidden = false; }).catch(() => {});
+}
+btnVR.addEventListener('click', () => {
+  navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor', 'hand-tracking'] })
+    .then(s => { renderer.xr.setReferenceSpaceType('local-floor'); renderer.xr.setSession(s); })
+    .catch(() => { btnVR.textContent = 'VR no disponible'; });
+});
+
+// Mirar (arrastrar), mano (Shift + mouse), cabeza (WASD)
+const canvas = renderer.domElement;
+let dragging = false, lx = 0, ly = 0;
+canvas.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointerup', e => { dragging = false; canvas.releasePointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => {
+  if (dragging && !e.shiftKey) {
+    yaw -= (e.clientX - lx) * 0.0035; pitch -= (e.clientY - ly) * 0.0035;
+    pitch = Math.max(-1.35, Math.min(1.35, pitch)); lx = e.clientX; ly = e.clientY;
+  }
+  const hEl = document.getElementById('hand');
+  if (e.shiftKey) {
+    const r = canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, camera);
+    hands[0].pos.copy(ray.ray.origin).addScaledVector(ray.ray.direction, 60);
+    hands[0].active = true;
+    hEl.hidden = false; hEl.style.left = e.clientX + 'px'; hEl.style.top = e.clientY + 'px';
+  } else { hands[0].active = false; hEl.hidden = true; }
+});
+addEventListener('keydown', e => { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') keys.add(e.code); });
+addEventListener('keyup', e => {
+  if (e.key === 'Shift') { hands[0].active = false; document.getElementById('hand').hidden = true; }
+  keys.delete(e.code);
+});
+canvas.addEventListener('wheel', e => { P.FOV = Math.min(110, Math.max(60, P.FOV + Math.sign(e.deltaY) * 2)); ctrls.FOV.set(); e.preventDefault(); }, { passive: false });
+
+function resize(){
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+
+/* =====================================================================================
+   BUCLE
+   ===================================================================================== */
+const clock = new THREE.Clock();
+const statsEl = document.getElementById('stats');
+let fpsAcc = 0, fpsN = 0, fpsT = 0;
+
+function frame(){
+  const dtr = Math.min(clock.getDelta(), 0.1);
+  fpsAcc += dtr; fpsN++; fpsT += dtr;
+  const dt = paused ? 0 : dtr;
+  t += dt;
+
+  // EEG: la unica entrada. Suavizado; activo (0) / calma (1) escalan amplitudes y velocidades
+  if (P.bAutoEEG && !paused) { P.EEG = 0.5 - 0.5 * Math.cos(2 * Math.PI * t / 60); ctrls.EEG && ctrls.EEG.set(); }
+  eegS += (P.EEG - eegS) * (1 - Math.exp(-dt / Math.max(P.EEGSmoothing, 0.05)));
+  const calm = eegS, act = 1 - eegS, kf = P.EEGFlow, kc = P.EEGClarity;
+  EFF.FlowSpeed    = P.FlowSpeed    * (1 + kf * (0.8 * act - 0.5 * calm));
+  EFF.Turbulence   = P.Turbulence   * (1 + kf * (0.6 * act - 0.7 * calm));
+  EFF.FlowAmp      = P.FlowAmp      * (1 + kf * (0.25 * act - 0.3 * calm));
+  EFF.CurrentSpeed = P.CurrentSpeed * (1 + kf * (0.4 * act - 0.4 * calm));
+  EFF.StreakTime   = P.StreakTime   * (1 + kf * (0.3 * act - 0.4 * calm));
+  EFF.AbsorbDist   = P.AbsorbDist   * (1 + kc * (0.8 * calm - 0.2 * act));
+  document.getElementById('eegBar').style.width = (eegS * 100).toFixed(0) + '%';
+  document.getElementById('eegVal').textContent = eegS.toFixed(2).replace('.', ',');
+
+  // corriente: el rumbo cambia despacio; el arrastre se INTEGRA (sin saltos al mover perillas)
+  const d2r = THREE.MathUtils.degToRad;
+  const cy = d2r(P.CurrentYaw + P.Meander * (Math.sin(t * 0.017) + 0.5 * Math.sin(t * 0.041 + 1.0)) / 1.5);
+  const cp = d2r(P.CurrentPitch + 0.35 * P.Meander * Math.sin(t * 0.023 + 2.0));
+  driftVel.set(Math.cos(cp) * Math.cos(cy), Math.cos(cp) * Math.sin(cy), Math.sin(cp)).multiplyScalar(EFF.CurrentSpeed);
+  drift.addScaledVector(driftVel, dt);
+  flowPh += dt * EFF.FlowSpeed;
+  causPh += dt * P.CausticSpeed;
+
+  // cabeza: arrastrar mira; WASD mueve; balanceo simulado (paralaje en pantalla plana)
+  const sp = 60 * dtr;
+  const fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)), right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  if (keys.has('KeyW')) headOff.addScaledVector(fwd, sp);
+  if (keys.has('KeyS')) headOff.addScaledVector(fwd, -sp);
+  if (keys.has('KeyA')) headOff.addScaledVector(right, -sp);
+  if (keys.has('KeyD')) headOff.addScaledVector(right, sp);
+  if (headOff.length() > 120) headOff.setLength(120);
+  const sw = P.bHeadSway ? P.HeadSway : 0;
+  camera.position.set(0, 120, 0).add(headOff).add(new THREE.Vector3(Math.sin(t * 0.37) * 7 * sw, Math.sin(t * 0.29) * 3 * sw, Math.sin(t * 0.23) * 5 * sw));
+  camera.rotation.set(pitch, yaw, 0, 'YXZ');
+  if (camera.fov !== P.FOV) { camera.fov = P.FOV; camera.updateProjectionMatrix(); }
+
+  const headW = new THREE.Vector3();
+  if (renderer.xr.isPresenting) renderer.xr.getCamera().getWorldPosition(headW); else camera.getWorldPosition(headW);
+  bg.position.copy(headW);
+  const hUE = toUEArr(headW);
+  G.uHeadUE.value.set(...hUE);
+
+  // manos: escritorio = mouse con Shift; VR = mandos. Velocidad suavizada: la estela se apaga en ~0,3 s
+  if (renderer.xr.isPresenting) {
+    for (let i = 0; i < 2; i++) { const c = renderer.xr.getController(i); hands[i].active = true; c.getWorldPosition(hands[i].pos); }
+  }
+  hands.forEach((h, i) => {
+    const raw = new THREE.Vector3();
+    if (h.active && h.prev && dtr > 0) raw.copy(h.pos).sub(h.prev).divideScalar(dtr);
+    h.vel.lerp(raw, 1 - Math.exp(-dtr / 0.3));
+    h.prev = h.active ? h.pos.clone() : null;
+    const pu = toUEArr(h.pos), vu = toUEArr(h.vel);
+    (i ? M.uHand1 : M.uHand0).value.set(pu[0], pu[1], pu[2], P.StirRadius);
+    (i ? M.uHandV1 : M.uHandV0).value.set(vu[0], vu[1], vu[2], P.StirStrength);
+  });
+
+  // uniforms (las perillas -> los mismos vectores que empujara el BP)
+  G.uTime.value = t;
+  G.uFluidTop.value.set(...P.FluidTop); G.uFluidMid.value.set(...P.FluidMid); G.uFluidBot.value.set(...P.FluidBottom);
+  G.uGlow.value.set(...P.GlowColor, P.GlowAmount);
+  G.uAbsorb.value.set(EFF.AbsorbDist, P.AbsorbMax, P.AbsorbAlpha, P.GlowPower);
+  G.uCaus.value.set(P.CausticAmount, P.CausticScale, 0, P.MoteSparkle);
+  G.uPhase.value.set(flowPh, causPh, EFF.FlowSpeed, 0);
+  G.uFlow.value.set(EFF.FlowAmp, P.FlowScale, 0, EFF.Turbulence);
+  G.uDrift.value.copy(drift); G.uDriftVel.value.copy(driftVel);
+  M.uStir.value.set(P.StirSwirl, EFF.StreakTime, 0, 0);
+  M.uMote.value.set(...P.MoteColor, P.MoteBright);
+  for (const L of LAYERS) {
+    const size = P[L.key + 'Size'];
+    L.uA.value.set(L.cell, size * 0.45, size, P[L.key + 'Alpha']);
+    L.uB.value.set(L.fade[0], L.fade[1], L.bokeh ? P.BokehDist : 0, L.bokeh ? P.Bokeh : 0);
+  }
+  cellColors.uHigh.value.set(...P.CellHigh, 1.0);
+  cellColors.uLow.value.set(...P.CellLow, 0.6);
+  farU.uFarA.value.set(7000, P.FarCellSize, P.CellFlow, 0);
+  shafts.forEach(u => { u.uShaftC.value.y = P.ShaftAmount; });
+  veils.forEach(u => { u.uVeil2.value.w = P.VeilAmount; });
+
+  // celula protagonista: flota apenas, la corriente la mece
+  hero.visible = P.bReference;
+  { const base = [170, 0, 115], f = flowAtJS(base, flowPh);
+    hero.position.copy(UE(base[0] + 0.25 * f[0], base[1] + 0.25 * f[1], base[2] + 0.25 * f[2]));
+    layoutCell(hero, t, 0); }
+
+  // celulas medias: ancla en un cubo de 26 m que acompana a la cabeza, llevadas por la corriente
+  const cube = 2600;
+  midCells.forEach((c, i) => {
+    const on = i < P.MidCellCount;
+    c.visible = on;
+    if (!on) return;
+    const s = c.userData.seed;
+    const a = [s[0] * cube + drift.x, s[1] * cube + drift.y, s[2] * cube + drift.z];
+    for (let k = 0; k < 3; k++) { let r = a[k] - hUE[k]; r = (r / cube + 0.5); r = (r - Math.floor(r) - 0.5) * cube; a[k] = hUE[k] + r; }
+    const f = flowAtJS(a, flowPh);
+    const p = [a[0] + P.CellFlow * f[0], a[1] + P.CellFlow * f[1], a[2] + P.CellFlow * f[2]];
+    const dist = Math.hypot(p[0] - hUE[0], p[1] - hUE[1], p[2] - hUE[2]);
+    const near = Math.min(Math.max((dist - 250) / 150, 0), 1);           // no se acercan a menos de 2,5 m
+    const edge = Math.max(Math.abs(a[0] - hUE[0]), Math.abs(a[1] - hUE[1]), Math.abs(a[2] - hUE[2])) / cube;
+    const far = 1 - Math.min(Math.max((edge - 0.4) / 0.1, 0), 1);         // se achican en el borde del cubo
+    c.position.copy(UE(...p));
+    c.scale.setScalar(P.MidCellScale * c.userData.scale * near * far + 1e-4);
+    c.rotation.y = t * c.userData.spin + i;
+    layoutCell(c, t, t * c.userData.spin);
+  });
+
+  if (audio) { audio.master.gain.value = P.Volume; audio.lp.frequency.value = P.Muffle; }
+
+  renderer.render(scene, camera);
+
+  if (fpsT > 0.5) {
+    const info = renderer.info.render, n = LAYERS.reduce((s, L) => s + (L.mesh && L.mesh.visible ? L.n : 0), 0);
+    statsEl.textContent = (fpsN / fpsAcc).toFixed(0) + ' fps · ' + (1000 * fpsAcc / fpsN).toFixed(1) + ' ms · ' + info.calls + ' dibujos · ' + n.toLocaleString('es') + ' partículas';
+    fpsAcc = 0; fpsN = 0; fpsT = 0;
+  }
+}
+
+defaults();
+const hashPreset = (location.hash || '').slice(1);
+if (PRESETS[hashPreset]) applyPreset(hashPreset, false);
+buildUI();
+syncUI();
+resize();
+renderer.setAnimationLoop(frame);
+</script>
+</body>
+</html>

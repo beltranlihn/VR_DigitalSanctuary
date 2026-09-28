@@ -1,4 +1,5 @@
 # PLANTILLA OBLIGATORIA para todo execute_tool_script — 2026-08-15
+# 🔴 2026-09-29 (gotcha 493): NO terminar con `result = run()`: la tool ya llama a run(); con esa línea el script corre DOS veces.
 #
 # 🔴🔴 POR QUÉ EXISTE ESTE ARCHIVO (incidente del 2026-08-15, costó actores del nivel):
 # Cada `execute_tool_script` que **termina en excepción** hace que el plugin dispare un

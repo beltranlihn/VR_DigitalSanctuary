@@ -1,0 +1,1351 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Valle de Entering</title>
+<meta name="description" content="Lookdev en navegador del valle de colinas de la etapa de respiracion (M_BreathValley_SC), con la misma matematica que el material de Unreal">
+<!--
+  =====================================================================================
+  PROTOTIPO WEB DEL VALLE DE ENTERING (lookdev) - Soul Charger
+  =====================================================================================
+  Especificacion unica: docs/PLAN-VALLE-ENTERING-2026-09-27.md
+    - §2  la malla polar (79 anillos, 15.169 vertices, 30.144 triangulos, misma triangulacion)
+    - §3  la altura h(x, y, t) y su gradiente exacto
+    - §4  el sombreado mate del suelo, §5 la sombra falsa, §6 el cielo con resplandor y luna
+    - §7.2 el codigo HLSL de los tres Custom; §7.3 las reglas del port a GLSL (este archivo)
+    - §12 los valores de control: el boton "Verificar §12" los calcula EN LA GPU con los mismos
+          shaders que dibujan la escena y los compara
+  Los tres Custom (ValleyHeightVS, ValleyGradVS, ValleyPS) estan portados LINEA POR LINEA:
+  lerp->mix, frac->fract, saturate->clamp, rsqrt->inversesqrt, sincos->sin/cos,
+  View.GameTime->uTime, Parameters.SvPosition->gl_FragCoord.
+
+  COMO ABRIRLO
+    Doble clic en el archivo (file://). No hace falta servidor: el modulo es inline y three.js r160
+    se baja de cdn.jsdelivr.net por importmap, asi que SI hace falta internet.
+    Si algun navegador bloqueara modulos en file://, servir la carpeta:
+      cd docs/prototipos  &&  python -m http.server 8123   ->   http://localhost:8123/valle-entering.html
+
+  EJES Y UNIDADES (1 unidad de three = 1 cm, igual que Unreal)
+    Unreal: X adelante, Y derecha, Z arriba.   three.js: X derecha, Y arriba, -Z adelante.
+      UE (x, y, z)    -> three (y, z, -x)
+      three (X, Y, Z) -> UE (-Z, X, Y)
+    Ojos del usuario  UE (0, 0, 120)   = (0; 0; 1,20) m  -> three (0, 120, 0)
+    Metaball          UE (380, 0, 125) = (3,80; 0; 1,25) m -> three (0, 125, -380)
+    Toda la cuenta se hace en coordenadas UE: se convierte AL ENTRAR (posicion del vertice,
+    camara, punto del cielo), como pide la §1 del plan.
+
+  COLOR
+    Todo en LINEAL, sin tonemapper (como el APK con r.MobileHDR=False). El shader aplica la OETF
+    sRGB a mano al final, asi que el navegador muestra lo mismo que el visor. Los selectores de
+    color muestran sRGB (lo que se ve); el material recibe y el JSON exporta el valor lineal.
+  =====================================================================================
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --ink:#1f2547;
+  --ink-soft:#4b5380;
+  --line:rgba(36,44,96,.14);
+  --panel:rgba(238,239,250,.84);
+  --panel-edge:rgba(255,255,255,.66);
+  --accent:#565fb0;
+  --accent-ink:#f5f6ff;
+  --accent-soft:rgba(86,95,176,.15);
+  --ok:#2b7453;
+  --warn:#a3452f;
+  --ground:#cbcfec;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ground);color:var(--ink);font:14px/1.45 "Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#stage canvas:active{cursor:grabbing}
+#refimg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;opacity:0;display:none}
+
+.tag{position:fixed;left:16px;top:calc(env(safe-area-inset-top,0px) + 16px);max-width:min(440px,calc(100% - 32px));pointer-events:none}
+.tag h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.01em}
+.tag p{margin:4px 0 0;font-size:12.5px;color:#2f3760;max-width:48ch;text-wrap:pretty}
+
+.bar{position:fixed;left:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:calc(100% - 32px - 352px)}
+.btn{font:inherit;font-size:13px;font-weight:500;color:var(--ink);background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;padding:7px 12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);cursor:pointer;box-shadow:0 4px 18px rgba(36,44,96,.10)}
+.btn:hover{background:rgba(247,248,254,.94)}
+.btn:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.primary:hover{background:#4a529c}
+.btn[aria-pressed="true"]{background:var(--accent-soft);border-color:rgba(86,95,176,.38)}
+.seg{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--panel-edge);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 4px 18px rgba(36,44,96,.10)}
+.seg .btn{border:0;border-radius:0;box-shadow:none;border-right:1px solid var(--line);padding:7px 10px}
+.seg .btn:last-child{border-right:0}
+.readout{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;padding:7px 12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.chip{font-family:var(--mono);font-size:12px}
+.chip.ok{color:var(--ok)}
+.chip.warn{color:var(--warn)}
+
+#panel{position:fixed;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:336px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--panel-edge);border-radius:14px;box-shadow:0 12px 44px rgba(36,44,96,.16);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);overflow:hidden}
+.phead{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.phead h2{margin:0;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+.phead p{margin:6px 0 0;font-size:11.5px;color:var(--ink-soft)}
+#groups{overflow:auto;padding:0 16px 8px;flex:1;overscroll-behavior:contain}
+details{border-bottom:1px solid var(--line)}
+details:last-child{border-bottom:0}
+summary{cursor:pointer;padding:11px 0;font-weight:600;font-size:13.5px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-weight:400;color:var(--ink-soft)}
+details[open] summary::after{content:"\2013"}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:5px 0 9px;align-items:center}
+.row .lab{font-size:12.5px;color:var(--ink);line-height:1.3}
+.row .pn{display:block;font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);margin-top:1px}
+.row .val{display:flex;align-items:center;gap:4px}
+.row .num{width:78px;font-family:var(--mono);font-size:11.5px;text-align:right;border:1px solid var(--line);border-radius:6px;background:rgba(255,255,255,.62);color:var(--ink);padding:3px 5px}
+.row .u{font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);min-width:18px}
+.row input[type=range]{grid-column:1/-1;width:100%;margin:2px 0 0;accent-color:var(--accent)}
+.row input[type=color]{width:46px;height:26px;border:1px solid var(--line);border-radius:6px;padding:0 2px;background:rgba(255,255,255,.62);cursor:pointer}
+.row .lin{grid-column:1/-1;font-family:var(--mono);font-size:10.5px;color:var(--ink-soft)}
+.row input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.row input[type=file]{grid-column:1/-1;font-size:11.5px;max-width:100%}
+.note{font-size:11.5px;color:var(--ink-soft);margin:0;padding:6px 0 10px}
+.pfoot{padding:12px 16px 14px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.pfoot .btn{flex:1 1 auto;box-shadow:none}
+#copyout{display:none;width:100%;height:130px;font:11px/1.35 var(--mono);border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.85);color:var(--ink)}
+#copyout.show{display:block}
+.toggle-panel{display:none}
+
+dialog{border:1px solid var(--panel-edge);border-radius:14px;padding:0;max-width:min(860px,calc(100% - 32px));width:100%;background:#f3f4fc;color:var(--ink);box-shadow:0 20px 60px rgba(20,26,60,.28)}
+dialog::backdrop{background:rgba(24,30,66,.28)}
+.dhead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dhead h3{margin:0;font-size:14px;font-weight:600}
+.dbody{padding:14px 18px 18px;max-height:70vh;overflow:auto}
+.dbody p{margin:0 0 10px;font-size:12.5px;color:var(--ink-soft);max-width:80ch}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--ink-soft);font-size:11.5px}
+td.m{font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.ok{color:var(--ok);font-weight:600}
+td.bad{color:var(--warn);font-weight:600}
+#importtxt{width:100%;height:220px;font:11px/1.35 var(--mono);border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);padding:8px}
+#fail{position:fixed;left:16px;right:16px;top:50%;transform:translateY(-50%);max-width:60ch;margin:0 auto;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:18px 20px;font-size:13px;box-shadow:0 12px 44px rgba(36,44,96,.2);z-index:5}
+#fail code{font-family:var(--mono);font-size:12px}
+code{font-family:var(--mono);font-size:.92em}
+
+@media (max-width:760px){
+  #panel{left:16px;right:16px;width:auto;top:auto;height:52%}
+  body.pclosed #panel{display:none}
+  .bar{max-width:calc(100% - 32px);bottom:calc(52% + 28px + env(safe-area-inset-bottom,0px))}
+  body.pclosed .bar{bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
+  .toggle-panel{display:inline-block}
+  .tag p{display:none}
+}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="stage" aria-label="Vista 3D del valle desde los ojos del usuario"></div>
+<img id="refimg" alt="">
+
+<header class="tag">
+  <h1>Valle de Entering</h1>
+  <p>Sentado en el centro del valle, con los ojos a 120 cm; el metaball (una esfera de prueba) flota al frente. Misma matemática que <code>M_BreathValley_SC</code>, en cm y s, con los colores en lineal y sin tonemapper. Arrastra para mirar alrededor; la rueda cambia el campo de visión.</p>
+</header>
+
+<div class="bar">
+  <div class="seg" role="group" aria-label="Mirar desde los ojos">
+    <button class="btn" type="button" data-look="front" title="Tecla 1">Al frente</button>
+    <button class="btn" type="button" data-look="shadow" title="Tecla 2">Sombra</button>
+    <button class="btn" type="button" data-look="moon" title="Tecla 3">Luna</button>
+    <button class="btn" type="button" data-look="right" title="Tecla 4">Derecha</button>
+    <button class="btn" type="button" data-look="back" title="Tecla 5">Atrás</button>
+    <button class="btn" type="button" data-look="sky" title="Tecla 6">Cielo</button>
+  </div>
+  <div class="seg" role="group" aria-label="Vista exterior">
+    <button class="btn" type="button" data-orbit="bird" title="Tecla 7">Órbita</button>
+    <button class="btn" type="button" data-orbit="top" title="Tecla 8">Cenital</button>
+  </div>
+  <button class="btn" id="pause" type="button" aria-pressed="false" title="Barra espaciadora">Pausa</button>
+  <span class="readout" aria-live="off"><span id="tout">t 0.0 s</span><span id="fpsout">-- fps</span></span>
+  <button class="btn" id="ctrlbtn" type="button" title="Compara con los valores de control de la §12 del plan"><span class="chip" id="ctrlout">§12 ...</span></button>
+  <span class="readout"><span class="chip" id="horout">horizonte ...</span></span>
+  <button class="btn toggle-panel" id="ptoggle" type="button">Perillas</button>
+</div>
+
+<aside id="panel" aria-label="Perillas">
+  <div class="phead">
+    <h2>Perillas</h2>
+    <p>Cada perilla lleva el nombre del parámetro del material y, si existe, el de la perilla de <code>BP_BreathValley_SC</code>.</p>
+  </div>
+  <div id="groups"></div>
+  <div class="pfoot">
+    <button class="btn" id="reset" type="button">Restablecer</button>
+    <button class="btn" id="load" type="button">Cargar valores</button>
+    <button class="btn primary" id="copy" type="button">Copiar valores</button>
+    <textarea id="copyout" readonly aria-label="Valores para copiar"></textarea>
+  </div>
+</aside>
+
+<dialog id="dlgctrl" aria-labelledby="dlgctrl-t">
+  <div class="dhead"><h3 id="dlgctrl-t">Valores de control (§12 del plan)</h3><button class="btn" type="button" data-close>Cerrar</button></div>
+  <div class="dbody" id="ctrlbody"></div>
+</dialog>
+
+<dialog id="dlgload" aria-labelledby="dlgload-t">
+  <div class="dhead"><h3 id="dlgload-t">Cargar valores</h3><button class="btn" type="button" data-close>Cerrar</button></div>
+  <div class="dbody">
+    <p>Pegar el JSON de "Copiar valores" (o un objeto con los nombres de los parámetros del material). Los colores se aceptan como <code>{"R":..,"G":..,"B":..}</code> lineal, <code>[r, g, b]</code> lineal o <code>"#rrggbb"</code> sRGB.</p>
+    <textarea id="importtxt" spellcheck="false"></textarea>
+    <p id="importmsg"></p>
+    <button class="btn primary" id="importgo" type="button">Aplicar</button>
+  </div>
+</dialog>
+
+<div id="fail" hidden></div>
+
+<script>
+/* Aviso si el modulo no llega a correr (sin internet: three.js viene de jsdelivr). */
+setTimeout(function () {
+  if (window.__valleOK) return;
+  var f = document.getElementById('fail');
+  f.innerHTML = '<strong>No se pudo cargar three.js.</strong><br>El prototipo baja three.js r160 desde <code>cdn.jsdelivr.net</code>: hace falta conexión a internet. ' +
+    'Si hay conexión y el navegador bloquea módulos en <code>file://</code>, servir la carpeta con <code>python -m http.server 8123</code> dentro de <code>docs/prototipos</code> y abrir <code>http://localhost:8123/valle-entering.html</code>.';
+  f.hidden = false;
+}, 9000);
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+window.__valleOK = true;
+document.getElementById('fail').hidden = true;
+const D2R = Math.PI / 180;
+
+/* ===================================================================================
+   EJES: Unreal (X adelante, Y derecha, Z arriba) <-> three (X derecha, Y arriba, -Z adelante).
+   1 unidad de three = 1 cm. UE (x, y, z) -> three (y, z, -x). El shader trabaja en UE.
+   =================================================================================== */
+const ue2three = (x, y, z) => new THREE.Vector3(y, z, -x);
+/* D(az, el) de la §1 (UE): azimut desde +X hacia +Y, elevacion sobre la horizontal. */
+const dirUE = (az, el) => [Math.cos(el * D2R) * Math.cos(az * D2R), Math.cos(el * D2R) * Math.sin(az * D2R), Math.sin(el * D2R)];
+const dirThree = (az, el) => { const d = dirUE(az, el); return ue2three(d[0], d[1], d[2]); };
+const EYE = ue2three(0, 0, 120);
+
+/* ===================================================================================
+   ESPECIFICACION §7.1: los 61 parametros del material con sus defaults (colores en LINEAL)
+   =================================================================================== */
+const DEF = {
+  // 1 - Valle
+  ValleyX: 350, ValleyA: 950, ValleyB: 600, SeatIn: 60, SeatOut: 250,
+  // 2 - Colinas
+  RimHeight: 380, RimCrest: 3, RimBack: 4, DuneAmp: 520, DuneRise: 1.6, DuneLow: -0.35, DuneHigh: 1.2,
+  DuneScale: 1, DuneSeed: 0, DuneShiftX: 0, DuneShiftY: 0,
+  // 3 - Transformacion
+  MorphAmt: 0.45, MorphSpeed: 1, MorphNear: 800, MorphFar: 3000,
+  // 4 - Luz y superficie
+  LightAz: 20, LightEl: 25, Wrap: 0.3, ShadeFloor: 0, SlopeDark: 1.2,
+  ColLit: [0.434, 0.527, 0.855], ColShadow: [0.061, 0.117, 0.352], ColSheen: [0.855, 0.761, 0.913],
+  Sheen: 0.4, SheenPow: 4, SheenBack: 0.35, CrestLight: 0.2,
+  // 5 - Sombra
+  ShadowSoft: 0.8, ShadowTint: [0.305, 0.352, 0.68], ShadowMax: 0.8,
+  // 6 - Cielo
+  SkyZenith: [0.216, 0.328, 0.597], SkyHorizon: [0.597, 0.624, 0.839], SkyGlow: [0.831, 0.68, 0.855],
+  SkyGradTop: 0.7, GlowAz: 20, GlowEl: 2, GlowPow: 2, GlowHeight: 0.45, GlowAmt: 0.8,
+  // 7 - Luna
+  MoonAz: -40, MoonEl: 7, MoonRadius: 9, MoonEdge: 0.03, MoonColor: [0.73, 0.644, 0.839],
+  MoonOpacity: 0.55, MoonFill: 0.2, MoonRim: 1,
+  // 8 - Niebla
+  FogStart: 1000, FogDist: 5000, FogMax: 0.6, DitherAmt: 1,
+  // 9 - Interno (los escribe el BP)
+  Part: 0, PerfMode: 0, ShadowCenter: [380, 0, 125], ShadowRadius: 85, ShadowStrength: 1.5
+};
+const MAT_KEYS = Object.keys(DEF);  // orden de la §7.1
+
+/* Estado completo: material + perillas propias del BP + controles del prototipo */
+const DEFAULT = Object.assign(JSON.parse(JSON.stringify(DEF)), {
+  bShadow: true,
+  blobX: 380, blobZ: 125, blobR: 80, blobAppear: 1, bobAmp: 6, bobT: 9,
+  blobLit: [0.92, 0.945, 1.0], blobShadow: [0.216, 0.254, 0.61], blobVisible: true,
+  timeScale: 1, fov: 75, wire: false, guard: true, refOpacity: 0.5
+});
+let P = JSON.parse(JSON.stringify(DEFAULT));
+
+/* ===================================================================================
+   COLOR: sRGB <-> lineal (la OETF es la misma que aplica el hardware del Quest)
+   =================================================================================== */
+const s2l = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+const l2s = c => { c = Math.min(Math.max(c, 0), 1); return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055; };
+const lin2srgb8 = a => a.map(v => Math.round(l2s(v) * 255));
+const lin2hex = a => '#' + lin2srgb8(a).map(v => v.toString(16).padStart(2, '0')).join('');
+const hex2lin = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => s2l(v / 255)); };
+
+/* ===================================================================================
+   GEOMETRIA §2: SM_BreathValley_SC. Disco polar plano, zona uniforme + zona geometrica.
+   Misma topologia que el generador de Blender (vertice 0 = centro; 1 + i*S + s = anillo i, sector s).
+   =================================================================================== */
+const MESH_S = 192, MESH_DA = 30, MESH_RMAX = 4400;
+function valleyRadii() {
+  const q = 1 + 2 * Math.PI / MESH_S;
+  const rA = MESH_DA / (q - 1);
+  const NA = Math.floor(rA / MESH_DA);
+  const radii = [];
+  for (let j = 1; j <= NA; j++) radii.push(MESH_DA * j);
+  let r = radii[radii.length - 1];
+  for (;;) { r *= q; if (r >= MESH_RMAX) break; radii.push(r); }
+  const last = radii[radii.length - 1];
+  if (MESH_RMAX - last < 0.5 * last * (q - 1)) radii[radii.length - 1] = MESH_RMAX; else radii.push(MESH_RMAX);
+  return radii;
+}
+function buildValleyGeometry() {
+  const S = MESH_S, radii = valleyRadii(), N = radii.length;
+  const nv = 1 + N * S;
+  const pos = new Float32Array(nv * 3);                  // vertice 0 = (0, 0, 0)
+  for (let i = 0; i < N; i++) {
+    for (let s = 0; s < S; s++) {
+      const a = 2 * Math.PI * s / S;
+      const xu = radii[i] * Math.cos(a), yu = radii[i] * Math.sin(a);   // UE: s = 0 en +X, crece hacia +Y
+      const o = (1 + i * S + s) * 3;
+      pos[o] = yu; pos[o + 1] = 0; pos[o + 2] = -xu;                   // -> three (y, z, -x)
+    }
+  }
+  const idx = (i, s) => 1 + i * S + (s % S);
+  const nt = S + (N - 1) * S * 2;
+  const ind = nv < 65536 ? new Uint16Array(nt * 3) : new Uint32Array(nt * 3);
+  let k = 0;
+  for (let s = 0; s < S; s++) { ind[k++] = 0; ind[k++] = idx(0, s); ind[k++] = idx(0, s + 1); }   // abanico central
+  for (let i = 0; i < N - 1; i++) {
+    for (let s = 0; s < S; s++) {
+      const a = idx(i, s), b = idx(i + 1, s), c = idx(i + 1, s + 1), d = idx(i, s + 1);
+      ind[k++] = a; ind[k++] = b; ind[k++] = c;                          // (a, b, c)
+      ind[k++] = a; ind[k++] = c; ind[k++] = d;                          // (a, c, d)
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setIndex(new THREE.BufferAttribute(ind, 1));
+  return { geo: g, radii, nv, nt };
+}
+
+/* ===================================================================================
+   GLSL. Uniformes con los MISMOS nombres que las entradas de los Custom (§7).
+   =================================================================================== */
+const VS_SCALARS = ['Part', 'PerfMode', 'ValleyX', 'ValleyA', 'ValleyB', 'SeatIn', 'SeatOut', 'RimHeight', 'RimCrest', 'RimBack',
+  'DuneAmp', 'DuneRise', 'DuneLow', 'DuneHigh', 'DuneScale', 'DuneSeed', 'DuneShiftX', 'DuneShiftY',
+  'MorphAmt', 'MorphSpeed', 'MorphNear', 'MorphFar'];
+const PS_SCALARS = ['Wrap', 'ShadeFloor', 'SlopeDark', 'Sheen', 'SheenPow', 'SheenBack', 'CrestLight',
+  'ShadowRadius', 'ShadowStrength', 'ShadowSoft', 'ShadowMax', 'SkyGradTop', 'GlowPow', 'GlowHeight', 'GlowAmt',
+  'MoonCosR', 'MoonEdge', 'MoonOpacity', 'MoonFill', 'MoonRim', 'FogStart', 'FogDist', 'FogMax', 'DitherAmt'];
+const PS_VECS = ['LightDir', 'ColLit', 'ColShadow', 'ColSheen', 'ShadowCenter', 'ShadowTint', 'SkyZenith', 'SkyHorizon',
+  'SkyGlow', 'GlowDir', 'MoonDir', 'MoonColor'];
+const DECL = 'uniform float uTime;\n' +
+  VS_SCALARS.concat(PS_SCALARS).map(k => 'uniform float ' + k + ';').join('\n') + '\n' +
+  PS_VECS.map(k => 'uniform vec3 ' + k + ';').join('\n') + '\n';
+
+/* ---- ValleyHeightVS + ValleyGradVS (§7.2), port linea por linea. Sin bucles ni arreglos. ---- */
+const GLSL_FIELD = `
+// ValleyHeightVS: solo la ALTURA h (una evaluacion). Espacio LOCAL UE, cm.
+vec3 valleyHeight(vec2 LP) {
+  float pm = floor(PerfMode + 0.5);
+  if (Part > 0.5 || pm == 1.0 || pm == 3.0) { return vec3(0.0, 0.0, 0.0); }
+  float Tt = uTime;
+  float x = LP.x;
+  float y = LP.y;
+  float r = sqrt(x * x + y * y);
+  float ex = (x - ValleyX) / max(ValleyA, 1.0);
+  float ey = y / max(ValleyB, 1.0);
+  float e = sqrt(ex * ex + ey * ey);
+  float E1 = max(RimCrest, 1.01);
+  float E2 = max(RimBack, E1 + 0.01);
+  float u2 = smoothstep(E1, E2, e);
+  float h = RimHeight * smoothstep(1.0, E1, e) * (1.0 - u2);
+  float Mt = MorphAmt * smoothstep(MorphNear, max(MorphFar, MorphNear + 1.0), r);
+  float w = 6.2831853 * MorphSpeed * Tt;
+  float xd = x + DuneShiftX;
+  float yd = y + DuneShiftY;
+  float ks = 6.2831853 / max(DuneScale, 0.05);
+  float a0 = radians(DuneSeed + 18.0);
+  float a1 = radians(DuneSeed + 101.0);
+  float a2 = radians(DuneSeed + 143.0);
+  float a3 = radians(DuneSeed + 232.0);
+  float g0 = ks / 3000.0 * (cos(a0) * xd + sin(a0) * yd) + 0.0;
+  float g1 = ks / 2200.0 * (cos(a1) * xd + sin(a1) * yd) + 1.7;
+  float g2 = ks / 1650.0 * (cos(a2) * xd + sin(a2) * yd) + 4.1;
+  float g3 = ks / 1250.0 * (cos(a3) * xd + sin(a3) * yd) + 2.9;
+  float m0 = sin(w / 53.0 + 0.0);
+  float m1 = sin(w / 67.0 + 2.1);
+  float m2 = sin(w / 41.0 + 4.4);
+  float m3 = sin(w / 83.0 + 1.3);
+  float sig = (1.00 * (1.0 + Mt * m0) * sin(g0) + 0.75 * (1.0 + Mt * m1) * sin(g1) + 0.55 * (1.0 + Mt * m2) * sin(g2) + 0.35 * (1.0 + Mt * m3) * sin(g3)) / 2.65;
+  float f = smoothstep(DuneLow, max(DuneHigh, DuneLow + 0.01), sig);
+  float env = smoothstep(1.0, max(DuneRise, 1.01), e) * (1.0 - u2) * smoothstep(SeatIn, max(SeatOut, SeatIn + 1.0), r);
+  h += DuneAmp * env * f;
+  return vec3(0.0, 0.0, h);
+}
+
+// ValleyGradVS: (dh/dx, dh/dy, h, hf) con el GRADIENTE ANALITICO en una pasada.
+vec4 valleyGrad(vec2 LP) {
+  float pm = floor(PerfMode + 0.5);
+  if (Part > 0.5 || pm == 1.0 || pm == 3.0) { return vec4(0.0, 0.0, 0.0, 0.0); }
+  float Tt = uTime;
+  float x = LP.x;
+  float y = LP.y;
+  float r = sqrt(x * x + y * y);
+  float rs = max(r, 1.0);
+  float VA = max(ValleyA, 1.0);
+  float VB = max(ValleyB, 1.0);
+  float ex = (x - ValleyX) / VA;
+  float ey = y / VB;
+  float e = sqrt(ex * ex + ey * ey);
+  float es = max(e, 1e-4);
+  float dex = ex / (VA * es);
+  float dey = ey / (VB * es);
+  float E1 = max(RimCrest, 1.01);
+  float E2 = max(RimBack, E1 + 0.01);
+  // anillo lejano: sube de e = 1 a la cresta E1 y baja a 0 en E2
+  float t1 = clamp((e - 1.0) / (E1 - 1.0), 0.0, 1.0);
+  float u1 = t1 * t1 * (3.0 - 2.0 * t1);
+  float du1 = 6.0 * t1 * (1.0 - t1) / (E1 - 1.0);
+  float t2 = clamp((e - E1) / (E2 - E1), 0.0, 1.0);
+  float u2 = t2 * t2 * (3.0 - 2.0 * t2);
+  float du2 = 6.0 * t2 * (1.0 - t2) / (E2 - E1);
+  float B = RimHeight * u1 * (1.0 - u2);
+  float dB = RimHeight * (du1 * (1.0 - u2) - u1 * du2);
+  // respiracion de las dunas: crece con la distancia al usuario
+  float MF = max(MorphFar, MorphNear + 1.0);
+  float tg = clamp((r - MorphNear) / (MF - MorphNear), 0.0, 1.0);
+  float Mt = MorphAmt * tg * tg * (3.0 - 2.0 * tg);
+  float dMt = MorphAmt * 6.0 * tg * (1.0 - tg) / (MF - MorphNear);
+  float w = 6.2831853 * MorphSpeed * Tt;
+  float xd = x + DuneShiftX;
+  float yd = y + DuneShiftY;
+  float ks = 6.2831853 / max(DuneScale, 0.05);
+  float a0 = radians(DuneSeed + 18.0);
+  float a1 = radians(DuneSeed + 101.0);
+  float a2 = radians(DuneSeed + 143.0);
+  float a3 = radians(DuneSeed + 232.0);
+  float kx0 = ks / 3000.0 * cos(a0);
+  float ky0 = ks / 3000.0 * sin(a0);
+  float kx1 = ks / 2200.0 * cos(a1);
+  float ky1 = ks / 2200.0 * sin(a1);
+  float kx2 = ks / 1650.0 * cos(a2);
+  float ky2 = ks / 1650.0 * sin(a2);
+  float kx3 = ks / 1250.0 * cos(a3);
+  float ky3 = ks / 1250.0 * sin(a3);
+  float g0 = kx0 * xd + ky0 * yd + 0.0;
+  float g1 = kx1 * xd + ky1 * yd + 1.7;
+  float g2 = kx2 * xd + ky2 * yd + 4.1;
+  float g3 = kx3 * xd + ky3 * yd + 2.9;
+  float s0 = sin(g0); float c0 = cos(g0);
+  float s1 = sin(g1); float c1 = cos(g1);
+  float s2 = sin(g2); float c2 = cos(g2);
+  float s3 = sin(g3); float c3 = cos(g3);
+  float m0 = sin(w / 53.0 + 0.0);
+  float m1 = sin(w / 67.0 + 2.1);
+  float m2 = sin(w / 41.0 + 4.4);
+  float m3 = sin(w / 83.0 + 1.3);
+  float q0 = 1.00 * (1.0 + Mt * m0);
+  float q1 = 0.75 * (1.0 + Mt * m1);
+  float q2 = 0.55 * (1.0 + Mt * m2);
+  float q3 = 0.35 * (1.0 + Mt * m3);
+  float sig = (q0 * s0 + q1 * s1 + q2 * s2 + q3 * s3) / 2.65;
+  float sm = (1.00 * m0 * s0 + 0.75 * m1 * s1 + 0.55 * m2 * s2 + 0.35 * m3 * s3) / 2.65;
+  float gsx = (q0 * c0 * kx0 + q1 * c1 * kx1 + q2 * c2 * kx2 + q3 * c3 * kx3) / 2.65 + dMt * sm * x / rs;
+  float gsy = (q0 * c0 * ky0 + q1 * c1 * ky1 + q2 * c2 * ky2 + q3 * c3 * ky3) / 2.65 + dMt * sm * y / rs;
+  // loma
+  float DH = max(DuneHigh, DuneLow + 0.01);
+  float tf = clamp((sig - DuneLow) / (DH - DuneLow), 0.0, 1.0);
+  float f = tf * tf * (3.0 - 2.0 * tf);
+  float df = 6.0 * tf * (1.0 - tf) / (DH - DuneLow);
+  // envolvente
+  float SO = max(SeatOut, SeatIn + 1.0);
+  float ts = clamp((r - SeatIn) / (SO - SeatIn), 0.0, 1.0);
+  float seat = ts * ts * (3.0 - 2.0 * ts);
+  float dseat = 6.0 * ts * (1.0 - ts) / (SO - SeatIn);
+  float ED = max(DuneRise, 1.01);
+  float td = clamp((e - 1.0) / (ED - 1.0), 0.0, 1.0);
+  float Ea = td * td * (3.0 - 2.0 * td);
+  float dEa = 6.0 * td * (1.0 - td) / (ED - 1.0);
+  float envE = Ea * (1.0 - u2);
+  float denvE = dEa * (1.0 - u2) - Ea * du2;
+  float env = envE * seat;
+  float h = B + DuneAmp * env * f;
+  float gex = seat * denvE * dex + envE * dseat * x / rs;
+  float gey = seat * denvE * dey + envE * dseat * y / rs;
+  float gx = dB * dex + DuneAmp * (gex * f + env * df * gsx);
+  float gy = dB * dey + DuneAmp * (gey * f + env * df * gsy);
+  return vec4(gx, gy, h, env * f);
+}
+`;
+
+/* ---- ValleyPS (§7.2), port linea por linea. gO expone la sombra O para la verificacion §12. ---- */
+const GLSL_PS = `
+float gO = 0.0;
+vec3 valleyPS(vec4 VI1, vec3 LPi, vec3 CamL, float Dist) {
+  vec3 V = normalize(CamL);
+  vec3 dv = -V;
+  float pm = floor(PerfMode + 0.5);
+  // dither estatico contra el banding (mismo hash que HeartScapePS)
+  vec3 p3 = fract(vec3(gl_FragCoord.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  float dith = DitherAmt * (fract((p3.x + p3.y) * p3.z) - 0.5) / 255.0;
+  // cielo en la direccion de la mirada (tambien es el color al que tiende la niebla del suelo)
+  vec3 sky = mix(SkyHorizon, SkyZenith, smoothstep(0.0, max(SkyGradTop, 0.01), dv.z));
+  vec2 hz = dv.xy / max(length(dv.xy), 1e-4);
+  vec2 gh = GlowDir.xy / max(length(GlowDir.xy), 1e-4);
+  float gaz = pow(max(dot(hz, gh), 1e-6), max(GlowPow, 0.1));
+  float gel = 1.0 - smoothstep(0.0, max(GlowHeight, 0.001), abs(dv.z - GlowDir.z));
+  sky = mix(sky, SkyGlow, clamp(GlowAmt * gaz * gel, 0.0, 1.0));
+  if (Part > 0.5)
+  {
+    if (pm >= 2.0) { return SkyHorizon + dith; }
+    // luna: disco suave con el borde encendido del lado del resplandor
+    float cosA = dot(dv, MoonDir);
+    float rho = sqrt(max(1.0 - cosA, 0.0) / max(1.0 - MoonCosR, 1e-6));
+    float me = max(MoonEdge, 0.001);
+    if (rho < 1.0 + me)
+    {
+      float disc = 1.0 - smoothstep(1.0 - me, 1.0 + me, rho);
+      vec3 o = dv - MoonDir * cosA;
+      vec3 gm = GlowDir - MoonDir * dot(GlowDir, MoonDir);
+      float side = 0.5 + 0.5 * dot(o, gm) * inversesqrt(max(dot(o, o), 1e-10)) * inversesqrt(max(dot(gm, gm), 1e-10));
+      float rim = smoothstep(0.6, 1.0, rho) * side * side;
+      sky = mix(sky, MoonColor, clamp(MoonOpacity * disc * (MoonFill + MoonRim * rim), 0.0, 1.0));
+    }
+    return sky + dith;
+  }
+  if (pm >= 2.0) { return ColLit + dith; }
+  // ---- suelo ----
+  vec3 N = normalize(vec3(-VI1.x, -VI1.y, 1.0));
+  float wrap = clamp((dot(N, LightDir) + Wrap) / (1.0 + Wrap), 0.0, 1.0);
+  float k = mix(ShadeFloor, 1.0, wrap) * clamp(1.0 - SlopeDark * (1.0 - N.z), 0.0, 1.0);
+  vec3 col = mix(ColShadow, ColLit, k);
+  col = mix(col, ColLit, CrestLight * VI1.w * VI1.w);
+  float fres = pow(max(1.0 - clamp(dot(N, V), 0.0, 1.0), 1e-6), max(SheenPow, 0.5));
+  float fwd = clamp(0.5 + 0.5 * dot(dv, LightDir), 0.0, 1.0);
+  col = mix(col, ColSheen, clamp(Sheen * fres * mix(SheenBack, 1.0, fwd), 0.0, 1.0));
+  // sombra falsa del metaball: factor de forma de una esfera de radio Rs a altura Hs sobre el suelo
+  float Hs = max(ShadowCenter.z - VI1.z, 1.0);
+  float Rs = max(ShadowRadius, 1.0);
+  float peak = ShadowStrength * Rs * Rs / (Rs * Rs + Hs * Hs);
+  float ws = max(ShadowSoft * Hs, 1.0);
+  vec2 ds = LPi.xy - ShadowCenter.xy;
+  float qs = 1.0 + dot(ds, ds) / (ws * ws);
+  float O = min(clamp(peak * inversesqrt(qs) / qs, 0.0, 1.0), ShadowMax);
+  gO = O;
+  col *= 1.0 - O * (1.0 - ShadowTint);
+  // niebla por distancia real hacia el color del cielo en esa direccion
+  float fog = FogMax * (1.0 - exp(-max(Dist - FogStart, 0.0) / max(FogDist, 1.0)));
+  return mix(col, sky, fog) + dith;
+}
+`;
+
+/* OETF sRGB a mano (§7.3): el navegador ve lo mismo que el APK sin tonemapper. */
+const GLSL_OETF = `
+vec3 linearToSRGB(vec3 c) {
+  c = clamp(c, 0.0, 1.0);
+  vec3 lo = 12.92 * c;
+  vec3 hi = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;
+  return mix(hi, lo, vec3(lessThanEqual(c, vec3(0.0031308))));
+}
+`;
+
+/* Vertice (§7.3): convierte a UE al entrar, altura por WPO, gradiente al interpolador. */
+const VALLEY_VS = DECL + GLSL_FIELD + `
+varying vec4 vVI1;
+varying vec3 vLP;
+varying vec3 vWorldUE;
+void main() {
+  vec2 p = vec2(-position.z, position.x);
+  vec3 pos = position;
+  pos.y += valleyHeight(p).z;
+  vVI1 = valleyGrad(p);
+  vLP = vec3(p, 0.0);
+  vec4 wp = modelMatrix * vec4(pos, 1.0);
+  vWorldUE = vec3(-wp.z, wp.x, wp.y);
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}
+`;
+/* Pixel: CamL y Dist con la distancia REAL a la camara (no PixelDepth), en UE. */
+const VALLEY_FS = DECL + GLSL_PS + GLSL_OETF + `
+varying vec4 vVI1;
+varying vec3 vLP;
+varying vec3 vWorldUE;
+void main() {
+  vec3 camUE = vec3(-cameraPosition.z, cameraPosition.x, cameraPosition.y);
+  vec3 toCam = camUE - vWorldUE;
+  float Dist = length(toCam);
+  vec3 CamL = toCam / max(Dist, 1e-4);
+  gl_FragColor = vec4(linearToSRGB(valleyPS(vVI1, vLP, CamL, Dist)), 1.0);
+}
+`;
+
+/* ===================================================================================
+   UNIFORMES
+   =================================================================================== */
+function makeUniforms() {
+  const U = { uTime: { value: 0 } };
+  VS_SCALARS.concat(PS_SCALARS).forEach(k => { U[k] = { value: 0 }; });
+  PS_VECS.forEach(k => { U[k] = { value: new THREE.Vector3() }; });
+  return U;
+}
+/* Empuja un juego de valores de material a un juego de uniformes. Las direcciones se derivan en JS
+   (en Unreal son preshader: Cosine/Sine con Period 360). */
+function pushMaterial(U, M) {
+  VS_SCALARS.concat(PS_SCALARS).forEach(k => { if (k in M) U[k].value = M[k]; });
+  PS_VECS.forEach(k => { if (Array.isArray(M[k])) U[k].value.set(M[k][0], M[k][1], M[k][2]); });
+  U.LightDir.value.set(...dirUE(M.LightAz, M.LightEl));
+  U.GlowDir.value.set(...dirUE(M.GlowAz, M.GlowEl));
+  U.MoonDir.value.set(...dirUE(M.MoonAz, M.MoonEl));
+  U.MoonCosR.value = Math.cos(M.MoonRadius * D2R);
+}
+
+/* ===================================================================================
+   ESCENA
+   =================================================================================== */
+const stage = document.getElementById('stage');
+const failBox = document.getElementById('fail');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+} catch (err) {
+  failBox.innerHTML = '<strong>Este navegador no pudo crear un contexto WebGL.</strong><br>Probar con Chrome, Edge o Firefox actualizados.';
+  failBox.hidden = false;
+  throw err;
+}
+renderer.toneMapping = THREE.NoToneMapping;   // sin tonemapper, como el APK
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.debug.onShaderError = (gl, program, vs, fs) => {
+  const log = [gl.getProgramInfoLog(program), gl.getShaderInfoLog(vs), gl.getShaderInfoLog(fs)].filter(Boolean).join('\n');
+  console.error('VALLE: error de shader\n' + log);
+  failBox.innerHTML = '<strong>Error al compilar un shader.</strong><br>El detalle está en la consola del navegador (F12).';
+  failBox.hidden = false;
+};
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(P.fov, 1, 10, 50000);   // near 10, far 50000 (§7.3)
+
+const U = makeUniforms();
+const groundMat = new THREE.ShaderMaterial({
+  uniforms: Object.assign({}, U, { Part: { value: 0 } }),
+  vertexShader: VALLEY_VS, fragmentShader: VALLEY_FS, side: THREE.DoubleSide
+});
+const skyMat = new THREE.ShaderMaterial({
+  uniforms: Object.assign({}, U, { Part: { value: 1 } }),
+  vertexShader: VALLEY_VS, fragmentShader: VALLEY_FS, side: THREE.BackSide
+});
+
+const MESH = buildValleyGeometry();
+const ground = new THREE.Mesh(MESH.geo, groundMat);
+ground.frustumCulled = false;                  // malla plana con WPO (§2: en Unreal, PositiveBoundsExtension)
+scene.add(ground);
+
+const sky = new THREE.Mesh(new THREE.SphereGeometry(20000, 96, 48), skyMat);  // esfera del cielo (§7.3)
+sky.frustumCulled = false;
+scene.add(sky);
+
+/* Metaball de prueba: una esfera blanca-azulada. No es el metaball real: sirve para juzgar
+   el contraste contra el cielo y la separacion con su sombra. */
+const blobU = {
+  LightDir: U.LightDir, SkyGlow: U.SkyGlow, SkyHorizon: U.SkyHorizon, DitherAmt: U.DitherAmt,
+  BlobLit: { value: new THREE.Vector3() }, BlobShadow: { value: new THREE.Vector3() }
+};
+const blobMat = new THREE.ShaderMaterial({
+  uniforms: blobU,
+  vertexShader: `
+varying vec3 vN;
+varying vec3 vW;
+void main() {
+  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vec3 n = normalize(mat3(modelMatrix) * normal);
+  vW = vec3(-wp.z, wp.x, wp.y);
+  vN = vec3(-n.z, n.x, n.y);
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}`,
+  fragmentShader: `
+uniform vec3 LightDir;
+uniform vec3 SkyGlow;
+uniform vec3 SkyHorizon;
+uniform float DitherAmt;
+uniform vec3 BlobLit;
+uniform vec3 BlobShadow;
+varying vec3 vN;
+varying vec3 vW;
+` + GLSL_OETF + `
+void main() {
+  vec3 N = normalize(vN);
+  vec3 camUE = vec3(-cameraPosition.z, cameraPosition.x, cameraPosition.y);
+  vec3 V = normalize(camUE - vW);
+  float wrap = clamp((dot(N, LightDir) + 0.6) / 1.6, 0.0, 1.0);
+  float k = clamp(0.5 * wrap + 0.5 * (0.5 + 0.5 * N.z), 0.0, 1.0);
+  vec3 col = mix(BlobShadow, BlobLit, k);
+  float fres = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 3.0);
+  col = mix(col, mix(SkyHorizon, SkyGlow, 0.5), 0.45 * fres);
+  vec3 p3 = fract(vec3(gl_FragCoord.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  col += DitherAmt * (fract((p3.x + p3.y) * p3.z) - 0.5) / 255.0;
+  gl_FragColor = vec4(linearToSRGB(col), 1.0);
+}`
+});
+const blob = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), blobMat);
+scene.add(blob);
+
+/* ===================================================================================
+   CAMARA: modo "ojos" (fija en los ojos, solo gira la cabeza) y modo "orbita" (inspeccion)
+   =================================================================================== */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.12;
+let camMode = 'eye';
+
+/* Descarga el giro o paneo residual del amortiguado antes de saltar a una vista nueva:
+   si no, el objetivo seguiria corriendose unos cuadros y la camara saldria de los ojos. */
+function flushControls() {
+  controls.enableDamping = false;
+  controls.update();
+  controls.enableDamping = true;
+}
+
+/* En modo ojos el objetivo de OrbitControls ES el ojo y la camara orbita a 1 mm de el:
+   en la practica solo gira. rotateSpeed negativo = se arrastra el mundo (como un video 360). */
+function lookFromEye(az, el) {
+  flushControls();
+  camMode = 'eye';
+  controls.enableZoom = false;
+  controls.enablePan = false;
+  controls.rotateSpeed = -0.42;
+  controls.minDistance = 0;
+  controls.maxDistance = Infinity;
+  controls.minPolarAngle = 15 * D2R;           // mirar hasta 75 grados arriba
+  controls.maxPolarAngle = 165 * D2R;          // y 75 grados abajo
+  controls.target.copy(EYE);
+  camera.position.copy(EYE).addScaledVector(dirThree(az, el), -0.1);
+  controls.update();
+}
+function orbitView(camUE, targetUE) {
+  flushControls();
+  camMode = 'orbit';
+  controls.enableZoom = true;
+  controls.enablePan = true;
+  controls.rotateSpeed = 0.6;
+  controls.minDistance = 100;
+  controls.maxDistance = 15000;
+  controls.minPolarAngle = 0;
+  controls.maxPolarAngle = 88 * D2R;
+  controls.target.copy(ue2three(...targetUE));
+  camera.position.copy(ue2three(...camUE));
+  controls.update();
+}
+const LOOKS = {
+  front: () => lookFromEye(0, Math.atan2(P.blobZ - 120, P.blobX) / D2R),
+  shadow: () => lookFromEye(0, -16),
+  moon: () => lookFromEye(P.MoonAz, P.MoonEl + 1),
+  right: () => lookFromEye(90, 3),
+  back: () => lookFromEye(180, 3),
+  sky: () => lookFromEye(P.GlowAz, 38)
+};
+const ORBITS = {
+  bird: () => orbitView([-2300, -2700, 2300], [450, 0, 60]),
+  top: () => orbitView([450, 0, 9500], [450, 0, 0])
+};
+renderer.domElement.addEventListener('wheel', e => {
+  if (camMode !== 'eye') return;
+  e.preventDefault();
+  P.fov = Math.min(110, Math.max(30, P.fov * Math.exp(e.deltaY * 0.001)));
+  syncRow('fov');
+  changed('fov');
+}, { passive: false });
+
+/* ===================================================================================
+   PANEL DE PERILLAS
+   =================================================================================== */
+const SCHEMA = [
+  { g: '1 · Valle', open: true, items: [
+    { k: 'ValleyX', l: 'Centro del valle, hacia adelante', min: 0, max: 800, st: 5, u: 'cm', bp: 'ValleyForward', d: 'Centro de la elipse del valle, hacia adelante.' },
+    { k: 'ValleyA', l: 'Largo del valle (semieje adelante y atrás)', min: 500, max: 1600, st: 10, u: 'cm', bp: 'ValleyLength', d: 'El piso plano llega a ValleyX ± ValleyA. El BP lo recorta para que el borde de la malla no se vea.' },
+    { k: 'ValleyB', l: 'Ancho del valle (semieje lateral)', min: 400, max: 1100, st: 10, u: 'cm', bp: 'ValleyWidth', d: 'Semieje lateral. El BP lo recorta a 4300 / RimBack.' },
+    { k: 'SeatIn', l: 'Radio sin relieve alrededor del usuario', min: 0, max: 200, st: 5, u: 'cm', d: 'Nunca hay relieve dentro de este radio (protege si se mueve el valle).' },
+    { k: 'SeatOut', l: 'Fin de la protección del asiento', min: 100, max: 500, st: 5, u: 'cm' }
+  ] },
+  { g: '2 · Colinas', open: true, items: [
+    { k: 'RimHeight', l: 'Altura del anillo lejano (tapa el horizonte)', min: 250, max: 1000, st: 5, u: 'cm', bp: 'RimHeight', d: 'Regla §3.9: RimHeight ≥ 120 + 0,052 · (ValleyX + ValleyA · RimCrest). El indicador "horizonte" de abajo la evalúa.' },
+    { k: 'RimCrest', l: 'Cresta del anillo (en unidades de la elipse)', min: 1.5, max: 4, st: 0.05, u: '' },
+    { k: 'RimBack', l: 'Fin del terreno detrás de la cresta', min: 1.8, max: 5, st: 0.05, u: '', d: 'Donde el terreno ya volvió a 0. Tiene que ser mayor que RimCrest (el código lo protege).' },
+    { k: 'DuneAmp', l: 'Altura de las lomas', min: 0, max: 1000, st: 5, u: 'cm', bp: 'HillHeight' },
+    { k: 'DuneRise', l: 'Dónde las lomas llegan a su altura plena', min: 1.05, max: 3, st: 0.01, u: '', d: '1 = el borde del valle.' },
+    { k: 'DuneLow', l: 'Umbral de la loma (más alto: más pasillos planos)', min: -1, max: 0.5, st: 0.01, u: '' },
+    { k: 'DuneHigh', l: 'Umbral superior (más bajo: cimas más anchas)', min: 0.6, max: 1.6, st: 0.01, u: '', d: 'Con 1 o menos empieza a hacer mesetas.' },
+    { k: 'DuneScale', l: 'Tamaño de las lomas', min: 0.5, max: 2, st: 0.01, u: '×', bp: 'HillSize' },
+    { k: 'DuneSeed', l: 'Giro del campo de dunas (composición)', min: 0, max: 360, st: 1, u: '°', bp: 'HillSeed', d: 'Elige dónde caen las lomas sin tocar su forma.' },
+    { k: 'DuneShiftX', l: 'Corrimiento del campo en X', min: -5000, max: 5000, st: 10, u: 'cm', bp: 'HillShiftX' },
+    { k: 'DuneShiftY', l: 'Corrimiento del campo en Y', min: -5000, max: 5000, st: 10, u: 'cm', bp: 'HillShiftY' }
+  ] },
+  { g: '3 · Transformación', open: true, items: [
+    { k: 'MorphAmt', l: 'Cuánto respira cada loma', min: 0, max: 0.8, st: 0.01, u: '', bp: 'MorphAmount', d: '0 = paisaje quieto. La amplitud crece y se achica en su lugar, sin traslación.' },
+    { k: 'MorphSpeed', l: 'Velocidad (1 = períodos de 41 a 83 s)', min: 0, max: 3, st: 0.01, u: '×', bp: 'MorphSpeed' },
+    { k: 'MorphNear', l: 'Sin transformación hasta', min: 0, max: 3000, st: 10, u: 'cm' },
+    { k: 'MorphFar', l: 'Transformación completa desde', min: 500, max: 5000, st: 10, u: 'cm' }
+  ] },
+  { g: '4 · Luz y superficie', items: [
+    { k: 'LightAz', l: 'Luz: azimut', min: -180, max: 180, st: 1, u: '°', bp: 'LightAzimuth', d: '0 = al frente, +90 = derecha, -90 = izquierda.' },
+    { k: 'LightEl', l: 'Luz: elevación', min: 0, max: 90, st: 1, u: '°', bp: 'LightElevation' },
+    { k: 'Wrap', l: 'Luz envolvente', min: 0, max: 1, st: 0.01, u: '', d: 'Más alto = sombras más suaves.' },
+    { k: 'ShadeFloor', l: 'Piso del sombreado', min: 0, max: 1, st: 0.01, u: '', d: '0 = la sombra llega a ColShadow.' },
+    { k: 'SlopeDark', l: 'Oscurecimiento por pendiente', min: 0, max: 3, st: 0.01, u: '', bp: 'SlopeShade', d: 'Da forma también de espaldas a la luz.' },
+    { k: 'ColLit', t: 'color', l: 'Color iluminado', bp: 'ColorLight' },
+    { k: 'ColShadow', t: 'color', l: 'Color en sombra', bp: 'ColorShadow' },
+    { k: 'ColSheen', t: 'color', l: 'Color del brillo rasante', bp: 'ColorSheen' },
+    { k: 'Sheen', l: 'Brillo rasante', min: 0, max: 1, st: 0.01, u: '', bp: 'Sheen' },
+    { k: 'SheenPow', l: 'Concentración del rasante', min: 1, max: 8, st: 0.1, u: '', d: 'Más alto = solo en el borde.' },
+    { k: 'SheenBack', l: 'Rasante de espaldas a la luz', min: 0, max: 1, st: 0.01, u: '', d: '1 = igual que a contraluz.' },
+    { k: 'CrestLight', l: 'Aclarado de las cimas', min: 0, max: 1, st: 0.01, u: '' }
+  ] },
+  { g: '5 · Sombra del metaball', open: true, items: [
+    { k: 'bShadow', t: 'bool', l: 'Sombra activa', bp: 'bShadow' },
+    { k: 'ShadowRadius', l: 'Radio de la esfera que proyecta', min: 10, max: 300, st: 1, u: 'cm', bp: 'ShadowRadius', d: 'Perilla del BP. El BP la multiplica por la aparición del metaball (escala / ShadowScaleRef).' },
+    { k: 'ShadowStrength', l: 'Intensidad', min: 0, max: 4, st: 0.05, u: '', bp: 'ShadowStrength', d: 'Perilla del BP. El BP la multiplica por la aparición, con tope 1.' },
+    { k: 'ShadowSoft', l: 'Penumbra por cm de altura', min: 0.3, max: 2, st: 0.01, u: '', bp: 'ShadowSoftness', d: '1 = física exacta; 0,8 = un poco más recogida.' },
+    { k: 'ShadowTint', t: 'color', l: 'Color de la sombra (multiplica)' },
+    { k: 'ShadowMax', l: 'Tope de la sombra', min: 0, max: 1, st: 0.01, u: '' }
+  ] },
+  { g: '6 · Cielo', items: [
+    { k: 'SkyZenith', t: 'color', l: 'Cénit', bp: 'SkyColorTop' },
+    { k: 'SkyHorizon', t: 'color', l: 'Horizonte (también es la niebla)', bp: 'SkyColorHorizon' },
+    { k: 'SkyGlow', t: 'color', l: 'Resplandor', bp: 'SkyColorGlow' },
+    { k: 'SkyGradTop', l: 'Altura del degradado (seno de la elevación)', min: 0.1, max: 1, st: 0.01, u: '' },
+    { k: 'GlowAz', l: 'Resplandor: azimut', min: -180, max: 180, st: 1, u: '°', bp: 'GlowAzimuth', d: 'Correrlo a 30-40° saca el rosado de detrás del metaball (riesgo de contraste, §11).' },
+    { k: 'GlowEl', l: 'Resplandor: elevación del centro', min: -10, max: 30, st: 0.5, u: '°' },
+    { k: 'GlowPow', l: 'Resplandor: ancho en azimut', min: 0.5, max: 8, st: 0.1, u: '', d: 'Más alto = más angosto.' },
+    { k: 'GlowHeight', l: 'Resplandor: alto de la banda', min: 0.05, max: 1, st: 0.01, u: '' },
+    { k: 'GlowAmt', l: 'Resplandor: intensidad', min: 0, max: 1, st: 0.01, u: '', bp: 'GlowAmount' }
+  ] },
+  { g: '7 · Luna', items: [
+    { k: 'MoonAz', l: 'Azimut', min: -180, max: 180, st: 1, u: '°', bp: 'MoonAzimuth' },
+    { k: 'MoonEl', l: 'Elevación del centro', min: -5, max: 60, st: 0.5, u: '°', bp: 'MoonElevation' },
+    { k: 'MoonRadius', l: 'Radio angular', min: 1, max: 20, st: 0.5, u: '°', bp: 'MoonSize' },
+    { k: 'MoonEdge', l: 'Suavidad del borde', min: 0.005, max: 0.3, st: 0.005, u: '' },
+    { k: 'MoonColor', t: 'color', l: 'Color de la luna' },
+    { k: 'MoonOpacity', l: 'Opacidad', min: 0, max: 1, st: 0.01, u: '', bp: 'MoonOpacity' },
+    { k: 'MoonFill', l: 'Relleno del disco', min: 0, max: 1, st: 0.01, u: '' },
+    { k: 'MoonRim', l: 'Borde encendido del lado del resplandor', min: 0, max: 2, st: 0.01, u: '' }
+  ] },
+  { g: '8 · Niebla y dither', items: [
+    { k: 'FogStart', l: 'Niebla: empieza a', min: 0, max: 3000, st: 10, u: 'cm', bp: 'FogStart' },
+    { k: 'FogDist', l: 'Niebla: escala', min: 500, max: 20000, st: 50, u: 'cm', bp: 'FogDistance' },
+    { k: 'FogMax', l: 'Niebla: tope', min: 0, max: 1, st: 0.01, u: '', bp: 'FogMax' },
+    { k: 'DitherAmt', l: 'Dither (1 = ±0,5/255 en lineal)', min: 0, max: 3, st: 0.1, u: 'LSB', d: 'Si aparece banding en el visor, subir a 1,5-2.' }
+  ] },
+  { g: 'Metaball de prueba (no se exporta al material)', items: [
+    { k: 'blobX', l: 'Distancia al frente (X)', min: 150, max: 800, st: 5, u: 'cm', bp: 'ShadowCenterManual.X', d: 'Centro del metaball. En Unreal lo lee el BP del actor del metaball.' },
+    { k: 'blobZ', l: 'Altura del centro (Z)', min: 40, max: 320, st: 1, u: 'cm', bp: 'ShadowCenterManual.Z' },
+    { k: 'blobR', l: 'Radio visible de la esfera de prueba', min: 30, max: 200, st: 1, u: 'cm' },
+    { k: 'blobAppear', l: 'Aparición (escala / ShadowScaleRef)', min: 0, max: 1.2, st: 0.01, u: '', d: 'Simula BlobAppear: el BP escala el radio de la sombra con esto y la intensidad con esto (tope 1).' },
+    { k: 'bobAmp', l: 'Flotación de prueba: amplitud', min: 0, max: 60, st: 1, u: 'cm', d: 'Solo del prototipo: sube y baja la esfera para ver cómo responde la sombra.' },
+    { k: 'bobT', l: 'Flotación de prueba: período', min: 2, max: 20, st: 0.5, u: 's' },
+    { k: 'blobLit', t: 'color', l: 'Esfera: lado claro' },
+    { k: 'blobShadow', t: 'color', l: 'Esfera: lado sombra' },
+    { k: 'blobVisible', t: 'bool', l: 'Mostrar la esfera' }
+  ] },
+  { g: 'Reloj, vista y banco', items: [
+    { k: '_time', t: 'time', l: 'Tiempo (s): se puede arrastrar', min: 0, max: 900, st: 0.5, u: 's' },
+    { k: 'timeScale', l: 'Reloj del prototipo (no se exporta)', min: 0, max: 20, st: 0.5, u: '×', d: 'Acelera solo este reloj para ver la transformación más rápido. La velocidad real es MorphSpeed.' },
+    { k: 'fov', l: 'Campo de visión vertical', min: 30, max: 110, st: 1, u: '°', d: 'El Quest 3 tiene unos 96° verticales por ojo; 70-80 se parece más a lo que se percibe en pantalla.' },
+    { k: 'wire', t: 'bool', l: 'Ver la malla (alambre)' },
+    { k: 'guard', t: 'bool', l: 'Recortar el valle como el BP (borde oculto)' },
+    { k: 'PerfMode', l: 'Banco PerfMode: 0 normal · 1 vértices planos · 2 píxeles planos · 3 ambos', min: 0, max: 3, st: 1, u: '' },
+    { k: '_ref', t: 'file', l: 'Imagen de referencia superpuesta' },
+    { k: 'refOpacity', l: 'Opacidad de la referencia', min: 0, max: 1, st: 0.01, u: '' }
+  ] }
+];
+
+const groupsEl = document.getElementById('groups');
+const rows = {};
+const decimals = st => { const s = String(st); return s.includes('.') ? s.split('.')[1].length : 0; };
+const fmtLin = a => '(' + a.map(v => v.toFixed(3)).join(', ') + ')';
+
+SCHEMA.forEach(grp => {
+  const det = document.createElement('details');
+  if (grp.open) det.open = true;
+  const sum = document.createElement('summary');
+  sum.textContent = grp.g;
+  det.appendChild(sum);
+  grp.items.forEach(it => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const id = 'p-' + it.k;
+    const pn = (it.k.startsWith('_') || !(it.k in DEF)) ? (it.bp ? 'BP ' + it.bp : '') : it.k + (it.bp && it.bp !== it.k ? '  ·  BP ' + it.bp : '');
+    const lab = '<label class="lab" for="' + id + '">' + it.l + (pn ? '<span class="pn">' + pn + '</span>' : '') + '</label>';
+    row.title = (it.d ? it.d + '  ' : '') + (it.k in DEF ? 'Parámetro del material: ' + it.k + '.' : '') + (it.bp ? ' Perilla del BP: ' + it.bp + '.' : '');
+    if (it.t === 'color') {
+      row.classList.add('color');
+      row.innerHTML = lab + '<span class="val"><input id="' + id + '" type="color"></span><span class="lin"></span>';
+      const inp = row.querySelector('input'), lin = row.querySelector('.lin');
+      inp.addEventListener('input', () => { P[it.k] = hex2lin(inp.value); lin.textContent = 'lineal ' + fmtLin(P[it.k]); changed(it.k); });
+      rows[it.k] = { it, sync: () => { inp.value = lin2hex(P[it.k]); lin.textContent = 'lineal ' + fmtLin(P[it.k]); } };
+    } else if (it.t === 'bool') {
+      row.innerHTML = lab + '<span class="val"><input id="' + id + '" type="checkbox"></span>';
+      const inp = row.querySelector('input');
+      inp.addEventListener('change', () => { P[it.k] = inp.checked; changed(it.k); });
+      rows[it.k] = { it, sync: () => { inp.checked = !!P[it.k]; } };
+    } else if (it.t === 'file') {
+      row.innerHTML = lab + '<input id="' + id + '" type="file" accept="image/*">';
+      const inp = row.querySelector('input');
+      inp.addEventListener('change', () => {
+        const f = inp.files && inp.files[0];
+        const img = document.getElementById('refimg');
+        if (!f) { img.style.display = 'none'; return; }
+        img.src = URL.createObjectURL(f);
+        img.style.display = 'block';
+        img.style.opacity = P.refOpacity;
+      });
+      rows[it.k] = { it, sync: () => {} };
+    } else {
+      row.innerHTML = lab + '<span class="val"><input class="num" type="number" step="' + it.st + '" aria-label="' + it.l + '"><span class="u">' + (it.u || '') + '</span></span>' +
+        '<input id="' + id + '" type="range" min="' + it.min + '" max="' + it.max + '" step="' + it.st + '">';
+      const num = row.querySelector('.num'), rng = row.querySelector('input[type=range]');
+      const dec = decimals(it.st);
+      const get = () => (it.t === 'time' ? simT : P[it.k]);
+      const set = v => { if (!isFinite(v)) return; if (it.t === 'time') simT = Math.max(0, v); else P[it.k] = v; changed(it.k); };
+      rng.addEventListener('input', () => { const v = parseFloat(rng.value); set(v); num.value = v.toFixed(dec); });
+      num.addEventListener('change', () => { const v = parseFloat(num.value); set(v); rng.value = v; });
+      rows[it.k] = { it, sync: () => { const v = get(); rng.value = v; if (document.activeElement !== num) num.value = Number(v).toFixed(dec); }, rng, num };
+    }
+    det.appendChild(row);
+  });
+  groupsEl.appendChild(det);
+});
+const note = document.createElement('p');
+note.className = 'note';
+note.textContent = 'Los selectores de color muestran sRGB, que es lo que se ve en el visor. El material recibe el valor lineal que aparece debajo de cada color, y ese es el que exporta "Copiar valores".';
+groupsEl.appendChild(note);
+
+function syncRow(k) { if (rows[k]) rows[k].sync(); }
+function syncAll() { Object.keys(rows).forEach(syncRow); }
+function changed(k) {
+  if (k === 'fov') { camera.fov = P.fov; camera.updateProjectionMatrix(); }
+  if (k === 'wire') groundMat.wireframe = !!P.wire;
+  if (k === 'refOpacity') document.getElementById('refimg').style.opacity = P.refOpacity;
+  if (k === 'blobVisible') blob.visible = !!P.blobVisible;
+}
+
+/* ===================================================================================
+   BP: el borde impuesto (§9 LookTo) y la sombra que sigue al metaball (§9 StepShadow)
+   =================================================================================== */
+function effectiveValley() {
+  const rb = Math.max(P.RimBack, Math.max(P.RimCrest, 1.01) + 0.01);
+  const A = P.guard ? Math.min(P.ValleyA, (4300 - P.ValleyX) / rb) : P.ValleyA;
+  const B = P.guard ? Math.min(P.ValleyB, 4300 / rb) : P.ValleyB;
+  return { A, B };
+}
+function horizonRule() {
+  const ef = effectiveValley();
+  const need = 120 + 0.052 * (P.ValleyX + ef.A * P.RimCrest);
+  return { need, ok: P.RimHeight >= need };
+}
+
+let simT = 0, paused = false;
+function pushFrame() {
+  pushMaterial(U, P);
+  const ef = effectiveValley();
+  U.ValleyA.value = ef.A;
+  U.ValleyB.value = ef.B;
+  U.uTime.value = simT;
+  // metaball de prueba y su sombra, como StepShadow: centro, radio * ratio, intensidad * clamp(ratio)
+  const zc = P.blobZ + P.bobAmp * Math.sin(2 * Math.PI * simT / Math.max(P.bobT, 0.1));
+  const ratio = Math.max(P.blobAppear, 0);
+  U.ShadowCenter.value.set(P.blobX, 0, zc);
+  U.ShadowRadius.value = P.ShadowRadius * ratio;
+  U.ShadowStrength.value = P.bShadow ? P.ShadowStrength * Math.min(Math.max(ratio, 0), 1) : 0;
+  blob.position.copy(ue2three(P.blobX, 0, zc));
+  blob.scale.setScalar(Math.max(P.blobR * ratio, 0.001));
+  blobU.BlobLit.value.set(...P.blobLit);
+  blobU.BlobShadow.value.set(...P.blobShadow);
+}
+
+/* ===================================================================================
+   COPIAR / CARGAR VALORES
+   =================================================================================== */
+const r4 = v => Math.round(v * 1e4) / 1e4;
+const asLinear = a => ({ R: r4(a[0]), G: r4(a[1]), B: r4(a[2]), A: 1 });
+const ueText = a => '(R=' + a[0].toFixed(6) + ',G=' + a[1].toFixed(6) + ',B=' + a[2].toFixed(6) + ',A=1.000000)';
+function buildExport() {
+  const mat = {}, srgb8 = {}, texto = {}, cambiados = [];
+  MAT_KEYS.forEach(k => {
+    let v = P[k];
+    if (k === 'Part') v = 0;
+    if (k === 'ShadowCenter') v = [P.blobX, 0, P.blobZ];
+    if (Array.isArray(v)) {
+      mat[k] = asLinear(v);
+      if (k !== 'ShadowCenter') { srgb8[k] = lin2srgb8(v); texto[k] = ueText(v); }
+    } else mat[k] = r4(v);
+    const d = DEF[k];
+    const differs = Array.isArray(d) ? d.some((x, i) => Math.abs(x - v[i]) > 1e-6) : Math.abs(d - v) > 1e-6;
+    if (differs) cambiados.push(k);
+  });
+  const bp = {};
+  SCHEMA.forEach(g => g.items.forEach(it => {
+    if (!it.bp || it.bp.startsWith('ShadowCenterManual')) return;
+    const v = P[it.k];
+    bp[it.bp] = Array.isArray(v) ? asLinear(v) : (typeof v === 'boolean' ? v : r4(v));
+  }));
+  bp.ShadowCenterManual = { X: r4(P.blobX), Y: 0, Z: r4(P.blobZ) };
+  bp.ShadowScaleRef = 2.2;
+  const ef = effectiveValley();
+  const out = {
+    plan: 'docs/PLAN-VALLE-ENTERING-2026-09-27.md',
+    prototipo: 'docs/prototipos/valle-entering.html',
+    fecha: new Date().toISOString(),
+    nota: 'Colores en LINEAL (FLinearColor de Unreal). srgb8 es solo referencia; texto_ue se puede pegar en un campo de color del panel de detalles.',
+    MI_BreathValley_SC: mat,
+    BP_BreathValley_SC: bp,
+    cambiados_vs_plan: cambiados,
+    srgb8,
+    texto_ue: texto,
+    extras_del_prototipo: {
+      blobR: P.blobR, blobAppear: P.blobAppear, bobAmp: P.bobAmp, bobT: P.bobT,
+      blobLit: asLinear(P.blobLit), blobShadow: asLinear(P.blobShadow), fov: P.fov, t: r4(simT)
+    }
+  };
+  if (Math.abs(ef.A - P.ValleyA) > 1e-6 || Math.abs(ef.B - P.ValleyB) > 1e-6) {
+    out.recorte_del_BP = { ValleyA_efectivo: r4(ef.A), ValleyB_efectivo: r4(ef.B), motivo: 'borde de la malla oculto (§3.9)' };
+  }
+  return out;
+}
+const copyOut = document.getElementById('copyout');
+const copyBtn = document.getElementById('copy');
+copyBtn.addEventListener('click', () => {
+  const txt = JSON.stringify(buildExport(), null, 1);
+  const show = () => { copyOut.value = txt; copyOut.classList.add('show'); copyOut.focus(); copyOut.select(); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(() => {
+      copyBtn.textContent = 'Copiado';
+      copyOut.classList.remove('show');
+      setTimeout(() => { copyBtn.textContent = 'Copiar valores'; }, 1400);
+    }, show);
+  } else show();
+});
+
+function toColor(v) {
+  if (Array.isArray(v) && v.length >= 3) return [+v[0], +v[1], +v[2]];
+  if (v && typeof v === 'object') {
+    const r = v.R ?? v.r, g = v.G ?? v.g, b = v.B ?? v.b;
+    if ([r, g, b].every(x => typeof x === 'number')) return [r, g, b];
+  }
+  if (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v)) return hex2lin(v);
+  return null;
+}
+function applyImported(obj) {
+  const src = obj.MI_BreathValley_SC || obj.material || obj;
+  let n = 0;
+  MAT_KEYS.forEach(k => {
+    if (!(k in src) || k === 'Part') return;
+    if (k === 'ShadowCenter') {
+      const c = toColor(src[k]);
+      if (c) { P.blobX = c[0]; P.blobZ = c[2]; n++; }
+      return;
+    }
+    if (Array.isArray(DEF[k])) { const c = toColor(src[k]); if (c) { P[k] = c; n++; } }
+    else if (typeof src[k] === 'number' && isFinite(src[k])) { P[k] = src[k]; n++; }
+  });
+  const bp = obj.BP_BreathValley_SC;
+  if (bp && typeof bp.bShadow === 'boolean') { P.bShadow = bp.bShadow; n++; }
+  const ex = obj.extras_del_prototipo;
+  if (ex) {
+    ['blobR', 'blobAppear', 'bobAmp', 'bobT', 'fov'].forEach(k => { if (typeof ex[k] === 'number') P[k] = ex[k]; });
+    ['blobLit', 'blobShadow'].forEach(k => { const c = toColor(ex[k]); if (c) P[k] = c; });
+  }
+  syncAll();
+  changed('fov');
+  return n;
+}
+const dlgLoad = document.getElementById('dlgload');
+document.getElementById('load').addEventListener('click', () => {
+  document.getElementById('importmsg').textContent = '';
+  dlgLoad.showModal();
+});
+document.getElementById('importgo').addEventListener('click', () => {
+  const msg = document.getElementById('importmsg');
+  try {
+    const n = applyImported(JSON.parse(document.getElementById('importtxt').value));
+    msg.textContent = n ? 'Aplicados ' + n + ' parámetros.' : 'No se reconoció ningún parámetro.';
+    if (n) setTimeout(() => dlgLoad.close(), 700);
+  } catch (err) {
+    msg.textContent = 'El texto no es JSON válido: ' + err.message;
+  }
+});
+document.getElementById('reset').addEventListener('click', () => {
+  P = JSON.parse(JSON.stringify(DEFAULT));
+  syncAll();
+  ['fov', 'wire', 'refOpacity', 'blobVisible'].forEach(changed);
+});
+document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+
+/* ===================================================================================
+   VERIFICACION §12: los mismos shaders, evaluados en la GPU sobre un render target float
+   =================================================================================== */
+const CONTROL = {
+  grad: [   // x, y, t, h, dh/dx, dh/dy, hf
+    [0, 0, 0, 0.000, 0.000000, 0.000000, 0.000000],
+    [380, 0, 0, 0.000, 0.000000, 0.000000, 0.000000],
+    [900, -700, 0, 89.005, 0.187877, -0.337869, 0.126090],
+    [1500, 800, 0, 280.513, -0.146126, -0.204076, 0.281756],
+    [2200, -1500, 20, 481.552, -0.912999, 0.638918, 0.250821],
+    [3200, 0, 45.5, 460.192, -0.050322, 0.369692, 0.154215],
+    [-1800, 1200, 90, 383.565, -0.033267, 0.083878, 0.007741],
+    [2600, 2600, 300, 0.000, 0.000000, 0.000000, 0.000000]
+  ],
+  ground: [ // x, y, t, color lineal, O
+    [380, 0, 0, [0.2136, 0.2636, 0.5562], 0.4743],
+    [250, -150, 0, [0.2869, 0.3542, 0.6358], 0.0432],
+    [1500, 800, 0, [0.5424, 0.5454, 0.7814], 0.0000],
+    [3200, 0, 45.5, [0.5291, 0.5166, 0.7369], 0.0000],
+    [-1800, 1200, 90, [0.4117, 0.4519, 0.7056], 0.0000]
+  ],
+  sky: [    // az, el, color lineal
+    [0, 0, [0.7595, 0.6629, 0.8501]],
+    [0, 45, [0.2160, 0.3280, 0.5970]],
+    [20, 3, [0.7821, 0.6676, 0.8510]],
+    [180, 10, [0.5383, 0.5784, 0.8017]],
+    [-40, 7, [0.6269, 0.6178, 0.8274]],
+    [-33, 12, [0.6578, 0.6158, 0.8209]],
+    [0, 90, [0.2160, 0.3280, 0.5970]]
+  ],
+  dirs: { LightDir: [0.851651, 0.309976, 0.422618], GlowDir: [0.939120, 0.341812, 0.034899], MoonDir: [0.760334, -0.637996, 0.121869], MoonCosR: 0.987688 },
+  mesh: { rings: 79, verts: 15169, tris: 30144, r30: 900, r31: 929.45, tail: [3958.6, 4088.1, 4221.9, 4400.0] }
+};
+const TOL = { h: 0.01, grad: 5e-5, hf: 5e-5, col: 0.001, O: 0.001, dir: 2e-6, r: 0.06 };
+
+const UT = makeUniforms();
+Object.assign(UT, { uMode: { value: 0 }, uP: { value: new THREE.Vector2() }, uCam: { value: new THREE.Vector3(0, 0, 120) }, uDir: { value: new THREE.Vector3() } });
+const testMat = new THREE.ShaderMaterial({
+  uniforms: UT,
+  vertexShader: 'void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }',
+  fragmentShader: DECL + GLSL_FIELD + GLSL_PS + `
+uniform float uMode;
+uniform vec2 uP;
+uniform vec3 uCam;
+uniform vec3 uDir;
+void main() {
+  vec4 o = vec4(0.0);
+  if (uMode < 0.5) {
+    o = valleyGrad(uP);
+  } else if (uMode < 1.5) {
+    o = vec4(valleyHeight(uP), 0.0);
+  } else if (uMode < 2.5) {
+    vec4 VI1 = valleyGrad(uP);
+    vec3 wpos = vec3(uP, VI1.z);
+    vec3 toCam = uCam - wpos;
+    float Dist = length(toCam);
+    vec3 c = valleyPS(VI1, vec3(uP, 0.0), toCam / Dist, Dist);
+    o = vec4(c, gO);
+  } else {
+    vec3 c = valleyPS(vec4(0.0), vec3(0.0), -uDir, 1.0);
+    o = vec4(c, 0.0);
+  }
+  gl_FragColor = o;
+}
+`
+});
+const testScene = new THREE.Scene();
+const testQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), testMat);
+testQuad.frustumCulled = false;
+testScene.add(testQuad);
+const testCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+function runControl() {
+  const res = [];
+  const add = (grupo, caso, esperado, obtenido, delta, tol) => res.push({ grupo, caso, esperado, obtenido, delta, ok: delta <= tol, tol });
+  const fmt = (a, d) => Array.isArray(a) ? '(' + a.map(v => v.toFixed(d)).join(', ') + ')' : Number(a).toFixed(d);
+  const maxd = (a, b) => Math.max(...a.map((v, i) => Math.abs(v - b[i])));
+
+  // interfaz y malla
+  const nS = MAT_KEYS.filter(k => !Array.isArray(DEF[k])).length, nV = MAT_KEYS.length - nS;
+  add('interfaz', 'parámetros (total, escalares, vectores)', '61, 52, 9', MAT_KEYS.length + ', ' + nS + ', ' + nV, (MAT_KEYS.length === 61 && nS === 52 && nV === 9) ? 0 : 1, 0);
+  const rr = MESH.radii;
+  add('malla', 'anillos, vértices, triángulos', '79, 15169, 30144', rr.length + ', ' + MESH.nv + ', ' + MESH.nt,
+    (rr.length === 79 && MESH.nv === 15169 && MESH.nt === 30144) ? 0 : 1, 0);
+  const tail = rr.slice(-4);
+  const dr = Math.max(Math.abs(rr[29] - 900), Math.abs(rr[30] - 929.45), maxd(tail, CONTROL.mesh.tail));
+  add('malla', 'radios 30, 31 y los 4 últimos (cm)', '900, 929.45 · ' + fmt(CONTROL.mesh.tail, 1), rr[29].toFixed(2) + ', ' + rr[30].toFixed(2) + ' · ' + fmt(tail, 1), dr, TOL.r);
+  const dd = Math.max(
+    maxd(dirUE(DEF.LightAz, DEF.LightEl), CONTROL.dirs.LightDir),
+    maxd(dirUE(DEF.GlowAz, DEF.GlowEl), CONTROL.dirs.GlowDir),
+    maxd(dirUE(DEF.MoonAz, DEF.MoonEl), CONTROL.dirs.MoonDir),
+    Math.abs(Math.cos(DEF.MoonRadius * D2R) - CONTROL.dirs.MoonCosR));
+  add('direcciones', 'LightDir, GlowDir, MoonDir, MoonCosR', 'tabla §12', 'JS', dd, TOL.dir);
+
+  const caps = renderer.capabilities, ext = renderer.extensions;
+  if (!(caps.isWebGL2 && ext.has('EXT_color_buffer_float'))) {
+    add('GPU', 'lectura de render target float', 'EXT_color_buffer_float', 'no disponible', 1, 0);
+    return res;
+  }
+  const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.FloatType, format: THREE.RGBAFormat, depthBuffer: false });
+  const buf = new Float32Array(4);
+  const prev = renderer.getRenderTarget();
+  pushMaterial(UT, Object.assign({}, DEF, { DitherAmt: 0, PerfMode: 0 }));
+  const gpu = mode => {
+    UT.uMode.value = mode;
+    renderer.setRenderTarget(rt);
+    renderer.render(testScene, testCam);
+    renderer.readRenderTargetPixels(rt, 0, 0, 1, 1, buf);
+    return Array.from(buf);
+  };
+  // altura y gradiente
+  UT.Part.value = 0;
+  CONTROL.grad.forEach(([x, y, t, h, gx, gy, hf]) => {
+    UT.uP.value.set(x, y); UT.uTime.value = t;
+    const g = gpu(0);
+    const hh = gpu(1)[2];
+    const dH = Math.max(Math.abs(g[2] - h), Math.abs(hh - h));
+    const dG = Math.max(Math.abs(g[0] - gx), Math.abs(g[1] - gy));
+    const dF = Math.abs(g[3] - hf);
+    const ok = dH <= TOL.h && dG <= TOL.grad && dF <= TOL.hf;
+    res.push({ grupo: 'altura y gradiente', caso: '(' + x + ', ' + y + ') t=' + t,
+      esperado: 'h ' + h.toFixed(3) + ' · ∇ ' + fmt([gx, gy], 6) + ' · hf ' + hf.toFixed(6),
+      obtenido: 'h ' + g[2].toFixed(3) + ' (Height ' + hh.toFixed(3) + ') · ∇ ' + fmt([g[0], g[1]], 6) + ' · hf ' + g[3].toFixed(6),
+      delta: Math.max(dH / TOL.h, dG / TOL.grad, dF / TOL.hf), ok, tol: 1, rel: true });
+  });
+  // color del suelo (camara en (0, 0, 120), sombra en (380, 0, 125), dither 0)
+  UT.uCam.value.set(0, 0, 120);
+  CONTROL.ground.forEach(([x, y, t, c, O]) => {
+    UT.uP.value.set(x, y); UT.uTime.value = t;
+    const o = gpu(2);
+    const dC = maxd(o.slice(0, 3), c), dO = Math.abs(o[3] - O);
+    res.push({ grupo: 'color del suelo', caso: '(' + x + ', ' + y + ') t=' + t,
+      esperado: fmt(c, 4) + ' · O ' + O.toFixed(4) + ' · sRGB ' + lin2srgb8(c).join(' '),
+      obtenido: fmt(o.slice(0, 3), 4) + ' · O ' + o[3].toFixed(4) + ' · sRGB ' + lin2srgb8(o.slice(0, 3)).join(' '),
+      delta: Math.max(dC, dO), ok: dC <= TOL.col && dO <= TOL.O, tol: TOL.col });
+  });
+  // color del cielo
+  UT.Part.value = 1; UT.uTime.value = 0;
+  CONTROL.sky.forEach(([az, el, c]) => {
+    UT.uDir.value.set(...dirUE(az, el));
+    const o = gpu(3);
+    const dC = maxd(o.slice(0, 3), c);
+    res.push({ grupo: 'color del cielo', caso: 'az ' + az + '°, el ' + el + '°',
+      esperado: fmt(c, 4) + ' · sRGB ' + lin2srgb8(c).join(' '),
+      obtenido: fmt(o.slice(0, 3), 4) + ' · sRGB ' + lin2srgb8(o.slice(0, 3)).join(' '),
+      delta: dC, ok: dC <= TOL.col, tol: TOL.col });
+  });
+  renderer.setRenderTarget(prev);
+  rt.dispose();
+  return res;
+}
+
+let lastControl = null;
+function showControl() {
+  const res = lastControl || [];
+  const nOk = res.filter(r => r.ok).length;
+  const html = ['<p>Cada fila se calcula con los mismos shaders GLSL que dibujan la escena (render target float de 1 × 1 píxel) y con todos los defaults del plan, sin dither. ' +
+    'Tolerancias: altura ±' + TOL.h + ' cm, pendiente ±' + TOL.grad + ', hf ±' + TOL.hf + ', color ±' + TOL.col + ' lineal, O ±' + TOL.O + '. ' +
+    'En altura y gradiente, la columna Δ es el error dividido por su tolerancia (1 = en el límite).</p>',
+    '<p><strong>' + nOk + ' de ' + res.length + ' filas dentro de tolerancia.</strong></p>',
+    '<table><thead><tr><th>Grupo</th><th>Caso</th><th>Plan §12</th><th>Prototipo</th><th>Δ</th><th></th></tr></thead><tbody>'];
+  res.forEach(r => {
+    html.push('<tr><td>' + r.grupo + '</td><td class="m">' + r.caso + '</td><td class="m">' + r.esperado + '</td><td class="m">' + r.obtenido +
+      '</td><td class="m">' + (r.rel ? r.delta.toFixed(3) : r.delta.toExponential(1)) + '</td><td class="' + (r.ok ? 'ok">OK' : 'bad">FALLA') + '</td></tr>');
+  });
+  html.push('</tbody></table>');
+  document.getElementById('ctrlbody').innerHTML = html.join('');
+  document.getElementById('dlgctrl').showModal();
+}
+function updateControlChip() {
+  const el = document.getElementById('ctrlout');
+  if (!lastControl) { el.textContent = '§12 ...'; el.className = 'chip'; return; }
+  const nOk = lastControl.filter(r => r.ok).length, n = lastControl.length;
+  el.textContent = '§12 ' + nOk + '/' + n + (nOk === n ? ' OK' : ' revisar');
+  el.className = 'chip ' + (nOk === n ? 'ok' : 'warn');
+}
+document.getElementById('ctrlbtn').addEventListener('click', () => {
+  try { lastControl = runControl(); } catch (err) { console.error(err); }
+  updateControlChip();
+  showControl();
+});
+
+/* ===================================================================================
+   BARRA, TECLADO, TAMANO
+   =================================================================================== */
+document.querySelectorAll('[data-look]').forEach(b => b.addEventListener('click', () => LOOKS[b.dataset.look]()));
+document.querySelectorAll('[data-orbit]').forEach(b => b.addEventListener('click', () => ORBITS[b.dataset.orbit]()));
+const pauseBtn = document.getElementById('pause');
+function togglePause() { paused = !paused; pauseBtn.setAttribute('aria-pressed', String(paused)); pauseBtn.textContent = paused ? 'Seguir' : 'Pausa'; }
+pauseBtn.addEventListener('click', togglePause);
+document.getElementById('ptoggle').addEventListener('click', () => { document.body.classList.toggle('pclosed'); resize(); });
+window.addEventListener('keydown', e => {
+  const tag = document.activeElement ? document.activeElement.tagName : '';
+  if (/INPUT|SELECT|TEXTAREA/.test(tag) || document.querySelector('dialog[open]')) return;
+  if (e.code === 'Space') {
+    if (tag === 'BUTTON') return;             // la barra ya "hace clic" en el boton con foco
+    e.preventDefault(); togglePause(); return;
+  }
+  const keys = ['front', 'shadow', 'moon', 'right', 'back', 'sky'];
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= 6) LOOKS[keys[n - 1]]();
+  if (n === 7) ORBITS.bird();
+  if (n === 8) ORBITS.top();
+});
+if (window.matchMedia('(max-width:760px)').matches) document.body.classList.add('pclosed');
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / Math.max(h, 1);
+  const narrow = window.matchMedia('(max-width:760px)').matches;
+  const open = getComputedStyle(document.getElementById('panel')).display !== 'none';   // lo que muestra el CSS, no la clase
+  const sx = (!narrow && open) ? 184 : 0;                 // centra la vista en la zona libre del panel
+  const sy = (narrow && open) ? Math.round(h * 0.26) : 0;
+  if (sx || sy) camera.setViewOffset(w, h, sx, sy, w, h); else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+/* ===================================================================================
+   BUCLE
+   =================================================================================== */
+syncAll();
+['fov', 'wire', 'refOpacity', 'blobVisible'].forEach(changed);
+resize();
+LOOKS.front();
+
+const tOut = document.getElementById('tout'), fpsOut = document.getElementById('fpsout'), horOut = document.getElementById('horout');
+let prevT = performance.now(), acc = 0, frames = 0, hudT = 0, firstFrame = true;
+function frame(now) {
+  const dt = Math.min(0.1, (now - prevT) / 1000);
+  prevT = now;
+  if (!paused) simT += dt * P.timeScale;
+  pushFrame();
+  controls.update();
+  renderer.render(scene, camera);
+  if (firstFrame) {
+    firstFrame = false;
+    try { lastControl = runControl(); } catch (err) { console.error('VALLE: verificacion §12', err); }
+    updateControlChip();
+  }
+  acc += dt; frames++; hudT += dt;
+  if (hudT > 0.25) {
+    hudT = 0;
+    tOut.textContent = 't ' + simT.toFixed(1) + ' s';
+    if (acc > 0) fpsOut.textContent = Math.round(frames / acc) + ' fps';
+    acc = 0; frames = 0;
+    const hr = horizonRule();
+    horOut.textContent = hr.ok ? 'horizonte OK (' + Math.round(P.RimHeight) + ' ≥ ' + Math.round(hr.need) + ')' : 'horizonte en riesgo: RimHeight < ' + Math.round(hr.need);
+    horOut.className = 'chip ' + (hr.ok ? 'ok' : 'warn');
+    horOut.parentElement.title = 'Regla §3.9: RimHeight ≥ 120 + 0,052 · (ValleyX + ValleyA · RimCrest), con el ValleyA que queda después del recorte del BP.';
+    syncRow('_time');
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

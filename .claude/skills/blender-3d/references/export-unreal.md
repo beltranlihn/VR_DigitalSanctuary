@@ -69,3 +69,5 @@ Objetos extra en el mismo export, nombrados **exactamente** (case-sensitive, `<N
 | Sombras horneadas manchadas | Lightmap UV con solapes o sin padding, o resolución de lightmap muy baja |
 | Colisión rara / doble | UCX mal nombrado (case-sensitive) o Auto Generate encendido junto a UCX |
 | Pivote en cualquier lado | Origen no seteado antes del export |
+| Menos triángulos en Unreal que en Blender | Unreal descarta astillas de < ~0,01 mm² (típico de booleano + bisel). Contarlas antes de exportar → [gotchas.md](gotchas.md) §19-20 |
+| Colores/posiciones de un lado al otro (izq↔der) en cuentas del shader por posición local | El FBX espeja Y: en Unreal `y = −y_Blender`. La UV no se entera; una cuenta con `LocalPosition` sí (`atan2(P.z, −P.y)`) |

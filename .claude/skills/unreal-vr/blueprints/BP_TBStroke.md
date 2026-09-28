@@ -1914,3 +1914,275 @@ Sacados: `BP_DrawDirector_NC_C_0` (director del pincel viejo, sin referencias de
 `BP_TBPawn_C_0`, `TargetPoint_0` (SketchTarget), `BP_Sky_Sphere_C_1` (la esfera de color) + los actores del motor
 (WorldSettings, Brush, PhysicsVolume, NavData, debuggers, BuoyancyManager, LevelScript). ✅ PIE: un solo pawn,
 paleta instalada, herramienta configurada.
+
+## 2026-09-27 (5f) - MANO HÁBIL (para Soul Charger: la elige el usuario en otra etapa)
+Perilla **`bLeftHanded`** (categoría **00 MANO**) + función pública **`SetHandedness(LeftHanded)`** para cambiarla en
+caliente. Define: mano de la punta + gatillo de dibujo + malla del control, y la mano de la paleta (sin malla).
+
+**Cómo está hecho (los nombres de variable quedaron por ROL, no por mano):** `RightAim` = apuntador de la mano que
+dibuja, `RightGrip` = grip de la mano que dibuja, `LeftGrip` = grip de la mano de la paleta.
+- `ResolveHands` (al frente de `FindControllers`) llena `SrcAim/SrcPalGrip/SrcDrawGrip` con los MotionSource que
+  corresponden ("RightAim"/"LeftGrip"/"RightGrip" o "LeftAim"/"RightGrip"/"LeftGrip"); las comparaciones de
+  `SortController/SortLeft/SortRGrip` leen esas variables en vez de literales. Todo lo de abajo (paleta, punta,
+  sonido del loop, zona sin dibujo) sigue solo.
+- **Input sin tocar eventos**: `IMC_TB_DrawLeft` (nuevo, `/Game/Drawing/TB/`) mapea el gatillo IZQUIERDO a
+  `IA_Shoot_Right` y su eje a `IA_Hand_IndexCurl_Right` (presión). `AddDrawIMC` saca `IMC_Weapon_Right` y
+  `IMC_TB_DrawLeft` y agrega el que toca. El evento, `GateStop` y el zumbido siguen escuchando `IA_Shoot_Right`.
+  ⚠ `IMC_Hands` sigue mapeando el eje del gatillo derecho a la presión: con zurdo, apretar el gatillo de la mano de la
+  paleta mientras se dibuja puede sumar presión. Menor; anotado.
+- Joystick del grosor: `SizeStep` (reemplazó a `AdjustSize` en el Tick) lee el stick de la mano que dibuja.
+  Háptica: `HapSend` (reemplazó al `SetHapticsByValue` fijo en "Right" dentro de `HapticStep`).
+- Mallas: `FixHands` pone visible `SM_RHand` (diestro) o `SM_LHand` (zurdo, que ya trae la malla del control
+  izquierdo) en el grip que dibuja y **oculta la otra**. Antes la mano de la paleta mostraba su control.
+- Paleta: `MirrorPalette` espeja `PaletteOffset.Y` para la mano derecha (+4 = hacia afuera). El contenido de la
+  paleta NO se espeja (la rueda sigue del mismo lado).
+- `ApplyHands` = `AddDrawIMC` + `FixHands` + `MirrorPalette`, al final de `DoInstall`. `SetHandedness` =
+  setear + `FindControllers` + `InstallTip` + `ReattachPalette` + `PlacePalette` + `ApplyHands`.
+- La **zona sin dibujo** no necesitó cambios: se mide en el espacio local de la paleta con la punta de la mano que
+  dibuja, así que viaja con la paleta.
+
+✅ PIE, las dos manos: diestro → punta `MC_Right`, paleta `MC_LGrip`, `SM_LHand` oculta; zurdo → punta `MC_Left`,
+paleta `MC_RGrip` (offset Y +4), `SM_LHand` visible en `MC_LGrip`, `SM_RHand` oculta. Log limpio. ⬜ Input zurdo no
+verificable sin mandos.
+
+**Contrato para Soul Charger**: el pawn tiene que tener MotionControllers con MotionSource `LeftAim`, `RightAim`,
+`LeftGrip`, `RightGrip` (los del VRTemplate). La etapa que elige la mano llama `SetHandedness(bZurdo)` sobre el
+director, o setea `bLeftHanded` antes de que se instale.
+
+### 5g - Ajustes de paleta + prueba zurda
+- **Muestra de color oculta en modo 4 colores**: `HideSwatch` (`SetMeshSectionVisible(n+3, false)`) al final de
+  `BuildSwatches`. En modo rueda la muestra sigue (es la única marca del color en la paleta). La sección se crea una
+  sola vez (BuildExtras) y nada la reconstruye, así que no reaparece.
+- `SelectLift` 1,2 → **0,5 cm** (CDO + instancia).
+- Instancia de `L_TBTest` en **`bLeftHanded = true`** para la prueba en visor (PIE: punta `MC_Left`, paleta
+  `MC_RGrip`, log limpio). Volver a `false` después de probar.
+
+### 5h - Zurdo NO dibujaba en visor → input izquierdo con acción PROPIA
+Beltrán: *"No funciona el dibujo con la izquierda"*. El atajo de 5f (`IMC_TB_DrawLeft`: gatillo izquierdo →
+`IA_Shoot_Right`) usaba la MISMA tecla que `IMC_Weapon_Left` (`OculusTouch_Left_Trigger_Click`), así que la tecla no
+era el problema; la causa exacta quedó **sin identificar** (no hay forma de inyectar el gatillo desde MCP). Se cambió
+a lo que ya está probado en el VRTemplate, sin trucos:
+- `AddDrawIMC` ahora agrega **`IMC_Weapon_Left`** (zurdo) o `IMC_Weapon_Right` (diestro) y saca el otro.
+- Evento nuevo **`IA_Shoot_Left`**: Started → `TB_Press`, Completed → `TB_Release` (los mismos nodos que el derecho).
+  En diestro `IMC_Weapon_Left` no está cargado, así que ese evento nunca dispara.
+- `GateStep` (reemplazó a `GateStop` en el Tick): corta el trazo leyendo `IA_Shoot_Left` o `IA_Shoot_Right` según la mano.
+- Presión: evento nuevo `IA_Hand_IndexCurl_Left` + `PressureFrom(V, FromLeft)` en los DOS eventos de curl: solo pasa
+  la presión de la mano que dibuja (antes la mano de la paleta también podía escribirla).
+- `IMC_TB_DrawLeft` borrado (sin referencias).
+- Sonda disponible: `TB_Press` imprime **"RIG press"** en pantalla. Si al apretar el gatillo izquierdo aparece y no se
+  dibuja, el problema está después del input (zona sin dibujo, punta), no en el input.
+
+### 5i - Zurdo pintaba PUNTITOS: `IA_Shoot_Left` tenía trigger **Pressed**
+"RIG press" aparecía, pero el trazo se cerraba al instante. Las dos acciones del VRTemplate NO están configuradas igual:
+`IA_Shoot_Right` → `InputTriggerHoldAndRelease` (sostiene), `IA_Shoot_Left` → `InputTriggerPressed` (Started y
+Completed en el mismo golpe → `TB_Release` inmediato). Se vació `triggers` de `IA_Shoot_Left` (comportamiento
+implícito "Down": empieza al apretar, sigue mientras se mantiene, termina al soltar).
+⚠ **Dependencia de portabilidad**: el sistema depende de `IA_Shoot_Right`/`IA_Shoot_Left` del VRTemplate **modificados**
+(no son los defaults del template). Al migrar a Soul Charger hay que llevar estos dos IA tal como están, o crear IA
+propios en `/Game/Drawing/TB/`. Otro que usa `IA_Shoot_Left`: `VRTemplate/Blueprints/Pistol` (no está en el nivel;
+con este cambio dispararía en ráfaga).
+
+## 2026-09-27 (5j) - El dibujo guardado GIRA, se exhibe 5 s, se des-dibuja y avisa FIN DE ETAPA
+Máquina de estados nueva `SketchStep2` (reemplazó a `SketchStep`, borrada) llamada desde `DirectorStep`:
+1 `SketchHide` (des-dibuja en su lugar) → reubica → 2 `SketchWait` → 3 `SketchShow` (dibuja) → **4 `SketchHold`**
+(exhibe `CfgHold` s; `SketchShow` ahora termina en 4 en vez de 0) → **5 `SketchOut`** (sonido de ocultar + des-dibujo
+en `HideTime`) → 0, con `StageCount++`.
+- **Giro** en fases 3-5 (`SketchSpin` → `SpinArm` la primera vez, después `SpinApply`): rota todo el `SketchSet`
+  alrededor de un pivote fijo `SketchPivot` sobre el eje `SketchAxis`. Con `SketchTarget`: pivote = posición del target y
+  eje = su *up* (si el target está inclinado, gira sobre su propio eje). Sin target: centro del bounding box y Z.
+  Transform por cuadro: `M = MakeTransform(p - R·p, R, 1)` con `R = RotatorFromAxisAndAngle(eje, SpinSpeed·dt)`,
+  aplicado con el `SketchApplyXf`/`PlaceStrokeXf` de siempre (también mueve `SwayOrigin`). `bPivotSet` se resetea en
+  la fase 1.
+- **Fin de etapa**: `StageStep` (director, al final de `DirectorStep`) compara `StageCount` de la herramienta → imprime
+  **"Stage finished"** y dispara el **event dispatcher `OnStageFinished`** del director: es el gancho para que Soul
+  Charger pase a la siguiente etapa.
+- Perillas (03 SKETCH): `SpinSpeed` 20 °/s, `HoldTime` 5 s. Empuje: `PushSpin` al final de `DoInstall`.
+✅ PIE: perillas empujadas, fase 0, log limpio. ⬜ La secuencia completa solo se prueba dibujando (visor).
+
+### 5k - Nivel armado como Soul Charger + color inicial + mano derecha
+- 🔑 **El director NO crea ni referencia pawns** (usa `GetPlayerPawn(0)`; `get_dependencies` no lista `BP_TBPawn`).
+  El pawn era solo del nivel de prueba, colocado con auto-possess. Para probar el mismo camino que Soul Charger:
+  `GM_TBTest` (duplicado de `GM_VR`, `DefaultPawnClass = BP_TBPawn`) como GameMode de `L_TBTest`, **PlayerStart** en
+  (-315,0,106) Yaw 0, y el `BP_TBPawn` colocado **sacado**. ✅ PIE: el GameMode spawnea el pawn en el PlayerStart y el
+  director se instala solo. (`GM_VR` spawnea el `VRPawn` del template, cuyo stick hace teleport/giro: chocaría con el
+  grosor por joystick; en Soul Charger revisar qué hace el stick de su pawn.)
+- **Color default hacia atrás al iniciar**: orden de instalación. `PushPalette` (dentro de `PushExtras`) construía las
+  muestras con el `SelectLift` por defecto de la paleta (+1,2 = hacia atrás) ANTES de que `PlacePalette` empujara el
+  valor con el signo correcto. `RefreshPalette` (vuelve a correr `ApplyColorMode`) al final de `DoInstall`.
+  ✅ PIE: cuadrado 0 en X = -0,5.
+- Instancia de vuelta en `bLeftHanded = false`.
+- Pregunta de calidad del dibujo en el target: ver respuesta en la conversación; el código no cambia la malla ni el
+  material al reubicar (mismo ProceduralMesh, mismos MIDs, `Reveal = 1` al terminar de aparecer).
+
+### 5l - Grosor SOLO por el slider (el joystick se apaga)
+Beltrán creía que el joystick ya estaba fuera; el registro dice que no (3h lo agregó, 3i hizo el slider tocable y los
+dos convivían escribiendo `Size01`). Se apaga: en el Tick, `SizeStep` quedó detrás de `SizeGate`, que solo lo llama
+si **`bSizeByStick`** (07 PALETA, default **false**). Resuelve de paso el choque con el stick del pawn de Soul Charger.
+
+## 2026-09-27 (5m) - LA MESA DE DIBUJO: el ancla pasa a ser un área designada
+Beltrán: el usuario dibuja sobre una **mesa** (disco ~40 cm, azulado translúcido que se desvanece al borde); al
+guardar, el dibujo queda en el Target Point **tal como estaba respecto de la mesa**. Ya no se recentra por bounding box.
+- **`BP_TBTable`** (nuevo): `Disc` = `/Engine/BasicShapes/Plane` a escala 0,4 con **`M_TB_Table`** (unlit,
+  translúcido, two-sided; `TableColor` (0.25,0.55,1), `TableOpacity` 0,35; Custom `TableFade`: plano en el centro,
+  se desvanece en el 60% exterior con smoothstep) + `Front` (ArrowComponent, oculta en juego). La colisión del plano no
+  se pudo apagar por MCP (`collisionProfileName` no escribible); no afecta (el dibujo no traza).
+- **Convención**: la flecha +X de la mesa apunta **hacia quien dibuja**, igual que la del target apunta hacia quien
+  mira → el frente del dibujo siempre queda hacia el espectador. Colocada en `L_TBTest` en (-265,0,110) Yaw 180 (50 cm
+  frente al PlayerStart) como **`DrawTable`**, asignada al director.
+- **Transform**: `SketchApply2` (reemplazó a `SketchApply` en `SketchRelocate`): con mesa, `N = Invert(Mesa sin
+  escala)` y después el target (o el frente-al-usuario si no hay target). Sin mesa, el comportamiento anterior.
+  Mover/rotar la mesa cambia el ancla; su escala NO escala el dibujo (sí la del target).
+- **Archivo al terminar la etapa**: `SketchArchive` (al final de `SketchOut`) oculta los trazos del `SketchSet` y los
+  saca de `StrokeHistory` (quedan "en memoria" como actores ocultos). Sin esto, un segundo Save volvía a mover el dibujo
+  anterior, que ya no está sobre la mesa.
+- Director: `DrawTable` (03 SKETCH) + `PushTable` al final de `DoInstall`. ✅ PIE: mesa y target empujados, log limpio.
+
+### 5n - La mesa viaja con el dibujo + slider abajo
+- **Mesa en el Save**: `TableStep(DT)` (herramienta, al final de `DirectorStep`) lee la fase y el tiempo de la animación.
+  Flancos (`TableEdges`, con `PrevPhase`): 0→1 guarda `TableHome`; 1→2 (recién reubicado) lleva la mesa al target con
+  **escala = escala del target × escala original de la mesa** (`TableToTarget`, solo si hay target); 5→0 la devuelve a
+  casa (`TableGoHome`) y reinicia `TableT`. Fundido (`TableFadeSet` → parámetro nuevo **`TableFade`** en `M_TB_Table`,
+  neutro en 1): fase 1 y 5 = 1−smooth (junto al des-dibujo), 2 = 0, 3 = smooth (junto al dibujado), 4 = 1, 0 = rampa de
+  1 s al volver a casa. La mesa no gira (es un disco simétrico).
+  ✅ PIE: el Disc tiene su MID (el fundido corre cada cuadro), log limpio.
+- **Slider**: `SliderOffset` (0,0,−4.6) → **(0,0,+4.6)** en el CDO de la paleta. Queda en la fila de Clear/Save, entre
+  ellos, sin solaparse (Clear ocupa y 4.9..8.1, Save −9..−5.8, slider ±3).
+  🔴 Diagnóstico: que Beltrán viera el slider ARRIBA cuando estaba abajo en local, y que el adelantado saliera hacia
+  atrás, apuntan a lo mismo: **con la paleta fija en la mano, se ve rotada 180° sobre su eje Y local** respecto de
+  cuando `FacePlayer` la orientaba (+X hacia la cámara, +Z arriba). O sea, espejada verticalmente y vista desde atrás.
+  Se hizo el cambio mínimo pedido; enderezarla entera (componer 180° en Y a `PaletteRot` y quitar el signo invertido
+  de `SelectLift`) queda ofrecido.
+
+### 5o - MIGRADO A SOUL CHARGER (2026-09-27): `/Game/NeuralCanvas/`
+**Cómo se hizo (sin tocar nada de SC):** en Neural Canvas se **movieron** (`AssetTools.move`, arregla referencias) los
+59 assets del sistema a una carpeta raíz propia, `/Game/NeuralCanvas/{TB, TB/Icons, TB/Textures, Input, Mesh, Sound}`, y
+se **copió esa carpeta** a `VR_Test/Content/NeuralCanvas` (no existía → cero sobrescrituras). SC tiene su propio
+`/Game/Drawing` con `White`/`Yellow`/sonidos de igual nombre: por eso NADA del paquete quedó bajo `/Game/Drawing`.
+- ✅ Grep sobre los `.uasset`: las únicas rutas `/Game/` fuera de `/Game/NeuralCanvas` son `contentImportPath` (metadato
+  de importación, inofensivo). Módulos `/Script`: todos del motor (ProceduralMeshComponent viene activo por defecto).
+- ✅ En SC: `find_assets` ve los 59; los 5 BP compilan limpios (Stroke → Tool → Table → Palette → Director); recompile de
+  los 8 materiales maestros sin `Failed to compile` en el log.
+- **Input propio** (reemplaza la dependencia de `IA_Shoot_Left/Right` del VRTemplate, que SC no tiene):
+  `IA_TB_Draw_R/L` (Boolean, **sin triggers**: Started/Completed = apretar/soltar; un trigger `Pressed` los dispara
+  juntos y el trazo sale en puntitos, gotcha 425) y `IA_TB_Pressure_R/L` (Axis1D), todos con `bConsumeInput=false` para
+  no robarle el gatillo al pawn de SC. `IMC_TB_Draw_R/L`: `*_Trigger_Click` de Oculus/Index/Vive/WMR → Draw,
+  `OculusTouch_*_Trigger_Axis` → Pressure. El director agrega **solo el IMC de la mano que dibuja** (`AddDrawIMC`,
+  prioridad 1000) y lo saca en `EndPlay` (`RemoveDrawIMC`).
+- **No se migró**: `BP_TBPawn`, `GM_TBTest` (referencia `BP_GameFlowManager` de NC) ni `L_TBTest` (referencia además
+  `/Game/OSC/BP_OSCRECIEVER`, y SC tiene su propia `/Game/OSC` → podría engancharse a un asset de SC por nombre). El
+  pincel viejo `/Game/Drawing/BP` tampoco (arrastra `VRPawn`/`BP_PincelSelect`). Los **9 presets** de TB viajan adentro
+  de `BP_TBStroke` (incluidos los que la paleta de 4 no muestra).
+
+**Receta de instalación en un nivel de SC** (nada más; el director no crea ni referencia pawns):
+1. El nivel usa el GameMode de SC (`BP_XRGameMode` → `BP_VRPawn_SC`) y su PlayerStart. El pawn cumple el contrato:
+   MotionControllers con `MotionSource` `LeftAim`/`RightAim`/`LeftGrip`/`RightGrip`.
+2. Arrastrar **`/Game/NeuralCanvas/TB/BP_TBDirector_NC`**.
+3. Arrastrar un **`TargetPoint`** donde se exhibe el dibujo guardado: su +X apunta **hacia quien mira**; mover/rotar/
+   escalar el target afecta al dibujo.
+4. Arrastrar **`BP_TBTable`** ~50 cm frente al usuario sentado, a la altura de la mesa: su +X apunta **hacia quien
+   dibuja**.
+5. En la instancia del director: `03 SKETCH > SketchTarget` = el target, `DrawTable` = la mesa. Opcional:
+   `01 COLOR > ColorMode` (0 = rueda, **default del CDO**; 1 = 4 colores, como estaba la instancia de NC).
+6. Integración con la obra: `SetHandedness(bLeft)` (la etapa previa decide la mano hábil) y el dispatcher
+   **`OnStageFinished`** (se dispara al terminar la exhibición del dibujo guardado).
+
+✅ **Nivel de prueba en SC: `/Game/NeuralCanvas/Maps/L_TBTest_SC`** (2026-09-27), réplica exacta de `L_TBTest` de NC,
+armado de cero (NO se copió el `.umap` de NC: arrastraba nodos viejos del Level BP con `BP_GameFlowManager`,
+`/Game/OSC/BP_OSCRECIEVER`, `GM_TBTest` y un streaming del VRTemplate). Base: duplicado de `Template_Default` con la luz,
+atmósfera, niebla, nubes y piso quitados (NC no tiene luces; duplicar `/Engine/Maps/Entry` **no guarda**: "Illegal
+reference to private object Model2"). Transforms leídos del nivel de NC: PlayerStart (-315,0,106); `DrawTable`
+(-265,0,**180**) Yaw 180; `SketchTarget` (**235,0,80**) Yaw 180 escala **4,89**; `BP_Sky_Sphere` con sus 11 valores de
+instancia (colores, `Sun height` −0,139, nubes/estrellas en 0). Director con los overrides que tenía la instancia de NC
+respecto del CDO: `ColorMode` 1, `SlotColorA` (los 4 colores), `SwayStrength` 2,739, + `SketchTarget`/`DrawTable`.
+GameMode override = `BP_XRGameMode` (el mismo que `Test_Sequencer`; spawnea `BP_VRPawn_SC`, igual que `BP_SoulChargerGameMode`).
+✅ **PIE en SC**: spawnea `BP_VRPawn_SC`; el director encuentra `MotionControllerRightAim/LeftGrip/RightGrip` del pawn
+(`bReady` true), crea la paleta, empuja target y mesa a la herramienta; **log sin errores ni Accessed None**.
+(`bCanDraw` = false en PIE de escritorio es esperado: sin visor las dos manos están en el mismo punto, dentro del radio
+de la paleta.) ⬜ **Falta: probar en visor.**
+
+🔴 **2026-09-27 (noche) — EN VISOR NO DIBUJABA: el input propio no llega en SC. Corregido en la copia de SC.**
+Beltrán: *"No dibuja"*. Los `IA_TB_*` + `IMC_TB_*` (que reemplazaban a los `IA_Shoot_*` del VRTemplate) **nunca se
+habían probado en visor** — lo validado en NC era con `IA_Shoot`. Y en SC ya estaba escrito (`assets-existentes.md` §3,
+memoria `input-vr-receta`): **un IA/IMC propio no dispara nunca aunque el contexto quede registrado; el gatillo SOLO llega
+por `IA_Shoot_Right/Left` del XRFramework**, que SC entrega por los *Default Mapping Contexts* de `DefaultInput.ini`
+(`IMC_Weapon_*`). Descartado con datos antes de cambiar: mismas teclas (`OculusTouch_*_Trigger_Click`), mismo filtro de
+input mode (`UseProjectDefaultQuery`), el pawn no limpia mapeos, `IMC_Hands` no usa `Trigger_Click`.
+**Arreglo (cirugía de nodos en `BP_TBDirector_NC` de SC, cero IMC tocados):**
+- Eventos `IA_TB_Draw_R/L` → **`IA_Shoot_Right/Left`** (`/Game/XRFramework/Input/Actions/`, trigger `Down`: Started al
+  apretar, Completed al soltar → trazo continuo).
+- Eventos `IA_TB_Pressure_R/L` → **`IA_Hand_IndexCurl_Right/Left`** (Axis1D sobre `Trigger_Axis`, `bConsumeInput` false,
+  en `IMC_Hands`) → `PressureFrom(V, FromLeft)` como antes.
+- `GateStepTB`: los getters pasan a `IA_Shoot_Left/Right`.
+- 🆕 **`TB_PressFrom(FromLeft)` / `TB_ReleaseFrom(FromLeft)`**: con `IA_Shoot` las DOS manos disparan siempre (antes solo se
+  instalaba el IMC de la mano que dibuja), así que el gatillo de la mano de la paleta tiene que ignorarse:
+  `if not(FromLeft xor bLeftHanded)` → `Tool.Press/Release`. Derecha `false`, izquierda `true`. `TB_Press`/`TB_Release`
+  quedan sin uso.
+- `InstallInput`/`AddDrawIMC` siguen agregando `IMC_TB_Draw_*`: inofensivo (sus acciones ya no tienen evento).
+✅ Compila limpio, pines verificados con `get_node_infos`, PIE sin errores. ⬜ **Falta visor.**
+⚠ **La copia de Neural Canvas quedó con `IA_TB_*`** (tampoco probada en visor allá). Para portar: **el gatillo lo da el
+proyecto anfitrión** — el director tiene que escuchar el IA de disparo que el host ya entrega (en SC y en el VRTemplate:
+`IA_Shoot_*`). Esa es la única pieza del sistema que depende del host.
+ A vigilar: (a) convivencia del gatillo con inputs de SC de prioridad 1000
+que **sí** consumen (p. ej. `IA_Continue` de Breath) si están activos en el mismo nivel; (b) los sonidos de clic salen de
+`/Engine/VREditor/Sounds/` → confirmar que se cocinan al empaquetar el APK; (c) la paleta sigue volteada 180° en su Y
+local (parchada, no enderezada).
+
+### 5p - Guardar sostenido 3 s + cierre del sistema + manos del pawn ocultas (2026-09-27, copia de SC)
+Pedido de Beltrán: *"mantener apretado el botón de guardar 3 segundos"*, *"la paleta y el controller deben desaparecer.
+Animado … Debe bloquear el seguir dibujando"*, *"esconde las manos"*.
+- **Paleta**: `TestSave` (disparaba al primer toque, por flanco) se reemplazó en `PickSlot` por **`TestSaveHold`**: mientras la
+  punta está en el botón acumula `SaveHold += GetWorldDeltaSeconds`, al salir vuelve a 0; dispara `FireSave` una vez al
+  llegar a `SaveHoldTime` (flanco con `bSaveWasIn`). Progreso visible: **`M_TB_Save` ganó el parámetro `Progress`** (neutro
+  en 0 = idéntico a antes) que llena el cuadro **desde el centro hacia afuera** (radial a propósito: la paleta se ve volteada
+  en la mano y un llenado vertical podía verse al revés). MID `SaveMid` creado en `BuildSaveMid` (BeginPlay, después de
+  `BuildSave`); se escribe con el wrapper **`SaveProgress(V)`** (nodo creado con `declaring_class` MID: el DSL elige el
+  `SetScalarParameterValue` de MPC — *"Could not connect pin SaveMid to Collection"*).
+- **Director**: perillas `03 SKETCH > SaveHoldTime` (3, empujada a la paleta cada cuadro) y `OutroTime` (1,2 s);
+  `00 MANO > bHidePawnHands` (true).
+  **`OutroStep(DT)`** (al final de `DirectorStep`): arranca cuando `Tool.SketchPhase > 0` (el guardado sí ocurrió; sin
+  trazos `SaveSketch` no hace nada y el sistema sigue vivo). En ese cuadro captura las escalas base (`PalS0`, `RHandS0`,
+  `LHandS0`, `TipS0` — no se asumen: la versión zurda espeja) y levanta `bSystemDone`. Después encoge paleta, mallas de mando
+  y punta con smoothstep en `OutroTime` y al final las oculta (`SetActorHiddenInGame` / `SetVisibility`). Desde el primer
+  cuadro: **Tick de la paleta apagado** (ni undo, ni clear, ni otro save) y **`Tool.bCanDraw` = false** (`Press` lo exige →
+  no se puede dibujar más). Todo por `select`, sin ramas: antes de terminar escribe el valor actual (no-op).
+  **`HandsStep`**: `GetComponentsByClass(GetPlayerPawn, SkeletalMeshComponent)` → `SetVisibility(visible AND NOT bHidePawnHands)`.
+  Genérico (no nombra `HandLeft/HandRight`) y con la perilla en false no toca nada. Nota: el pawn de SC tiene su propio
+  `HideUnhideHand` (BPI_PawnAnim); no se usó para no depender del host.
+- ✅ PIE: manos del pawn ocultas (y visibles con la perilla en false = control negativo), `SaveHoldTime` 3 en la paleta,
+  `SaveMid` creado, log limpio. ⬜ **El cierre (OutroStep) no se pudo ejercitar en PIE** (requiere trazos + gatillo): falta visor.
+- 🔴 Otra vez la instancia: las perillas nuevas nacieron en **0/false en el director colocado** aunque el CDO tenía 3 / 1,2 /
+  true (la instancia se reinstanció antes de setear el CDO). Con `SaveHoldTime` 0 el guardado habría disparado al tocar.
+  Corregido en la instancia de `L_TBTest_SC` y guardado.
+
+### 5q - El botón Guardar se selecciona como los pinceles + clic de hover + sonido de carga (2026-09-27, copia de SC)
+- **`M_TB_Save`** ganó el mismo WPO que `M_TB_Icon`: `Constant3Vector(1,0,0)` → `Transform` Local→World × **`Lift`** (neutro 0).
+- **`BP_TBPalette.SaveHoverStep`** (en `PickSlot` entre `TestSaveHold` y el resto, sin ramas): mientras la punta está en el
+  botón, `MidLift(SaveMid, SelectLift)` (el mismo valor que realza al pincel elegido; −0,5 tras el `MapRange` del director),
+  y en cada flanco de entrada/salida `ClickCount += 1` → el director reproduce el MISMO clic (`ClickStep`) + háptica.
+  Estado de flanco en `bSavePrevIn`.
+- **Director, sonido de carga**: `ChargeStep` (al final de `DirectorStep`) → "cargando" = `Palette.SaveHold > 0 AND NOT
+  bSystemDone` → `ChargeSet` (flanco, `bCharging`) → `ChargeFlip` → `ChargePlay` (`SpawnSound2D`, **pitch =
+  Duración/SaveHoldTime**, acotado 0,5–2: el sonido termina justo al guardar) / `ChargeStop` (`AudioFadeOut` 0,15 s, el
+  wrapper que ya existía por la duplicación de `FadeOut`). Perillas `04 AUDIO > ChargeSound` (`VR_shep_scale_up_01`, 2,78 s:
+  sube; al guardar suena `HideSound` = `VR_shep_scale_down_02`, que baja) y `ChargeVol` (0,6). Seteadas en CDO **y** en la
+  instancia de `L_TBTest_SC` desde el principio.
+- ⚠ `Class|SoundBase|GetDuration` se lee como `Components|GeometryCache|GetDuration`: rótulo falso, el `self` es SoundBase.
+- ✅ Compila, PIE limpio en reposo (sin carga, sin clics espurios). ⬜ Hover/carga/guardado: visor.
+
+### 5r - Al terminar la etapa no reaparece nada (2026-09-27, copia de SC)
+Beltrán: al final *"volvió a aparecer la mesa frente a mí … no debe aparecer nada nuevo"*. Era `TableGoHome` + la rampa de
+fundido de 1 s de la fase 0 (pensadas para seguir dibujando). Sin tocar la herramienta: **`TableEndStep`** en el director
+(al final de `DirectorStep`) → `SetActorHiddenInGame(DrawTable, bSystemDone AND SketchPhase == 0)`. Durante el viaje al
+target (fases 1-5) la mesa sigue visible; al volver a 0 con el sistema cerrado queda oculta. PIE: visible en reposo, log limpio.
+
+### 5s - CONTRATO TOUR (2026-09-29, PREPARADO offline, sin construir) - pedido de Narrativa para `Test_Recorrido`
+- Con un actor de tag **`TOUR`** en el nivel (o `08 TOUR > bForceTour`), el director **nace dormido**: no se autoinstala, no
+  oculta las manos, sin input, sin Tick. **`TourWake()` / `TourSleep()`**: públicas, sin parámetros, idempotentes (`bAwake`).
+  Sin TOUR, `L_TBTest_SC` igual que hoy (`TourBegin` → `TourWakeNow` → `CheckController`).
+- `TourSleep`: suelta el trazo, corta carga del Guardar, loop del pincel y háptica; `DisableInput` + `RemoveDrawIMC`; manos
+  del pawn devueltas **solo si las ocultó el director** (`bHidePawnHands`); oculta mesa, paleta (y su Tick), mallas de mando y
+  punta; Tick del actor y de `TBTool` apagados. `TourWake` ya instalado: `InstallInput` + `MountHands`/`InstallTip` + paleta
+  y mesa (con `bSystemDone` no reaparece nada, 5r).
+- DSL: `scripts/tb_tour.dsl` (12 funciones nuevas + cirugía de `EventBeginPlay`). Simulación: `scripts/tb_tour_sim.py`
+  (encontró que la mesa quedaba oculta al primer despertar). Nombres a confirmar al leer: `LoopComp`, el cast de `HandsStep`.
+- ⬜ Construir en el turno de editor (plan del océano §7.1 paso 10) y probar en PIE con `bForceTour` + `ke * TourWake/TourSleep`.

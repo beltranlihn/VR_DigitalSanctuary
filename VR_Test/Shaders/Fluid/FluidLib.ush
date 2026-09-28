@@ -1,0 +1,281 @@
+// =====================================================================================
+// FluidLib.ush — LA fuente única del FLUIDO CEREBRAL (BP_FluidMedium_SC), 2026-09-28.
+// Port LÍNEA POR LÍNEA del prototipo docs/prototipos/fluido-cerebral.html (GLSL -> HLSL:
+// mix->lerp, fract->frac, clamp(x,0,1)->saturate, vecN->floatN). Plan: docs/PLAN-FLUIDO-CEREBRAL.md.
+// Compuesto por compose_loving.py (mismo formato que LovingLib: bloques '// @fn' ... '// @end',
+// struct LVLib) con --lib/--wrappers/--out del fluido.
+//
+// Coordenadas: ESPACIO LOCAL del actor (X adelante, Y derecha, Z arriba, cm). El actor va con
+// rotación identidad en el origen del usuario sentado. Los datos globales llegan por la MPC
+// MPC_Fluid_SC (un float4 por vector; el BP los empuja una vez por cuadro):
+//   FTop/FMid/FBot = colores del medio (lineal)     Glow   = (rgb luz desde arriba, intensidad)
+//   Absorb = (distancia cm, máximo, pérdida de opacidad, concentración de la luz)
+//   Caus   = (cantidad, tamaño cm, velocidad de las cáusticas, destellos en partículas)
+//   Phase  = (fase de los remolinos, fase de las cáusticas, velocidad de los remolinos rad/s, Live)
+//            Live = 1 en juego; 0 en el editor: el material usa su propio reloj (anima sin Play)
+//   Flow   = (amplitud cm, tamaño cm, -, remolinos chicos)
+//   Drift  = arrastre ACUMULADO de la corriente (cm) · DriftVel = su velocidad (cm/s)
+//   Head   = la cabeza en local (centro de los cubos: igual para los dos ojos)
+// 🔴 Reglas Quest: sin arreglos ni índices dinámicos; bucles de cota constante; las VELOCIDADES
+// entran como FASES integradas por el BP (cambiar una perilla nunca hace saltar nada, gotcha 329).
+// =====================================================================================
+struct LVLib
+{
+    // @fn FluidColor ---------------------------------------------------------------------
+    // El MEDIO en una dirección: degradado de 3 colores + luz desde arriba. Lo usan el fondo Y la
+    // absorción de todo lo demás: lo lejano se funde EXACTO en el fondo.
+    float3 FluidColor(float3 d, float4 FTop, float4 FMid, float4 FBot, float4 Glow, float4 Absorb)
+    {
+        float h = saturate(d.z * 0.5 + 0.5);
+        float3 c = lerp(lerp(FBot.rgb, FMid.rgb, saturate(h * 2.0)), FTop.rgb, saturate(h * 2.0 - 1.0));
+        return c + Glow.rgb * (Glow.a * pow(max(d.z, 0.0), max(Absorb.w, 0.01)));
+    }
+    // @end
+
+    // @fn AbsorbAt -----------------------------------------------------------------------
+    // Absorción por distancia: 0 = color propio, Absorb.y = el medio.
+    float AbsorbAt(float dist, float4 Absorb)
+    {
+        return (1.0 - exp(-dist / max(Absorb.x, 1.0))) * Absorb.y;
+    }
+    // @end
+
+    // @fn Caustic ------------------------------------------------------------------------
+    // Cáustica barata: red de líneas en los cruces por cero de tres senos deformados (sin textura).
+    // Todos los coeficientes de t son múltiplos de 0,1 -> período exacto 20·pi: el BP puede
+    // envolver la fase con fmod(·, 20·pi) sin saltos (necesario en half).
+    float Caustic(float2 p, float t)
+    {
+        float a = sin(p.x + sin(p.y * 0.8 + t * 0.7) + t * 0.4);
+        float b = sin(p.y * 1.1 + sin(p.x * 0.9 - t * 0.6) - t * 0.5);
+        float c = sin((p.x + p.y) * 0.7 + t * 0.3);
+        float v = (a + b + c) * 0.3333333;
+        float r = max(1.0 - abs(v) * 1.8, 0.0);
+        return r * r * r;
+    }
+    // @end
+
+    // @fn SinCurl ------------------------------------------------------------------------
+    // EL FLUIDO: cada componente depende solo de los OTROS dos ejes -> divergencia 0 (el medio
+    // no se comprime ni se amontona).
+    float3 SinCurl(float3 p, float t)
+    {
+        return float3(sin(p.y + t)                    + 0.5 * sin(p.z * 1.37 + t * 0.71 + 2.1),
+                      sin(p.z * 1.13 + t * 1.21 + 1.7) + 0.5 * sin(p.x * 1.51 + t * 0.83 + 0.4),
+                      sin(p.x * 0.91 + t * 0.83 + 3.1) + 0.5 * sin(p.y * 1.29 + t * 1.07 + 5.2));
+    }
+    // @end
+
+    // @fn RotR ---------------------------------------------------------------------------
+    // Rotación fija ortonormal (la segunda escala en otros ejes). R^T G(R p) sigue sin divergencia.
+    float3 RotR(float3 p)
+    {
+        return float3(dot(float3(0.36, 0.48, -0.8), p), dot(float3(-0.8, 0.6, 0.0), p), dot(float3(0.48, 0.64, 0.6), p));
+    }
+    // @end
+
+    // @fn RotRT --------------------------------------------------------------------------
+    float3 RotRT(float3 v)
+    {
+        return float3(0.36, 0.48, -0.8) * v.x + float3(-0.8, 0.6, 0.0) * v.y + float3(0.48, 0.64, 0.6) * v.z;
+    }
+    // @end
+
+    // @fn FlowAt -------------------------------------------------------------------------
+    // Desplazamiento de los remolinos en p (cm) con la fase ph. Dos escalas: la grande y otra
+    // 2,3 veces más chica, 1,7 veces más rápida y girada (Flow.w = cuánto pesa).
+    float3 FlowAt(float3 p, float ph, float4 Flow)
+    {
+        float3 q = p / max(Flow.y, 1.0);
+        float3 f1 = SinCurl(q, ph);
+        float3 f2 = RotRT(SinCurl(RotR(q * 2.3), ph * 1.7 + 1.3));
+        return (Flow.x / 1.5) * (f1 + (Flow.w * 0.45) * f2);
+    }
+    // @end
+
+    // @fn WrapHead -----------------------------------------------------------------------
+    // Cubo de lado 'cell' que acompaña a la cabeza: el ancla se recicla del otro lado (infinito).
+    float3 WrapHead(float3 a, float3 head, float cell)
+    {
+        float3 rel = a - head;
+        return head + (frac(rel / cell + 0.5) - 0.5) * cell;
+    }
+    // @end
+
+    // @fn Stir ---------------------------------------------------------------------------
+    // Mano: empuje por velocidad + remolino alrededor de su dirección, caída gaussiana.
+    // H = (posición, radio), V = (velocidad cm/s, empuje en s). Con V.w = 0 no hace nada.
+    float3 Stir(float3 p, float4 H, float4 V, float swirl)
+    {
+        float3 d = p - H.xyz;
+        float R = max(H.w, 1.0);
+        float f = exp(-dot(d, d) / (R * R)) * V.w;
+        return (V.xyz + cross(V.xyz, d) * (swirl / R)) * f;
+    }
+    // @end
+
+    // @fn FacingBasis --------------------------------------------------------------------
+    // Base de un sprite ORIENTADO HACIA EL OJO (no alineado con la pantalla): el quad queda
+    // perpendicular a la dirección sprite -> ojo; nunca se ve aplastado (Beltrán: "siempre facing
+    // a la cámara"). Con el cross en mano izquierda el orden de los triángulos puede invertirse:
+    // los materiales de sprites van TWO-SIDED.
+    void FacingBasis(float3 P, float3 cam, out float3 f, out float3 rgt, out float3 upv)
+    {
+        f = normalize(cam - P + float3(1.0e-4, 0.0, 0.0));
+        rgt = normalize(cross(float3(0.0, 0.0, 1.0), f) + float3(1.0e-4, 0.0, 0.0));
+        upv = cross(f, rgt);
+    }
+    // @end
+
+    // @fn CellShade ----------------------------------------------------------------------
+    // Sombreado de las células del medio (el modelo del secuenciador, simplificado): mitad-lambert
+    // bicolor con contraste en Low.a, relleno de sombra que suma (Fill.a = tinte).
+    float3 CellShade(float3 N, float3 L, float4 High, float4 Low, float4 Fill)
+    {
+        float w = lerp(1.0, dot(N, L) * 0.5 + 0.5, Low.a);
+        float3 c = lerp(Low.rgb, High.rgb, w) * High.a;
+        float lum = dot(c, float3(0.2126, 0.7152, 0.0722));
+        return c + Fill.rgb * Fill.a * (1.0 - lum) * 0.5;
+    }
+    // @end
+
+    // @fn PCG --------------------------------------------------------------------------
+    // Hash ENTERO (PCG de 32 bits) de una semilla positiva con hasta 3 decimales. NO el clásico
+    // frac(sin(x) * 43758): ese amplifica 43 758 veces el error de redondeo y el compilador lo pliega
+    // distinto en las DOS evaluaciones de un Custom que alimenta WPO e interpoladores: una pieza quedaba
+    // viva en la POSICIÓN y "apagada" en el COLOR (el satélite negro, 2026-09-28, gotcha 481). Con
+    // enteros el resultado es exacto en cualquier plegado. Solo semillas >= 0 y < 4e6.
+    uint PCG(float n)
+    {
+        uint u = (uint)(n * 1000.0 + 0.5);
+        u = u * 747796405u + 2891336453u;
+        u = ((u >> ((u >> 28u) + 4u)) ^ u) * 277803737u;
+        return (u >> 22u) ^ u;
+    }
+    // @end
+
+    // @fn Bits ---------------------------------------------------------------------------
+    // Un campo de 'count' bits de un hash, llevado a [0,1] (inclusive). Un PCG da varios valores
+    // independientes (revisión COS-4: 22 hashes por vértice -> 6; costaba ~57 % del núcleo).
+    float Bits(uint u, uint shift, uint count)
+    {
+        uint m = (1u << count) - 1u;
+        return (float)((u >> shift) & m) / (float)m;
+    }
+    // @end
+
+    // @fn Hash1 --------------------------------------------------------------------------
+    // PCG llevado a [0,1).
+    float Hash1(float n)
+    {
+        return (float)PCG(n) * 2.3283064e-10;
+    }
+    // @end
+
+    // @fn LinToSRGB ----------------------------------------------------------------------
+    // OETF sRGB EXACTA (con su tramo lineal; pow(1/2,2) da colas 10 veces más brillantes cerca de 0).
+    float3 LinToSRGB(float3 c)
+    {
+        c = saturate(c);
+        float3 hi = 1.055 * pow(max(c, 1.0e-6), 1.0 / 2.4) - 0.055;
+        return lerp(hi, 12.92 * c, step(c, 0.0031308));   // tramo lineal donde c <= 0,0031308
+    }
+    // @end
+
+    // @fn SRGBToLin ----------------------------------------------------------------------
+    float3 SRGBToLin(float3 s)
+    {
+        s = saturate(s);
+        float3 hi = pow((s + 0.055) / 1.055, 2.4);
+        return lerp(hi, s / 12.92, step(s, 0.04045));
+    }
+    // @end
+
+    // @fn LiveClock ----------------------------------------------------------------------
+    // Fases y arrastre: en juego (Phase.w = 1) las integra el BP; en el editor (0) el material usa su
+    // propio reloj con las velocidades de las perillas -> anima en el viewport sin Play.
+    void LiveClock(float4 Phase, float4 Caus, float4 Drift, float4 DriftVel, float T,
+                   out float phF, out float phC, out float3 drift)
+    {
+        float live = step(0.5, Phase.w);
+        phF = lerp(T * Phase.z, Phase.x, live);
+        phC = lerp(T * Caus.z, Phase.y, live);
+        drift = lerp(DriftVel.xyz * T, Drift.xyz, live);
+    }
+    // @end
+
+    // @fn ShaftTable ---------------------------------------------------------------------
+    // Los 8 haces (UE, cm): A = (entrada de la luz: xyz, largo), wid = ancho medio, ph = fase propia.
+    // 2026-09-28 (Beltrán: "los rayos deberían animarse suavemente, algunos más anchos, como si el sol se
+    // refractara con el movimiento del agua de la superficie"): anchos de 40 a 260 cm; dos detrás del usuario.
+    // Cadena de selects por índice (nada de arreglos en el VS: regla Adreno).
+    void ShaftTable(float i, out float4 A, out float wid, out float ph)
+    {
+        A = float4(1700.0, -650.0, 2200.0, 3200.0); wid = 55.0; ph = 0.0;
+        A = (i > 0.5) ? float4(2300.0, 900.0, 2500.0, 3600.0)   : A; wid = (i > 0.5) ? 170.0 : wid; ph = (i > 0.5) ? 1.9 : ph;
+        A = (i > 1.5) ? float4(1400.0, 250.0, 2000.0, 2800.0)   : A; wid = (i > 1.5) ? 40.0  : wid; ph = (i > 1.5) ? 3.1 : ph;
+        A = (i > 2.5) ? float4(2900.0, -1500.0, 2700.0, 4000.0) : A; wid = (i > 2.5) ? 260.0 : wid; ph = (i > 2.5) ? 4.4 : ph;
+        A = (i > 3.5) ? float4(1100.0, -1600.0, 2100.0, 3000.0) : A; wid = (i > 3.5) ? 90.0  : wid; ph = (i > 3.5) ? 5.3 : ph;
+        A = (i > 4.5) ? float4(2600.0, 2200.0, 2600.0, 3800.0)  : A; wid = (i > 4.5) ? 120.0 : wid; ph = (i > 4.5) ? 0.8 : ph;
+        A = (i > 5.5) ? float4(-900.0, 1400.0, 2300.0, 3200.0)  : A; wid = (i > 5.5) ? 200.0 : wid; ph = (i > 5.5) ? 2.6 : ph;
+        A = (i > 6.5) ? float4(600.0, -2600.0, 2400.0, 3400.0)  : A; wid = (i > 6.5) ? 70.0  : wid; ph = (i > 6.5) ? 3.7 : ph;
+    }
+    // @end
+
+    // @fn CellLobe -----------------------------------------------------------------------
+    // Un PSEUDÓPODO de la ameba de una célula del medio: el de Loving (AmPod), 2 q^10 - q^5 con
+    // q = cos^2 del medio ángulo al eje D: sale del cuerpo con un CUELLO suave alrededor (no un grano);
+    // media 1/66 restada. Eje, ritmo y fase salen de UN PCG por (célula, lóbulo), repartido en 4 campos
+    // de 8 bits: cada célula tiene su forma y sus pseudópodos crecen y se retraen a destiempo.
+    // Resolución: grado 10 -> longitud de onda >= 34 grados = ~4 aristas de la icoesfera de 642 (arista
+    // 0,151 rad, no 0,074: esa es la de 2562). Error de teselado medido <= 0,041 radios del núcleo
+    // (<= 0,9 cm; ~2 px a 2,5 m). Subir grado o amplitud se valida contra la icoesfera real. Acumula h dphi/du en g.
+    float CellLobe(float3 u, float ci, float k, float T, inout float3 g)
+    {
+        uint  hh = PCG(100.0 + ci * 3.1 + k * 1.37);
+        float z  = Bits(hh, 0u, 8u) * 2.0 - 1.0;
+        float a  = 6.2831853 * Bits(hh, 8u, 8u);
+        float rr = sqrt(max(1.0 - z * z, 0.0));
+        float3 D = float3(rr * cos(a), rr * sin(a), z);
+        float h  = 0.55 + 0.45 * sin(T * (0.15 + 0.1 * Bits(hh, 16u, 8u)) + 6.2831853 * Bits(hh, 24u, 8u));
+        float q  = 0.5 + 0.5 * dot(u, D);
+        float q2 = q * q, q4 = q2 * q2, q5 = q4 * q;
+        g += (h * (10.0 * q5 * q4 - 2.5 * q4)) * D;  // 0,5 D (20 q^9 - 5 q^4)
+        return h * (2.0 * q5 * q5 - q5 - 0.015151515);
+    }
+    // @end
+
+    // @fn CellAmoeba ---------------------------------------------------------------------
+    // La AMEBA de las células que flotan en el medio (Beltrán: "las otras amebas que van a estar
+    // flotando, desvaneciéndose por la distancia"): cuatro pseudópodos que crecen y se retraen. Devuelve el
+    // factor de radio 1 + A w y la normal EXACTA de la superficie r(u) u: n = normalize(u - gT / r),
+    // con gT el gradiente tangencial (la misma cuenta que CentreR de Loving). Ritmos constantes x T.
+    float CellAmoeba(float3 u, float ci, float T, float A, out float3 n)
+    {
+        float3 g = float3(0.0, 0.0, 0.0);
+        float w = 0.0;
+        w += CellLobe(u, ci, 0.0, T, g);
+        w += CellLobe(u, ci, 1.0, T, g);
+        w += CellLobe(u, ci, 2.0, T, g);
+        w += CellLobe(u, ci, 3.0, T, g);
+        float r = 1.0 + A * w;
+        float3 gA = A * g;
+        float3 gT = gA - u * dot(u, gA);
+        n = normalize(u - gT / max(r, 0.2));
+        return r;
+    }
+    // @end
+
+    // @fn VeilTable ----------------------------------------------------------------------
+    // Los 6 velos del prototipo: C = (centro xyz, tamaño cm), K = (tinte, fase, alargamiento, -).
+    void VeilTable(float i, out float4 C, out float4 K)
+    {
+        C = float4(1800.0, -700.0, 300.0, 1400.0);  K = float4(0.10, 0.3, 1.6, 0.0);
+        C = (i > 0.5) ? float4(2400.0, 900.0, 700.0, 1900.0)   : C; K = (i > 0.5) ? float4(-0.08, 1.4, 1.3, 0.0) : K;
+        C = (i > 1.5) ? float4(1300.0, 300.0, -250.0, 1000.0)  : C; K = (i > 1.5) ? float4(0.12, 2.2, 2.0, 0.0)  : K;
+        C = (i > 2.5) ? float4(-1600.0, 1200.0, 400.0, 1700.0) : C; K = (i > 2.5) ? float4(0.08, 3.3, 1.5, 0.0)  : K;
+        C = (i > 3.5) ? float4(300.0, -2200.0, 900.0, 1600.0)  : C; K = (i > 3.5) ? float4(-0.06, 4.1, 1.2, 0.0) : K;
+        C = (i > 4.5) ? float4(600.0, 2000.0, -600.0, 1500.0)  : C; K = (i > 4.5) ? float4(0.09, 5.2, 1.8, 0.0)  : K;
+    }
+    // @end
+};

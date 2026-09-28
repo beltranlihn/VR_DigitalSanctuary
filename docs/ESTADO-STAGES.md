@@ -24,6 +24,8 @@ Stages (carpetas en `VR_Test/Content/SoulCharger/Stages/`): **Breath · Heart ·
 ---
 
 ## 🟢 BREATH — completo end-to-end · **plantilla de la obra**
+🆕 **2026-09-27 — ENTERING PORTABLE, VALIDADO EN VISOR** (`/Game/Test_Entering`, APK `com.almadigital.entering`): `BP_BreathRig_SC` (controller de respiración con mandos/sensor en la mano elegida; umbral por posición + quietud + **orientación: la cara plana del sensor tiene que apuntar al estómago**; rango normalizado; seguidor con frenada física) · `BP_BreathBlob_SC` (metaball modo 0, bordes antialiaseados, degradado orgánico) · `BP_Pacer_SC` (halo, sonidos, pausas) · `BP_BreathStage_SC` (orquesta y cierra) · fondo liso `M_GanzSolid_SC`. Medido: ~9,5 ms/72 fps sin fondo; el fondo líquido no entra (~14-17 ms). Sin commitear. Trackers: `blueprints/BP_BreathRig_SC.md` y hermanos; ficha 4.7.b de `docs/MECANICAS-PORTABLES.md`.
+
 El flujo entero corre en el visor sin errores. **Es el patrón arquitectónico a copiar en los demás stages.**
 
 **Flujo:** negro → fade in → widget de instrucciones (5 páginas: relajación → tomar sensor → calibrar sobre el abdomen → círculo reactivo → inicio) → aparece la esfera y arranca el conteo → cada **inhalación sostenida 4s** suma 1 (con háptico) → al llegar a `MaxBreathCount` el sensor desaparece, la esfera va a escala 0, fade a negro, reinicia.

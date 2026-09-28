@@ -1,0 +1,815 @@
+<title>Océano del dibujo</title>
+<meta name="description" content="Lookdev en navegador del entorno de la etapa de dibujo: un océano oscuro y mate de oleaje cruzado, con la misma matemática que irá al material de Unreal">
+<!--
+  =====================================================================================
+  PROTOTIPO WEB DEL OCEANO DEL DIBUJO (lookdev) - Soul Charger, etapa de dibujo (Neural Canvas TB)
+  v2 (2026-09-28): mate sin reflexiones, mas oscuro, avance mas lento, MAR CRUZADO + GRUPOS DE OLAS.
+  =====================================================================================
+  Misma familia que valle-entering.html y la membrana del latido (72 fps en Quest):
+    - malla: disco POLAR con espaciado geometrico bajo el usuario (densidad ~ 1/r = LOD continuo),
+      176 sectores, 8 cm a 400 m: ~43k vertices (el latido usa 79k y llega a 72 fps).
+    - vertex shader (fp32 en Quest): altura h y gradiente EXACTO (regla de la cadena del warp).
+      N = 6 oleajes con tope CONSTANTE (gotcha 399). Las constantes de cada ola (direccion, k, w,
+      amplitud, fase, velocidad de grupo) se calculan UNA VEZ en la CPU: en Unreal las escribe
+      ApplyLook del Blueprint como vectores con nombre W0..W5 / V0..V5 / E0..E5 (sin arreglos).
+      Costo por vertice: 14 sin/cos + ~80 MAD.
+    - pixel shader: solo luz MATE (wrap), tinte de cresta, niebla hacia el cielo y dither.
+      Sin reflejos, sin especular, sin raymarch, sin luces, sin posproceso.
+  Port a Unreal (cuando se apruebe la estetica):
+    - OceanVS (Custom en WPO + VertexInterpolator para h y grad): la funcion field(), casi literal.
+    - OceanPS (Custom en Emissive): Part 0 = mar, Part 1 = cielo. Tiempo = View.GameTime en el Custom.
+  EJES Y UNIDADES (1 unidad = 1 cm, como Unreal)
+    Unreal: X adelante, Y derecha, Z arriba.  three.js: X derecha, Y arriba, -Z adelante.
+    UE (x, y, z) -> three (y, z, -x)
+  Posiciones del nivel L_TBTest_SC: PlayerStart (-315, 0, 106), mesa (-265, 0, 180) Yaw 180,
+  target (235, 0, 80) Yaw 180 escala 4,89. Ojos sentado: aprox. 40 cm sobre la mesa.
+  COLOR: todo en LINEAL, sin tonemapper (como el APK con r.MobileHDR=False); la OETF sRGB se aplica
+  a mano al final. Los selectores muestran sRGB; el material recibe y el JSON exporta el lineal.
+  =====================================================================================
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#05070d;
+  --ink:#dfe3f4;
+  --ink-soft:#8f96bb;
+  --line:rgba(160,172,230,.14);
+  --panel:rgba(12,15,28,.78);
+  --panel-edge:rgba(150,162,220,.18);
+  --accent:#8fb3d9;
+  --accent-ink:#0a0e1a;
+  --accent-soft:rgba(143,179,217,.16);
+  --field:rgba(255,255,255,.06);
+  --warn:#e0a07a;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--ground);color:var(--ink);font:14px/1.45 "Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#stage canvas:active{cursor:grabbing}
+
+.tag{position:fixed;left:16px;top:calc(env(safe-area-inset-top,0px) + 16px);max-width:min(460px,calc(100% - 32px - 352px));pointer-events:none}
+.tag h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.01em}
+.tag p{margin:4px 0 0;font-size:12.5px;color:var(--ink-soft);max-width:52ch;text-wrap:pretty}
+
+.bar{position:fixed;left:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:calc(100% - 32px - 352px)}
+.btn{font:inherit;font-size:13px;font-weight:500;color:var(--ink);background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;padding:7px 12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);cursor:pointer}
+.btn:hover{background:rgba(26,31,54,.9)}
+.btn:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:600}
+.btn.primary:hover{background:#a6c4e3}
+.btn[aria-pressed="true"]{background:var(--accent-soft);border-color:rgba(143,179,217,.45)}
+.seg{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--panel-edge);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.seg .btn{border:0;border-radius:0;border-right:1px solid var(--line);padding:7px 10px}
+.seg .btn:last-child{border-right:0}
+.readout{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;padding:7px 12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+
+#panel{position:fixed;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:336px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--panel-edge);border-radius:14px;box-shadow:0 12px 44px rgba(0,0,0,.45);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);overflow:hidden}
+.phead{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.phead h2{margin:0;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.phead p{margin:6px 0 0;font-size:11.5px;color:var(--ink-soft)}
+.presets{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.presets .btn{padding:5px 9px;font-size:12px}
+#groups{overflow:auto;padding:0 16px 8px;flex:1;overscroll-behavior:contain}
+details{border-bottom:1px solid var(--line)}
+details:last-child{border-bottom:0}
+summary{cursor:pointer;padding:11px 0;font-weight:600;font-size:13.5px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-weight:400;color:var(--ink-soft)}
+details[open] summary::after{content:"\2013"}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:5px 0 9px;align-items:center}
+.row .lab{font-size:12.5px;line-height:1.3}
+.row .pn{display:block;font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);margin-top:1px}
+.row .val{display:flex;align-items:center;gap:4px}
+.row .num{width:78px;font-family:var(--mono);font-size:11.5px;text-align:right;border:1px solid var(--line);border-radius:6px;background:var(--field);color:var(--ink);padding:3px 5px}
+.row .u{font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);min-width:18px}
+.row input[type=range]{grid-column:1/-1;width:100%;margin:2px 0 0;accent-color:var(--accent)}
+.row input[type=color]{width:46px;height:26px;border:1px solid var(--line);border-radius:6px;padding:0 2px;background:var(--field);cursor:pointer}
+.row .lin{grid-column:1/-1;font-family:var(--mono);font-size:10.5px;color:var(--ink-soft)}
+.row input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.note{font-size:11.5px;color:var(--ink-soft);margin:0;padding:2px 0 10px;text-wrap:pretty}
+.note.warn{color:var(--warn)}
+.pfoot{padding:12px 16px 14px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.pfoot .btn{flex:1 1 auto}
+#copyout{display:none;width:100%;height:130px;font:11px/1.35 var(--mono);border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.35);color:var(--ink)}
+#copyout.show{display:block}
+.toggle-panel{display:none}
+#fail{position:fixed;left:16px;right:16px;top:50%;transform:translateY(-50%);max-width:60ch;margin:0 auto;background:#141a2e;color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:18px 20px;font-size:13px;z-index:5}
+code{font-family:var(--mono);font-size:.92em}
+
+@media (max-width:760px){
+  #panel{left:16px;right:16px;width:auto;top:auto;height:52%}
+  body.pclosed #panel{display:none}
+  .bar{max-width:calc(100% - 32px);bottom:calc(52% + 28px + env(safe-area-inset-bottom,0px))}
+  body.pclosed .bar{bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
+  .tag{max-width:calc(100% - 32px)}
+  .toggle-panel{display:inline-block}
+  .tag p{display:none}
+}
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+
+<div id="stage" aria-label="Vista 3D del océano desde los ojos del usuario sentado frente a la mesa de dibujo"></div>
+
+<header class="tag">
+  <h1>Océano del dibujo</h1>
+  <p>Sentado frente a la mesa, con un mar oscuro y mate abajo. El dibujo de muestra usa los 4 colores de la paleta, y su copia gira en el target como al guardar. Arrastra para mirar; la rueda cambia el campo de visión.</p>
+</header>
+
+<div class="bar">
+  <div class="seg" role="group" aria-label="Mirar">
+    <button class="btn" type="button" data-look="front" title="Tecla 1">Al frente</button>
+    <button class="btn" type="button" data-look="table" title="Tecla 2">La mesa</button>
+    <button class="btn" type="button" data-look="target" title="Tecla 3">El target</button>
+    <button class="btn" type="button" data-look="down" title="Tecla 4">Abajo</button>
+    <button class="btn" type="button" data-look="air" title="Tecla 5">Aérea</button>
+  </div>
+  <button class="btn" id="pause" type="button" aria-pressed="false" title="Barra espaciadora">Pausa</button>
+  <span class="readout" aria-live="off"><span id="tout">t 0.0 s</span><span id="fpsout">-- fps</span><span id="vout"></span></span>
+  <button class="btn toggle-panel" id="ptoggle" type="button">Perillas</button>
+</div>
+
+<aside id="panel" aria-label="Perillas">
+  <div class="phead">
+    <h2>Perillas</h2>
+    <p>Cada perilla lleva el nombre del parámetro que tendrá el material en Unreal.</p>
+    <div class="presets" role="group" aria-label="Paletas">
+      <button class="btn" type="button" data-preset="indigo">Noche índigo</button>
+      <button class="btn" type="button" data-preset="tinta">Tinta</button>
+      <button class="btn" type="button" data-preset="violeta">Violeta</button>
+    </div>
+  </div>
+  <div id="groups"></div>
+  <div class="pfoot">
+    <button class="btn" id="reset" type="button">Restablecer</button>
+    <button class="btn primary" id="copy" type="button">Copiar valores</button>
+    <textarea id="copyout" readonly aria-label="Valores para copiar"></textarea>
+  </div>
+</aside>
+
+<div id="fail" hidden></div>
+
+<script>
+window.addEventListener('error', function (e) {
+  if (!(e.target && e.target.tagName === 'SCRIPT')) return;
+  var f = document.getElementById('fail');
+  f.innerHTML = '<strong>No se pudo cargar three.js.</strong><br>El prototipo baja three.js r160 desde <code>cdn.jsdelivr.net</code>: hace falta conexión a internet.';
+  f.hidden = false;
+}, true);
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+const ue2three = (x, y, z) => new THREE.Vector3(y, z, -x);
+const DEG = Math.PI / 180;
+const NW = 6;                                     // oleajes (tope constante en el shader)
+
+/* ---------------- parámetros (colores en LINEAL) ---------------- */
+const DEF = {
+  // Oleaje
+  SwellAmp: 22, SwellLenMax: 2600, SwellLenMin: 420, SwellDir: 180, SwellSpread: 95, Tempo: 0.28,
+  // Grupos y morphing
+  GroupAmt: 0.75, GroupLen: 9000, Warp: 120, WarpScale: 4500,
+  // Avance
+  Advance: 5,
+  // Cerca y lejos
+  CalmR: 600, CalmMin: 0.7, LodNear: 4, LodFar: 6.5,
+  // Superficie (mate)
+  DeepColor: [0.0016, 0.0021, 0.0052], SurfColor: [0.0052, 0.0068, 0.0155], CrestColor: [0.006, 0.009, 0.017],
+  CrestAmt: 1.0, LightAz: 40, LightEl: 22, WrapPow: 1.6,
+  // Cielo y niebla
+  ZenithColor: [0.0006, 0.0008, 0.0022], HorizonColor: [0.0095, 0.011, 0.024], SkyPow: 0.45,
+  GlowColor: [0.55, 0.6, 0.75], GlowAmt: 0.012, GlowPow: 30,
+  FogStart: 500, FogDensity: 0.00017, Dither: 1.0,
+  // Polvo
+  DustColor: [0.55, 0.62, 0.8], DustAmt: 0.45, DustSize: 0.9, DustBox: 1400, DustFollow: 1.0,
+  DustRise: 0.6, DustWobble: 8, DustNear: 35,
+};
+const DUST_COUNT = 1200;                          // en Unreal: la cantidad de quads de la malla SM_Dust
+const SCENE_DEF = { SeaZ: -120, EyeZ: 220, ShowTable: true, ShowDrawing: true, ShowTarget: true };
+
+const PALETTE_KEYS = ['DeepColor', 'SurfColor', 'CrestColor', 'ZenithColor', 'HorizonColor', 'GlowColor'];
+const PRESETS = {
+  indigo: {},
+  tinta: {
+    DeepColor: [0.0017, 0.0018, 0.0024], SurfColor: [0.0055, 0.0058, 0.0072], CrestColor: [0.0075, 0.008, 0.0098],
+    ZenithColor: [0.0005, 0.0005, 0.0007], HorizonColor: [0.0085, 0.009, 0.011], GlowColor: [0.6, 0.6, 0.6],
+  },
+  violeta: {
+    DeepColor: [0.0026, 0.0017, 0.0052], SurfColor: [0.0082, 0.0055, 0.0165], CrestColor: [0.0105, 0.0068, 0.019],
+    ZenithColor: [0.0009, 0.0005, 0.0022], HorizonColor: [0.014, 0.0085, 0.024], GlowColor: [0.7, 0.58, 0.8],
+  },
+};
+
+const clone = o => JSON.parse(JSON.stringify(o));
+let P = Object.assign(clone(DEF), clone(SCENE_DEF));
+
+/* constantes de cada oleaje: en Unreal las calcula ApplyLook del BP y las pasa como W0..W5, V0..V5, E0..E5 */
+const OFFS = [0.0, 0.85, -0.7, 0.35, -1.0, 0.55];          // abanico: el mar CRUZADO
+const hash = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
+function waveConstants(P) {
+  const W = [], V = [], E = [];
+  const lmax = Math.max(P.SwellLenMax, 10), lmin = Math.min(P.SwellLenMin, lmax - 1);
+  for (let i = 0; i < NW; i++) {
+    const f = i / (NW - 1);
+    const lam = lmax * Math.pow(lmin / lmax, f);
+    const k = 2 * Math.PI / lam;
+    const ang = (P.SwellDir + P.SwellSpread * OFFS[i]) * DEG;
+    const d = [Math.cos(ang), Math.sin(ang)];
+    const om = Math.sqrt(981 * k) * P.Tempo;              // dispersión de aguas profundas, en cámara lenta
+    const A = P.SwellAmp * Math.pow(lam / lmax, 0.6);
+    const ph = 2 * Math.PI * hash(i + 1);
+    const cg = 0.5 * om / k;                              // velocidad de GRUPO = mitad de la de fase
+    const ea = ang + (i % 2 ? 0.5 : -0.5);                // el grupo es una mancha alargada, algo girada
+    const md = [Math.cos(ea), Math.sin(ea)];
+    W.push(new THREE.Vector4(d[0], d[1], k, om));
+    V.push(new THREE.Vector4(A, ph, cg * (md[0] * d[0] + md[1] * d[1]), 2 * Math.PI * hash(i + 3)));
+    E.push(new THREE.Vector4(md[0], md[1], lam * P.LodNear, lam * Math.max(P.LodFar, P.LodNear + 1)));
+  }
+  return { W, V, E };
+}
+
+/* ---------------- shaders ---------------- */
+const COMMON = /* glsl */`
+vec3 lin2srgb(vec3 c){
+  c = max(c, 0.0);
+  vec3 lo = c * 12.92;
+  vec3 hi = 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055;
+  return mix(lo, hi, step(vec3(0.0031308), c));
+}
+float ign(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
+`;
+
+const SEA_VS = /* glsl */`
+#define NW ${NW}
+uniform float uTime;
+uniform vec2  uCenter;
+uniform float uSeaZ;
+uniform vec4  uW[NW];   // d.x, d.y, k, omega
+uniform vec4  uV[NW];   // A, fase, velocidad del grupo, fase del grupo
+uniform vec4  uE[NW];   // dir del grupo x, y, LOD desde, LOD hasta
+uniform float uGroupAmt, uGroupLen, uWarp, uWarpScale, uAdvance, uCalmR, uCalmMin;
+varying vec3  vPos;   // posición en mundo, coordenadas UE (cm)
+varying float vH;
+varying vec2  vG;
+const float TAU = 6.2831853;
+
+// h(p, t) y su gradiente exacto. p = posición local respecto del centro del disco (cm)
+void field(vec2 p, float t, out float h, out vec2 g){
+  // warp lento del dominio: las crestas serpentean
+  float kw  = TAU / uWarpScale;
+  float ax  = p.y * kw + t * 0.071;
+  float ay  = p.x * kw * 1.31 + t * 0.053 + 1.7;
+  vec2  q   = p + uWarp * vec2(sin(ax), sin(ay));
+  float dwx_dy = uWarp * kw * cos(ax);
+  float dwy_dx = uWarp * kw * 1.31 * cos(ay);
+  vec2  qa  = q + vec2(uAdvance * t, 0.0);        // avance: el campo se desliza hacia el usuario
+  float r   = max(length(p), 1.0);
+  float kg  = TAU / uGroupLen;
+
+  float S = 0.0; vec2 gq = vec2(0.0); float gl = 0.0;
+  for (int i = 0; i < NW; i++){
+    vec4 W = uW[i], V = uV[i], E = uE[i];
+    // grupo de olas: una mancha que viaja a la mitad de la velocidad de las crestas
+    float ea = kg * (dot(qa, E.xy) - V.z * t) + V.w;
+    float m  = 1.0 + uGroupAmt * sin(ea);
+    vec2  gm = uGroupAmt * cos(ea) * kg * E.xy;
+    // LOD: la ola se apaga antes de ser más chica que un píxel (anti-titileo)
+    float x   = clamp((r - E.z) / (E.w - E.z), 0.0, 1.0);
+    float lod = 1.0 - x * x * (3.0 - 2.0 * x);
+    float dlod = -6.0 * x * (1.0 - x) / (E.w - E.z);
+    // la cresta
+    float arg = W.z * dot(W.xy, qa) - W.w * t + V.y;
+    float s = sin(arg), c = cos(arg);
+    S  += V.x * lod * m * s;
+    gq += V.x * lod * (m * W.z * c * W.xy + s * gm);
+    gl += V.x * dlod * m * s;
+  }
+  // regla de la cadena del warp: grad_p = J^T grad_q
+  vec2 gS = vec2(gq.x + dwy_dx * gq.y, dwx_dy * gq.x + gq.y) + gl * p / r;
+  // calma bajo el usuario
+  float xc = clamp(r / uCalmR, 0.0, 1.0);
+  float fade  = mix(uCalmMin, 1.0, xc * xc * (3.0 - 2.0 * xc));
+  float dfade = (1.0 - uCalmMin) * 6.0 * xc * (1.0 - xc) / uCalmR;
+  h = fade * S;
+  g = fade * gS + S * dfade * p / r;
+}
+
+void main(){
+  vec2 p = position.xy;                 // la malla viene en UE local (x, y)
+  float h; vec2 g;
+  field(p, uTime, h, g);
+  vec3 ue = vec3(p + uCenter, uSeaZ + h);
+  vPos = ue; vH = h; vG = g;
+  gl_Position = projectionMatrix * viewMatrix * vec4(ue.y, ue.z, -ue.x, 1.0);
+}
+`;
+
+const SHADE = /* glsl */`
+uniform vec3  uCam;
+uniform vec3  uDeep, uSurf, uCrest, uZenith, uHorizon, uGlow;
+uniform float uCrestAmt, uWrapPow, uLightAz, uLightEl, uGlowAmt, uGlowPow, uSkyPow;
+uniform float uFogStart, uFogDensity, uDither, uAmp;
+${COMMON}
+vec3 Ldir(){ return vec3(cos(uLightEl) * cos(uLightAz), cos(uLightEl) * sin(uLightAz), sin(uLightEl)); }
+vec3 sky(vec3 dir){
+  float up = clamp(dir.z, 0.0, 1.0);
+  vec3 c = mix(uHorizon, uZenith, pow(up, uSkyPow));
+  return c + uGlow * uGlowAmt * pow(max(dot(dir, Ldir()), 0.0), uGlowPow);
+}
+vec4 finish(vec3 col){
+  vec3 s = lin2srgb(col);
+  s += (ign(gl_FragCoord.xy) - 0.5) * uDither / 255.0;    // contra el banding de 8 bits
+  return vec4(s, 1.0);
+}
+`;
+
+const SEA_FS = /* glsl */`
+varying vec3  vPos;
+varying float vH;
+varying vec2  vG;
+${SHADE}
+void main(){
+  vec3 N = normalize(vec3(-vG, 1.0));
+  // MATE: solo difusa envolvente (wrap / half-lambert). Sin reflejo, sin especular.
+  float diff = pow(clamp(dot(N, Ldir()) * 0.5 + 0.5, 0.0, 1.0), uWrapPow);
+  vec3 col = mix(uDeep, uSurf, diff);
+  float crest = clamp(vH / (uAmp * 2.0) + 0.5, 0.0, 1.0);
+  col += uCrest * uCrestAmt * crest * crest;
+  // niebla hacia el color del horizonte en esa dirección
+  vec3 Vv = vPos - uCam; float dist = length(Vv);
+  float fog = 1.0 - exp(-max(dist - uFogStart, 0.0) * uFogDensity);
+  col = mix(col, sky(normalize(vec3(Vv.xy, 0.015 * dist))), fog);
+  gl_FragColor = finish(col);
+}
+`;
+
+const SKY_VS = /* glsl */`
+varying vec3 vPos;
+void main(){
+  vec4 w = modelMatrix * vec4(position, 1.0);
+  vPos = vec3(-w.z, w.x, w.y);          // three -> UE
+  gl_Position = projectionMatrix * viewMatrix * w;
+}
+`;
+const SKY_FS = /* glsl */`
+varying vec3 vPos;
+${SHADE}
+void main(){ gl_FragColor = finish(sky(normalize(vPos - uCam))); }
+`;
+
+/* polvo: un campo infinito alrededor de los ojos. Cada punto vive en una caja que se repite (wrap),
+   deriva con el avance, sube lento y ondula. En Unreal: una malla de quads con la semilla en la UV,
+   material translúcido ADITIVO sin luz, y este mismo cálculo en el WPO. Una sola draw call. */
+const DUST_VS = /* glsl */`
+attribute vec4 seed;
+uniform float uTime, uDustBox, uDustFollow, uAdvance, uDustRise, uDustWobble, uDustSize, uDustNear, uPxScale;
+uniform float uFogStart, uFogDensity, uSeaZ;
+uniform vec3  uCam;
+varying float vA;
+void main(){
+  float t = uTime;
+  vec3 drift = vec3(-uAdvance * uDustFollow, 0.0, uDustRise) * t;
+  vec3 wob = uDustWobble * vec3(sin(t * 0.21 + seed.w * 6.28), sin(t * 0.17 + seed.w * 9.1), sin(t * 0.13 + seed.w * 4.3));
+  vec3 C = uCam + vec3(0.0, 0.0, -0.25 * uDustBox);          // la caja, algo bajada: más polvo hacia el mar
+  vec3 f = fract((seed.xyz * uDustBox + drift - C) / uDustBox);
+  vec3 p = C + (f - 0.5) * uDustBox + wob;
+  vec3 e3 = 1.0 - abs(f - 0.5) * 2.0;                          // 0 en el borde de la caja: ahí se apaga (sin saltos)
+  float edge = smoothstep(0.0, 0.18, min(min(e3.x, e3.y), e3.z));
+  float dist = length(p - uCam);
+  float fog = 1.0 - exp(-max(dist - uFogStart, 0.0) * uFogDensity);
+  float near = smoothstep(uDustNear, uDustNear * 3.0, dist);
+  float tw = 0.65 + 0.35 * sin(t * 0.6 + seed.w * 31.0);
+  float px = uDustSize * uPxScale / max(dist, 1.0);           // tamaño en píxeles
+  float px2 = max(px, 1.5);
+  vA = edge * near * (1.0 - fog) * tw * step(uSeaZ, p.z) * min(1.0, (px * px) / (px2 * px2)); // energía conservada bajo 1,5 px
+  gl_PointSize = px2;
+  gl_Position = projectionMatrix * viewMatrix * vec4(p.y, p.z, -p.x, 1.0);
+}
+`;
+const DUST_FS = /* glsl */`
+uniform vec3  uDustColor;
+uniform float uDustAmt;
+varying float vA;
+${COMMON}
+void main(){
+  float d = length(gl_PointCoord - 0.5) * 2.0;
+  float a = vA * (1.0 - smoothstep(0.35, 1.0, d));
+  gl_FragColor = vec4(lin2srgb(uDustColor * uDustAmt * a), 1.0);
+}
+`;
+
+const LINE_VS = /* glsl */`
+attribute vec3 color;
+varying vec3 vCol;
+void main(){ vCol = color; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+`;
+const LINE_FS = /* glsl */`
+varying vec3 vCol;
+${COMMON}
+void main(){ gl_FragColor = vec4(lin2srgb(vCol), 1.0); }
+`;
+const TABLE_VS = /* glsl */`
+varying vec2 vUv;
+void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+`;
+const TABLE_FS = /* glsl */`
+varying vec2 vUv;
+${COMMON}
+void main(){
+  float r = length(vUv * 2.0 - 1.0);
+  float a = clamp((1.0 - r) / 0.6, 0.0, 1.0); a = a * a * (3.0 - 2.0 * a);
+  gl_FragColor = vec4(lin2srgb(vec3(0.25, 0.55, 1.0)), a * 0.35);
+}
+`;
+
+/* ---------------- renderer y escena ---------------- */
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  const f = document.getElementById('fail');
+  f.innerHTML = '<strong>WebGL no está disponible</strong> en este navegador, y el prototipo lo necesita.';
+  f.hidden = false; throw e;
+}
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;   // la OETF la aplica cada shader
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+document.getElementById('stage').appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(90, 1, 2, 300000);
+
+/* malla polar con espaciado geométrico (misma idea que SM_HeartMembrane_SC) */
+function buildDisc(sectors, step, rMax) {
+  // LA MISMA MALLA que SM_DrawSea_SC (gen_draw_sea.py): anillos uniformes cada `step` en el centro y
+  // espaciado geometrico desde el radio donde el paso geometrico tambien vale `step`, hasta rMax.
+  const q = 1 + (2 * Math.PI) / sectors;
+  const rGeo = step * sectors / (2 * Math.PI);
+  const radii = [];
+  for (let r = step; r < rGeo - 1e-6; r += step) radii.push(r);
+  for (let r = rGeo; r < rMax; r *= q) radii.push(r);
+  radii.push(rMax);
+  const nv = 1 + radii.length * sectors;
+  const pos = new Float32Array(nv * 3);
+  let v = 3; // vértice 0 = centro
+  for (let j = 0; j < radii.length; j++) {
+    for (let s = 0; s < sectors; s++) {
+      const a = (s / sectors) * Math.PI * 2;
+      pos[v++] = Math.cos(a) * radii[j]; pos[v++] = Math.sin(a) * radii[j]; pos[v++] = 0;
+    }
+  }
+  const idx = [];
+  for (let s = 0; s < sectors; s++) idx.push(0, 1 + s, 1 + ((s + 1) % sectors));
+  for (let j = 0; j < radii.length - 1; j++) {
+    const a0 = 1 + j * sectors, b0 = 1 + (j + 1) * sectors;
+    for (let s = 0; s < sectors; s++) {
+      const s1 = (s + 1) % sectors;
+      idx.push(a0 + s, b0 + s, b0 + s1, a0 + s, b0 + s1, a0 + s1);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e7);
+  return { geo: g, verts: nv, tris: idx.length / 3 };
+}
+const DISC = buildDisc(160, 30, 25000);
+
+const U = {};
+function u(name, v) { U[name] = { value: v }; return U[name]; }
+['uTime','uSeaZ','uGroupAmt','uGroupLen','uWarp','uWarpScale','uAdvance','uCalmR','uCalmMin',
+ 'uCrestAmt','uWrapPow','uLightAz','uLightEl','uGlowAmt','uGlowPow','uSkyPow','uFogStart','uFogDensity','uDither','uAmp'].forEach(n => u(n, 0));
+u('uCenter', new THREE.Vector2(-315, 0));
+u('uCam', new THREE.Vector3());
+['uDeep','uSurf','uCrest','uZenith','uHorizon','uGlow'].forEach(n => u(n, new THREE.Vector3()));
+u('uW', Array.from({ length: NW }, () => new THREE.Vector4()));
+u('uV', Array.from({ length: NW }, () => new THREE.Vector4()));
+u('uE', Array.from({ length: NW }, () => new THREE.Vector4()));
+
+const seaMat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: SEA_VS, fragmentShader: SEA_FS, side: THREE.DoubleSide });
+const sea = new THREE.Mesh(DISC.geo, seaMat);
+sea.frustumCulled = false;
+scene.add(sea);
+
+const skyMat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: SKY_VS, fragmentShader: SKY_FS, side: THREE.BackSide, depthWrite: false });
+const sky = new THREE.Mesh(new THREE.SphereGeometry(200000, 64, 32), skyMat);
+sky.renderOrder = -1; sky.frustumCulled = false;
+scene.add(sky);
+
+/* polvo */
+['uDustBox','uDustFollow','uDustRise','uDustWobble','uDustSize','uDustNear','uDustAmt','uPxScale'].forEach(n => u(n, 0));
+u('uDustColor', new THREE.Vector3());
+const dustGeo = new THREE.BufferGeometry();
+{
+  const seeds = new Float32Array(DUST_COUNT * 4);
+  let s = 12345; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < seeds.length; i++) seeds[i] = rnd();
+  dustGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(DUST_COUNT * 3), 3));
+  dustGeo.setAttribute('seed', new THREE.BufferAttribute(seeds, 4));
+}
+const dustMat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: DUST_VS, fragmentShader: DUST_FS,
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+const dust = new THREE.Points(dustGeo, dustMat);
+dust.frustumCulled = false; dust.renderOrder = 2;
+scene.add(dust);
+
+/* mesa: disco de 40 cm, azulado, que se desvanece al borde (M_TB_Table) */
+const TABLE_UE = [-265, 0, 180];
+const tableMat = new THREE.ShaderMaterial({ vertexShader: TABLE_VS, fragmentShader: TABLE_FS, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+const table = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), tableMat);
+table.rotation.x = -Math.PI / 2;
+table.position.copy(ue2three(...TABLE_UE));
+scene.add(table);
+
+/* dibujo de muestra: trazos con degradado A -> B de la paleta del nivel */
+const SLOT_A = [[0.097, 0.167, 1], [1, 0.0119, 0], [0, 0.9, 0.267], [1, 0, 0.064]];
+const SLOT_B = [[1, 0.2, 0.1], [0.1, 0.95, 0.7], [0.35, 0.2, 0.9], [0.4, 0.5, 0.7]];
+function strokeCurves() {
+  const C = [];
+  const spiral = []; for (let i = 0; i <= 60; i++) { const t = i / 60, a = t * Math.PI * 3.2; spiral.push([Math.cos(a) * (3 + 9 * t), Math.sin(a) * (3 + 9 * t), 6 + 16 * t]); }
+  C.push(spiral);
+  const wave = []; for (let i = 0; i <= 50; i++) { const t = i / 50; wave.push([-4 + Math.sin(t * 7) * 3, -14 + 28 * t, 10 + Math.sin(t * 5.3) * 6]); }
+  C.push(wave);
+  const loop = []; for (let i = 0; i <= 50; i++) { const t = i / 50, a = t * Math.PI * 2; loop.push([6 + Math.cos(a) * 6, 4 + Math.sin(a) * 8, 18 + Math.sin(a * 2) * 4]); }
+  C.push(loop);
+  const arc = []; for (let i = 0; i <= 40; i++) { const t = i / 40; arc.push([-10 + 18 * t, 10 - 4 * t, 4 + Math.sin(t * Math.PI) * 14]); }
+  C.push(arc);
+  return C;
+}
+function buildDrawing() {
+  const group = new THREE.Group();
+  const lineMat = new THREE.ShaderMaterial({ vertexShader: LINE_VS, fragmentShader: LINE_FS });
+  strokeCurves().forEach((pts, si) => {
+    const curve = new THREE.CatmullRomCurve3(pts.map(p => ue2three(p[0], p[1], p[2])));
+    const segs = 160, radial = 8;
+    const geo = new THREE.TubeGeometry(curve, segs, 0.35, radial, false);
+    const n = geo.attributes.position.count, cols = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const t = Math.floor(i / (radial + 1)) / segs;
+      for (let k = 0; k < 3; k++) cols[i * 3 + k] = SLOT_A[si][k] + (SLOT_B[si][k] - SLOT_A[si][k]) * t;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+    group.add(new THREE.Mesh(geo, lineMat));
+  });
+  return group;
+}
+const drawing = buildDrawing();
+drawing.position.copy(ue2three(...TABLE_UE));
+scene.add(drawing);
+const TARGET_UE = [235, 0, 80], TARGET_SCALE = 4.89;
+const shown = buildDrawing();
+shown.position.copy(ue2three(...TARGET_UE));
+shown.scale.setScalar(TARGET_SCALE);
+scene.add(shown);
+
+/* ---------------- cámara ---------------- */
+const EYE = () => [-315, 0, P.EyeZ];
+let yaw = 0, pitch = -8 * DEG, fov = 90, airView = false;
+function aimFrom(eyeUE, y, p) {
+  const f = [Math.cos(p) * Math.cos(y), Math.cos(p) * Math.sin(y), Math.sin(p)];
+  camera.position.copy(ue2three(...eyeUE));
+  camera.lookAt(ue2three(eyeUE[0] + f[0], eyeUE[1] + f[1], eyeUE[2] + f[2]));
+}
+function look(kind) {
+  airView = kind === 'air';
+  const e = EYE();
+  yaw = 0;
+  if (kind === 'front') pitch = -8 * DEG;
+  if (kind === 'table') pitch = -38 * DEG;
+  if (kind === 'target') pitch = -Math.atan2(e[2] - (TARGET_UE[2] + 60), TARGET_UE[0] - e[0]);
+  if (kind === 'down') pitch = -62 * DEG;
+  if (kind === 'air') pitch = -24 * DEG;
+}
+function placeCamera() {
+  if (airView) aimFrom([-3200, 0, 1500], yaw, pitch);
+  else aimFrom(EYE(), yaw, pitch);
+  camera.fov = fov; camera.updateProjectionMatrix();
+}
+look('front');
+
+const canvas = renderer.domElement;
+let drag = null;
+canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, yaw, pitch }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const k = (fov * DEG) / Math.max(canvas.clientHeight, 1);
+  yaw = drag.yaw + (e.clientX - drag.x) * k;
+  pitch = Math.max(-89 * DEG, Math.min(89 * DEG, drag.pitch + (e.clientY - drag.y) * k));
+});
+canvas.addEventListener('pointerup', () => { drag = null; });
+canvas.addEventListener('pointercancel', () => { drag = null; });
+canvas.addEventListener('wheel', e => { e.preventDefault(); fov = Math.max(30, Math.min(110, fov + Math.sign(e.deltaY) * 4)); }, { passive: false });
+
+/* ---------------- perillas ---------------- */
+const GROUPS = [
+  { name: 'Oleaje', open: true, rows: [
+    ['SwellAmp', 'Altura de la ola mayor', 0, 100, 1, 'cm'],
+    ['SwellLenMax', 'Largo de la ola mayor', 800, 8000, 50, 'cm'],
+    ['SwellLenMin', 'Largo de la ola menor', 120, 1500, 10, 'cm'],
+    ['SwellDir', 'Dirección principal', 0, 360, 1, '°'],
+    ['SwellSpread', 'Cruce de direcciones', 0, 150, 1, '°'],
+    ['Tempo', 'Tempo (1 = mar real)', 0.05, 1.2, 0.01, ''],
+  ], note: 'Seis oleajes que llegan desde direcciones distintas: al cruzarse, el agua sube y baja en el lugar en vez de desplazarse entera. Las olas largas van más rápido que las cortas, como en el mar profundo.' },
+  { name: 'Grupos y morphing', open: true, rows: [
+    ['GroupAmt', 'Fuerza de los grupos de olas', 0, 1, 0.01, ''],
+    ['GroupLen', 'Largo de un grupo', 2000, 25000, 100, 'cm'],
+    ['Warp', 'Serpenteo de las crestas', 0, 400, 5, 'cm'],
+    ['WarpScale', 'Escala del serpenteo', 1500, 12000, 100, 'cm'],
+  ], note: 'Cada oleaje viene en grupos que viajan a la mitad de la velocidad de sus crestas: las olas nacen detrás del grupo, crecen y mueren delante. Es el gesto del oleaje real.' },
+  { name: 'Avance', open: true, rows: [
+    ['Advance', 'Velocidad de avance', 0, 60, 0.5, 'cm/s'],
+  ], note: 'El campo entero se desliza hacia el usuario. Mover todo el suelo del campo visual puede marear (vección): se juzga en el visor.', warn: true },
+  { name: 'Cerca y lejos', rows: [
+    ['CalmR', 'Radio de calma bajo el usuario', 50, 3000, 10, 'cm'],
+    ['CalmMin', 'Amplitud en el centro', 0, 1, 0.01, ''],
+    ['LodNear', 'Cada ola empieza a apagarse a', 1, 30, 0.1, '× largo'],
+    ['LodFar', 'y desaparece a', 2, 60, 0.1, '× largo'],
+  ], note: 'Cada ola se apaga donde la malla ya no la puede dibujar (menos de 4 vértices por largo de onda): así no titila en la Quest, y el shader se salta las olas apagadas. La malla es la misma que irá a Unreal (18,7k vértices).' },
+  { name: 'Superficie (mate)', rows: [
+    ['DeepColor', 'Color de la cara en sombra', 'color'],
+    ['SurfColor', 'Color de la cara iluminada', 'color'],
+    ['CrestColor', 'Tinte de las crestas', 'color'],
+    ['CrestAmt', 'Intensidad del tinte', 0, 3, 0.01, ''],
+    ['LightAz', 'Azimut de la luz', -180, 180, 1, '°'],
+    ['LightEl', 'Altura de la luz', 0, 80, 0.5, '°'],
+    ['WrapPow', 'Dureza de la luz', 0.5, 6, 0.05, ''],
+  ], note: 'Solo luz difusa envolvente sobre la forma de la ola. Sin reflejos ni brillo especular.' },
+  { name: 'Cielo y niebla', rows: [
+    ['ZenithColor', 'Cenit', 'color'],
+    ['HorizonColor', 'Horizonte', 'color'],
+    ['SkyPow', 'Caída del degradado', 0.1, 3, 0.01, ''],
+    ['GlowColor', 'Resplandor', 'color'],
+    ['GlowAmt', 'Intensidad del resplandor', 0, 0.2, 0.001, ''],
+    ['GlowPow', 'Ancho del resplandor (más = fino)', 2, 400, 1, ''],
+    ['FogStart', 'La niebla empieza a', 0, 10000, 50, 'cm'],
+    ['FogDensity', 'Densidad de la niebla', 0, 0.0004, 0.000002, '/cm'],
+    ['Dither', 'Dither contra el banding', 0, 3, 0.05, ''],
+  ] },
+  { name: 'Polvo', open: true, rows: [
+    ['DustAmt', 'Brillo del polvo', 0, 1, 0.005, ''],
+    ['DustColor', 'Color del polvo', 'color'],
+    ['DustSize', 'Tamaño de cada mota', 0.1, 3, 0.05, 'cm'],
+    ['DustBox', 'Volumen alrededor del usuario', 400, 5000, 50, 'cm'],
+    ['DustFollow', 'Cuánto sigue al avance del mar', 0, 3, 0.05, '×'],
+    ['DustRise', 'Subida lenta', -5, 5, 0.1, 'cm/s'],
+    ['DustWobble', 'Ondulación', 0, 40, 0.5, 'cm'],
+    ['DustNear', 'Se apaga cerca de la cara', 0, 150, 1, 'cm'],
+  ], note: 'Motas diminutas suspendidas que dan profundidad por paralaje. Se funden con la misma niebla del mar, y bajo 1,5 píxeles bajan su brillo en vez de titilar. La Quest 3 tiene unos 25 píxeles por grado y esta pantalla muchos menos: allá las motas se ven más nítidas y un poco más presentes. En Unreal es una sola malla de quads animada en el vertex shader: una draw call, sin Niagara.' },
+  { name: 'Escena (no va al material)', scene: true, rows: [
+    ['SeaZ', 'Altura del mar', -1000, 150, 5, 'cm'],
+    ['EyeZ', 'Altura de los ojos', 150, 300, 1, 'cm'],
+    ['ShowTable', 'Mesa', 'bool'],
+    ['ShowDrawing', 'Dibujo de muestra', 'bool'],
+    ['ShowTarget', 'Dibujo guardado en el target', 'bool'],
+  ], note: 'Posiciones del nivel L_TBTest_SC. En Unreal el mar es un actor: su altura es la Z del actor.' },
+];
+
+const toHex = c => '#' + c.map(v => {
+  v = Math.max(0, Math.min(1, v));
+  const s = v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+  return Math.round(s * 255).toString(16).padStart(2, '0');
+}).join('');
+const fromHex = h => [1, 3, 5].map(i => {
+  const s = parseInt(h.substr(i, 2), 16) / 255;
+  return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+});
+const fmt = (v, step) => {
+  const d = step >= 1 ? 0 : Math.min(6, Math.max(0, Math.ceil(-Math.log10(step))));
+  return Number(v).toFixed(d);
+};
+
+const rows = {};
+const groupsEl = document.getElementById('groups');
+GROUPS.forEach(G => {
+  const det = document.createElement('details'); if (G.open) det.open = true;
+  const sum = document.createElement('summary'); sum.textContent = G.name; det.appendChild(sum);
+  G.rows.forEach(r => {
+    const [key, label] = r;
+    const row = document.createElement('div'); row.className = 'row';
+    const lab = document.createElement('label'); lab.className = 'lab'; lab.htmlFor = 'k_' + key;
+    lab.innerHTML = label + (G.scene ? '' : '<span class="pn">' + key + '</span>');
+    row.appendChild(lab);
+    const val = document.createElement('div'); val.className = 'val';
+    if (r[2] === 'color') {
+      const inp = document.createElement('input'); inp.type = 'color'; inp.id = 'k_' + key;
+      const lin = document.createElement('div'); lin.className = 'lin';
+      const txt = () => { lin.textContent = 'lineal ' + P[key].map(v => v.toFixed(4)).join(', '); };
+      inp.addEventListener('input', () => { P[key] = fromHex(inp.value); txt(); });
+      val.appendChild(inp); row.appendChild(val); row.appendChild(lin);
+      rows[key] = () => { inp.value = toHex(P[key]); txt(); };
+    } else if (r[2] === 'bool') {
+      const inp = document.createElement('input'); inp.type = 'checkbox'; inp.id = 'k_' + key;
+      inp.addEventListener('change', () => { P[key] = inp.checked; });
+      val.appendChild(inp); row.appendChild(val);
+      rows[key] = () => { inp.checked = !!P[key]; };
+    } else {
+      const [, , mn, mx, st, unit] = r;
+      const num = document.createElement('input'); num.type = 'number'; num.className = 'num'; num.id = 'k_' + key; num.step = st;
+      const un = document.createElement('span'); un.className = 'u'; un.textContent = unit;
+      const rng = document.createElement('input'); rng.type = 'range'; rng.min = mn; rng.max = mx; rng.step = st; rng.setAttribute('aria-label', label);
+      const set = v => { P[key] = v; num.value = fmt(v, st); rng.value = v; };
+      rng.addEventListener('input', () => set(parseFloat(rng.value)));
+      num.addEventListener('change', () => { const v = parseFloat(num.value); if (!Number.isNaN(v)) set(v); });
+      val.appendChild(num); val.appendChild(un); row.appendChild(val); row.appendChild(rng);
+      rows[key] = () => { num.value = fmt(P[key], st); rng.value = P[key]; };
+    }
+    det.appendChild(row);
+  });
+  if (G.note) { const n = document.createElement('p'); n.className = 'note' + (G.warn ? ' warn' : ''); n.textContent = G.note; det.appendChild(n); }
+  groupsEl.appendChild(det);
+});
+const syncAll = () => Object.values(rows).forEach(f => f());
+syncAll();
+
+document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
+  const pr = PRESETS[b.dataset.preset];
+  PALETTE_KEYS.forEach(k => { P[k] = clone(pr[k] || DEF[k]); });
+  syncAll();
+}));
+document.getElementById('reset').addEventListener('click', () => { P = Object.assign(clone(DEF), clone(SCENE_DEF)); syncAll(); });
+
+const copyBtn = document.getElementById('copy'), copyOut = document.getElementById('copyout');
+copyBtn.addEventListener('click', () => {
+  const out = {};
+  Object.keys(DEF).forEach(k => {
+    const v = P[k];
+    out[k] = Array.isArray(v) ? { R: +v[0].toFixed(5), G: +v[1].toFixed(5), B: +v[2].toFixed(5) } : +(+v).toPrecision(6);
+  });
+  out._escena = { SeaZ: P.SeaZ, EyeZ: P.EyeZ };
+  const txt = JSON.stringify(out, null, 2);
+  const show = () => { copyOut.value = txt; copyOut.classList.add('show'); copyOut.focus(); copyOut.select(); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(() => {
+      copyBtn.textContent = 'Copiado'; copyOut.classList.remove('show');
+      setTimeout(() => { copyBtn.textContent = 'Copiar valores'; }, 1400);
+    }, show);
+  } else show();
+});
+
+document.querySelectorAll('[data-look]').forEach(b => b.addEventListener('click', () => look(b.dataset.look)));
+let paused = false;
+const pauseBtn = document.getElementById('pause');
+const togglePause = () => { paused = !paused; pauseBtn.setAttribute('aria-pressed', String(paused)); pauseBtn.textContent = paused ? 'Seguir' : 'Pausa'; };
+pauseBtn.addEventListener('click', togglePause);
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePause(); }
+  const m = { Digit1: 'front', Digit2: 'table', Digit3: 'target', Digit4: 'down', Digit5: 'air' }[e.code];
+  if (m) look(m);
+});
+document.getElementById('ptoggle').addEventListener('click', () => document.body.classList.toggle('pclosed'));
+document.getElementById('vout').textContent = (DISC.verts / 1000).toFixed(1) + 'k vért · ' + NW + ' olas · ' + DUST_COUNT + ' motas';
+
+/* ---------------- bucle ---------------- */
+function push() {
+  const map = { uAmp: 'SwellAmp', uGroupAmt: 'GroupAmt', uWarp: 'Warp', uAdvance: 'Advance', uCalmMin: 'CalmMin',
+    uCrestAmt: 'CrestAmt', uWrapPow: 'WrapPow', uGlowAmt: 'GlowAmt', uGlowPow: 'GlowPow', uSkyPow: 'SkyPow',
+    uFogStart: 'FogStart', uFogDensity: 'FogDensity', uDither: 'Dither',
+    uDustAmt: 'DustAmt', uDustSize: 'DustSize', uDustFollow: 'DustFollow', uDustRise: 'DustRise', uDustWobble: 'DustWobble', uDustNear: 'DustNear' };
+  for (const k in map) U[k].value = +P[map[k]];
+  U.uGroupLen.value = Math.max(P.GroupLen, 1); U.uWarpScale.value = Math.max(P.WarpScale, 1); U.uCalmR.value = Math.max(P.CalmR, 1);
+  U.uLightAz.value = P.LightAz * DEG; U.uLightEl.value = P.LightEl * DEG;
+  U.uSeaZ.value = P.SeaZ;
+  const wc = waveConstants(P);
+  for (let i = 0; i < NW; i++) { U.uW.value[i].copy(wc.W[i]); U.uV.value[i].copy(wc.V[i]); U.uE.value[i].copy(wc.E[i]); }
+  U.uDustBox.value = Math.max(P.DustBox, 10);
+  U.uPxScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * DEG / 2));
+  const cols = { uDeep: 'DeepColor', uSurf: 'SurfColor', uCrest: 'CrestColor', uZenith: 'ZenithColor', uHorizon: 'HorizonColor', uGlow: 'GlowColor', uDustColor: 'DustColor' };
+  for (const k in cols) U[k].value.set(...P[cols[k]]);
+  table.visible = !!P.ShowTable; drawing.visible = !!P.ShowDrawing; shown.visible = !!P.ShowTarget;
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize); resize();
+
+let t = 0, last = performance.now(), acc = 0, frames = 0;
+const tout = document.getElementById('tout'), fpsout = document.getElementById('fpsout');
+if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) togglePause();
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1); last = now;
+  if (!paused) t += dt;
+  U.uTime.value = t;
+  push();
+  placeCamera();
+  const c = camera.position; U.uCam.value.set(-c.z, c.x, c.y);
+  sky.position.copy(camera.position);
+  shown.rotation.y = -t * 20 * DEG;                       // SpinSpeed 20 °/s
+  renderer.render(scene, camera);
+  acc += dt * 1000; frames++;
+  if (acc > 500) { fpsout.textContent = Math.round(frames * 1000 / acc) + ' fps'; acc = 0; frames = 0; tout.textContent = 't ' + t.toFixed(1) + ' s'; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>

@@ -4,6 +4,39 @@
 
 ---
 
+## ✅ Decisiones de Beltrán (2026-09-27)
+- **Cierre = replay desde la data** (`BP_MelodyReplay_SC`), no mover la mesa real. El mismo actor sirve en otras etapas.
+- **El replay lleva el gusano** (la cadena de gotas), no solo esferas.
+- **El rig trae sus propias mallas de mando** (como `BP_TBDrawRig`), además de los punteros.
+- **Punto de guardado hecho**: commit `f2d7060` en `core/esqueleto`, antes de tocar nada.
+
+---
+
+## 📍 Estado (2026-09-27, tarde)
+- ✅ **Fase 1** — `BP_SeqRig_SC` construido (`Mechanics/Sequencer/`), mano dominante + botón anclado a la otra mano. Verificado en PIE por efecto. Tracker: `blueprints/BP_SeqRig_SC.md`.
+- ✅ **Fase 2** — esfera, botón y secuenciador leen al rig. `get_dependencies` medido: **ninguno de los tres depende ya de `BP_Sensor_Soul`, `BP_Director_Story` ni `BP_InstructionsPanel_SC`**. PIE de punta a punta: el secuenciador enciende el rig, puntero derecho visible / izquierdo oculto, 68 esferas con `RigRef`, pad alineado. Nuevos en el secuenciador: dispatchers `OnMelodyFinished` / `OnIntroShown` / `OnIntroFinished` y `bWaitIntroConfirm`.
+- ⚠ En la Fase 2 el reinstanciado se comió el actor del secuenciador (gotcha 402) al fallar un compile; se recuperó recargando el nivel desde disco (estaba guardado). Regla aplicada: **no guardar el nivel hasta que el actor vuelva**.
+- ✅ **Cierre** (pedido final de Beltrán): la mesa se va, **reaparece en el TP con su transform completo**, dos pasadas exactas, sale y avisa **`OnStageFinished`**. Se hizo reusando la mesa real (no un actor copia): verificado en PIE forzando la fase. Detalle en el tracker de `BP_Sequencer_SC`. **Queda para OTRAS etapas** el replay desde la data (Fase 3 `SG_Melody_SC` + visor).
+- ✅ **Consolidación (noche)** — los 8 slots son `ChildActorComponent`s de `BP_BlobChain_SC`: **el paquete de la mesa = gusano + slot**. Mover/rotar/escalar `GAL_12_BlobChain` lleva los slots; el cierre mueve SOLO ese actor. Esfera de intro e `IntroTP` eliminados. Pendiente del plan: sacar `BP_Anchor` de las dependencias del director y `OnMelodyFinished` sin uso.
+- ⬜ Quedan: `BP_SlotChain_SC` (raymarch viejo) en `SoundOrb`/`SeqSlot`, `BP_Anchor` en el director, el sensor todavía colocado en `Test_Sequencer` (sin uso; se pregunta antes de sacarlo), Fases 3-6, visor.
+
+
+## 🎬 El cierre, precisado por Beltrán (2026-09-27, tarde)
+> *"Cuando el sequencer con el gusano y las pelotitas se van al frente hacia un target point, debe dar dos vueltas de secuencia y una vez que las termina debe animarse para desaparecer. Y el sistema debe enviar un aviso de finish stage… Cuando el usuario pone guardar melodía, desaparece el botón de nuestra mano y desaparece el láser de la otra mano: ya no se puede interactuar con nada, es algo meramente visual."*
+
+**Corrección de Beltrán, mismo día:** *"no debe viajar al target point, sino que es una copia. Desaparece y vuelve a aparecer en el target point."* → se mantiene la decisión original: **replay desde la data**.
+
+| Paso | Estado | Qué falta |
+|---|---|---|
+| Save Melody → el botón desaparece de la mano | ✅ `Confirm → HideNow` | verificar en visor que se va entero estando anclado |
+| → el láser de la otra mano se apaga, sin interacción | ✅ `SaveMelody → BeamOff → Rig.SetRigActive(false)` | — |
+| → se guarda la data (`SG_Melody_SC`) | ⬜ | Fase 3 |
+| La mesa real (slots + esferas + gusano) **se anima y desaparece en su lugar** | 🟡 hoy `RaiseSlots` la hace viajar | reemplazar el viaje por la salida en el lugar; verificar que el **gusano** se va con los slots |
+| La **copia** (`BP_MelodyReplay_SC`) aparece animada en el TP `seq_final_attracting` con su **transform completo** (posición, rotación, escala) | ⬜ | Fase 4: slots, esferas con su color/tamaño y el gusano, desde la data |
+| Dos pasadas de secuencia | ✅ hoy `FinalPasses` = 2 en la mesa real | moverlas al replay |
+| La copia se anima y desaparece | ⬜ | Fase 4 |
+| Aviso de fin de etapa | ✅ dispara `OnMelodyFinished` | renombrar a **`OnStageFinished`** y dispararlo **al terminar la copia** |
+
 ## 1. Diagnóstico medido (no de memoria)
 
 `get_dependencies` corrido hoy sobre el cluster. Lo que **arrastra otras etapas**:

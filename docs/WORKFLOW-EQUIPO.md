@@ -154,7 +154,10 @@ Señal de que corrió de verdad: el log termina en `BUILD SUCCESSFUL` + `Automat
 | Build | `PackageName` | Nombre en el visor | Dónde queda la data |
 |---|---|---|---|
 | Calibración | `com.almadigital.calibration` | Soul Charger Calibration | `/sdcard/Android/data/com.almadigital.calibration/files/UnrealGame/VR_Test/VR_Test/Saved/SaveGames/` |
+| Entering (test de la etapa + banco de medición, 2026-09-27) | `com.almadigital.entering` | Soul Charger Entering | archive en `VR_Test/Saved/Packaged/Android_Entering/`; `-map=/Game/Test_Entering`; medir con `scripts/quest_entering_perf.ps1` |
 | Heart (membrana del latido, 2026-09-27) | `com.almadigital.heart` | Soul Charger Heart | archive en `VR_Test/Saved/Packaged/Android_Heart/`; `-map=/Game/Test_Heart`. ⚠ el `Install_*.bat` falló al copiar el OBB (`UnrealAndroidFileTool`: *"Did not find package with activity"*) con el APK ya instalado: se copió con `adb push <obb> /sdcard/Android/obb/com.almadigital.heart/` y arrancó bien |
+
+⚠ **En la línea del `--%` no va NADA después de los argumentos de UAT** (ni `> log`, ni `; otra cosa`): con el stop-parsing todo eso le llega a cmd/UAT. Pasó el 2026-09-27: el build salió bien y UAT igual terminó con `ExitCode=1` por el `;` que le llegó como comando (gotcha 438).
 
 🔴 **El `Install_*.bat` de Epic hace `rm -r %STORAGE%/UnrealGame/VR_Test`**, y esa carpeta es **compartida por todos los builds de VR_Test**. Instalando a mano no hace falta: `adb install -r <apk>` + el push del OBB de la sección de arriba. El `adb` que usa Meta Quest Developer Hub es el mismo del SDK (`%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`), así que no hay choque de versiones.
 ⚪ **Ruido conocido en logcat:** `LogIoDispatcher: Error: OpenMappedEx failed on: ...ucas` (decenas de veces al arrancar). El motor no puede mapear en memoria datos que están dentro del OBB y los lee de la forma normal. El flujo de Calibración corrió completo igual. Si alguna vez falta un sonido o una imagen, es el primer sospechoso.
