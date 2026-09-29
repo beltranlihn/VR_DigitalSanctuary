@@ -25,6 +25,7 @@ la etapa nace **dormida**. Sin ese actor (como en `Test_Sequencer`), nada cambia
     - `TourSleep`: rig `InputReady`/`Active` false, `CtrlR/L` invisibles, `HandLeft/Right` del `BP_VRPawn_SC` visibles, `Phase` 0, sin `CloseGuts`.
   - El actor temporal se sacó; canario 25.
 - ⚠ **Wake → Sleep → Wake re-siembra las esferas**: `SpawnOrbs` corre al terminar cada intro (+68). El recorrido llama `TourWake` una sola vez.
+- 🟢 **Siembra ESCALONADA (2026-09-29, sesión Narrativa)**: `SpawnOrbs` = `SpawnIdx 0` → **`SpawnDomeStep`**, que siembra **4 esferas por llamada** (misma fórmula de posición/clip que `SpawnDome`) y se re-agenda con `SetTimerByFunctionName("SpawnDomeStep", 0.012)` hasta `OrbCount`. Las 68 quedan en ~17 cuadros. Motivo medido en la Quest: las 68 en un cuadro = **105 ms de game thread** → 13-14 cuadros perdidos seguidos → corte negro al entrar a ATTRACTING. `SpawnDome` (todo de golpe) queda sin llamar. Verificado en PIE: `SpawnIdx` 68, pad ON, 0 errores. `TourSleep` además limpia el timer `SpawnDomeStep` (cabo suelto que señaló la sesión Secuencer: dormir en plena siembra la dejaba corriendo).
 - ⚠ Si desde afuera se apaga el Tick de este actor o del rig, hay que prenderlo **antes** de `TourWake`: el rig se instala en su Tick y el playhead corre en `TickSeq`.
 
 ## La mecánica (spec de Beltrán, 2026-08-26)

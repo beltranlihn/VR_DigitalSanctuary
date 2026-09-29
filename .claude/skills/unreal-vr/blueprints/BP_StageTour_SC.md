@@ -10,15 +10,17 @@ Creado 2026-09-29 (noche) por la sesión "Narrativa" para el APK de prueba de Be
 2. **Step → TickAll(Dt)**: pega la esfera del velo a la cámara (`GetPlayerCameraManager`, con IsValid). Mientras no arranca → `BootTick`; después → `RunTick(Dt × Speed)`.
 3. **BootTick**: `CheckVis` (los 5 `IsLevelVisible`) → cuando los 5 están visibles durante 1,5 s → `StartTour`.
 4. **StartTour**: `PrimeMind` (FakePeriod 60) → `Classify` (reparte actores en celdas por el nombre de su mundo/paquete: `LevelNames[k]` o `SCTour<k>`; guarda el PlayerStart de cada celda) → apaga las 5 celdas → `EnterStage(0)`.
-5. **RunTick** (s = tiempo local de la etapa):
-   - 0 → 7,5 s: el velo se abre (1,5→7,5) · título Reveal 0,5→4,5, Out 7→10,5 · `EarlyPlace` coloca el título frente a la cámara (solo yaw) mientras s < 0,4.
-   - 7,5 s: `MarkStart` ("TOUR: transicion N->N+1 fin" si N>0, luego "TOUR: etapa N NOMBRE inicio").
-   - 67,5 s: `MarkEnd` + `SleepStage` (el TourSleep va ANTES de ocultar, porque Breath necesita ≥4 s para salir).
-   - 67,5 → 73,5 s: el velo se cierra mientras sus colores pasan de la paleta de la etapa i a la i+1.
-   - 73,5 s: `AdvanceStage` = `HideSpawned` (oculta los actores nuevos desde la entrada: esferas del secuenciador, trazos del dibujo…) + `SetCell(i,false)` + `EnterStage(i+1)`. Después de la última: "TOUR: fin", velo opaco y a los 3 s `OpenLevel Test_Recorrido` (loop).
-6. **EnterStage(k)**: SetCell(k,true) → teleport del pawn al PlayerStart de la celda → material del título `TitleMIs[k]` → `WakeStage(k)` → foto de actores (`Known`).
-7. **SetCell / SetActorOn**: prende o apaga una celda **sin tocar el `bHidden` original** de cada actor: `SetVisibleInSceneCaptureOnly` en cada PrimitiveComponent (el BP no puede LEER el bHidden de otro actor, así que no se usa SetActorHiddenInGame para no revivir lo que nació oculto), colisión (`InitColl` guardado) y `SetPaused` de los AudioComponent. El **Tick solo se apaga en la celda 2 (Mind)**: las demás etapas manejan su Tick con su contrato (Breath lo pidió explícitamente).
-8. **WakeStage / SleepStage**: switch por etapa → `BP_BreathStage_SC.TourWake/Sleep`, `BP_HeartManager_SC.TourWake/Sleep`, Mind = `WakeMind` (bFakeEEG / bFakeSignal + FakePeriod 60; sin sleep), `BP_Sequencer_SC.TourWake/Sleep` (una sola vez por corrida: repetido re-siembra 68 esferas), `BP_TBDirector_NC.TourWake/Sleep`.
+5. **RunTick** (s = tiempo local de la etapa; v3+, 2026-09-29 mediodía):
+   - 0 → 9 s: la etapa se enciende OCULTA detrás del velo (`ShowIfDue`: cola desde s ≥ 0,5) · el velo abre 3→9 · título Reveal 1→5,5, Out 9→12,5, visible s < 13 · `EarlyPlace` → `PlaceTitle` mientras s < 0,4.
+   - 9 s: `MarkStart` ("TOUR: transicion N->N+1 fin" si N>0, luego "TOUR: etapa N NOMBRE inicio").
+   - 69 s: `MarkEnd` + `SetVariant` + `SleepStage` (el TourSleep va ANTES de ocultar, porque Breath necesita ≥4 s para salir).
+   - 69 → 75 s: el velo se cierra mientras sus colores pasan de la paleta de la etapa i a la i+1.
+   - 75 s: `AdvanceStage` = `HideSpawned` + **`QueueCell(i,false)`** + `EnterStage(i+1)`. Después de la última: "TOUR: fin", velo opaco y a los 3 s `OpenLevel Test_Recorrido` (loop).
+6. **EnterStage(k)**: teleport del pawn al PlayerStart de la celda + el velo salta con él (sin cuadro negro) → material del título `TitleMIs[k]` → `WakeStage(k)` → foto de actores (`Known`).
+7. **Encendido/apagado de celdas** — sin tocar el `bHidden` original de cada actor: `SetVisibleInSceneCaptureOnly` en cada PrimitiveComponent (el BP no puede LEER el bHidden de otro actor), colisión (`InitColl`) y `SetPaused` de los AudioComponent. El **Tick solo se apaga en la celda 2 (Mind)**.
+   - 🔴 **Durante el recorrido va por COLA, nunca de golpe** (`QueueCell(K,On)` llena `QC/QCOn` con los componentes y `QA/QAOn/QAColl/QATick` con los actores; `StepQueue`, llamada cada cuadro desde `ShowIfDue`, procesa **`QBatch` = 8 componentes + 1 actor por cuadro** y vacía la cola al terminar). Motivo medido en la Quest: prender una celda entera en un cuadro costaba ~30 ms → el compositor perdía 5-9 cuadros seguidos → con la cabeza en movimiento se ve un **corte negro** en los bordes (reproyección). `SetCell` directo queda solo para el arranque (`StartTour`).
+8. **PlaceTitle**: el título se fija en el MUNDO, no según hacia dónde mira el usuario: XY del PlayerStart de la etapa, Z de la cámara, yaw = `StartYaw[k]` (el frente de la etapa, como los elementos interactivos). Pedido de Beltrán 2026-09-29.
+9. **WakeStage / SleepStage**: switch por etapa → `BP_BreathStage_SC.TourWake/Sleep`, `BP_HeartManager_SC.TourWake/Sleep`, Mind = `WakeMind` (bFakeEEG / bFakeSignal + FakePeriod 60; sin sleep), `BP_Sequencer_SC.TourWake/Sleep` (una sola vez por corrida: repetido re-siembra 68 esferas), `BP_TBDirector_NC.TourWake/Sleep`.
 
 ## Variables
 | Variable | Rol |
@@ -33,6 +35,7 @@ Creado 2026-09-29 (noche) por la sesión "Narrativa" para el APK de prueba de Be
 | `Booted` / `BootT` / `AllVis` | arranque |
 | `Known` | actores que existían al entrar a la etapa (para `HideSpawned`) |
 | `LastTime` | para el Dt del timer |
+| `QC` `QCOn` `QA` `QAOn` `QAColl` `QATick` `QCI` `QAI` · **`QBatch`** (8) | la cola de encendido/apagado de celdas (ver §7) |
 | **`Speed`** (instance editable, 1) | acelera el recorrido para probar en PIE (8 = recorrido completo en ~1 min). **Dejar en 1 al guardar.** |
 
 ## Componentes
@@ -42,6 +45,11 @@ Creado 2026-09-29 (noche) por la sesión "Narrativa" para el APK de prueba de Be
 ## Verificado (2026-09-29, PIE a Speed 8)
 - Las 5 etapas cargan, 47 actores en celdas, marcas completas y en orden, TourWake/TourSleep de cada etapa en el log, director TB `bAwake` en la etapa 5, loop por OpenLevel. 0 Accessed None, 0 Script Msg (después de arreglar LovingCell, ver abajo).
 - Falta en visor: el velo en estéreo, el título, los FPS por etapa (script `scripts/quest_recorrido_perf.ps1`).
+
+## Cortes negros al cambiar de etapa — cómo se midieron (2026-09-29)
+- Instrumento: el `Stale2/5/10/max` de la línea `VrApi FPS=` del logcat (máx. cuadros seguidos sin cuadro nuevo). Toda racha ≥5 con la cabeza moviéndose = borde negro visible.
+- `-ExecCmds="stat dumphitches"` (en `UECommandLine.txt` del proyecto en el device) solo ve el game thread: cazó el spawn de 68 esferas de ATTRACTING (105 ms, ver `BP_Sequencer_SC.SpawnDomeStep`). `csvprofile frames=N` da GT/RT/RHI por cuadro: el cuadro del encendido de celda = 30 ms.
+- `r.TextureStreaming 0` bajó la racha de 7-9 a 5 (y deja las texturas siempre a resolución completa): va en el `[SystemSettings]` TEMPORAL del empaquetado del recorrido.
 
 ## Trampas que salieron acá
 - **Editor minimizado = PIE congelado**: con la ventana de Unreal minimizada el mundo de PIE no tickea (ni Tick ni timers), aunque BeginPlay corre. Restaurar la ventana (`ShowWindow(h, 9)` por PowerShell) lo arregla.
