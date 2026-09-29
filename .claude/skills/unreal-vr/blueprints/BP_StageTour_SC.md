@@ -51,6 +51,14 @@ Creado 2026-09-29 (noche) por la sesión "Narrativa" para el APK de prueba de Be
 - `-ExecCmds="stat dumphitches"` (en `UECommandLine.txt` del proyecto en el device) solo ve el game thread: cazó el spawn de 68 esferas de ATTRACTING (105 ms, ver `BP_Sequencer_SC.SpawnDomeStep`). `csvprofile frames=N` da GT/RT/RHI por cuadro: el cuadro del encendido de celda = 30 ms.
 - `r.TextureStreaming 0` bajó la racha de 7-9 a 5 (y deja las texturas siempre a resolución completa): va en el `[SystemSettings]` TEMPORAL del empaquetado del recorrido.
 
+### v5 (2026-09-29 tarde)
+- **`QBatch` = 2** en el CDO. Se midió 8 / 2 / 1 → 2 es el mejor. Se puede probar en el device sin reempaquetar con `-ExecCmds="set BP_StageTour_SC_C QBatch N"`.
+- **`BlobTick(K)`** (se llama al final de `EnterStage`): el gusano `BP_BlobChain_SC` **solo tickea en la etapa 4**. Antes tickeaba ~1,4 ms por cuadro durante todo el recorrido.
+- **`HideOne` apaga también el Tick** de lo que esconde. Las 68 esferas seguían tickeando ~6 ms por cuadro después de ATTRACTING. Con esto, **la transición 4→5 quedó en 0 cuadros perdidos**.
+- `StepQueue` imprime `Q: <componente>` por cada pieza que prende o apaga (diagnóstico; sacarlo cuando se cierre el tema).
+- **Diagnóstico:** `-trace=cpu,frame,bookmark,log -tracefile=x.utrace` en el device, y después `UnrealInsights.exe -OpenTraceFile=… -NoUI -AutoQuit -ExecOnAnalysisCompleteCmd="TimingInsights.ExportTimingEvents out.csv -columns=… -threads=… -startTime=… -endTime=…"`. El "Self" de World Tick en `stat dumphitches` es **`xrWaitFrame`** (la espera del runtime), no trabajo.
+- **Queda (medido):** 1→2 = 8, 2→3 = 9, 3→4 = 7. En 1→2 el CPU está limpio: el único cuadro lento es una espera de 27 ms en `xrWaitFrame`, justo después de prenderse la membrana del latido. La célula de LOVING cuesta 6-8 ms de Tick por cuadro (`Simulate` + 48 `SetColorParameterValueOnMaterials`): es optimización propia de esa etapa.
+
 ## Trampas que salieron acá
 - **Editor minimizado = PIE congelado**: con la ventana de Unreal minimizada el mundo de PIE no tickea (ni Tick ni timers), aunque BeginPlay corre. Restaurar la ventana (`ShowWindow(h, 9)` por PowerShell) lo arregla.
 - **`bind` no es asignación** (otra vez): en `Step`, `dt = now - LastTime` se evaluaba después de `SetLastTime(now)` → dt = 0 siempre. Llamar a TickAll ANTES de guardar LastTime.
