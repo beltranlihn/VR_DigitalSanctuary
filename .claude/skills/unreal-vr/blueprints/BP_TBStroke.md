@@ -2185,4 +2185,13 @@ target (fases 1-5) la mesa sigue visible; al volver a 0 con el sistema cerrado q
   y mesa (con `bSystemDone` no reaparece nada, 5r).
 - DSL: `scripts/tb_tour.dsl` (12 funciones nuevas + cirugía de `EventBeginPlay`). Simulación: `scripts/tb_tour_sim.py`
   (encontró que la mesa quedaba oculta al primer despertar). Nombres a confirmar al leer: `LoopComp`, el cast de `HandsStep`.
-- ⬜ Construir en el turno de editor (plan del océano §7.1 paso 10) y probar en PIE con `bForceTour` + `ke * TourWake/TourSleep`.
+- ✅ **CONSTRUIDO 2026-09-29** (turno de editor): 3 variables (`bTourMode`, `bAwake`, `08 TOUR > bForceTour` false en CDO e
+  instancia), 10 funciones (`TourShow/Palette/Table(On)`, `TourHands`, `TourQuiet`, `TourSleepNow`, `TourWakeNow`, `TourWake`,
+  `TourSleep`, `TourBegin`), cirugía de `EventBeginPlay` (CheckController → TourBegin). Al leer el director: `TourQuiet` usa
+  `LoopStop`/`ChargeStop` (ya traen IsValid) y `SetHapticsByValue` 0 en las dos manos; `TourShow` remonta con `InstallTip` +
+  `ApplyHands` (FixHands elige el mando de la mano hábil). PIE sin TOUR = igual que antes; PIE con `bForceTour` = dormido
+  (sin instalar a los 4 s, sin paleta, mesa oculta), log limpio. ⬜ `ke * TourWake/TourSleep` en visor.
+- ⚠ `SetHandedness` llamada dormido vuelve a mostrar punta y mando (InstallTip + ApplyHands): llamarla después de `TourWake`.
+- **Sonidos fuera de `/Engine/VREditor`** (mismo turno): `VR_click1/2`, `VR_shep_scale_up_01/02`, `VR_shep_scale_down_02`
+  copiados a `/Game/NeuralCanvas/Sound/`; reapuntados en el CDO del director, su instancia, el CDO de `BPC_TBTool_NC` y la
+  plantilla `TBTool` (la instancia del componente queda en None: el director le empuja los sonidos). `grep VREditor` = 0.

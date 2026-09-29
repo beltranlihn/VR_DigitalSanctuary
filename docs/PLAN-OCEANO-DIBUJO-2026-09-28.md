@@ -238,7 +238,11 @@ Cada fase termina con una verificación concreta. Las fases 1 a 4 no abren ning�
 4. ✅ **Blueprint, preparado y simulado sin editor**: `scripts/draw_sea.dsl` (8 grafos) + **`scripts/draw_sea_sim.py` = TODO OK** (W/V/E contra el modelo con los defaults y 3 juegos al azar, error 0; cada parámetro llega a su componente; banco `PerfDS0..4`; categorías de cada getter; control negativo). La tabla de variables sale de ahí (`oceano/draw_sea_bp.json`) y la usan `apply_draw_sea_bp_A.py` (BP + componentes + 48 variables) y `apply_draw_sea_bp_B.py` (defaults del CDO con relectura).
    - 🔴 Trampa encontrada: **el `Fraction` de Unreal es `x − trunc(x)` (conserva el signo)**; el hash del prototipo usa `x − floor(x)`. El DSL lo corrige; sin la corrección cambian 6 de las 12 fases.
 
-### 7.1 Receta del turno de editor (fases 5-7)
+5. ✅ **Construido en Unreal (2026-09-29, turno 4 de Narrativa)**: pasos 1-12 de abajo hechos. Mallas exactas (37.280 / 2.400 tris, sin cartel modal), materiales sin error de compile, BP con los 8 grafos (compila, relectura = DSL), **W/V/E del MID = modelo a 5e-8**, actor en `L_TBTest_SC` (label `DrawSea`), captura del viewport con el oleaje y la niebla, PIE limpio. Contrato TOUR y sonidos también (ver `BP_TBStroke.md` 5s). Tracker: [`BP_DrawSea_SC.md`](../.claude/skills/unreal-vr/blueprints/BP_DrawSea_SC.md).
+6. ⬜ **APK + banco** (`ke * PerfDS0..4`, dos pasadas). **Meta 72 fps.**
+7. ⬜ **Visor con Beltrán.**
+
+### 7.1 Receta del turno de editor (fases 5-7) — ✅ ejecutada el 2026-09-29
 Con el editor de turno (orden de Narrativa). Guardar con **rutas explícitas** después de cada paso; nada de `save_assets([])`.
 1. `SceneTools.get_current_level` (no cargar otro nivel hasta el paso 9).
 2. **Import**: `StaticMeshTools.import_file` × 2 (`SM_DrawSea_SC`, `SM_DrawDust_SC`; `import_materials` false) a `/Game/SoulCharger/Mechanics/Drawing/Scape`. Verificar triángulos (37.280 / 2.400). Si el editor deja de responder con `Responding=True`, es el cartel modal (gotcha 303): cerrarlo por `WM_CLOSE` (fuera de PIE es seguro). Guardar.

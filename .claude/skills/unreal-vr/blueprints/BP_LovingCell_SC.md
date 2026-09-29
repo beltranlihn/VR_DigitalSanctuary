@@ -16,6 +16,17 @@
 > ⬜ Barrido de estados sin verificar (el preview no se refresca por MCP — ver trampas) ·
 > ⬜ sin PIE · ⬜ sin visor · ⬜ sin medir · ⬜ sin commitear.
 
+## 🔴 BUG CONOCIDO (hallado 2026-09-29 en Test_Recorrido): divide by zero en `LifeApply`
+PIE de Narrativa: miles de `Script Msg: Divide by zero: Divide_DoubleDouble` por cuadro desde `BP_LovingCell_SC_C_0`.
+Causa (volcado `Saved/ClaudeScripts/Loving/bpdump/lifeapply.txt`): en `_thc = 2·Asin(Min(1, (24·Max(GroupSize,0,05)+2) /
+(2,0 × _r1c)))` el pin B del Multiply quedó SIN conectar (0), así que la división es por 0. Corre para 6 grupos en cada Tick y en el CS, sin compuerta.
+Como es un nodo puro, se reevalúa en cada uso. Visualmente es nulo (UE devuelve 0 → `_thc` = 0, el look aprobado); el costo es el LOG
+en Development. Arreglo neutro: B = 1e9 (mismo resultado, sin mensajes). Arreglo de diseño: conectar `_r1c` (cambia apenas la
+separación angular → decide Beltrán). **APLICADO por Narrativa (2026-09-29, madrugada):** `LifeApply.K2Node_PromotableOperator_114`
+(2,0 × B) → B = 1e9 con `set_pin_value`; BP compilado y guardado (hubo que FORZAR el guardado: `set_pin_value` no marca el paquete como modificado, gotcha 498) ·
+✅ 0 mensajes en PIE (Narrativa) ·
+⬜ opción de diseño (conectar `_r1c`) mañana con Beltrán: al hacerlo, quitar el 1e9.
+
 ## 🟡 V4e (2026-09-28, noche) — PROPUESTA "NOCHE PERLA" (Turrell × Six N. Five), solo en la instancia de `Test_Fluid`
 Pedido: *"una estética tipo James Turrell, pero más visualmente como lo que hace Six N. Five"*. Workflow de investigación +
 3 propuestas + juez (`wf_c3631e33-68a`): gana **Noche perla** = el agua C que eligió Beltrán, sin el azul eléctrico: luna
