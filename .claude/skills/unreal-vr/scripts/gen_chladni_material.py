@@ -28,6 +28,21 @@ SALIDA = os.path.join(REPO, "VR_Test", "Saved", "ClaudeScripts", "chladni_build.
 MATERIAL = "/Game/SoulCharger/Mechanics/Sequencer/Chladni/M_ChladniFloor_SC"
 TEXTURA = "/Game/SoulCharger/Mechanics/Sequencer/Chladni/T_SaltCells_SC.T_SaltCells_SC"
 ARENA = "/Game/SoulCharger/Mechanics/Sequencer/Chladni/T_SandGrain_SC.T_SandGrain_SC"
+# La sombra y el reflejo del gusano (grupo "5 - Gusano", WS0..WS7) quedaron PREPARADOS el 2026-09-29 y se encienden
+# con Beltran mirando. Con False no entran ni los parametros ni el codigo.
+CON_GUSANO = False
+
+# El mandala "recto" (Geometric > 0: ondas triangulares, pentagonos y rayos). Beltran lo descarto el 2026-09-28 ("el
+# recto NO"): con False el shader no lo lleva (ni el camino viejo de 3 evaluaciones), lo que baja la presion de
+# registros del PS. La perilla Geometric queda sin efecto. True = vuelve el codigo de la 4a pasada (3 evaluaciones).
+CON_GEO = False
+
+# BANCO DE MEDICION (2026-09-29, Attracting a 36 fps en el recorrido). PerfMode lo escriben los eventos ChladniPerfN
+# del actor ('ke * ChladniPerfN', solo Development); PerfForce 1 = las 8 figuras encendidas (peor caso fijo).
+# Ronda 1 (medida): 0 viejo 25,5 ms -> analitico 18,0; mandala 11,2; acabado 4,9; cielo 0,6; WPO 0,6.
+# Ronda 2: el modo 0 ES la obra optimizada; los demas restan una parte para ver cuanto queda en cada una.
+PERF_MODOS = ["obra", "sin arena", "sin mandala PS", "sin WPO", "piso plano", "cielo plano", "sin acabado",
+              "sin poligonos", "sin agua", "sin bruma"]
 
 # los 8 modos (uno por slot del secuenciador): multiplicador de la simetria, de los anillos, giro de medio
 # lobulo y radio donde nacen los petalos (fraccion del radio de la placa). Iguales al prototipo.
@@ -89,19 +104,106 @@ PARAMS = [
     ("4 - Cielo", "Haze", "s", 0.55, "0 … 1", "Bruma del horizonte"),
     ("4 - Cielo", "FogDist", "s", 2600, "300 … 8000", "Distancia de la bruma (cm)"),
     ("4 - Cielo", "Dither", "s", 1.0, "0 … 3", "Dither contra el banding (en 1/255)"),
+]
+GUSANO = [
     ("5 - Gusano", "WormShadow", "s", 0.35, "0 … 1", "Sombra larga del gusano sobre la sal, hacia el lado contrario al sol"),
     ("5 - Gusano", "ShadowElev", "s", 22, "5 … 60", "Altura del sol PARA la sombra (grados): mas bajo = sombra mas larga. Aparte de SunEl porque con el sol real a 2,5 grados la sombra mediria 10 m"),
     ("5 - Gusano", "ShadowSoft", "s", 1.0, "0,3 … 3", "Borde de la sombra: mas = mas nitido"),
     ("5 - Gusano", "WormGlow", "s", 0.2, "0 … 1", "Reflejo del color del gusano en la sal humeda, justo debajo"),
     ("5 - Gusano", "WormR", "s", 14, "4 … 40", "Radio del gusano para la sombra y el reflejo (cm)"),
     ("5 - Gusano", "WormCol", "v", s2l("#f0c9d6"), "", "Color del reflejo bajo el gusano"),
+]
+PARAMS = PARAMS + (GUSANO if CON_GUSANO else []) + [
+    ("9 - Interno", "PerfMode", "s", 0, "0 … 9", "Banco de medicion: " + " · ".join("%d %s" % (i, n) for i, n in enumerate(PERF_MODOS)) + " (lo escriben los eventos ChladniPerfN)"),
+    ("9 - Interno", "PerfForce", "s", 0, "0 / 1", "Banco: 1 = las 8 figuras encendidas, peor caso fijo (lo escriben los eventos ChladniPerfN)"),
     ("9 - Interno", "Part", "s", 0, "0 / 1", "0 piso, 1 cielo (lo pone el Construction Script)"),
     ("9 - Interno", "Order", "s", 0, "0 … 1", "Cuanto mandala hay tallado (lo escribe el actor)"),
 ] + [("9 - Interno", "W%d" % i, "s", 0, "0 … 1", "Cuanto esta tallada la figura del slot %d (lo escribe el actor)" % i) for i in range(8)] \
-  + [("9 - Interno", "WS%d" % i, "v", [0.0, 0.0, -1.0], "", "Posicion del slot %d del gusano (cm, local del piso; z < 0 = no hay). La escribe el actor" % i) for i in range(8)] \
+  + ([("9 - Interno", "WS%d" % i, "v", [0.0, 0.0, -1.0], "", "Posicion del slot %d del gusano (cm, local del piso; z < 0 = no hay). La escribe el actor" % i) for i in range(8)] if CON_GUSANO else []) \
   + [("9 - Interno", "V%d" % i, "s", 0, "0 … 1", "Ola de formacion del slot %d, curva de Heart (lo escribe el actor)" % i) for i in range(8)]
 
-FIG = ["Sym", "Kr", "BaseW", "PlateR", "CenterX", "Calm", "Warp", "ReliefH", "ReliefW", "SwellH", "SwellW", "EdgeIn", "Geo", "GeoFreq", "Round", "Sharp", "VibAmp", "Order"] + ["W%d" % i for i in range(8)] + ["V%d" % i for i in range(8)]
+FIG = ["Sym", "Kr", "BaseW", "PlateR", "CenterX", "Calm", "Warp", "ReliefH", "ReliefW", "SwellH", "SwellW", "EdgeIn", "Geo", "GeoFreq", "Round", "Sharp", "VibAmp", "Order"] + ["W%d" % i for i in range(8)] + ["V%d" % i for i in range(8)] + ["PerfMode", "PerfForce"]
+
+
+def modo(n):
+    """Condicion uniforme 'PerfMode == n' (float que llega de un parametro)."""
+    return "abs(PerfMode - %d.0) < 0.5" % n
+
+
+def forzar():
+    """Banco: con PerfForce las 8 figuras quedan talladas y quietas (peor caso fijo, sin depender de la mesa)."""
+    return ["[branch] if (PerfForce > 0.5) { Order = 1.0; " + " ".join("W%d = 1.0; V%d = 0.0;" % (i, i) for i in range(8)) + " }"]
+
+
+def analitico():
+    """UNA evaluacion del campo curvo (Geo 0) con su gradiente ANALITICO (verificado contra diferencias finitas en
+    grad_check: error 1e-8; las diferencias finitas de 2 cm del camino viejo tenian 3 %). Define FAo, gFo, gVo.
+    Cadena: p -> q0 = (p - C)/R -> q = q0 + warp(q0) (jacobiano J) -> (r, th) -> modos.
+    Ronda 2: ANGULOS MULTIPLES. Los anillos de los 8 modos son multiplos de PI*Kr*r/4 (MK*4 = 4..12) y las simetrias
+    multiplos de Sym*th (MA = 1..3): un sincos de cada uno y el resto por recurrencia (suma de angulos / Chebyshev).
+    2 sincos por pixel en vez de 17; identico en fp32 (la recurrencia acumula ~1e-6)."""
+    L = ["float2 q0 = (p - float2(CenterX, 0.0)) * iR;",
+         "float kw = Warp * 0.045;",
+         "float s1, c1, s2, c2, s3, c3, s4, c4;",
+         "sincos(q0.y * 4.1 + 1.3, s1, c1);",
+         "sincos(q0.x * 7.3 - q0.y * 2.2 + 0.4, s2, c2);",
+         "sincos(q0.x * 3.7 + 2.1, s3, c3);",
+         "sincos(q0.y * 6.9 + q0.x * 2.6 + 1.7, s4, c4);",
+         "float2 q = q0 + kw * float2(s1 + 0.6 * s2, s3 + 0.6 * s4);",
+         "float Jxx = 1.0 + kw * 4.38 * c2;                 // dq.x/dq0.x",
+         "float Jxy = kw * (4.1 * c1 - 1.32 * c2);          // dq.x/dq0.y",
+         "float Jyx = kw * (3.7 * c3 + 1.56 * c4);          // dq.y/dq0.x",
+         "float Jyy = 1.0 + kw * 4.14 * c4;                 // dq.y/dq0.y",
+         "float r = max(length(q), 1e-5);",
+         "float th = atan2(q.y, q.x);",
+         "float onw = max(calm * 0.8, 1e-5);",
+         "float ont = saturate((r - calm * 0.6) / onw);",
+         "float on = ont * ont * (3.0 - 2.0 * ont);",
+         "float don = 6.0 * ont * (1.0 - ont) / onw;",
+         "// anillos: rk_n = PI*Kr*r*n/4, n = 1..12, por suma de angulos",
+         "float ru = PI * Kr * 0.25;",
+         "float rs1, rc1;",
+         "sincos(ru * r, rs1, rc1);"]
+    ks = sorted(set([4] + [int(round(m * 4)) for m in MK]))
+    for n in range(2, max(ks) + 1):
+        L.append("float rc%d = rc%d * rc1 - rs%d * rs1; float rs%d = rs%d * rc1 + rc%d * rs1;" % (n, n - 1, n - 1, n, n - 1, n - 1))
+    L += ["// simetrias: Sym*th*m, m = 1..3 (Chebyshev)",
+          "float as1, ac1;",
+          "sincos(Sym * th, as1, ac1);",
+          "float ac2 = 2.0 * ac1 * ac1 - 1.0; float as2 = 2.0 * as1 * ac1;",
+          "float ac3 = ac1 * (4.0 * ac1 * ac1 - 3.0); float as3 = as1 * (3.0 - 4.0 * as1 * as1);",
+          "float Fa = BaseW * rc4;",
+          "float dFr = -BaseW * ru * 4.0 * rs4;",
+          "float dFt = 0.0;",
+          "float Va = 0.0;",
+          "float dVr = 0.0;",
+          "float dVt = 0.0;"]
+    for i in range(8):
+        a, b = MR[i] * 0.55, MR[i] * 1.3
+        n = int(round(MK[i] * 4))
+        m = MA[i]
+        # fase MP*PI: 0 -> (cos, sin) de m*x ; PI/2 -> cos(mx + PI/2) = -sin(mx), sin(mx + PI/2) = cos(mx)
+        cB, sB = ("ac%d" % m, "as%d" % m) if MP[i] == 0.0 else ("(-as%d)" % m, "ac%d" % m)
+        L.append(("[branch] if (W%d > 0.001 || V%d > 0.001) { float t = saturate((r - %.4f) * %.5f); float S = t * t * (3.0 - 2.0 * t); "
+                  "float dS = 6.0 * t * (1.0 - t) * %.5f; float env = S * on; float denv = dS * on + S * don; "
+                  "float cA = rc%d; float sA = rs%d; float cB = %s; float sB = %s; "
+                  "float m = cA * cB * env; float mr = (-ru * %d.0 * sA * env + cA * denv) * cB; float mt = -Sym * %d.0 * cA * sB * env; "
+                  "Fa += W%d * m; dFr += W%d * mr; dFt += W%d * mt; Va += V%d * m; dVr += V%d * mr; dVt += V%d * mt; }")
+                 % (i, i, a, 1.0 / (b - a), 1.0 / (b - a), n, n, cB, sB, n, m, i, i, i, i, i, i))
+    L += ["float iws = 1.0 / ws;",
+          "Fa *= iws; dFr *= iws; dFt *= iws;",
+          "float ft = saturate((r - 0.85) * 5.0);",
+          "float fade = 1.0 - ft * ft * (3.0 - 2.0 * ft);",
+          "dVr = dVr * fade - Va * 30.0 * ft * (1.0 - ft);                 // d(1 - smoothstep(0.85, 1.05, r))/dr = -6 t (1 - t) / 0.2",
+          "dVt *= fade;",
+          "float ir = 1.0 / r;",
+          "float ir2 = ir * ir;",
+          "float2 gqF = float2(dFr * q.x * ir - dFt * q.y * ir2, dFr * q.y * ir + dFt * q.x * ir2);",
+          "float2 gqV = float2(dVr * q.x * ir - dVt * q.y * ir2, dVr * q.y * ir + dVt * q.x * ir2);",
+          "FAo = Fa;",
+          "gFo = float2(Jxx * gqF.x + Jyx * gqF.y, Jxy * gqF.x + Jyy * gqF.y) * iR;",
+          "gVo = float2(Jxx * gqV.x + Jyx * gqV.y, Jxy * gqV.x + Jyy * gqV.y) * iR;"]
+    return L
 
 
 def evaluar(P, s):
@@ -116,6 +218,16 @@ def evaluar(P, s):
     dirs = [(math.cos(2 * math.pi * k / 5 + math.pi / 2), math.sin(2 * math.pi * k / 5 + math.pi / 2)) for k in range(5)]
     L.append("float rq%s = max(max(max(q%s.x * %.5f + q%s.y * %.5f, q%s.x * %.5f + q%s.y * %.5f), max(q%s.x * %.5f + q%s.y * %.5f, q%s.x * %.5f + q%s.y * %.5f)), q%s.x * %.5f + q%s.y * %.5f) * 1.23607;"
              % ((s, s, dirs[0][0], s, dirs[0][1], s, dirs[1][0], s, dirs[1][1], s, dirs[2][0], s, dirs[2][1], s, dirs[3][0], s, dirs[3][1], s, dirs[4][0], s, dirs[4][1])))
+    if not CON_GEO:
+        L.pop()                                         # rq: solo lo usa el recto
+        L.append("float F%s = BaseW * cos(PI * Kr * r%s);" % (s, s))
+        L.append("float Vb%s = 0.0;" % s)
+        for i in range(8):
+            L.append("[branch] if (W%d > 0.001 || V%d > 0.001) { float m = cos(PI * Kr * %.4f * r%s) * cos(Sym * %.1f * th%s + %.4f) * smoothstep(%.4f, %.4f, r%s) * on%s; F%s += W%d * m; Vb%s += V%d * m; }"
+                     % (i, i, MK[i], s, MA[i], s, MP[i] * 3.14159265, MR[i] * 0.55, MR[i] * 1.3, s, s, s, i, s, i))
+        L.append("F%s /= ws;" % s)
+        L.append("Vb%s *= 1.0 - smoothstep(0.85, 1.05, r%s);" % (s, s))
+        return L
     L.append("float rg%s = lerp(r%s, rq%s, Geo);" % (s, s, s))
     L.append("float F%s = BaseW * lerp(cos(PI * Kr * rg%s), asin(rk * cos(PI * Kr * rg%s)) * irk, Geo);" % (s, s, s))
     L.append("float Vb%s = 0.0;" % s)
@@ -163,7 +275,7 @@ def cabecera_comun():
             "float ws = max(BaseW + W0 + W1 + W2 + W3 + W4 + W5 + W6 + W7, 0.001);",
             "float act = Order + V0 + V1 + V2 + V3 + V4 + V5 + V6 + V7;",
             "float rk = 1.0 - clamp(Round, 0.02, 0.9);              // triangular redondeada: 1 - Round",
-            "float irk = 1.0 / asin(rk);"]
+            "float irk = 1.0 / asin(rk);"][:(8 if CON_GEO else 6)]
 
 
 def hash_bloque(nombre, expr):
@@ -173,9 +285,10 @@ def hash_bloque(nombre, expr):
             "float %s = frac((%s_p.x + %s_p.y) * %s_p.z);" % (nombre, nombre, nombre, nombre)]
 
 
-def cielo(dirv, out):
-    """Color del cielo en la direccion dirv (float3 normalizado, mundo, Z arriba) -> float3 out."""
-    return ["float %s_e = %s.z;" % (out, dirv),
+def cielo(dirv, out, e=None):
+    """Color del cielo en la direccion dirv (float3 normalizado, mundo, Z arriba) -> float3 out.
+    e = literal: elevacion fija (la bruma mira al horizonte: e = 0 y el compilador pliega las smoothstep y el exp)."""
+    return ["float %s_e = %s;" % (out, e if e is not None else dirv + ".z"),
             "float3 %s = lerp(SkyMid, SkyTop, smoothstep(0.03, 0.75, %s_e));" % (out, out),
             "%s = lerp(SkyHor, %s, smoothstep(-0.03, 0.26, %s_e));" % (out, out, out),
             "float %s_a = acos(clamp(dot(%s, SunDir), -1.0, 1.0));" % (out, dirv),
@@ -185,10 +298,14 @@ def cielo(dirv, out):
 
 
 def vs():
+    if CON_GEO:
+        raise SystemExit("CON_GEO: el camino recto (3 evaluaciones) esta en el historial de git, commit 1c36d03")
     ent = [("LP", "float3", "LocalPosition, pin XYZ", "posicion del vertice (cm, espacio del actor)"),
            ("Part", "float", "ScalarParameter Part", "0 piso, 1 cielo")]
     ent += [(n, "float", "ScalarParameter " + n, "") for n in FIG]
-    L = ["if (Part > 0.5) { return float3(0.0, 0.0, 0.0); }"]
+    L = ["if (Part > 0.5) { return float3(0.0, 0.0, 0.0); }",
+         "[branch] if (%s) { return float3(0.0, 0.0, 0.0); }   // banco: sin WPO" % modo(3)]
+    L += forzar()
     L += cabecera_comun()
     L += ["[branch] if (act < 0.001) { return float3(0.0, 0.0, 0.0); }",
           "float2 p = LP.xy;",
@@ -200,14 +317,14 @@ def vs():
     L += evaluar("p", "A")
     L += ["float ordL = Order * (1.0 - smoothstep(EdgeIn, 1.08, rpJ)) * smoothstep(calm * 0.8, calm * 1.6, rp);   // centro calmo: sin mandala bajo el usuario",
           "float x = FA / max(SwellW, 0.02);",
-          "float lwv = max(ReliefW, 0.3) * 4.0;                              // la loma de geometria: 4 veces mas ancha que la cresta"]
-    L += geo_eval("p", "A", "lwv")
-    L += ["float h = SwellH * ordL * lerp(exp(-x * x), GA, Geo) + VibAmp * VbA;   // solo la loma SUAVE: la cresta fina va por pixel",
+          "float h = SwellH * ordL * exp(-x * x) + VibAmp * VbA;   // solo la loma SUAVE: la cresta fina va por pixel",
           "return float3(0.0, 0.0, h);"]
     return ent, L
 
 
 def ps():
+    """Ronda 2 (2026-09-29): una evaluacion analitica con angulos multiples, y cada capa del acabado se salta donde
+    su aporte es menor que 1/512 (sin cambio visible). Los modos del banco (PerfMode) restan una capa cada uno."""
     ent = [("LPi", "float3", "VertexInterpolator_1", "posicion local interpolada (sin el WPO)"),
            ("CamVec", "float3", "CameraVector", "del punto hacia la camara (mundo)"),
            ("Dist", "float", "Distance(AbsoluteWorldPosition, CameraPositionWS)", "distancia real a la camara (cm)"),
@@ -221,9 +338,12 @@ def ps():
         ent.append((n, "float3" if tipo == "v" else "float", ("VectorParameter " if tipo == "v" else "ScalarParameter ") + n, ""))
     L = ["float sunR = max(SunSize, 0.5) * 0.0174533;",
          "float3 Vw = -normalize(CamVec);                     // de la camara hacia el punto",
-         "[branch] if (Part > 0.5) {"]
+         "[branch] if (Part > 0.5) {",
+         "  [branch] if (%s) { return SkyMid; }   // banco: cielo plano" % modo(5)]
     L += ["  " + l for l in cielo("Vw", "skyC")]
-    L += ["  return skyC;", "}"]
+    L += ["  return skyC;", "}",
+          "[branch] if (%s) { return lerp(SaltShade, SaltLit, FlatTone); }   // banco: piso plano" % modo(4)]
+    L += forzar()
     L += cabecera_comun()
     L += ["float2 p = LPi.xy;",
           "float fp = length(fwidth(p));                        // cm por pixel (fuera de ramas)",
@@ -235,12 +355,17 @@ def ps():
           "float rpJ = rp + 0.07 * (sin(3.0 * thp + 1.2) + 0.6 * sin(7.0 * thp + 0.4));   // borde irregular",
           "float ordP = Order * (1.0 - smoothstep(EdgeIn, 1.08, rpJ));                 // donde hay mandala (centro calmo incluido): sin poligonos",
           "float ordL = ordP * smoothstep(calm * 0.8, calm * 1.6, rp);",
-          "// relieve del mandala + ola: la MISMA altura que ChladniHeightVS, con su pendiente por diferencias finitas",
-          "[branch] if (act > 0.001 && rp < 1.3) {"]
-    ev = evaluar("p", "A") + evaluar("p + float2(2.0, 0.0)", "B") + evaluar("p + float2(0.0, 2.0)", "C")
-    L += ["  " + l for l in ev]
-    L += ["  float2 gF = float2(FB - FA, FC - FA) * 0.5;",
-          "  float2 gV = float2(VbB - VbA, VbC - VbA) * 0.5;",
+          "float vsum = V0 + V1 + V2 + V3 + V4 + V5 + V6 + V7;",
+          "// relieve del mandala + ola: la MISMA altura que ChladniHeightVS, con su pendiente ANALITICA. Donde no hay",
+          "// relieve (ordL 0: centro calmo y fuera del borde) y no hay ola, no aporta nada: no se evalua",
+          "[branch] if (act > 0.001 && rp < 1.3 && (ordL > 0.0001 || vsum > 0.001) && !(%s)) {" % modo(2),
+          "  float FAo = 0.0;",
+          "  float2 gFo = float2(0.0, 0.0);",
+          "  float2 gVo = float2(0.0, 0.0);"]
+    L += ["  " + l for l in analitico()]
+    L += ["  float FA = FAo;",
+          "  float2 gF = gFo;",
+          "  float2 gV = gVo;",
           "  float gl = max(length(gF), 1e-5);",
           "  float dcm = FA / gl;                                             // DISTANCIA a la linea nodal (cm): mismo ancho en todas",
           "  float lw = max(ReliefW, 0.3);",
@@ -251,79 +376,82 @@ def ps():
           "  float thin = 1.0 - smoothstep(0.6, 2.5, fp / lw);                 // mas fina que un pixel: se apaga (sin parpadeo)",
           "  float sw = max(SwellW, 0.02);",
           "  float xs = FA / sw;",
-          "  float2 slF = ReliefH * ordL * thin * dhdd * (gF / gl) + SwellH * ordL * exp(-xs * xs) * (-2.0 * FA / (sw * sw)) * gF;",
-          "  float crF = hn * ordL * thin;",
-          "  // el mandala RECTO: union de lineas (pentagonos + rayos); pendiente por diferencias finitas de medio cm",
-          "  float2 slG = float2(0.0, 0.0);",
-          "  float crG = 0.0;",
-          "  [branch] if (Geo > 0.001) {"]
-    gv = geo_eval("p", "GA", "lw") + geo_eval("p + float2(0.5, 0.0)", "GB", "lw") + geo_eval("p + float2(0.0, 0.5)", "GC", "lw")
-    L += ["    " + l for l in gv]
-    L += ["    slG = ReliefH * ordL * thin * float2(GGB - GGA, GGC - GGA) * 2.0;",
-          "    crG = GGA * ordL * thin;",
-          "  }",
-          "  slope += lerp(slF, slG, Geo) + VibAmp * gV;",
-          "  crest += lerp(crF, crG, Geo);",
+          "  slope += ReliefH * ordL * thin * dhdd * (gF / gl) + SwellH * ordL * exp(-xs * xs) * (-2.0 * FA / (sw * sw)) * gF + VibAmp * gV;",
+          "  crest += hn * ordL * thin;",
           "}",
-          "// poligonos del salar (textura periodica de 8 x 8 celdas): el mandala los va borrando",
-          "float T8 = max(CellSize, 1.0) * 8.0;",
-          "float2 uvC = p / T8;",
-          "float tx = 1.0 / 1024.0;",
-          "float c0 = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC, 0.0).r;",
-          "float cx = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC + float2(tx, 0.0), 0.0).r;",
-          "float cy = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC + float2(0.0, tx), 0.0).r;",
-          "float dv = c0 * 0.5 * CellSize;",
-          "float2 gdv = float2(cx - c0, cy - c0) * (0.5 * CellSize) / (tx * T8);",
+          "[branch] if (%s) { float3 n6 = normalize(float3(-slope, 1.0)); return lerp(SaltShade, SaltLit, saturate(FlatTone + (dot(n6, SunDir) - SunDir.z) * LightGain)); }   // banco: sin acabado" % modo(6),
+          "// poligonos del salar (textura periodica de 8 x 8 celdas): el mandala los va borrando y de lejos se apagan.",
+          "// Donde su aporte es < 1/500 (dentro del mandala, a lo lejos) no se leen las 3 texturas",
           "float pw = max(PolyW, 0.5);",
-          "float xv = dv / pw;",
-          "float hsv = max(saturate(1.0 - xv), 1e-4);                           // la cresta del poligono, tambien con filo",
           "float keep = (1.0 - ordP * (1.0 - PolyKeep)) * (1.0 - smoothstep(0.5, 2.5, fp / pw));",
-          "float hv = pow(hsv, Sharp) * keep;",
-          "float dhdv = (xv < 1.0) ? (-Sharp * pow(hsv, Sharp - 1.0) / pw) : 0.0;",
-          "slope += 3.5 * PolyH * keep * dhdv * gdv;",
-          "crest += hv * PolyH;",
+          "[branch] if (keep * PolyH > 0.002 && !(%s)) {" % modo(7),
+          "  float T8 = max(CellSize, 1.0) * 8.0;",
+          "  float2 uvC = p / T8;",
+          "  float tx = 1.0 / 1024.0;",
+          "  float c0 = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC, 0.0).r;",
+          "  float cx = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC + float2(tx, 0.0), 0.0).r;",
+          "  float cy = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC + float2(0.0, tx), 0.0).r;",
+          "  float dv = c0 * 0.5 * CellSize;",
+          "  float2 gdv = float2(cx - c0, cy - c0) * (0.5 * CellSize) / (tx * T8);",
+          "  float xv = dv / pw;",
+          "  float hsv = max(saturate(1.0 - xv), 1e-4);                           // la cresta del poligono, tambien con filo",
+          "  float hv = pow(hsv, Sharp) * keep;",
+          "  float dhdv = (xv < 1.0) ? (-Sharp * pow(hsv, Sharp - 1.0) / pw) : 0.0;",
+          "  slope += 3.5 * PolyH * keep * dhdv * gdv;",
+          "  crest += hv * PolyH;",
+          "}",
           "float3 n = normalize(float3(-slope, 1.0));",
           "// luz rasante: el plano queda en FlatTone; lo que mira al sol se entibia y lo demas se enfria",
-          "float t = FlatTone + (dot(n, SunDir) - SunDir.z) * LightGain;"]
-    # manchas de la costra: ruido de valor de una octava (4 hash) a 38 cm
-    L += ["float2 nq = p / 38.0;", "float2 ni = floor(nq);", "float2 nf = frac(nq);", "nf = nf * nf * (3.0 - 2.0 * nf);"]
-    L += hash_bloque("n00", "ni") + hash_bloque("n10", "ni + float2(1.0, 0.0)") + hash_bloque("n01", "ni + float2(0.0, 1.0)") + hash_bloque("n11", "ni + float2(1.0, 1.0)")
-    L += ["float nz = (lerp(lerp(n00, n10, nf.x), lerp(n01, n11, nf.x), nf.y) - 0.5) * SaltNoise * (1.0 - smoothstep(3.0, 12.0, fp));",
-          "t += nz * 0.25;",
-          "// arena: textura periodica con mipmaps (de lejos se promedia sola), dos lecturas a escalas y giros distintos",
-          "float st = max(GrainSize, 1.0);",
-          "float3 sA = Texture2DSample(SandTex, SandTexSampler, p / st).rgb;",
-          "float2 pr = float2(p.x * 0.8 - p.y * 0.6, p.x * 0.6 + p.y * 0.8);",
-          "float3 sB = Texture2DSample(SandTex, SandTexSampler, pr / (st * 2.37)).rgb;",
-          "t += ((sA.r - 0.5) * 0.65 + (sB.r - 0.5) * 0.35) * Grain * 1.8;",
-          "float3 col = lerp(SaltShade, SaltLit, saturate(t));",
-          "// el gusano ASENTADO: sombra larga hacia el lado contrario al sol + reflejo de su color en la sal humeda",
-          "float2 sdir = normalize(SunDir.xy + float2(1e-5, 0.0));",
-          "float kS = 1.0 / tan(clamp(ShadowElev, 3.0, 80.0) * 0.0174533);",
-          "float wr = max(WormR, 1.0);",
-          "float shw = 0.0;",
-          "float glw = 0.0;"]
-    for i in range(8):
-        L.append("[branch] if (WS%d.z > 0.0) { float hl = WS%d.z * kS * 0.5; float2 dd = p - (WS%d.xy - sdir * hl); float al = dot(dd, sdir); float ac = dd.x * sdir.y - dd.y * sdir.x; "
-                 "float e = al * al / ((hl + wr) * (hl + wr)) + ac * ac / (wr * wr * 1.4); shw = max(shw, exp(-e * 2.0 * ShadowSoft) * saturate(1.0 - WS%d.z / 400.0)); "
-                 "float2 dg = p - WS%d.xy; glw = max(glw, exp(-dot(dg, dg) / (wr * wr * 5.0))); }" % (i, i, i, i, i))
-    L += ["col = lerp(col, SaltShade * 0.8, saturate(WormShadow * shw));",
-          "col += WormCol * WormGlow * glw;",
-          "col += SunCol * max(t - 0.85, 0.0) * 0.5;",
+          "float t = FlatTone + (dot(n, SunDir) - SunDir.z) * LightGain;",
+          "float3 sA = float3(0.5, 0.0, 0.0);",
+          "float3 sB = float3(0.5, 0.0, 0.0);",
+          "[branch] if (!(%s)) {" % modo(1)]
+    # manchas de la costra: ruido de valor de una octava (4 hash) a 38 cm; de lejos (fp > 12 cm) su peso es 0
+    man = ["float2 nq = p / 38.0;", "float2 ni = floor(nq);", "float2 nf = frac(nq);", "nf = nf * nf * (3.0 - 2.0 * nf);"]
+    man += hash_bloque("n00", "ni") + hash_bloque("n10", "ni + float2(1.0, 0.0)") + hash_bloque("n01", "ni + float2(0.0, 1.0)") + hash_bloque("n11", "ni + float2(1.0, 1.0)")
+    man += ["t += (lerp(lerp(n00, n10, nf.x), lerp(n01, n11, nf.x), nf.y) - 0.5) * SaltNoise * (1.0 - smoothstep(3.0, 12.0, fp)) * 0.25;"]
+    L += ["  [branch] if (fp < 12.0) {"] + ["    " + l for l in man] + ["  }"]
+    L += ["  // arena: textura periodica con mipmaps (de lejos se promedia sola), dos lecturas a escalas y giros distintos",
+          "  float st = max(GrainSize, 1.0);",
+          "  sA = Texture2DSample(SandTex, SandTexSampler, p / st).rgb;",
+          "  float2 pr = float2(p.x * 0.8 - p.y * 0.6, p.x * 0.6 + p.y * 0.8);",
+          "  sB = Texture2DSample(SandTex, SandTexSampler, pr / (st * 2.37)).rgb;",
+          "  t += ((sA.r - 0.5) * 0.65 + (sB.r - 0.5) * 0.35) * Grain * 1.8;",
+          "}",
+          "float3 col = lerp(SaltShade, SaltLit, saturate(t));"]
+    if CON_GUSANO:
+        L += ["// el gusano ASENTADO: sombra larga hacia el lado contrario al sol + reflejo de su color en la sal humeda",
+              "float2 sdir = normalize(SunDir.xy + float2(1e-5, 0.0));",
+              "float kS = 1.0 / tan(clamp(ShadowElev, 3.0, 80.0) * 0.0174533);",
+              "float wr = max(WormR, 1.0);",
+              "float shw = 0.0;",
+              "float glw = 0.0;"]
+        for i in range(8):
+            L.append("[branch] if (WS%d.z > 0.0) { float hl = WS%d.z * kS * 0.5; float2 dd = p - (WS%d.xy - sdir * hl); float al = dot(dd, sdir); float ac = dd.x * sdir.y - dd.y * sdir.x; "
+                     "float e = al * al / ((hl + wr) * (hl + wr)) + ac * ac / (wr * wr * 1.4); shw = max(shw, exp(-e * 2.0 * ShadowSoft) * saturate(1.0 - WS%d.z / 400.0)); "
+                     "float2 dg = p - WS%d.xy; glw = max(glw, exp(-dot(dg, dg) / (wr * wr * 5.0))); }" % (i, i, i, i, i))
+        L += ["col = lerp(col, SaltShade * 0.8, saturate(WormShadow * shw));",
+              "col += WormCol * WormGlow * glw;"]
+    L += ["col += SunCol * max(t - 0.85, 0.0) * 0.5;",
           "float dk = max(sA.g, sB.g * 0.7);",
           "float lt = sA.b;",
           "col = lerp(col, SaltShade * 0.6, dk * Granite * 0.8);",
           "col = lerp(col, SaltLit * 1.06, lt * Granite * 0.45);",
-          "// agua: refleja el cielo en angulo rasante",
+          "// agua: refleja el cielo en angulo rasante. Donde el Fresnel es < 1/500 (mirando hacia abajo) no se calcula",
           "float cosv = saturate(-Vw.z);",
           "float fres = pow(1.0 - cosv, 5.0) * Wet * (1.0 - min(crest, 1.0) * 0.8);",
-          "float3 Rw = reflect(Vw, normalize(lerp(float3(0.0, 0.0, 1.0), n, 0.35)));"]
-    L += cielo("Rw", "refC")
-    L += ["col = lerp(col, refC, saturate(fres));",
-          "// bruma hacia el cielo del horizonte (distancia REAL: en VR la profundidad de pixel 'nada' al girar)",
-          "float3 Hd = normalize(float3(Vw.xy, 0.0001));"]
-    L += cielo("Hd", "fogC")
-    L += ["col = lerp(col, fogC, (1.0 - exp(-Dist / max(FogDist, 1.0))) * 0.85);"]
+          "[branch] if (fres > 0.002 && !(%s)) {" % modo(8),
+          "  float3 Rw = reflect(Vw, normalize(lerp(float3(0.0, 0.0, 1.0), n, 0.35)));"]
+    L += ["  " + l for l in cielo("Rw", "refC")]
+    L += ["  col = lerp(col, refC, saturate(fres));",
+          "}",
+          "// bruma hacia el cielo del horizonte (distancia REAL: en VR la profundidad de pixel 'nada' al girar).",
+          "// Mira al horizonte: elevacion 0 fija, el gradiente del cielo se pliega a constantes; queda el halo del sol",
+          "[branch] if (!(%s)) {" % modo(9),
+          "  float3 Hd = normalize(float3(Vw.xy, 0.0001));"]
+    L += ["  " + l for l in cielo("Hd", "fogC", e="0.0")]
+    L += ["  col = lerp(col, fogC, (1.0 - exp(-Dist / max(FogDist, 1.0))) * 0.85);",
+          "}"]
     L += hash_bloque("dz", "floor(Parameters.SvPosition.xy)")
     L += ["col += (dz - 0.5) * Dither / 255.0;",
           "return col;"]

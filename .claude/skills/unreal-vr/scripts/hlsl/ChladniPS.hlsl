@@ -2,7 +2,7 @@
 // GENERADO por scripts/gen_chladni_material.py: NO editar a mano (se pisa). Plan: docs/PLAN-SALAR-CHLADNI-2026-09-28.md
 // Modos DESPLEGADOS, sin arreglos ni bucles (gotcha 399); hash sin seno (gotcha 481). Cuerpo de un Custom: termina en return.
 // NODO  MaterialExpressionCustom  Description "ChladniPS"  OutputType CMOT_Float3
-// ENTRADAS (77, en este orden):
+// ENTRADAS (65, en este orden):
 //   1  LPi        float3  VertexInterpolator_1  posicion local interpolada (sin el WPO)
 //   2  CamVec     float3  CameraVector  del punto hacia la camara (mundo)
 //   3  Dist       float   Distance(AbsoluteWorldPosition, CameraPositionWS)  distancia real a la camara (cm)
@@ -44,46 +44,35 @@
 //  39  V5         float   ScalarParameter V5
 //  40  V6         float   ScalarParameter V6
 //  41  V7         float   ScalarParameter V7
-//  42  SaltLit    float3  VectorParameter SaltLit
-//  43  SaltShade  float3  VectorParameter SaltShade
-//  44  FlatTone   float   ScalarParameter FlatTone
-//  45  LightGain  float   ScalarParameter LightGain
-//  46  PolyH      float   ScalarParameter PolyH
-//  47  PolyKeep   float   ScalarParameter PolyKeep
-//  48  PolyW      float   ScalarParameter PolyW
-//  49  CellSize   float   ScalarParameter CellSize
-//  50  SaltNoise  float   ScalarParameter SaltNoise
-//  51  Wet        float   ScalarParameter Wet
-//  52  Grain      float   ScalarParameter Grain
-//  53  GrainSize  float   ScalarParameter GrainSize
-//  54  Granite    float   ScalarParameter Granite
-//  55  SkyTop     float3  VectorParameter SkyTop
-//  56  SkyMid     float3  VectorParameter SkyMid
-//  57  SkyHor     float3  VectorParameter SkyHor
-//  58  SunCol     float3  VectorParameter SunCol
-//  59  SunSize    float   ScalarParameter SunSize
-//  60  SunGlow    float   ScalarParameter SunGlow
-//  61  Haze       float   ScalarParameter Haze
-//  62  FogDist    float   ScalarParameter FogDist
-//  63  Dither     float   ScalarParameter Dither
-//  64  WormShadow float   ScalarParameter WormShadow
-//  65  ShadowElev float   ScalarParameter ShadowElev
-//  66  ShadowSoft float   ScalarParameter ShadowSoft
-//  67  WormGlow   float   ScalarParameter WormGlow
-//  68  WormR      float   ScalarParameter WormR
-//  69  WormCol    float3  VectorParameter WormCol
-//  70  WS0        float3  VectorParameter WS0
-//  71  WS1        float3  VectorParameter WS1
-//  72  WS2        float3  VectorParameter WS2
-//  73  WS3        float3  VectorParameter WS3
-//  74  WS4        float3  VectorParameter WS4
-//  75  WS5        float3  VectorParameter WS5
-//  76  WS6        float3  VectorParameter WS6
-//  77  WS7        float3  VectorParameter WS7
+//  42  PerfMode   float   ScalarParameter PerfMode
+//  43  PerfForce  float   ScalarParameter PerfForce
+//  44  SaltLit    float3  VectorParameter SaltLit
+//  45  SaltShade  float3  VectorParameter SaltShade
+//  46  FlatTone   float   ScalarParameter FlatTone
+//  47  LightGain  float   ScalarParameter LightGain
+//  48  PolyH      float   ScalarParameter PolyH
+//  49  PolyKeep   float   ScalarParameter PolyKeep
+//  50  PolyW      float   ScalarParameter PolyW
+//  51  CellSize   float   ScalarParameter CellSize
+//  52  SaltNoise  float   ScalarParameter SaltNoise
+//  53  Wet        float   ScalarParameter Wet
+//  54  Grain      float   ScalarParameter Grain
+//  55  GrainSize  float   ScalarParameter GrainSize
+//  56  Granite    float   ScalarParameter Granite
+//  57  SkyTop     float3  VectorParameter SkyTop
+//  58  SkyMid     float3  VectorParameter SkyMid
+//  59  SkyHor     float3  VectorParameter SkyHor
+//  60  SunCol     float3  VectorParameter SunCol
+//  61  SunSize    float   ScalarParameter SunSize
+//  62  SunGlow    float   ScalarParameter SunGlow
+//  63  Haze       float   ScalarParameter Haze
+//  64  FogDist    float   ScalarParameter FogDist
+//  65  Dither     float   ScalarParameter Dither
 // --------------------------------------------------------------------------------------------------------
 float sunR = max(SunSize, 0.5) * 0.0174533;
 float3 Vw = -normalize(CamVec);                     // de la camara hacia el punto
 [branch] if (Part > 0.5) {
+  [branch] if (abs(PerfMode - 5.0) < 0.5) { return SkyMid; }   // banco: cielo plano
   float skyC_e = Vw.z;
   float3 skyC = lerp(SkyMid, SkyTop, smoothstep(0.03, 0.75, skyC_e));
   skyC = lerp(SkyHor, skyC, smoothstep(-0.03, 0.26, skyC_e));
@@ -93,14 +82,14 @@ float3 Vw = -normalize(CamVec);                     // de la camara hacia el pun
   skyC = lerp(skyC, SkyHor, exp(-abs(skyC_e) / 0.03) * Haze * 0.7);
   return skyC;
 }
+[branch] if (abs(PerfMode - 4.0) < 0.5) { return lerp(SaltShade, SaltLit, FlatTone); }   // banco: piso plano
+[branch] if (PerfForce > 0.5) { Order = 1.0; W0 = 1.0; V0 = 0.0; W1 = 1.0; V1 = 0.0; W2 = 1.0; V2 = 0.0; W3 = 1.0; V3 = 0.0; W4 = 1.0; V4 = 0.0; W5 = 1.0; V5 = 0.0; W6 = 1.0; V6 = 0.0; W7 = 1.0; V7 = 0.0; }
 const float PI = 3.14159265;
 float R = max(PlateR, 1.0);
 float iR = 1.0 / R;
 float calm = Calm * iR;
 float ws = max(BaseW + W0 + W1 + W2 + W3 + W4 + W5 + W6 + W7, 0.001);
 float act = Order + V0 + V1 + V2 + V3 + V4 + V5 + V6 + V7;
-float rk = 1.0 - clamp(Round, 0.02, 0.9);              // triangular redondeada: 1 - Round
-float irk = 1.0 / asin(rk);
 float2 p = LPi.xy;
 float fp = length(fwidth(p));                        // cm por pixel (fuera de ramas)
 float2 slope = float2(0.0, 0.0);
@@ -111,67 +100,81 @@ float thp = atan2(dq.y, dq.x);
 float rpJ = rp + 0.07 * (sin(3.0 * thp + 1.2) + 0.6 * sin(7.0 * thp + 0.4));   // borde irregular
 float ordP = Order * (1.0 - smoothstep(EdgeIn, 1.08, rpJ));                 // donde hay mandala (centro calmo incluido): sin poligonos
 float ordL = ordP * smoothstep(calm * 0.8, calm * 1.6, rp);
-// relieve del mandala + ola: la MISMA altura que ChladniHeightVS, con su pendiente por diferencias finitas
-[branch] if (act > 0.001 && rp < 1.3) {
-  float2 q0A = (p - float2(CenterX, 0.0)) * iR;
-  float2 qA = q0A + Warp * 0.045 * float2(sin(q0A.y * 4.1 + 1.3) + 0.6 * sin(q0A.x * 7.3 - q0A.y * 2.2 + 0.4), sin(q0A.x * 3.7 + 2.1) + 0.6 * sin(q0A.y * 6.9 + q0A.x * 2.6 + 1.7));
-  float rA = length(qA);
-  float thA = atan2(qA.y, qA.x);
-  float onA = smoothstep(calm * 0.6, calm * 1.4, rA);
-  float rqA = max(max(max(qA.x * 0.00000 + qA.y * 1.00000, qA.x * -0.95106 + qA.y * 0.30902), max(qA.x * -0.58779 + qA.y * -0.80902, qA.x * 0.58779 + qA.y * -0.80902)), qA.x * 0.95106 + qA.y * 0.30902) * 1.23607;
-  float rgA = lerp(rA, rqA, Geo);
-  float FA = BaseW * lerp(cos(PI * Kr * rgA), asin(rk * cos(PI * Kr * rgA)) * irk, Geo);
-  float VbA = 0.0;
-  [branch] if (W0 > 0.001 || V0 > 0.001) { float mc = cos(PI * Kr * 1.0000 * rgA) * cos(Sym * 1.0 * thA + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qA.x * 1.00000 + qA.y * 0.00000) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qA.x * 0.30902 + qA.y * 0.95106) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qA.x * -0.80902 + qA.y * 0.58779) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qA.x * -0.80902 + qA.y * -0.58779) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qA.x * 0.30902 + qA.y * -0.95106) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.1870, 0.4420, rA) * onA; FA += W0 * m; VbA += V0 * m; }
-  [branch] if (W1 > 0.001 || V1 > 0.001) { float mc = cos(PI * Kr * 1.5000 * rgA) * cos(Sym * 2.0 * thA + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qA.x * 0.77495 + qA.y * 0.63202) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qA.x * -0.36162 + qA.y * 0.93233) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qA.x * -0.99844 + qA.y * -0.05581) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qA.x * -0.25546 + qA.y * -0.96682) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qA.x * 0.84056 + qA.y * -0.54172) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2530, 0.5980, rA) * onA; FA += W1 * m; VbA += V1 * m; }
-  [branch] if (W2 > 0.001 || V2 > 0.001) { float mc = cos(PI * Kr * 2.0000 * rgA) * cos(Sym * 1.0 * thA + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qA.x * 0.49396 + qA.y * 0.86949) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qA.x * -0.67429 + qA.y * 0.73847) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qA.x * -0.91069 + qA.y * -0.41309) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qA.x * 0.11145 + qA.y * -0.99377) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qA.x * 0.97957 + qA.y * -0.20110) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.1650, 0.3900, rA) * onA; FA += W2 * m; VbA += V2 * m; }
-  [branch] if (W3 > 0.001 || V3 > 0.001) { float mc = cos(PI * Kr * 1.2500 * rgA) * cos(Sym * 3.0 * thA + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qA.x * 0.44466 + qA.y * 0.89570) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qA.x * -0.71445 + qA.y * 0.69968) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qA.x * -0.88622 + qA.y * -0.46327) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qA.x * 0.16674 + qA.y * -0.98600) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qA.x * 0.98927 + qA.y * -0.14611) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.3025, 0.7150, rA) * onA; FA += W3 * m; VbA += V3 * m; }
-  [branch] if (W4 > 0.001 || V4 > 0.001) { float mc = cos(PI * Kr * 2.5000 * rgA) * cos(Sym * 2.0 * thA + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qA.x * -0.22151 + qA.y * 0.97516) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qA.x * -0.99588 + qA.y * 0.09067) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qA.x * -0.39398 + qA.y * -0.91912) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qA.x * 0.75239 + qA.y * -0.65872) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qA.x * 0.85898 + qA.y * 0.51201) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2200, 0.5200, rA) * onA; FA += W4 * m; VbA += V4 * m; }
-  [branch] if (W5 > 0.001 || V5 > 0.001) { float mc = cos(PI * Kr * 3.0000 * rgA) * cos(Sym * 1.0 * thA + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qA.x * -0.27559 + qA.y * 0.96128) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qA.x * -0.99939 + qA.y * 0.03495) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qA.x * -0.34207 + qA.y * -0.93968) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qA.x * 0.78798 + qA.y * -0.61570) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qA.x * 0.82906 + qA.y * 0.55915) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.1540, 0.3640, rA) * onA; FA += W5 * m; VbA += V5 * m; }
-  [branch] if (W6 > 0.001 || V6 > 0.001) { float mc = cos(PI * Kr * 1.7500 * rgA) * cos(Sym * 3.0 * thA + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qA.x * -0.82112 + qA.y * 0.57076) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qA.x * -0.79657 + qA.y * -0.60455) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qA.x * 0.32881 + qA.y * -0.94440) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qA.x * 0.99978 + qA.y * 0.02088) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qA.x * 0.28909 + qA.y * 0.95730) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2750, 0.6500, rA) * onA; FA += W6 * m; VbA += V6 * m; }
-  [branch] if (W7 > 0.001 || V7 > 0.001) { float mc = cos(PI * Kr * 2.2500 * rgA) * cos(Sym * 2.0 * thA + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qA.x * -0.85169 + qA.y * 0.52404) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qA.x * -0.76158 + qA.y * -0.64807) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qA.x * 0.38101 + qA.y * -0.92457) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qA.x * 0.99706 + qA.y * 0.07665) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qA.x * 0.23521 + qA.y * 0.97194) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2090, 0.4940, rA) * onA; FA += W7 * m; VbA += V7 * m; }
-  FA /= ws;
-  VbA *= 1.0 - smoothstep(0.85, 1.05, rA);
-  float2 q0B = (p + float2(2.0, 0.0) - float2(CenterX, 0.0)) * iR;
-  float2 qB = q0B + Warp * 0.045 * float2(sin(q0B.y * 4.1 + 1.3) + 0.6 * sin(q0B.x * 7.3 - q0B.y * 2.2 + 0.4), sin(q0B.x * 3.7 + 2.1) + 0.6 * sin(q0B.y * 6.9 + q0B.x * 2.6 + 1.7));
-  float rB = length(qB);
-  float thB = atan2(qB.y, qB.x);
-  float onB = smoothstep(calm * 0.6, calm * 1.4, rB);
-  float rqB = max(max(max(qB.x * 0.00000 + qB.y * 1.00000, qB.x * -0.95106 + qB.y * 0.30902), max(qB.x * -0.58779 + qB.y * -0.80902, qB.x * 0.58779 + qB.y * -0.80902)), qB.x * 0.95106 + qB.y * 0.30902) * 1.23607;
-  float rgB = lerp(rB, rqB, Geo);
-  float FB = BaseW * lerp(cos(PI * Kr * rgB), asin(rk * cos(PI * Kr * rgB)) * irk, Geo);
-  float VbB = 0.0;
-  [branch] if (W0 > 0.001 || V0 > 0.001) { float mc = cos(PI * Kr * 1.0000 * rgB) * cos(Sym * 1.0 * thB + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qB.x * 1.00000 + qB.y * 0.00000) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qB.x * 0.30902 + qB.y * 0.95106) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qB.x * -0.80902 + qB.y * 0.58779) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qB.x * -0.80902 + qB.y * -0.58779) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qB.x * 0.30902 + qB.y * -0.95106) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.1870, 0.4420, rB) * onB; FB += W0 * m; VbB += V0 * m; }
-  [branch] if (W1 > 0.001 || V1 > 0.001) { float mc = cos(PI * Kr * 1.5000 * rgB) * cos(Sym * 2.0 * thB + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qB.x * 0.77495 + qB.y * 0.63202) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qB.x * -0.36162 + qB.y * 0.93233) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qB.x * -0.99844 + qB.y * -0.05581) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qB.x * -0.25546 + qB.y * -0.96682) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qB.x * 0.84056 + qB.y * -0.54172) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2530, 0.5980, rB) * onB; FB += W1 * m; VbB += V1 * m; }
-  [branch] if (W2 > 0.001 || V2 > 0.001) { float mc = cos(PI * Kr * 2.0000 * rgB) * cos(Sym * 1.0 * thB + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qB.x * 0.49396 + qB.y * 0.86949) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qB.x * -0.67429 + qB.y * 0.73847) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qB.x * -0.91069 + qB.y * -0.41309) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qB.x * 0.11145 + qB.y * -0.99377) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qB.x * 0.97957 + qB.y * -0.20110) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.1650, 0.3900, rB) * onB; FB += W2 * m; VbB += V2 * m; }
-  [branch] if (W3 > 0.001 || V3 > 0.001) { float mc = cos(PI * Kr * 1.2500 * rgB) * cos(Sym * 3.0 * thB + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qB.x * 0.44466 + qB.y * 0.89570) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qB.x * -0.71445 + qB.y * 0.69968) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qB.x * -0.88622 + qB.y * -0.46327) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qB.x * 0.16674 + qB.y * -0.98600) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qB.x * 0.98927 + qB.y * -0.14611) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.3025, 0.7150, rB) * onB; FB += W3 * m; VbB += V3 * m; }
-  [branch] if (W4 > 0.001 || V4 > 0.001) { float mc = cos(PI * Kr * 2.5000 * rgB) * cos(Sym * 2.0 * thB + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qB.x * -0.22151 + qB.y * 0.97516) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qB.x * -0.99588 + qB.y * 0.09067) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qB.x * -0.39398 + qB.y * -0.91912) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qB.x * 0.75239 + qB.y * -0.65872) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qB.x * 0.85898 + qB.y * 0.51201) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2200, 0.5200, rB) * onB; FB += W4 * m; VbB += V4 * m; }
-  [branch] if (W5 > 0.001 || V5 > 0.001) { float mc = cos(PI * Kr * 3.0000 * rgB) * cos(Sym * 1.0 * thB + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qB.x * -0.27559 + qB.y * 0.96128) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qB.x * -0.99939 + qB.y * 0.03495) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qB.x * -0.34207 + qB.y * -0.93968) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qB.x * 0.78798 + qB.y * -0.61570) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qB.x * 0.82906 + qB.y * 0.55915) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.1540, 0.3640, rB) * onB; FB += W5 * m; VbB += V5 * m; }
-  [branch] if (W6 > 0.001 || V6 > 0.001) { float mc = cos(PI * Kr * 1.7500 * rgB) * cos(Sym * 3.0 * thB + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qB.x * -0.82112 + qB.y * 0.57076) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qB.x * -0.79657 + qB.y * -0.60455) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qB.x * 0.32881 + qB.y * -0.94440) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qB.x * 0.99978 + qB.y * 0.02088) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qB.x * 0.28909 + qB.y * 0.95730) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2750, 0.6500, rB) * onB; FB += W6 * m; VbB += V6 * m; }
-  [branch] if (W7 > 0.001 || V7 > 0.001) { float mc = cos(PI * Kr * 2.2500 * rgB) * cos(Sym * 2.0 * thB + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qB.x * -0.85169 + qB.y * 0.52404) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qB.x * -0.76158 + qB.y * -0.64807) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qB.x * 0.38101 + qB.y * -0.92457) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qB.x * 0.99706 + qB.y * 0.07665) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qB.x * 0.23521 + qB.y * 0.97194) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2090, 0.4940, rB) * onB; FB += W7 * m; VbB += V7 * m; }
-  FB /= ws;
-  VbB *= 1.0 - smoothstep(0.85, 1.05, rB);
-  float2 q0C = (p + float2(0.0, 2.0) - float2(CenterX, 0.0)) * iR;
-  float2 qC = q0C + Warp * 0.045 * float2(sin(q0C.y * 4.1 + 1.3) + 0.6 * sin(q0C.x * 7.3 - q0C.y * 2.2 + 0.4), sin(q0C.x * 3.7 + 2.1) + 0.6 * sin(q0C.y * 6.9 + q0C.x * 2.6 + 1.7));
-  float rC = length(qC);
-  float thC = atan2(qC.y, qC.x);
-  float onC = smoothstep(calm * 0.6, calm * 1.4, rC);
-  float rqC = max(max(max(qC.x * 0.00000 + qC.y * 1.00000, qC.x * -0.95106 + qC.y * 0.30902), max(qC.x * -0.58779 + qC.y * -0.80902, qC.x * 0.58779 + qC.y * -0.80902)), qC.x * 0.95106 + qC.y * 0.30902) * 1.23607;
-  float rgC = lerp(rC, rqC, Geo);
-  float FC = BaseW * lerp(cos(PI * Kr * rgC), asin(rk * cos(PI * Kr * rgC)) * irk, Geo);
-  float VbC = 0.0;
-  [branch] if (W0 > 0.001 || V0 > 0.001) { float mc = cos(PI * Kr * 1.0000 * rgC) * cos(Sym * 1.0 * thC + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qC.x * 1.00000 + qC.y * 0.00000) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qC.x * 0.30902 + qC.y * 0.95106) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qC.x * -0.80902 + qC.y * 0.58779) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qC.x * -0.80902 + qC.y * -0.58779) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.0000 * 0.5 * (qC.x * 0.30902 + qC.y * -0.95106) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.1870, 0.4420, rC) * onC; FC += W0 * m; VbC += V0 * m; }
-  [branch] if (W1 > 0.001 || V1 > 0.001) { float mc = cos(PI * Kr * 1.5000 * rgC) * cos(Sym * 2.0 * thC + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qC.x * 0.77495 + qC.y * 0.63202) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qC.x * -0.36162 + qC.y * 0.93233) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qC.x * -0.99844 + qC.y * -0.05581) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qC.x * -0.25546 + qC.y * -0.96682) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.5000 * 0.5 * (qC.x * 0.84056 + qC.y * -0.54172) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2530, 0.5980, rC) * onC; FC += W1 * m; VbC += V1 * m; }
-  [branch] if (W2 > 0.001 || V2 > 0.001) { float mc = cos(PI * Kr * 2.0000 * rgC) * cos(Sym * 1.0 * thC + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qC.x * 0.49396 + qC.y * 0.86949) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qC.x * -0.67429 + qC.y * 0.73847) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qC.x * -0.91069 + qC.y * -0.41309) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qC.x * 0.11145 + qC.y * -0.99377) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.0000 * 0.5 * (qC.x * 0.97957 + qC.y * -0.20110) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.1650, 0.3900, rC) * onC; FC += W2 * m; VbC += V2 * m; }
-  [branch] if (W3 > 0.001 || V3 > 0.001) { float mc = cos(PI * Kr * 1.2500 * rgC) * cos(Sym * 3.0 * thC + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qC.x * 0.44466 + qC.y * 0.89570) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qC.x * -0.71445 + qC.y * 0.69968) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qC.x * -0.88622 + qC.y * -0.46327) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qC.x * 0.16674 + qC.y * -0.98600) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.2500 * 0.5 * (qC.x * 0.98927 + qC.y * -0.14611) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.3025, 0.7150, rC) * onC; FC += W3 * m; VbC += V3 * m; }
-  [branch] if (W4 > 0.001 || V4 > 0.001) { float mc = cos(PI * Kr * 2.5000 * rgC) * cos(Sym * 2.0 * thC + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qC.x * -0.22151 + qC.y * 0.97516) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qC.x * -0.99588 + qC.y * 0.09067) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qC.x * -0.39398 + qC.y * -0.91912) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qC.x * 0.75239 + qC.y * -0.65872) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.5000 * 0.5 * (qC.x * 0.85898 + qC.y * 0.51201) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2200, 0.5200, rC) * onC; FC += W4 * m; VbC += V4 * m; }
-  [branch] if (W5 > 0.001 || V5 > 0.001) { float mc = cos(PI * Kr * 3.0000 * rgC) * cos(Sym * 1.0 * thC + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qC.x * -0.27559 + qC.y * 0.96128) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qC.x * -0.99939 + qC.y * 0.03495) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qC.x * -0.34207 + qC.y * -0.93968) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qC.x * 0.78798 + qC.y * -0.61570) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 3.0000 * 0.5 * (qC.x * 0.82906 + qC.y * 0.55915) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.1540, 0.3640, rC) * onC; FC += W5 * m; VbC += V5 * m; }
-  [branch] if (W6 > 0.001 || V6 > 0.001) { float mc = cos(PI * Kr * 1.7500 * rgC) * cos(Sym * 3.0 * thC + 1.5708); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qC.x * -0.82112 + qC.y * 0.57076) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qC.x * -0.79657 + qC.y * -0.60455) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qC.x * 0.32881 + qC.y * -0.94440) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qC.x * 0.99978 + qC.y * 0.02088) + 0.2500))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 1.7500 * 0.5 * (qC.x * 0.28909 + qC.y * 0.95730) + 0.2500)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2750, 0.6500, rC) * onC; FC += W6 * m; VbC += V6 * m; }
-  [branch] if (W7 > 0.001 || V7 > 0.001) { float mc = cos(PI * Kr * 2.2500 * rgC) * cos(Sym * 2.0 * thC + 0.0000); float mg = 0.0; [branch] if (Geo > 0.001) { mg = (asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qC.x * -0.85169 + qC.y * 0.52404) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qC.x * -0.76158 + qC.y * -0.64807) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qC.x * 0.38101 + qC.y * -0.92457) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qC.x * 0.99706 + qC.y * 0.07665) + 0.0000))) + asin(rk * cos(6.28318 * (Kr * GeoFreq * 2.2500 * 0.5 * (qC.x * 0.23521 + qC.y * 0.97194) + 0.0000)))) * 0.2 * irk; } float m = lerp(mc, mg, Geo) * smoothstep(0.2090, 0.4940, rC) * onC; FC += W7 * m; VbC += V7 * m; }
-  FC /= ws;
-  VbC *= 1.0 - smoothstep(0.85, 1.05, rC);
-  float2 gF = float2(FB - FA, FC - FA) * 0.5;
-  float2 gV = float2(VbB - VbA, VbC - VbA) * 0.5;
+float vsum = V0 + V1 + V2 + V3 + V4 + V5 + V6 + V7;
+// relieve del mandala + ola: la MISMA altura que ChladniHeightVS, con su pendiente ANALITICA. Donde no hay
+// relieve (ordL 0: centro calmo y fuera del borde) y no hay ola, no aporta nada: no se evalua
+[branch] if (act > 0.001 && rp < 1.3 && (ordL > 0.0001 || vsum > 0.001) && !(abs(PerfMode - 2.0) < 0.5)) {
+  float FAo = 0.0;
+  float2 gFo = float2(0.0, 0.0);
+  float2 gVo = float2(0.0, 0.0);
+  float2 q0 = (p - float2(CenterX, 0.0)) * iR;
+  float kw = Warp * 0.045;
+  float s1, c1, s2, c2, s3, c3, s4, c4;
+  sincos(q0.y * 4.1 + 1.3, s1, c1);
+  sincos(q0.x * 7.3 - q0.y * 2.2 + 0.4, s2, c2);
+  sincos(q0.x * 3.7 + 2.1, s3, c3);
+  sincos(q0.y * 6.9 + q0.x * 2.6 + 1.7, s4, c4);
+  float2 q = q0 + kw * float2(s1 + 0.6 * s2, s3 + 0.6 * s4);
+  float Jxx = 1.0 + kw * 4.38 * c2;                 // dq.x/dq0.x
+  float Jxy = kw * (4.1 * c1 - 1.32 * c2);          // dq.x/dq0.y
+  float Jyx = kw * (3.7 * c3 + 1.56 * c4);          // dq.y/dq0.x
+  float Jyy = 1.0 + kw * 4.14 * c4;                 // dq.y/dq0.y
+  float r = max(length(q), 1e-5);
+  float th = atan2(q.y, q.x);
+  float onw = max(calm * 0.8, 1e-5);
+  float ont = saturate((r - calm * 0.6) / onw);
+  float on = ont * ont * (3.0 - 2.0 * ont);
+  float don = 6.0 * ont * (1.0 - ont) / onw;
+  // anillos: rk_n = PI*Kr*r*n/4, n = 1..12, por suma de angulos
+  float ru = PI * Kr * 0.25;
+  float rs1, rc1;
+  sincos(ru * r, rs1, rc1);
+  float rc2 = rc1 * rc1 - rs1 * rs1; float rs2 = rs1 * rc1 + rc1 * rs1;
+  float rc3 = rc2 * rc1 - rs2 * rs1; float rs3 = rs2 * rc1 + rc2 * rs1;
+  float rc4 = rc3 * rc1 - rs3 * rs1; float rs4 = rs3 * rc1 + rc3 * rs1;
+  float rc5 = rc4 * rc1 - rs4 * rs1; float rs5 = rs4 * rc1 + rc4 * rs1;
+  float rc6 = rc5 * rc1 - rs5 * rs1; float rs6 = rs5 * rc1 + rc5 * rs1;
+  float rc7 = rc6 * rc1 - rs6 * rs1; float rs7 = rs6 * rc1 + rc6 * rs1;
+  float rc8 = rc7 * rc1 - rs7 * rs1; float rs8 = rs7 * rc1 + rc7 * rs1;
+  float rc9 = rc8 * rc1 - rs8 * rs1; float rs9 = rs8 * rc1 + rc8 * rs1;
+  float rc10 = rc9 * rc1 - rs9 * rs1; float rs10 = rs9 * rc1 + rc9 * rs1;
+  float rc11 = rc10 * rc1 - rs10 * rs1; float rs11 = rs10 * rc1 + rc10 * rs1;
+  float rc12 = rc11 * rc1 - rs11 * rs1; float rs12 = rs11 * rc1 + rc11 * rs1;
+  // simetrias: Sym*th*m, m = 1..3 (Chebyshev)
+  float as1, ac1;
+  sincos(Sym * th, as1, ac1);
+  float ac2 = 2.0 * ac1 * ac1 - 1.0; float as2 = 2.0 * as1 * ac1;
+  float ac3 = ac1 * (4.0 * ac1 * ac1 - 3.0); float as3 = as1 * (3.0 - 4.0 * as1 * as1);
+  float Fa = BaseW * rc4;
+  float dFr = -BaseW * ru * 4.0 * rs4;
+  float dFt = 0.0;
+  float Va = 0.0;
+  float dVr = 0.0;
+  float dVt = 0.0;
+  [branch] if (W0 > 0.001 || V0 > 0.001) { float t = saturate((r - 0.1870) * 3.92157); float S = t * t * (3.0 - 2.0 * t); float dS = 6.0 * t * (1.0 - t) * 3.92157; float env = S * on; float denv = dS * on + S * don; float cA = rc4; float sA = rs4; float cB = ac1; float sB = as1; float m = cA * cB * env; float mr = (-ru * 4.0 * sA * env + cA * denv) * cB; float mt = -Sym * 1.0 * cA * sB * env; Fa += W0 * m; dFr += W0 * mr; dFt += W0 * mt; Va += V0 * m; dVr += V0 * mr; dVt += V0 * mt; }
+  [branch] if (W1 > 0.001 || V1 > 0.001) { float t = saturate((r - 0.2530) * 2.89855); float S = t * t * (3.0 - 2.0 * t); float dS = 6.0 * t * (1.0 - t) * 2.89855; float env = S * on; float denv = dS * on + S * don; float cA = rc6; float sA = rs6; float cB = (-as2); float sB = ac2; float m = cA * cB * env; float mr = (-ru * 6.0 * sA * env + cA * denv) * cB; float mt = -Sym * 2.0 * cA * sB * env; Fa += W1 * m; dFr += W1 * mr; dFt += W1 * mt; Va += V1 * m; dVr += V1 * mr; dVt += V1 * mt; }
+  [branch] if (W2 > 0.001 || V2 > 0.001) { float t = saturate((r - 0.1650) * 4.44444); float S = t * t * (3.0 - 2.0 * t); float dS = 6.0 * t * (1.0 - t) * 4.44444; float env = S * on; float denv = dS * on + S * don; float cA = rc8; float sA = rs8; float cB = (-as1); float sB = ac1; float m = cA * cB * env; float mr = (-ru * 8.0 * sA * env + cA * denv) * cB; float mt = -Sym * 1.0 * cA * sB * env; Fa += W2 * m; dFr += W2 * mr; dFt += W2 * mt; Va += V2 * m; dVr += V2 * mr; dVt += V2 * mt; }
+  [branch] if (W3 > 0.001 || V3 > 0.001) { float t = saturate((r - 0.3025) * 2.42424); float S = t * t * (3.0 - 2.0 * t); float dS = 6.0 * t * (1.0 - t) * 2.42424; float env = S * on; float denv = dS * on + S * don; float cA = rc5; float sA = rs5; float cB = ac3; float sB = as3; float m = cA * cB * env; float mr = (-ru * 5.0 * sA * env + cA * denv) * cB; float mt = -Sym * 3.0 * cA * sB * env; Fa += W3 * m; dFr += W3 * mr; dFt += W3 * mt; Va += V3 * m; dVr += V3 * mr; dVt += V3 * mt; }
+  [branch] if (W4 > 0.001 || V4 > 0.001) { float t = saturate((r - 0.2200) * 3.33333); float S = t * t * (3.0 - 2.0 * t); float dS = 6.0 * t * (1.0 - t) * 3.33333; float env = S * on; float denv = dS * on + S * don; float cA = rc10; float sA = rs10; float cB = (-as2); float sB = ac2; float m = cA * cB * env; float mr = (-ru * 10.0 * sA * env + cA * denv) * cB; float mt = -Sym * 2.0 * cA * sB * env; Fa += W4 * m; dFr += W4 * mr; dFt += W4 * mt; Va += V4 * m; dVr += V4 * mr; dVt += V4 * mt; }
+  [branch] if (W5 > 0.001 || V5 > 0.001) { float t = saturate((r - 0.1540) * 4.76190); float S = t * t * (3.0 - 2.0 * t); float dS = 6.0 * t * (1.0 - t) * 4.76190; float env = S * on; float denv = dS * on + S * don; float cA = rc12; float sA = rs12; float cB = ac1; float sB = as1; float m = cA * cB * env; float mr = (-ru * 12.0 * sA * env + cA * denv) * cB; float mt = -Sym * 1.0 * cA * sB * env; Fa += W5 * m; dFr += W5 * mr; dFt += W5 * mt; Va += V5 * m; dVr += V5 * mr; dVt += V5 * mt; }
+  [branch] if (W6 > 0.001 || V6 > 0.001) { float t = saturate((r - 0.2750) * 2.66667); float S = t * t * (3.0 - 2.0 * t); float dS = 6.0 * t * (1.0 - t) * 2.66667; float env = S * on; float denv = dS * on + S * don; float cA = rc7; float sA = rs7; float cB = (-as3); float sB = ac3; float m = cA * cB * env; float mr = (-ru * 7.0 * sA * env + cA * denv) * cB; float mt = -Sym * 3.0 * cA * sB * env; Fa += W6 * m; dFr += W6 * mr; dFt += W6 * mt; Va += V6 * m; dVr += V6 * mr; dVt += V6 * mt; }
+  [branch] if (W7 > 0.001 || V7 > 0.001) { float t = saturate((r - 0.2090) * 3.50877); float S = t * t * (3.0 - 2.0 * t); float dS = 6.0 * t * (1.0 - t) * 3.50877; float env = S * on; float denv = dS * on + S * don; float cA = rc9; float sA = rs9; float cB = ac2; float sB = as2; float m = cA * cB * env; float mr = (-ru * 9.0 * sA * env + cA * denv) * cB; float mt = -Sym * 2.0 * cA * sB * env; Fa += W7 * m; dFr += W7 * mr; dFt += W7 * mt; Va += V7 * m; dVr += V7 * mr; dVt += V7 * mt; }
+  float iws = 1.0 / ws;
+  Fa *= iws; dFr *= iws; dFt *= iws;
+  float ft = saturate((r - 0.85) * 5.0);
+  float fade = 1.0 - ft * ft * (3.0 - 2.0 * ft);
+  dVr = dVr * fade - Va * 30.0 * ft * (1.0 - ft);                 // d(1 - smoothstep(0.85, 1.05, r))/dr = -6 t (1 - t) / 0.2
+  dVt *= fade;
+  float ir = 1.0 / r;
+  float ir2 = ir * ir;
+  float2 gqF = float2(dFr * q.x * ir - dFt * q.y * ir2, dFr * q.y * ir + dFt * q.x * ir2);
+  float2 gqV = float2(dVr * q.x * ir - dVt * q.y * ir2, dVr * q.y * ir + dVt * q.x * ir2);
+  FAo = Fa;
+  gFo = float2(Jxx * gqF.x + Jyx * gqF.y, Jxy * gqF.x + Jyy * gqF.y) * iR;
+  gVo = float2(Jxx * gqV.x + Jyx * gqV.y, Jxy * gqV.x + Jyy * gqV.y) * iR;
+  float FA = FAo;
+  float2 gF = gFo;
+  float2 gV = gVo;
   float gl = max(length(gF), 1e-5);
   float dcm = FA / gl;                                             // DISTANCIA a la linea nodal (cm): mismo ancho en todas
   float lw = max(ReliefW, 0.3);
@@ -182,145 +185,95 @@ float ordL = ordP * smoothstep(calm * 0.8, calm * 1.6, rp);
   float thin = 1.0 - smoothstep(0.6, 2.5, fp / lw);                 // mas fina que un pixel: se apaga (sin parpadeo)
   float sw = max(SwellW, 0.02);
   float xs = FA / sw;
-  float2 slF = ReliefH * ordL * thin * dhdd * (gF / gl) + SwellH * ordL * exp(-xs * xs) * (-2.0 * FA / (sw * sw)) * gF;
-  float crF = hn * ordL * thin;
-  // el mandala RECTO: union de lineas (pentagonos + rayos); pendiente por diferencias finitas de medio cm
-  float2 slG = float2(0.0, 0.0);
-  float crG = 0.0;
-  [branch] if (Geo > 0.001) {
-    float2 qgGA = (p - float2(CenterX, 0.0)) * iR;
-    float rgGA_ = length(qgGA);
-    float tgGA = atan2(qgGA.y, qgGA.x);
-    float ogGA = smoothstep(calm * 0.6, calm * 1.4, rgGA_);
-    float GGA = 0.0;
-    [branch] if (W0 > 0.001) { float rq = max(max(max(qgGA.x * 0.00000 + qgGA.y * 1.00000, qgGA.x * -0.95106 + qgGA.y * 0.30902), max(qgGA.x * -0.58779 + qgGA.y * -0.80902, qgGA.x * 0.58779 + qgGA.y * -0.80902)), qgGA.x * 0.95106 + qgGA.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 1.0000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.0000 * 0.5) * R; float nA = Sym * 1.0; float a = abs(frac((tgGA - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGA_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W0 * smoothstep(0.1870, 0.4420, rgGA_) * ogGA; GGA = max(GGA, c); }
-    [branch] if (W1 > 0.001) { float rq = max(max(max(qgGA.x * -0.30902 + qgGA.y * 0.95106, qgGA.x * -1.00000 + qgGA.y * 0.00000), max(qgGA.x * -0.30902 + qgGA.y * -0.95106, qgGA.x * 0.80902 + qgGA.y * -0.58779)), qgGA.x * 0.80902 + qgGA.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 1.5000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.5000 * 0.5) * R; float nA = Sym * 2.0; float a = abs(frac((tgGA - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGA_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W1 * smoothstep(0.2530, 0.5980, rgGA_) * ogGA; GGA = max(GGA, c); }
-    [branch] if (W2 > 0.001) { float rq = max(max(max(qgGA.x * -0.30902 + qgGA.y * 0.95106, qgGA.x * -1.00000 + qgGA.y * 0.00000), max(qgGA.x * -0.30902 + qgGA.y * -0.95106, qgGA.x * 0.80902 + qgGA.y * -0.58779)), qgGA.x * 0.80902 + qgGA.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 2.0000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 2.0000 * 0.5) * R; float nA = Sym * 1.0; float a = abs(frac((tgGA - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGA_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W2 * smoothstep(0.1650, 0.3900, rgGA_) * ogGA; GGA = max(GGA, c); }
-    [branch] if (W3 > 0.001) { float rq = max(max(max(qgGA.x * 0.00000 + qgGA.y * 1.00000, qgGA.x * -0.95106 + qgGA.y * 0.30902), max(qgGA.x * -0.58779 + qgGA.y * -0.80902, qgGA.x * 0.58779 + qgGA.y * -0.80902)), qgGA.x * 0.95106 + qgGA.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 1.2500 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.2500 * 0.5) * R; float nA = Sym * 3.0; float a = abs(frac((tgGA - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGA_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W3 * smoothstep(0.3025, 0.7150, rgGA_) * ogGA; GGA = max(GGA, c); }
-    [branch] if (W4 > 0.001) { float rq = max(max(max(qgGA.x * -0.30902 + qgGA.y * 0.95106, qgGA.x * -1.00000 + qgGA.y * 0.00000), max(qgGA.x * -0.30902 + qgGA.y * -0.95106, qgGA.x * 0.80902 + qgGA.y * -0.58779)), qgGA.x * 0.80902 + qgGA.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 2.5000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 2.5000 * 0.5) * R; float nA = Sym * 2.0; float a = abs(frac((tgGA - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGA_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W4 * smoothstep(0.2200, 0.5200, rgGA_) * ogGA; GGA = max(GGA, c); }
-    [branch] if (W5 > 0.001) { float rq = max(max(max(qgGA.x * 0.00000 + qgGA.y * 1.00000, qgGA.x * -0.95106 + qgGA.y * 0.30902), max(qgGA.x * -0.58779 + qgGA.y * -0.80902, qgGA.x * 0.58779 + qgGA.y * -0.80902)), qgGA.x * 0.95106 + qgGA.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 3.0000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 3.0000 * 0.5) * R; float nA = Sym * 1.0; float a = abs(frac((tgGA - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGA_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W5 * smoothstep(0.1540, 0.3640, rgGA_) * ogGA; GGA = max(GGA, c); }
-    [branch] if (W6 > 0.001) { float rq = max(max(max(qgGA.x * -0.30902 + qgGA.y * 0.95106, qgGA.x * -1.00000 + qgGA.y * 0.00000), max(qgGA.x * -0.30902 + qgGA.y * -0.95106, qgGA.x * 0.80902 + qgGA.y * -0.58779)), qgGA.x * 0.80902 + qgGA.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 1.7500 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.7500 * 0.5) * R; float nA = Sym * 3.0; float a = abs(frac((tgGA - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGA_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W6 * smoothstep(0.2750, 0.6500, rgGA_) * ogGA; GGA = max(GGA, c); }
-    [branch] if (W7 > 0.001) { float rq = max(max(max(qgGA.x * 0.00000 + qgGA.y * 1.00000, qgGA.x * -0.95106 + qgGA.y * 0.30902), max(qgGA.x * -0.58779 + qgGA.y * -0.80902, qgGA.x * 0.58779 + qgGA.y * -0.80902)), qgGA.x * 0.95106 + qgGA.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 2.2500 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 2.2500 * 0.5) * R; float nA = Sym * 2.0; float a = abs(frac((tgGA - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGA_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W7 * smoothstep(0.2090, 0.4940, rgGA_) * ogGA; GGA = max(GGA, c); }
-    float2 qgGB = (p + float2(0.5, 0.0) - float2(CenterX, 0.0)) * iR;
-    float rgGB_ = length(qgGB);
-    float tgGB = atan2(qgGB.y, qgGB.x);
-    float ogGB = smoothstep(calm * 0.6, calm * 1.4, rgGB_);
-    float GGB = 0.0;
-    [branch] if (W0 > 0.001) { float rq = max(max(max(qgGB.x * 0.00000 + qgGB.y * 1.00000, qgGB.x * -0.95106 + qgGB.y * 0.30902), max(qgGB.x * -0.58779 + qgGB.y * -0.80902, qgGB.x * 0.58779 + qgGB.y * -0.80902)), qgGB.x * 0.95106 + qgGB.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 1.0000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.0000 * 0.5) * R; float nA = Sym * 1.0; float a = abs(frac((tgGB - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGB_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W0 * smoothstep(0.1870, 0.4420, rgGB_) * ogGB; GGB = max(GGB, c); }
-    [branch] if (W1 > 0.001) { float rq = max(max(max(qgGB.x * -0.30902 + qgGB.y * 0.95106, qgGB.x * -1.00000 + qgGB.y * 0.00000), max(qgGB.x * -0.30902 + qgGB.y * -0.95106, qgGB.x * 0.80902 + qgGB.y * -0.58779)), qgGB.x * 0.80902 + qgGB.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 1.5000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.5000 * 0.5) * R; float nA = Sym * 2.0; float a = abs(frac((tgGB - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGB_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W1 * smoothstep(0.2530, 0.5980, rgGB_) * ogGB; GGB = max(GGB, c); }
-    [branch] if (W2 > 0.001) { float rq = max(max(max(qgGB.x * -0.30902 + qgGB.y * 0.95106, qgGB.x * -1.00000 + qgGB.y * 0.00000), max(qgGB.x * -0.30902 + qgGB.y * -0.95106, qgGB.x * 0.80902 + qgGB.y * -0.58779)), qgGB.x * 0.80902 + qgGB.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 2.0000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 2.0000 * 0.5) * R; float nA = Sym * 1.0; float a = abs(frac((tgGB - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGB_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W2 * smoothstep(0.1650, 0.3900, rgGB_) * ogGB; GGB = max(GGB, c); }
-    [branch] if (W3 > 0.001) { float rq = max(max(max(qgGB.x * 0.00000 + qgGB.y * 1.00000, qgGB.x * -0.95106 + qgGB.y * 0.30902), max(qgGB.x * -0.58779 + qgGB.y * -0.80902, qgGB.x * 0.58779 + qgGB.y * -0.80902)), qgGB.x * 0.95106 + qgGB.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 1.2500 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.2500 * 0.5) * R; float nA = Sym * 3.0; float a = abs(frac((tgGB - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGB_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W3 * smoothstep(0.3025, 0.7150, rgGB_) * ogGB; GGB = max(GGB, c); }
-    [branch] if (W4 > 0.001) { float rq = max(max(max(qgGB.x * -0.30902 + qgGB.y * 0.95106, qgGB.x * -1.00000 + qgGB.y * 0.00000), max(qgGB.x * -0.30902 + qgGB.y * -0.95106, qgGB.x * 0.80902 + qgGB.y * -0.58779)), qgGB.x * 0.80902 + qgGB.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 2.5000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 2.5000 * 0.5) * R; float nA = Sym * 2.0; float a = abs(frac((tgGB - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGB_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W4 * smoothstep(0.2200, 0.5200, rgGB_) * ogGB; GGB = max(GGB, c); }
-    [branch] if (W5 > 0.001) { float rq = max(max(max(qgGB.x * 0.00000 + qgGB.y * 1.00000, qgGB.x * -0.95106 + qgGB.y * 0.30902), max(qgGB.x * -0.58779 + qgGB.y * -0.80902, qgGB.x * 0.58779 + qgGB.y * -0.80902)), qgGB.x * 0.95106 + qgGB.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 3.0000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 3.0000 * 0.5) * R; float nA = Sym * 1.0; float a = abs(frac((tgGB - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGB_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W5 * smoothstep(0.1540, 0.3640, rgGB_) * ogGB; GGB = max(GGB, c); }
-    [branch] if (W6 > 0.001) { float rq = max(max(max(qgGB.x * -0.30902 + qgGB.y * 0.95106, qgGB.x * -1.00000 + qgGB.y * 0.00000), max(qgGB.x * -0.30902 + qgGB.y * -0.95106, qgGB.x * 0.80902 + qgGB.y * -0.58779)), qgGB.x * 0.80902 + qgGB.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 1.7500 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.7500 * 0.5) * R; float nA = Sym * 3.0; float a = abs(frac((tgGB - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGB_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W6 * smoothstep(0.2750, 0.6500, rgGB_) * ogGB; GGB = max(GGB, c); }
-    [branch] if (W7 > 0.001) { float rq = max(max(max(qgGB.x * 0.00000 + qgGB.y * 1.00000, qgGB.x * -0.95106 + qgGB.y * 0.30902), max(qgGB.x * -0.58779 + qgGB.y * -0.80902, qgGB.x * 0.58779 + qgGB.y * -0.80902)), qgGB.x * 0.95106 + qgGB.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 2.2500 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 2.2500 * 0.5) * R; float nA = Sym * 2.0; float a = abs(frac((tgGB - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGB_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W7 * smoothstep(0.2090, 0.4940, rgGB_) * ogGB; GGB = max(GGB, c); }
-    float2 qgGC = (p + float2(0.0, 0.5) - float2(CenterX, 0.0)) * iR;
-    float rgGC_ = length(qgGC);
-    float tgGC = atan2(qgGC.y, qgGC.x);
-    float ogGC = smoothstep(calm * 0.6, calm * 1.4, rgGC_);
-    float GGC = 0.0;
-    [branch] if (W0 > 0.001) { float rq = max(max(max(qgGC.x * 0.00000 + qgGC.y * 1.00000, qgGC.x * -0.95106 + qgGC.y * 0.30902), max(qgGC.x * -0.58779 + qgGC.y * -0.80902, qgGC.x * 0.58779 + qgGC.y * -0.80902)), qgGC.x * 0.95106 + qgGC.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 1.0000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.0000 * 0.5) * R; float nA = Sym * 1.0; float a = abs(frac((tgGC - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGC_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W0 * smoothstep(0.1870, 0.4420, rgGC_) * ogGC; GGC = max(GGC, c); }
-    [branch] if (W1 > 0.001) { float rq = max(max(max(qgGC.x * -0.30902 + qgGC.y * 0.95106, qgGC.x * -1.00000 + qgGC.y * 0.00000), max(qgGC.x * -0.30902 + qgGC.y * -0.95106, qgGC.x * 0.80902 + qgGC.y * -0.58779)), qgGC.x * 0.80902 + qgGC.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 1.5000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.5000 * 0.5) * R; float nA = Sym * 2.0; float a = abs(frac((tgGC - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGC_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W1 * smoothstep(0.2530, 0.5980, rgGC_) * ogGC; GGC = max(GGC, c); }
-    [branch] if (W2 > 0.001) { float rq = max(max(max(qgGC.x * -0.30902 + qgGC.y * 0.95106, qgGC.x * -1.00000 + qgGC.y * 0.00000), max(qgGC.x * -0.30902 + qgGC.y * -0.95106, qgGC.x * 0.80902 + qgGC.y * -0.58779)), qgGC.x * 0.80902 + qgGC.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 2.0000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 2.0000 * 0.5) * R; float nA = Sym * 1.0; float a = abs(frac((tgGC - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGC_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W2 * smoothstep(0.1650, 0.3900, rgGC_) * ogGC; GGC = max(GGC, c); }
-    [branch] if (W3 > 0.001) { float rq = max(max(max(qgGC.x * 0.00000 + qgGC.y * 1.00000, qgGC.x * -0.95106 + qgGC.y * 0.30902), max(qgGC.x * -0.58779 + qgGC.y * -0.80902, qgGC.x * 0.58779 + qgGC.y * -0.80902)), qgGC.x * 0.95106 + qgGC.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 1.2500 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.2500 * 0.5) * R; float nA = Sym * 3.0; float a = abs(frac((tgGC - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGC_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W3 * smoothstep(0.3025, 0.7150, rgGC_) * ogGC; GGC = max(GGC, c); }
-    [branch] if (W4 > 0.001) { float rq = max(max(max(qgGC.x * -0.30902 + qgGC.y * 0.95106, qgGC.x * -1.00000 + qgGC.y * 0.00000), max(qgGC.x * -0.30902 + qgGC.y * -0.95106, qgGC.x * 0.80902 + qgGC.y * -0.58779)), qgGC.x * 0.80902 + qgGC.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 2.5000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 2.5000 * 0.5) * R; float nA = Sym * 2.0; float a = abs(frac((tgGC - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGC_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W4 * smoothstep(0.2200, 0.5200, rgGC_) * ogGC; GGC = max(GGC, c); }
-    [branch] if (W5 > 0.001) { float rq = max(max(max(qgGC.x * 0.00000 + qgGC.y * 1.00000, qgGC.x * -0.95106 + qgGC.y * 0.30902), max(qgGC.x * -0.58779 + qgGC.y * -0.80902, qgGC.x * 0.58779 + qgGC.y * -0.80902)), qgGC.x * 0.95106 + qgGC.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 3.0000 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 3.0000 * 0.5) * R; float nA = Sym * 1.0; float a = abs(frac((tgGC - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGC_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W5 * smoothstep(0.1540, 0.3640, rgGC_) * ogGC; GGC = max(GGC, c); }
-    [branch] if (W6 > 0.001) { float rq = max(max(max(qgGC.x * -0.30902 + qgGC.y * 0.95106, qgGC.x * -1.00000 + qgGC.y * 0.00000), max(qgGC.x * -0.30902 + qgGC.y * -0.95106, qgGC.x * 0.80902 + qgGC.y * -0.58779)), qgGC.x * 0.80902 + qgGC.y * 0.58779) * 1.23607; float u = rq * (Kr * GeoFreq * 1.7500 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 1.7500 * 0.5) * R; float nA = Sym * 3.0; float a = abs(frac((tgGC - 0.31416) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGC_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W6 * smoothstep(0.2750, 0.6500, rgGC_) * ogGC; GGC = max(GGC, c); }
-    [branch] if (W7 > 0.001) { float rq = max(max(max(qgGC.x * 0.00000 + qgGC.y * 1.00000, qgGC.x * -0.95106 + qgGC.y * 0.30902), max(qgGC.x * -0.58779 + qgGC.y * -0.80902, qgGC.x * 0.58779 + qgGC.y * -0.80902)), qgGC.x * 0.95106 + qgGC.y * 0.30902) * 1.23607; float u = rq * (Kr * GeoFreq * 2.2500 * 0.5); float dr = abs(u - round(u)) / (Kr * GeoFreq * 2.2500 * 0.5) * R; float nA = Sym * 2.0; float a = abs(frac((tgGC - 0.00000) * nA * 0.159155 + 0.5) - 0.5) * 6.28318 / nA; float ds = rgGC_ * R * sin(a); float c = pow(saturate(1.0 - min(dr, ds) / lw), Sharp) * W7 * smoothstep(0.2090, 0.4940, rgGC_) * ogGC; GGC = max(GGC, c); }
-    slG = ReliefH * ordL * thin * float2(GGB - GGA, GGC - GGA) * 2.0;
-    crG = GGA * ordL * thin;
-  }
-  slope += lerp(slF, slG, Geo) + VibAmp * gV;
-  crest += lerp(crF, crG, Geo);
+  slope += ReliefH * ordL * thin * dhdd * (gF / gl) + SwellH * ordL * exp(-xs * xs) * (-2.0 * FA / (sw * sw)) * gF + VibAmp * gV;
+  crest += hn * ordL * thin;
 }
-// poligonos del salar (textura periodica de 8 x 8 celdas): el mandala los va borrando
-float T8 = max(CellSize, 1.0) * 8.0;
-float2 uvC = p / T8;
-float tx = 1.0 / 1024.0;
-float c0 = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC, 0.0).r;
-float cx = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC + float2(tx, 0.0), 0.0).r;
-float cy = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC + float2(0.0, tx), 0.0).r;
-float dv = c0 * 0.5 * CellSize;
-float2 gdv = float2(cx - c0, cy - c0) * (0.5 * CellSize) / (tx * T8);
+[branch] if (abs(PerfMode - 6.0) < 0.5) { float3 n6 = normalize(float3(-slope, 1.0)); return lerp(SaltShade, SaltLit, saturate(FlatTone + (dot(n6, SunDir) - SunDir.z) * LightGain)); }   // banco: sin acabado
+// poligonos del salar (textura periodica de 8 x 8 celdas): el mandala los va borrando y de lejos se apagan.
+// Donde su aporte es < 1/500 (dentro del mandala, a lo lejos) no se leen las 3 texturas
 float pw = max(PolyW, 0.5);
-float xv = dv / pw;
-float hsv = max(saturate(1.0 - xv), 1e-4);                           // la cresta del poligono, tambien con filo
 float keep = (1.0 - ordP * (1.0 - PolyKeep)) * (1.0 - smoothstep(0.5, 2.5, fp / pw));
-float hv = pow(hsv, Sharp) * keep;
-float dhdv = (xv < 1.0) ? (-Sharp * pow(hsv, Sharp - 1.0) / pw) : 0.0;
-slope += 3.5 * PolyH * keep * dhdv * gdv;
-crest += hv * PolyH;
+[branch] if (keep * PolyH > 0.002 && !(abs(PerfMode - 7.0) < 0.5)) {
+  float T8 = max(CellSize, 1.0) * 8.0;
+  float2 uvC = p / T8;
+  float tx = 1.0 / 1024.0;
+  float c0 = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC, 0.0).r;
+  float cx = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC + float2(tx, 0.0), 0.0).r;
+  float cy = Texture2DSampleLevel(SaltTex, SaltTexSampler, uvC + float2(0.0, tx), 0.0).r;
+  float dv = c0 * 0.5 * CellSize;
+  float2 gdv = float2(cx - c0, cy - c0) * (0.5 * CellSize) / (tx * T8);
+  float xv = dv / pw;
+  float hsv = max(saturate(1.0 - xv), 1e-4);                           // la cresta del poligono, tambien con filo
+  float hv = pow(hsv, Sharp) * keep;
+  float dhdv = (xv < 1.0) ? (-Sharp * pow(hsv, Sharp - 1.0) / pw) : 0.0;
+  slope += 3.5 * PolyH * keep * dhdv * gdv;
+  crest += hv * PolyH;
+}
 float3 n = normalize(float3(-slope, 1.0));
 // luz rasante: el plano queda en FlatTone; lo que mira al sol se entibia y lo demas se enfria
 float t = FlatTone + (dot(n, SunDir) - SunDir.z) * LightGain;
-float2 nq = p / 38.0;
-float2 ni = floor(nq);
-float2 nf = frac(nq);
-nf = nf * nf * (3.0 - 2.0 * nf);
-float3 n00_p = frac(float3((ni).xyx) * 0.1031);
-n00_p += dot(n00_p, n00_p.yzx + 33.33);
-float n00 = frac((n00_p.x + n00_p.y) * n00_p.z);
-float3 n10_p = frac(float3((ni + float2(1.0, 0.0)).xyx) * 0.1031);
-n10_p += dot(n10_p, n10_p.yzx + 33.33);
-float n10 = frac((n10_p.x + n10_p.y) * n10_p.z);
-float3 n01_p = frac(float3((ni + float2(0.0, 1.0)).xyx) * 0.1031);
-n01_p += dot(n01_p, n01_p.yzx + 33.33);
-float n01 = frac((n01_p.x + n01_p.y) * n01_p.z);
-float3 n11_p = frac(float3((ni + float2(1.0, 1.0)).xyx) * 0.1031);
-n11_p += dot(n11_p, n11_p.yzx + 33.33);
-float n11 = frac((n11_p.x + n11_p.y) * n11_p.z);
-float nz = (lerp(lerp(n00, n10, nf.x), lerp(n01, n11, nf.x), nf.y) - 0.5) * SaltNoise * (1.0 - smoothstep(3.0, 12.0, fp));
-t += nz * 0.25;
-// arena: textura periodica con mipmaps (de lejos se promedia sola), dos lecturas a escalas y giros distintos
-float st = max(GrainSize, 1.0);
-float3 sA = Texture2DSample(SandTex, SandTexSampler, p / st).rgb;
-float2 pr = float2(p.x * 0.8 - p.y * 0.6, p.x * 0.6 + p.y * 0.8);
-float3 sB = Texture2DSample(SandTex, SandTexSampler, pr / (st * 2.37)).rgb;
-t += ((sA.r - 0.5) * 0.65 + (sB.r - 0.5) * 0.35) * Grain * 1.8;
+float3 sA = float3(0.5, 0.0, 0.0);
+float3 sB = float3(0.5, 0.0, 0.0);
+[branch] if (!(abs(PerfMode - 1.0) < 0.5)) {
+  [branch] if (fp < 12.0) {
+    float2 nq = p / 38.0;
+    float2 ni = floor(nq);
+    float2 nf = frac(nq);
+    nf = nf * nf * (3.0 - 2.0 * nf);
+    float3 n00_p = frac(float3((ni).xyx) * 0.1031);
+    n00_p += dot(n00_p, n00_p.yzx + 33.33);
+    float n00 = frac((n00_p.x + n00_p.y) * n00_p.z);
+    float3 n10_p = frac(float3((ni + float2(1.0, 0.0)).xyx) * 0.1031);
+    n10_p += dot(n10_p, n10_p.yzx + 33.33);
+    float n10 = frac((n10_p.x + n10_p.y) * n10_p.z);
+    float3 n01_p = frac(float3((ni + float2(0.0, 1.0)).xyx) * 0.1031);
+    n01_p += dot(n01_p, n01_p.yzx + 33.33);
+    float n01 = frac((n01_p.x + n01_p.y) * n01_p.z);
+    float3 n11_p = frac(float3((ni + float2(1.0, 1.0)).xyx) * 0.1031);
+    n11_p += dot(n11_p, n11_p.yzx + 33.33);
+    float n11 = frac((n11_p.x + n11_p.y) * n11_p.z);
+    t += (lerp(lerp(n00, n10, nf.x), lerp(n01, n11, nf.x), nf.y) - 0.5) * SaltNoise * (1.0 - smoothstep(3.0, 12.0, fp)) * 0.25;
+  }
+  // arena: textura periodica con mipmaps (de lejos se promedia sola), dos lecturas a escalas y giros distintos
+  float st = max(GrainSize, 1.0);
+  sA = Texture2DSample(SandTex, SandTexSampler, p / st).rgb;
+  float2 pr = float2(p.x * 0.8 - p.y * 0.6, p.x * 0.6 + p.y * 0.8);
+  sB = Texture2DSample(SandTex, SandTexSampler, pr / (st * 2.37)).rgb;
+  t += ((sA.r - 0.5) * 0.65 + (sB.r - 0.5) * 0.35) * Grain * 1.8;
+}
 float3 col = lerp(SaltShade, SaltLit, saturate(t));
-// el gusano ASENTADO: sombra larga hacia el lado contrario al sol + reflejo de su color en la sal humeda
-float2 sdir = normalize(SunDir.xy + float2(1e-5, 0.0));
-float kS = 1.0 / tan(clamp(ShadowElev, 3.0, 80.0) * 0.0174533);
-float wr = max(WormR, 1.0);
-float shw = 0.0;
-float glw = 0.0;
-[branch] if (WS0.z > 0.0) { float hl = WS0.z * kS * 0.5; float2 dd = p - (WS0.xy - sdir * hl); float al = dot(dd, sdir); float ac = dd.x * sdir.y - dd.y * sdir.x; float e = al * al / ((hl + wr) * (hl + wr)) + ac * ac / (wr * wr * 1.4); shw = max(shw, exp(-e * 2.0 * ShadowSoft) * saturate(1.0 - WS0.z / 400.0)); float2 dg = p - WS0.xy; glw = max(glw, exp(-dot(dg, dg) / (wr * wr * 5.0))); }
-[branch] if (WS1.z > 0.0) { float hl = WS1.z * kS * 0.5; float2 dd = p - (WS1.xy - sdir * hl); float al = dot(dd, sdir); float ac = dd.x * sdir.y - dd.y * sdir.x; float e = al * al / ((hl + wr) * (hl + wr)) + ac * ac / (wr * wr * 1.4); shw = max(shw, exp(-e * 2.0 * ShadowSoft) * saturate(1.0 - WS1.z / 400.0)); float2 dg = p - WS1.xy; glw = max(glw, exp(-dot(dg, dg) / (wr * wr * 5.0))); }
-[branch] if (WS2.z > 0.0) { float hl = WS2.z * kS * 0.5; float2 dd = p - (WS2.xy - sdir * hl); float al = dot(dd, sdir); float ac = dd.x * sdir.y - dd.y * sdir.x; float e = al * al / ((hl + wr) * (hl + wr)) + ac * ac / (wr * wr * 1.4); shw = max(shw, exp(-e * 2.0 * ShadowSoft) * saturate(1.0 - WS2.z / 400.0)); float2 dg = p - WS2.xy; glw = max(glw, exp(-dot(dg, dg) / (wr * wr * 5.0))); }
-[branch] if (WS3.z > 0.0) { float hl = WS3.z * kS * 0.5; float2 dd = p - (WS3.xy - sdir * hl); float al = dot(dd, sdir); float ac = dd.x * sdir.y - dd.y * sdir.x; float e = al * al / ((hl + wr) * (hl + wr)) + ac * ac / (wr * wr * 1.4); shw = max(shw, exp(-e * 2.0 * ShadowSoft) * saturate(1.0 - WS3.z / 400.0)); float2 dg = p - WS3.xy; glw = max(glw, exp(-dot(dg, dg) / (wr * wr * 5.0))); }
-[branch] if (WS4.z > 0.0) { float hl = WS4.z * kS * 0.5; float2 dd = p - (WS4.xy - sdir * hl); float al = dot(dd, sdir); float ac = dd.x * sdir.y - dd.y * sdir.x; float e = al * al / ((hl + wr) * (hl + wr)) + ac * ac / (wr * wr * 1.4); shw = max(shw, exp(-e * 2.0 * ShadowSoft) * saturate(1.0 - WS4.z / 400.0)); float2 dg = p - WS4.xy; glw = max(glw, exp(-dot(dg, dg) / (wr * wr * 5.0))); }
-[branch] if (WS5.z > 0.0) { float hl = WS5.z * kS * 0.5; float2 dd = p - (WS5.xy - sdir * hl); float al = dot(dd, sdir); float ac = dd.x * sdir.y - dd.y * sdir.x; float e = al * al / ((hl + wr) * (hl + wr)) + ac * ac / (wr * wr * 1.4); shw = max(shw, exp(-e * 2.0 * ShadowSoft) * saturate(1.0 - WS5.z / 400.0)); float2 dg = p - WS5.xy; glw = max(glw, exp(-dot(dg, dg) / (wr * wr * 5.0))); }
-[branch] if (WS6.z > 0.0) { float hl = WS6.z * kS * 0.5; float2 dd = p - (WS6.xy - sdir * hl); float al = dot(dd, sdir); float ac = dd.x * sdir.y - dd.y * sdir.x; float e = al * al / ((hl + wr) * (hl + wr)) + ac * ac / (wr * wr * 1.4); shw = max(shw, exp(-e * 2.0 * ShadowSoft) * saturate(1.0 - WS6.z / 400.0)); float2 dg = p - WS6.xy; glw = max(glw, exp(-dot(dg, dg) / (wr * wr * 5.0))); }
-[branch] if (WS7.z > 0.0) { float hl = WS7.z * kS * 0.5; float2 dd = p - (WS7.xy - sdir * hl); float al = dot(dd, sdir); float ac = dd.x * sdir.y - dd.y * sdir.x; float e = al * al / ((hl + wr) * (hl + wr)) + ac * ac / (wr * wr * 1.4); shw = max(shw, exp(-e * 2.0 * ShadowSoft) * saturate(1.0 - WS7.z / 400.0)); float2 dg = p - WS7.xy; glw = max(glw, exp(-dot(dg, dg) / (wr * wr * 5.0))); }
-col = lerp(col, SaltShade * 0.8, saturate(WormShadow * shw));
-col += WormCol * WormGlow * glw;
 col += SunCol * max(t - 0.85, 0.0) * 0.5;
 float dk = max(sA.g, sB.g * 0.7);
 float lt = sA.b;
 col = lerp(col, SaltShade * 0.6, dk * Granite * 0.8);
 col = lerp(col, SaltLit * 1.06, lt * Granite * 0.45);
-// agua: refleja el cielo en angulo rasante
+// agua: refleja el cielo en angulo rasante. Donde el Fresnel es < 1/500 (mirando hacia abajo) no se calcula
 float cosv = saturate(-Vw.z);
 float fres = pow(1.0 - cosv, 5.0) * Wet * (1.0 - min(crest, 1.0) * 0.8);
-float3 Rw = reflect(Vw, normalize(lerp(float3(0.0, 0.0, 1.0), n, 0.35)));
-float refC_e = Rw.z;
-float3 refC = lerp(SkyMid, SkyTop, smoothstep(0.03, 0.75, refC_e));
-refC = lerp(SkyHor, refC, smoothstep(-0.03, 0.26, refC_e));
-float refC_a = acos(clamp(dot(Rw, SunDir), -1.0, 1.0));
-refC += SunCol * exp(-refC_a / (sunR * 2.2)) * SunGlow * 0.3;
-refC = lerp(refC, SunCol, (1.0 - smoothstep(sunR * 0.9, sunR, refC_a)) * 0.92);
-refC = lerp(refC, SkyHor, exp(-abs(refC_e) / 0.03) * Haze * 0.7);
-col = lerp(col, refC, saturate(fres));
-// bruma hacia el cielo del horizonte (distancia REAL: en VR la profundidad de pixel 'nada' al girar)
-float3 Hd = normalize(float3(Vw.xy, 0.0001));
-float fogC_e = Hd.z;
-float3 fogC = lerp(SkyMid, SkyTop, smoothstep(0.03, 0.75, fogC_e));
-fogC = lerp(SkyHor, fogC, smoothstep(-0.03, 0.26, fogC_e));
-float fogC_a = acos(clamp(dot(Hd, SunDir), -1.0, 1.0));
-fogC += SunCol * exp(-fogC_a / (sunR * 2.2)) * SunGlow * 0.3;
-fogC = lerp(fogC, SunCol, (1.0 - smoothstep(sunR * 0.9, sunR, fogC_a)) * 0.92);
-fogC = lerp(fogC, SkyHor, exp(-abs(fogC_e) / 0.03) * Haze * 0.7);
-col = lerp(col, fogC, (1.0 - exp(-Dist / max(FogDist, 1.0))) * 0.85);
+[branch] if (fres > 0.002 && !(abs(PerfMode - 8.0) < 0.5)) {
+  float3 Rw = reflect(Vw, normalize(lerp(float3(0.0, 0.0, 1.0), n, 0.35)));
+  float refC_e = Rw.z;
+  float3 refC = lerp(SkyMid, SkyTop, smoothstep(0.03, 0.75, refC_e));
+  refC = lerp(SkyHor, refC, smoothstep(-0.03, 0.26, refC_e));
+  float refC_a = acos(clamp(dot(Rw, SunDir), -1.0, 1.0));
+  refC += SunCol * exp(-refC_a / (sunR * 2.2)) * SunGlow * 0.3;
+  refC = lerp(refC, SunCol, (1.0 - smoothstep(sunR * 0.9, sunR, refC_a)) * 0.92);
+  refC = lerp(refC, SkyHor, exp(-abs(refC_e) / 0.03) * Haze * 0.7);
+  col = lerp(col, refC, saturate(fres));
+}
+// bruma hacia el cielo del horizonte (distancia REAL: en VR la profundidad de pixel 'nada' al girar).
+// Mira al horizonte: elevacion 0 fija, el gradiente del cielo se pliega a constantes; queda el halo del sol
+[branch] if (!(abs(PerfMode - 9.0) < 0.5)) {
+  float3 Hd = normalize(float3(Vw.xy, 0.0001));
+  float fogC_e = 0.0;
+  float3 fogC = lerp(SkyMid, SkyTop, smoothstep(0.03, 0.75, fogC_e));
+  fogC = lerp(SkyHor, fogC, smoothstep(-0.03, 0.26, fogC_e));
+  float fogC_a = acos(clamp(dot(Hd, SunDir), -1.0, 1.0));
+  fogC += SunCol * exp(-fogC_a / (sunR * 2.2)) * SunGlow * 0.3;
+  fogC = lerp(fogC, SunCol, (1.0 - smoothstep(sunR * 0.9, sunR, fogC_a)) * 0.92);
+  fogC = lerp(fogC, SkyHor, exp(-abs(fogC_e) / 0.03) * Haze * 0.7);
+  col = lerp(col, fogC, (1.0 - exp(-Dist / max(FogDist, 1.0))) * 0.85);
+}
 float3 dz_p = frac(float3((floor(Parameters.SvPosition.xy)).xyx) * 0.1031);
 dz_p += dot(dz_p, dz_p.yzx + 33.33);
 float dz = frac((dz_p.x + dz_p.y) * dz_p.z);
