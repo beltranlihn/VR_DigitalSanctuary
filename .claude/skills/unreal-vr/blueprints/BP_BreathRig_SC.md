@@ -62,6 +62,8 @@ Beltrán en visor: *"aunque ponga el sensor al revés entra igual al umbral… s
 - **Verificado en PIE** moviendo y girando los grips del pawn (texto `"(Pitch=..,Yaw=..,Roll=..)"` en `RelativeRotation`; el JSON solo escribe la primera componente): derecha palma al cuerpo **+1 → bZone true** · al revés **−1 → false** · hacia el frente **0 → false** · inclinado (cabeza 5 cm delante de la mano) **+1 → true**; izquierda (con `bRightHand` false) palma al cuerpo **+1 → true** · al revés **−1 → false**. 0 errores.
 - ✅ **VALIDADO EN VISOR (2026-09-27, APK 20:54, Beltrán: "Probado. Funciona")**: sensor apoyado en el estómago entra; al revés o con la mano hacia el frente no. El signo deducido era el correcto. ⚠ Si el montaje del sensor, su offset o la rotación de las manos del pawn cambian, la fórmula cambia. La mano izquierda solo se probó en PIE.
 
+## 🔁 2026-09-30 (noche) — lo visual lo pone `BP_UserTool_SC`
+Instancia de `Test_Entering` (antes → después): `bShowControllers` true → **false** · `bShowSensors` true → **false** · `bHideHands` true → **false**. El mando/sensor que se ve es [[BP_UserTool_SC]] (el de toda la obra); el rig queda como motor (umbral, háptica, `MPC_Breath`) y su detección no cambia (usa el grip, no la malla). La etapa lo activa en `StageBegin` y lo apaga en `StageOutro`.
 ## Perillas `0 - Rig` (instance-editable)
 `bStartActive` false (lo activa la etapa; true = standalone) · `bShowControllers` / `bShowSensors` / `bHideHands` true · `CtrlColor` (0.35, 0.8, 1) · `SensorColor` (0.886, 0.604, 0.447) · `CtrlBrightness` 1.5 · `RevealTime` 0.6 · `CtrlMat` `M_BreathCtrl_SC`. El resto (umbral, señal, háptica, prueba) = las categorías del manager, con sus valores.
 

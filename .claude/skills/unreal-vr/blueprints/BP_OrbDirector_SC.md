@@ -465,3 +465,23 @@ Emissive = lerp(lerp(ChainColorLow, ChainColorHigh, sombreado), ChainColorPulse,
 🔴 **Causa**: `ChainColorLow` era **`ShadeColor`, UN color compartido por todas**. Cada esfera mezclaba SU tono con ese tono común en todo el lado en sombra: naranja + verde salvia (el `ShadeColor` que había) = marrón grisáceo. Además `ShadeFloor` 0,036 oscurecía la sombra casi a negro y el relleno `ShadowColor` azulado viraba los amarillos a oliva.
 ✅ **`OwnShade` / `OwnShadeDepth`** (nuevas, `1-Color`, editables): en `ApplyLook`, `ChainColorLow = lerp(ShadeColor, lerp(negro, ColorPropio, OwnShadeDepth), OwnShade)` — la sombra de cada esfera es **su propio color más hondo**. CDO: `OwnShade` **0 = idéntico a antes** (no degrada lo ya aprobado en otros niveles); `OwnShadeDepth` 0,55. Cirugía de 4 nodos (2 `Lerp(LinearColor)` + 2 getters), compila con advertencias como errores, 25 actores.
 En `Test_Sequencer` (instancia): `OwnShade` 1 · `OwnShadeDepth` 0,7 · `ShadeFloor` **0,45** (era 0.03626) · `ShadowTint` **0,15** (era 0.517923) — junto con la paleta pastel (valores previos en `BP_ChladniFloor_SC.md`). Resultado verificado por captura: mantequilla, salmón, lila y pervinca limpios, sombreado suave, sin gris.
+
+
+## 2026-09-30 (noche) — paleta Uyuni (blanco-naranja-amarillo poco saturado), en la instancia `GAL_12_OrbDirector`
+Antes → después (hex sRGB): Color1 #afbaed→#f6e2b8 · Color2 #ede0b8→#f3d0ac · Color3 #edc2b1→#fbeedb · Color4 #d6aeff→#eec6a0 · ShadeColor #b9a8d9→#e3c29f · ShadowColor #9eb8cc→#d7b699. Lineales en `VR_Test/Saved/ClaudeScripts/noche/palette.json`; los previos, en `noche/s1.json`.
+
+## ✨ 2026-09-30 (noche, 2º turno) — grupo `9-Halo`: el halo de partículas de las esferas
+Perillas instance-editable (la esfera las copia al PRENDER su halo, en `HaloFromDirector`; los cambios en PIE se ven en la próxima vez que un halo aparece). En la instancia de `Test_Sequencer` nacieron en 0/false y se pusieron los valores iniciales (antes → después):
+| Perilla | Valor | Qué hace |
+|---|---|---|
+| `HaloOn` | false → **true** | la casilla del efecto |
+| `HaloRate` | 0 → **9** /s | partículas por segundo por esfera (con `HaloLife` 4 ≈ 36 vivas) |
+| `HaloLife` | 0 → **4** s | vida de cada partícula (entra en el 25 % inicial y se apaga en el 30 % final) |
+| `HaloRadius` | 0 → **1,3** | radio de la cáscara, en veces el radio de la esfera (50 × `OrbScale`) |
+| `HaloSizeMin` / `HaloSizeMax` | 0 → **1,6 / 2,8** cm | tamaño del sprite (las esferas están a ~10 m: 1 cm ≈ 1,5 px en la Quest) |
+| `HaloAlpha` | 0 → **0,45** | opacidad del color de la esfera en las partículas |
+| `HaloNoise` | 0 → **6** | fuerza del curl noise (con `Drag` 1,5 del sistema: deriva de ~4 cm/s) |
+| `HaloInTime` | 0 → **1,6** s | fundido de aparición (al nacer y al volver a casa) |
+| `HaloOutTime` | 0 → **0,9** s | duración del estallido suave al agarrar (o al desaparecer) |
+| `HaloPush` | 0 → **70** | empuje hacia afuera del estallido (× `OrbScale`) |
+**Eventos de rendimiento** (para el banco de Quest): `ke * PerfHaloOff` / `ke * PerfHaloOn` → pone `HaloOn` en el director y en todas las esferas vivas (eco `PERF: halo OFF/ON`). Verificado que el setter del bucle escribe la variable de la ESFERA (`self` = BP Sound Orb SC), aunque el read lo rotule `Variables|9-Halo|…`.

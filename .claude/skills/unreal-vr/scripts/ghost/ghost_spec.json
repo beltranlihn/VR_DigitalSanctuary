@@ -1,0 +1,1581 @@
+{
+ "BP_GhostTake_SC": {
+  "path": "/Game/SoulCharger/Mechanics/Ghost/BP_GhostTake_SC",
+  "parent": "/Script/Engine.PrimaryDataAsset",
+  "vars": [
+   {
+    "name": "Id",
+    "cat": "Ghost",
+    "type": "name",
+    "edit": true,
+    "default": "None"
+   },
+   {
+    "name": "Text",
+    "cat": "Ghost",
+    "type": "string",
+    "edit": true,
+    "default": ""
+   },
+   {
+    "name": "Hz",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 30.0
+   },
+   {
+    "name": "Frames",
+    "cat": "Ghost",
+    "type": "int",
+    "edit": true,
+    "default": 0
+   },
+   {
+    "name": "Stride",
+    "cat": "Ghost",
+    "type": "int",
+    "edit": true,
+    "default": 28
+   },
+   {
+    "name": "Data",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": [],
+    "container": "array"
+   },
+   {
+    "name": "bUseRight",
+    "cat": "Ghost",
+    "type": "bool",
+    "edit": true,
+    "default": true
+   },
+   {
+    "name": "bUseLeft",
+    "cat": "Ghost",
+    "type": "bool",
+    "edit": true,
+    "default": false
+   },
+   {
+    "name": "bBeamRight",
+    "cat": "Ghost",
+    "type": "bool",
+    "edit": true,
+    "default": false
+   },
+   {
+    "name": "bBeamLeft",
+    "cat": "Ghost",
+    "type": "bool",
+    "edit": true,
+    "default": false
+   },
+   {
+    "name": "Note",
+    "cat": "Ghost",
+    "type": "string",
+    "edit": true,
+    "default": ""
+   }
+  ],
+  "functions": {}
+ },
+ "DA": {
+  "folder": "/Game/SoulCharger/Mechanics/Ghost/Takes",
+  "items": [
+   {
+    "id": "GHOST_BELL",
+    "asset": "DA_Ghost_Bell",
+    "text": "Rest your hand and hold",
+    "R": true,
+    "L": false,
+    "BR": false,
+    "BL": false
+   },
+   {
+    "id": "GHOST_TAKE",
+    "asset": "DA_Ghost_Take",
+    "text": "Take it with your favorite hand",
+    "R": true,
+    "L": false,
+    "BR": false,
+    "BL": false
+   },
+   {
+    "id": "GHOST_PICK",
+    "asset": "DA_Ghost_Pick",
+    "text": "Point and pull the trigger",
+    "R": true,
+    "L": false,
+    "BR": true,
+    "BL": false
+   },
+   {
+    "id": "GHOST_BREATH",
+    "asset": "DA_Ghost_Breath",
+    "text": "Rest the sensor on your belly",
+    "R": true,
+    "L": false,
+    "BR": false,
+    "BL": false
+   },
+   {
+    "id": "GHOST_HEART",
+    "asset": "DA_Ghost_Heart",
+    "text": "Hold the sensor on your heart",
+    "R": true,
+    "L": false,
+    "BR": false,
+    "BL": false
+   },
+   {
+    "id": "GHOST_LOVING",
+    "asset": "DA_Ghost_Loving",
+    "text": "Move your hands slowly through the light",
+    "R": true,
+    "L": true,
+    "BR": false,
+    "BL": false
+   },
+   {
+    "id": "GHOST_ATTRACT",
+    "asset": "DA_Ghost_Attract",
+    "text": "Point · pull the trigger · place it",
+    "R": true,
+    "L": false,
+    "BR": true,
+    "BL": false
+   },
+   {
+    "id": "GHOST_SAVE",
+    "asset": "DA_Ghost_Save",
+    "text": "Hold SAVE",
+    "R": true,
+    "L": true,
+    "BR": false,
+    "BL": false
+   },
+   {
+    "id": "GHOST_DRAW",
+    "asset": "DA_Ghost_Draw",
+    "text": "Pick a color · draw with the trigger",
+    "R": true,
+    "L": true,
+    "BR": false,
+    "BL": false
+   },
+   {
+    "id": "GHOST_SHARE",
+    "asset": "DA_Ghost_Share",
+    "text": "Point at your choice and pull the trigger",
+    "R": true,
+    "L": false,
+    "BR": true,
+    "BL": false
+   }
+  ]
+ },
+ "BP_GhostPlayer_SC": {
+  "path": "/Game/SoulCharger/Mechanics/Ghost/BP_GhostPlayer_SC",
+  "parent": "/Script/Engine.Actor",
+  "vars": [
+   {
+    "name": "Takes",
+    "cat": "Ghost",
+    "type": "object",
+    "edit": true,
+    "default": [
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Bell.DA_Ghost_Bell",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Take.DA_Ghost_Take",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Pick.DA_Ghost_Pick",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Breath.DA_Ghost_Breath",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Heart.DA_Ghost_Heart",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Loving.DA_Ghost_Loving",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Attract.DA_Ghost_Attract",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Save.DA_Ghost_Save",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Draw.DA_Ghost_Draw",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Share.DA_Ghost_Share"
+    ],
+    "class": "/Game/SoulCharger/Mechanics/Ghost/BP_GhostTake_SC.BP_GhostTake_SC_C",
+    "container": "array"
+   },
+   {
+    "name": "StepHz",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 11.0
+   },
+   {
+    "name": "EchoAlpha",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": [
+     1.0,
+     0.6,
+     0.35,
+     0.15,
+     0.05
+    ],
+    "container": "array"
+   },
+   {
+    "name": "GhostOpacity",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 0.8
+   },
+   {
+    "name": "FadeIn",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 0.4
+   },
+   {
+    "name": "FadeOut",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 0.6
+   },
+   {
+    "name": "LoopGap",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 1.0
+   },
+   {
+    "name": "LoopFade",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 0.3
+   },
+   {
+    "name": "bShowText",
+    "cat": "Ghost",
+    "type": "bool",
+    "edit": true,
+    "default": true
+   },
+   {
+    "name": "TextOffset",
+    "cat": "Ghost",
+    "type": "vector",
+    "edit": true,
+    "default": [
+     60.0,
+     0.0,
+     -40.0
+    ]
+   },
+   {
+    "name": "TextSize",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 2.4
+   },
+   {
+    "name": "TextColor",
+    "cat": "Ghost",
+    "type": "linearcolor",
+    "edit": true,
+    "default": [
+     0.9,
+     0.9,
+     0.88,
+     1.0
+    ]
+   },
+   {
+    "name": "AppearSound",
+    "cat": "Ghost",
+    "type": "object",
+    "edit": true,
+    "class": "/Script/Engine.SoundBase"
+   },
+   {
+    "name": "VanishSound",
+    "cat": "Ghost",
+    "type": "object",
+    "edit": true,
+    "class": "/Script/Engine.SoundBase"
+   },
+   {
+    "name": "SfxVol",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 0.8
+   },
+   {
+    "name": "BeamLength",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 140.0
+   },
+   {
+    "name": "BeamRadius",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 0.22
+   },
+   {
+    "name": "AutoPlayId",
+    "cat": "Ghost",
+    "type": "name",
+    "edit": true,
+    "default": "None"
+   },
+   {
+    "name": "AutoPlayDelay",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 2.0
+   },
+   {
+    "name": "TestColor",
+    "cat": "Ghost",
+    "type": "linearcolor",
+    "edit": true,
+    "default": [
+     0.75,
+     0.85,
+     1.0,
+     1.0
+    ]
+   },
+   {
+    "name": "BodyMeshR",
+    "cat": "GhostMesh",
+    "type": "object",
+    "edit": false,
+    "default": "/Game/SoulCharger/Mechanics/QuestController/SM_QuestCtrl_Body_R_SC.SM_QuestCtrl_Body_R_SC",
+    "class": "/Script/Engine.StaticMesh"
+   },
+   {
+    "name": "BodyMeshL",
+    "cat": "GhostMesh",
+    "type": "object",
+    "edit": false,
+    "default": "/Game/SoulCharger/Mechanics/QuestController/SM_QuestCtrl_Body_L_SC.SM_QuestCtrl_Body_L_SC",
+    "class": "/Script/Engine.StaticMesh"
+   },
+   {
+    "name": "TrigMeshR",
+    "cat": "GhostMesh",
+    "type": "object",
+    "edit": false,
+    "default": "/Game/SoulCharger/Mechanics/QuestController/SM_QuestCtrl_Trigger_R_SC.SM_QuestCtrl_Trigger_R_SC",
+    "class": "/Script/Engine.StaticMesh"
+   },
+   {
+    "name": "TrigMeshL",
+    "cat": "GhostMesh",
+    "type": "object",
+    "edit": false,
+    "default": "/Game/SoulCharger/Mechanics/QuestController/SM_QuestCtrl_Trigger_L_SC.SM_QuestCtrl_Trigger_L_SC",
+    "class": "/Script/Engine.StaticMesh"
+   },
+   {
+    "name": "BeamMesh",
+    "cat": "GhostMesh",
+    "type": "object",
+    "edit": false,
+    "default": "/Engine/BasicShapes/Cylinder.Cylinder",
+    "class": "/Script/Engine.StaticMesh"
+   },
+   {
+    "name": "GhostMat",
+    "cat": "GhostMesh",
+    "type": "object",
+    "edit": false,
+    "default": "/Game/SoulCharger/Mechanics/Ghost/M_Ghost_SC.M_Ghost_SC",
+    "class": "/Script/Engine.MaterialInterface"
+   },
+   {
+    "name": "TextMat",
+    "cat": "GhostMesh",
+    "type": "object",
+    "edit": false,
+    "default": "/Game/SoulCharger/Core/UI/Materials/M_TextUnlit.M_TextUnlit",
+    "class": "/Script/Engine.MaterialInterface"
+   },
+   {
+    "name": "GripToMeshR",
+    "cat": "GhostMesh",
+    "type": "transform",
+    "edit": false,
+    "default": {
+     "location": {
+      "x": 5.685942,
+      "y": 0.540018,
+      "z": -1.677589
+     },
+     "rotation": {
+      "pitch": -13.566261,
+      "yaw": -83.539335,
+      "roll": 64.230738
+     },
+     "scale": {
+      "x": 1.0875,
+      "y": 1.0875,
+      "z": 1.0875
+     }
+    }
+   },
+   {
+    "name": "GripToMeshL",
+    "cat": "GhostMesh",
+    "type": "transform",
+    "edit": false,
+    "default": {
+     "location": {
+      "x": 5.876514,
+      "y": -1.566667,
+      "z": -2.049637
+     },
+     "rotation": {
+      "pitch": 0.0,
+      "yaw": -95.0,
+      "roll": 65.0
+     },
+     "scale": {
+      "x": 1.0875,
+      "y": 1.0875,
+      "z": 1.0875
+     }
+    }
+   },
+   {
+    "name": "HingePivotR",
+    "cat": "GhostMesh",
+    "type": "vector",
+    "edit": false,
+    "default": [
+     1.565,
+     2.432,
+     -0.145
+    ]
+   },
+   {
+    "name": "HingeAxisR",
+    "cat": "GhostMesh",
+    "type": "vector",
+    "edit": false,
+    "default": [
+     0.976,
+     -0.2177,
+     -0.0083
+    ]
+   },
+   {
+    "name": "PressDegrees",
+    "cat": "GhostMesh",
+    "type": "float",
+    "edit": false,
+    "default": 14.0
+   },
+   {
+    "name": "PressSign",
+    "cat": "GhostMesh",
+    "type": "float",
+    "edit": false,
+    "default": -1.0
+   },
+   {
+    "name": "Found",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "WantCol",
+    "cat": "Z-Ghost",
+    "type": "linearcolor",
+    "edit": false
+   },
+   {
+    "name": "MirrorOn",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "Data",
+    "cat": "Z-Ghost",
+    "type": "float",
+    "edit": false,
+    "container": "array"
+   },
+   {
+    "name": "Frames",
+    "cat": "Z-Ghost",
+    "type": "int",
+    "edit": false
+   },
+   {
+    "name": "Hz",
+    "cat": "Z-Ghost",
+    "type": "float",
+    "edit": false
+   },
+   {
+    "name": "Stride",
+    "cat": "Z-Ghost",
+    "type": "int",
+    "edit": false
+   },
+   {
+    "name": "UseR",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "UseL",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "BeamR",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "BeamL",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "LineText",
+    "cat": "Z-Ghost",
+    "type": "string",
+    "edit": false
+   },
+   {
+    "name": "ActR",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "ActL",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "BeamActR",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "BeamActL",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "Anchor",
+    "cat": "Z-Ghost",
+    "type": "transform",
+    "edit": false
+   },
+   {
+    "name": "State",
+    "cat": "Z-Ghost",
+    "type": "int",
+    "edit": false
+   },
+   {
+    "name": "T",
+    "cat": "Z-Ghost",
+    "type": "float",
+    "edit": false
+   },
+   {
+    "name": "GapT",
+    "cat": "Z-Ghost",
+    "type": "float",
+    "edit": false
+   },
+   {
+    "name": "Fade",
+    "cat": "Z-Ghost",
+    "type": "float",
+    "edit": false
+   },
+   {
+    "name": "LoopK",
+    "cat": "Z-Ghost",
+    "type": "float",
+    "edit": false
+   },
+   {
+    "name": "StepIdx",
+    "cat": "Z-Ghost",
+    "type": "int",
+    "edit": false
+   },
+   {
+    "name": "LoopCount",
+    "cat": "Z-Ghost",
+    "type": "int",
+    "edit": false
+   },
+   {
+    "name": "bPlaying",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "Ensured",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false
+   },
+   {
+    "name": "NewComp",
+    "cat": "Z-Ghost",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.StaticMeshComponent"
+   },
+   {
+    "name": "Curs",
+    "cat": "Z-Ghost",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.StaticMeshComponent",
+    "container": "array"
+   },
+   {
+    "name": "Trigs",
+    "cat": "Z-Ghost",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.StaticMeshComponent",
+    "container": "array"
+   },
+   {
+    "name": "Beams",
+    "cat": "Z-Ghost",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.StaticMeshComponent",
+    "container": "array"
+   },
+   {
+    "name": "Echoes",
+    "cat": "Z-Ghost",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.StaticMeshComponent",
+    "container": "array"
+   },
+   {
+    "name": "Ages",
+    "cat": "Z-Ghost",
+    "type": "int",
+    "edit": false,
+    "container": "array"
+   },
+   {
+    "name": "CurXf",
+    "cat": "Z-Ghost",
+    "type": "transform",
+    "edit": false,
+    "container": "array"
+   },
+   {
+    "name": "HasPrev",
+    "cat": "Z-Ghost",
+    "type": "bool",
+    "edit": false,
+    "container": "array"
+   },
+   {
+    "name": "PoseXf",
+    "cat": "Z-Ghost",
+    "type": "transform",
+    "edit": false
+   },
+   {
+    "name": "PoseAim",
+    "cat": "Z-Ghost",
+    "type": "rotator",
+    "edit": false
+   },
+   {
+    "name": "PoseTrig",
+    "cat": "Z-Ghost",
+    "type": "float",
+    "edit": false
+   },
+   {
+    "name": "OldI",
+    "cat": "Z-Ghost",
+    "type": "int",
+    "edit": false
+   },
+   {
+    "name": "OldAge",
+    "cat": "Z-Ghost",
+    "type": "int",
+    "edit": false
+   },
+   {
+    "name": "TextC",
+    "cat": "Z-Ghost",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.TextRenderComponent"
+   }
+  ],
+  "functions": {
+   "Play": [
+    {
+     "name": "DemoId",
+     "type": "name"
+    },
+    {
+     "name": "Col",
+     "type": "linearcolor"
+    },
+    {
+     "name": "Mirror",
+     "type": "bool"
+    }
+   ],
+   "Stop": [],
+   "Reanchor": [],
+   "PreviewData": [
+    {
+     "name": "D",
+     "type": "float",
+     "container": "array"
+    },
+    {
+     "name": "N",
+     "type": "int"
+    },
+    {
+     "name": "UR",
+     "type": "bool"
+    },
+    {
+     "name": "UL",
+     "type": "bool"
+    },
+    {
+     "name": "BR",
+     "type": "bool"
+    },
+    {
+     "name": "BL",
+     "type": "bool"
+    },
+    {
+     "name": "Txt",
+     "type": "string"
+    },
+    {
+     "name": "Col",
+     "type": "linearcolor"
+    }
+   ],
+   "GhFindLoop": [
+    {
+     "name": "DemoId",
+     "type": "name"
+    }
+   ],
+   "GhFindOne": [
+    {
+     "name": "Tk",
+     "type": "object",
+     "class": "/Game/SoulCharger/Mechanics/Ghost/BP_GhostTake_SC.BP_GhostTake_SC_C"
+    },
+    {
+     "name": "DemoId",
+     "type": "name"
+    }
+   ],
+   "GhLoad": [
+    {
+     "name": "Tk",
+     "type": "object",
+     "class": "/Game/SoulCharger/Mechanics/Ghost/BP_GhostTake_SC.BP_GhostTake_SC_C"
+    }
+   ],
+   "GhStart": [],
+   "GhActive": [],
+   "GhSound": [
+    {
+     "name": "Snd",
+     "type": "object",
+     "class": "/Script/Engine.SoundBase"
+    }
+   ],
+   "GhAnchor": [],
+   "GhEnsure": [],
+   "GhMakeHand": [
+    {
+     "name": "H",
+     "type": "int"
+    }
+   ],
+   "GhMakeMesh": [
+    {
+     "name": "M",
+     "type": "object",
+     "class": "/Script/Engine.StaticMesh"
+    }
+   ],
+   "GhMakeText": [],
+   "GhTick": [
+    {
+     "name": "Dt",
+     "type": "float"
+    }
+   ],
+   "GhFadeStep": [
+    {
+     "name": "Dt",
+     "type": "float"
+    }
+   ],
+   "GhRun": [
+    {
+     "name": "Dt",
+     "type": "float"
+    }
+   ],
+   "GhAdvance": [
+    {
+     "name": "Dt",
+     "type": "float"
+    },
+    {
+     "name": "Dur",
+     "type": "float"
+    }
+   ],
+   "GhStepCheck": [
+    {
+     "name": "Dur",
+     "type": "float"
+    }
+   ],
+   "GhLoopCheck": [
+    {
+     "name": "Dur",
+     "type": "float"
+    }
+   ],
+   "GhGap": [
+    {
+     "name": "Dt",
+     "type": "float"
+    }
+   ],
+   "GhEnd": [],
+   "GhJump": [
+    {
+     "name": "S",
+     "type": "int"
+    }
+   ],
+   "GhJumpHand": [
+    {
+     "name": "H",
+     "type": "int"
+    },
+    {
+     "name": "F",
+     "type": "int"
+    }
+   ],
+   "GhPlace": [
+    {
+     "name": "H",
+     "type": "int"
+    }
+   ],
+   "GhPose": [
+    {
+     "name": "F",
+     "type": "int"
+    },
+    {
+     "name": "H",
+     "type": "int"
+    }
+   ],
+   "GhTrigSet": [
+    {
+     "name": "H",
+     "type": "int"
+    },
+    {
+     "name": "V",
+     "type": "float"
+    },
+    {
+     "name": "Mx",
+     "type": "transform"
+    }
+   ],
+   "GhBeamSet": [
+    {
+     "name": "H",
+     "type": "int"
+    }
+   ],
+   "GhEchoAge": [],
+   "GhEchoReset": [],
+   "GhEchoPush": [
+    {
+     "name": "H",
+     "type": "int"
+    }
+   ],
+   "GhEchoFind": [
+    {
+     "name": "H",
+     "type": "int"
+    }
+   ],
+   "GhEchoOld": [
+    {
+     "name": "I",
+     "type": "int"
+    }
+   ],
+   "GhAlpha": [],
+   "GhAlphaHand": [
+    {
+     "name": "H",
+     "type": "int"
+    },
+    {
+     "name": "K",
+     "type": "float"
+    }
+   ],
+   "GhEchoAlpha": [
+    {
+     "name": "I",
+     "type": "int"
+    },
+    {
+     "name": "K",
+     "type": "float"
+    }
+   ],
+   "GhSetOp": [
+    {
+     "name": "C",
+     "type": "object",
+     "class": "/Script/Engine.StaticMeshComponent"
+    },
+    {
+     "name": "V",
+     "type": "float"
+    }
+   ],
+   "GhColor": [],
+   "GhColorArr": [
+    {
+     "name": "A",
+     "type": "object",
+     "class": "/Script/Engine.StaticMeshComponent",
+     "container": "array"
+    }
+   ],
+   "GhText": [],
+   "GhTextAlpha": [
+    {
+     "name": "K",
+     "type": "float"
+    }
+   ],
+   "GhAutoPlay": []
+  }
+ },
+ "BP_GhostRecorder_SC": {
+  "path": "/Game/SoulCharger/Mechanics/Ghost/BP_GhostRecorder_SC",
+  "parent": "/Script/Engine.Actor",
+  "vars": [
+   {
+    "name": "Takes",
+    "cat": "Rec",
+    "type": "object",
+    "edit": true,
+    "default": [
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Bell.DA_Ghost_Bell",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Take.DA_Ghost_Take",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Pick.DA_Ghost_Pick",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Breath.DA_Ghost_Breath",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Heart.DA_Ghost_Heart",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Loving.DA_Ghost_Loving",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Attract.DA_Ghost_Attract",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Save.DA_Ghost_Save",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Draw.DA_Ghost_Draw",
+     "/Game/SoulCharger/Mechanics/Ghost/Takes/DA_Ghost_Share.DA_Ghost_Share"
+    ],
+    "class": "/Game/SoulCharger/Mechanics/Ghost/BP_GhostTake_SC.BP_GhostTake_SC_C",
+    "container": "array"
+   },
+   {
+    "name": "DemoTimes",
+    "cat": "Rec",
+    "type": "float",
+    "edit": true,
+    "default": [
+     6.0,
+     5.0,
+     6.0,
+     8.0,
+     6.0,
+     8.0,
+     8.0,
+     5.0,
+     10.0,
+     6.0
+    ],
+    "container": "array"
+   },
+   {
+    "name": "MarkerPos",
+    "cat": "Rec",
+    "type": "vector",
+    "edit": true,
+    "default": [
+     [
+      48,
+      0,
+      -28
+     ],
+     [
+      40,
+      12,
+      -30
+     ],
+     [
+      160,
+      0,
+      -15
+     ],
+     [
+      18,
+      0,
+      -58
+     ],
+     [
+      14,
+      -8,
+      -32
+     ],
+     [
+      200,
+      0,
+      0
+     ],
+     [
+      130,
+      35,
+      5
+     ],
+     [
+      0,
+      0,
+      0
+     ],
+     [
+      50,
+      0,
+      -48
+     ],
+     [
+      190,
+      0,
+      -8
+     ]
+    ],
+    "container": "array"
+   },
+   {
+    "name": "MarkerSize",
+    "cat": "Rec",
+    "type": "float",
+    "edit": true,
+    "default": [
+     10.0,
+     6.0,
+     18.0,
+     8.0,
+     7.0,
+     35.0,
+     10.0,
+     0.0,
+     20.0,
+     30.0
+    ],
+    "container": "array"
+   },
+   {
+    "name": "bShowMarkers",
+    "cat": "Rec",
+    "type": "bool",
+    "edit": true,
+    "default": true
+   },
+   {
+    "name": "Player",
+    "cat": "Rec",
+    "type": "object",
+    "edit": true,
+    "class": "/Game/SoulCharger/Mechanics/Ghost/BP_GhostPlayer_SC.BP_GhostPlayer_SC_C"
+   },
+   {
+    "name": "RecHz",
+    "cat": "Rec",
+    "type": "float",
+    "edit": true,
+    "default": 30.0
+   },
+   {
+    "name": "DwellTime",
+    "cat": "Rec",
+    "type": "float",
+    "edit": true,
+    "default": 1.2
+   },
+   {
+    "name": "GazeDeg",
+    "cat": "Rec",
+    "type": "float",
+    "edit": true,
+    "default": 4.5
+   },
+   {
+    "name": "UiDist",
+    "cat": "Rec",
+    "type": "float",
+    "edit": true,
+    "default": 110.0
+   },
+   {
+    "name": "UiUp",
+    "cat": "Rec",
+    "type": "float",
+    "edit": true,
+    "default": 22.0
+   },
+   {
+    "name": "UiColor",
+    "cat": "Rec",
+    "type": "linearcolor",
+    "edit": true,
+    "default": [
+     0.7,
+     0.85,
+     1.0,
+     1.0
+    ]
+   },
+   {
+    "name": "PreviewColor",
+    "cat": "Rec",
+    "type": "linearcolor",
+    "edit": true,
+    "default": [
+     0.75,
+     0.85,
+     1.0,
+     1.0
+    ]
+   },
+   {
+    "name": "TickSound",
+    "cat": "Rec",
+    "type": "object",
+    "edit": true,
+    "default": "/Game/NeuralCanvas/Sound/VR_click1.VR_click1",
+    "class": "/Script/Engine.SoundBase"
+   },
+   {
+    "name": "GoSound",
+    "cat": "Rec",
+    "type": "object",
+    "edit": true,
+    "default": "/Game/NeuralCanvas/Sound/VR_shep_scale_up_02.VR_shep_scale_up_02",
+    "class": "/Script/Engine.SoundBase"
+   },
+   {
+    "name": "EndSound",
+    "cat": "Rec",
+    "type": "object",
+    "edit": true,
+    "default": "/Game/NeuralCanvas/Sound/VR_shep_scale_down_02.VR_shep_scale_down_02",
+    "class": "/Script/Engine.SoundBase"
+   },
+   {
+    "name": "OkSound",
+    "cat": "Rec",
+    "type": "object",
+    "edit": true,
+    "default": "/Game/NeuralCanvas/Sound/VR_click2.VR_click2",
+    "class": "/Script/Engine.SoundBase"
+   },
+   {
+    "name": "SfxVol",
+    "cat": "Rec",
+    "type": "float",
+    "edit": true,
+    "default": 0.8
+   },
+   {
+    "name": "DebugPress",
+    "cat": "Rec",
+    "type": "int",
+    "edit": true,
+    "default": -1
+   },
+   {
+    "name": "ButtonMesh",
+    "cat": "Rec",
+    "type": "object",
+    "edit": false,
+    "default": "/Engine/BasicShapes/Sphere.Sphere",
+    "class": "/Script/Engine.StaticMesh"
+   },
+   {
+    "name": "MarkerMesh",
+    "cat": "Rec",
+    "type": "object",
+    "edit": false,
+    "default": "/Engine/BasicShapes/Sphere.Sphere",
+    "class": "/Script/Engine.StaticMesh"
+   },
+   {
+    "name": "UiMat",
+    "cat": "Rec",
+    "type": "object",
+    "edit": false,
+    "default": "/Game/SoulCharger/Mechanics/Ghost/M_Ghost_SC.M_Ghost_SC",
+    "class": "/Script/Engine.MaterialInterface"
+   },
+   {
+    "name": "TextMat",
+    "cat": "Rec",
+    "type": "object",
+    "edit": false,
+    "default": "/Game/SoulCharger/Core/UI/Materials/M_TextUnlit.M_TextUnlit",
+    "class": "/Script/Engine.MaterialInterface"
+   },
+   {
+    "name": "Idx",
+    "cat": "Z-Rec",
+    "type": "int",
+    "edit": false
+   },
+   {
+    "name": "State",
+    "cat": "Z-Rec",
+    "type": "int",
+    "edit": false
+   },
+   {
+    "name": "T",
+    "cat": "Z-Rec",
+    "type": "float",
+    "edit": false
+   },
+   {
+    "name": "NextS",
+    "cat": "Z-Rec",
+    "type": "float",
+    "edit": false
+   },
+   {
+    "name": "Take",
+    "cat": "Z-Rec",
+    "type": "float",
+    "edit": false,
+    "container": "array"
+   },
+   {
+    "name": "N",
+    "cat": "Z-Rec",
+    "type": "int",
+    "edit": false
+   },
+   {
+    "name": "Anchor",
+    "cat": "Z-Rec",
+    "type": "transform",
+    "edit": false
+   },
+   {
+    "name": "Dwell",
+    "cat": "Z-Rec",
+    "type": "float",
+    "edit": false,
+    "container": "array"
+   },
+   {
+    "name": "Btns",
+    "cat": "Z-Rec",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.StaticMeshComponent",
+    "container": "array"
+   },
+   {
+    "name": "BtnTxt",
+    "cat": "Z-Rec",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.TextRenderComponent",
+    "container": "array"
+   },
+   {
+    "name": "BtnOn",
+    "cat": "Z-Rec",
+    "type": "bool",
+    "edit": false,
+    "container": "array"
+   },
+   {
+    "name": "TitleC",
+    "cat": "Z-Rec",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.TextRenderComponent"
+   },
+   {
+    "name": "InfoC",
+    "cat": "Z-Rec",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.TextRenderComponent"
+   },
+   {
+    "name": "BigC",
+    "cat": "Z-Rec",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.TextRenderComponent"
+   },
+   {
+    "name": "Marker",
+    "cat": "Z-Rec",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.StaticMeshComponent"
+   },
+   {
+    "name": "Accepted",
+    "cat": "Z-Rec",
+    "type": "bool",
+    "edit": false,
+    "default": [
+     false,
+     false,
+     false,
+     false,
+     false,
+     false,
+     false,
+     false,
+     false,
+     false
+    ],
+    "container": "array"
+   },
+   {
+    "name": "LastCount",
+    "cat": "Z-Rec",
+    "type": "int",
+    "edit": false
+   },
+   {
+    "name": "NewComp",
+    "cat": "Z-Rec",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.StaticMeshComponent"
+   },
+   {
+    "name": "NewText",
+    "cat": "Z-Rec",
+    "type": "object",
+    "edit": false,
+    "class": "/Script/Engine.TextRenderComponent"
+   },
+   {
+    "name": "Booted",
+    "cat": "Z-Rec",
+    "type": "bool",
+    "edit": false
+   }
+  ],
+  "functions": {
+   "RcBoot": [],
+   "RcEnsure": [],
+   "RcMakeButton": [],
+   "RcMakeMesh": [
+    {
+     "name": "M",
+     "type": "object",
+     "class": "/Script/Engine.StaticMesh"
+    }
+   ],
+   "RcMakeText": [
+    {
+     "name": "Size",
+     "type": "float"
+    }
+   ],
+   "RcFrame": [],
+   "RcLayout": [],
+   "RcPlaceText": [
+    {
+     "name": "Tc",
+     "type": "object",
+     "class": "/Script/Engine.TextRenderComponent"
+    },
+    {
+     "name": "P",
+     "type": "vector"
+    }
+   ],
+   "RcPlaceBtn": [
+    {
+     "name": "I",
+     "type": "int"
+    },
+    {
+     "name": "P",
+     "type": "vector"
+    }
+   ],
+   "RcTick": [
+    {
+     "name": "Dt",
+     "type": "float"
+    }
+   ],
+   "RcGaze": [
+    {
+     "name": "Dt",
+     "type": "float"
+    }
+   ],
+   "RcGazeOne": [
+    {
+     "name": "I",
+     "type": "int"
+    },
+    {
+     "name": "Dt",
+     "type": "float"
+    }
+   ],
+   "RcDwellReset": [],
+   "RcPress": [
+    {
+     "name": "I",
+     "type": "int"
+    }
+   ],
+   "RcCountStart": [],
+   "RcCountdown": [
+    {
+     "name": "Dt",
+     "type": "float"
+    }
+   ],
+   "RcRecStart": [],
+   "RcRecording": [
+    {
+     "name": "Dt",
+     "type": "float"
+    }
+   ],
+   "RcSampleLoop": [],
+   "RcRecEndCheck": [],
+   "RcRecEnd": [],
+   "RcCapture": [],
+   "RcPushPose": [
+    {
+     "name": "P",
+     "type": "vector"
+    },
+    {
+     "name": "R",
+     "type": "rotator"
+    }
+   ],
+   "RcPushRot": [
+    {
+     "name": "R",
+     "type": "rotator"
+    }
+   ],
+   "RcPushF": [
+    {
+     "name": "V",
+     "type": "float"
+    }
+   ],
+   "RcPreview": [],
+   "RcPlayerStop": [],
+   "RcAccept": [],
+   "RcShow": [],
+   "RcBtn": [
+    {
+     "name": "I",
+     "type": "int"
+    },
+    {
+     "name": "On",
+     "type": "bool"
+    },
+    {
+     "name": "Label",
+     "type": "string"
+    }
+   ],
+   "RcMarker": [],
+   "RcSound": [
+    {
+     "name": "Snd",
+     "type": "object",
+     "class": "/Script/Engine.SoundBase"
+    }
+   ],
+   "RcDebug": []
+  }
+ }
+}

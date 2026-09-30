@@ -3,7 +3,7 @@
 > `/Game/SoulCharger/Mechanics/Heart/BP_HeartManager_SC` · creado 2026-09-19 · **una instancia** en `/Game/TestMeshes` (`Galeria/_Sistema`).
 > Pedido de Beltrán: *"en esta estación vas a quitar la respiración y traer la mecánica de ritmo cardíaco, en la que el usuario tiene que poner el control en su corazón y cuando reconozca que está en el umbral de quietud va a generar un pulso háptico con cada ritmo cardíaco y con cada nacimiento de la ola, y además emitir el sonido de pulso"*.
 > Es el **paso 4 del plan de extracción** de [`docs/MECANICAS-PORTABLES.md`](../../../../docs/MECANICAS-PORTABLES.md) §4.8.
-> **Estado: 🟢 PIE ok (2026-09-29, en `Test_Heart` con la membrana). ⬜ SIN visor.**
+> **Estado: 🟢 PIE ok (2026-09-29, en `Test_Heart` con la membrana) · 🟢 contrato de etapa en PIE (2026-09-30). ⬜ SIN visor.**
 
 ## Qué es
 El modo 2 de [[BP_Sensor_Soul]] (`TickHeart` + `HeartBeatStep` + `HeartZoneFx`) **sacado del sensor**, con el mismo patrón que [[BP_BreathManager_SC]]: no conoce al pawn por clase, no conoce directores, no es dueño del input y no tiene etapas. `BP_Sensor_Soul` **no se tocó**.
@@ -119,7 +119,45 @@ bQuiet = velocidadesQuietas AND (trackingVálido OR bIgnoreTracking)
 - **`TourWake()`** (pública, sin parámetros, idempotente): `ZoneTimer` 0, `BeatTimer` 9999, `SetActorTickEnabled(true)`. Arranca como al empezar la etapa: el primer latido sale en cuanto se abre el umbral.
 - Se eligió apagar el Tick y no un bool de estado: es el mínimo de nodos y no toca `TickHeart`.
 
+## 🎬 Contrato de etapa de la Obra (2026-09-30, `docs/PLAN-NOCHE-2026-09-30.md`)
+Narrativa creó los stubs vacíos; Heart los llenó. La etapa es RECOGNIZING.
+
+| Función / variable | Qué hace |
+|---|---|
+| `StageIntro()` | `bStageDone` false · `TourSleep` (sin latidos durante las instrucciones) · `ScapeGo(1)`: la esfera brota del agua en `EntryTime` · print `HEART: StageIntro / SetSensorColor` (hueco para `BP_UserTool_SC.SetSensorColor(rojizo)` que construye Breath; lo conecta Narrativa) |
+| `StageBegin()` | `bStageDone` false · `BeatCount` 0 · `TourWake`. El latido arranca cuando el usuario lleva el sensor al pecho (el umbral de siempre) |
+| `bStageDone` | lo pone en true **`StageCheck()`** (en el Tick, después de `TickHeart`) cuando `BeatCount ≥ StageBeats`, y hace el print `HEART: bStageDone` |
+| `StageBeats` (int, perilla, **38**; era 75 hasta el 2026-09-30 noche) | latidos hasta el fin: ~0:38 a 60 lpm, ~0:45 a 50 lpm (Beltrán pidió la mitad tras probar la Obra). Cortafuegos del director: 150 s |
+| `StageOutro()` | `TourSleep` · `ScapeGo(−1)`: la esfera se hunde (≤ 3 s) · print `HEART: StageOutro / Release` (hueco para `BP_UserTool_SC.Release()`) |
+| `bContractTest` (bool, perilla, **false**) | En true, en el test suelto: `BeginPlay` → dormido y sin esfera → 2 s → `StageIntro` → 8 s → `StageBegin` → `StageOutro` solo, al llegar a `bStageDone` |
+| `ScapeGo(D)` | `GetActorOfClass(BP_HeartScape_SC)` → `IsValid` → `SphereGo(D)`. Sin membrana en el nivel no hace nada |
+
+- **`BeginPlay`** (reescrito): si hay tag `TOUR` **o** `bContractTest` → `TourSleep` + `ScapeGo(0)` (esfera oculta; solo el mar con su oleaje) → si `bContractTest`, la secuencia con `Delay`.
+- **`TourWake`** (reescrito por gotcha 99): además llama `ScapeGo(1)`, para que `Test_Recorrido`, que no usa el contrato, siga teniendo esfera.
+  - En la Obra, Narrativa **no** llama `TourWake` a Heart: la celda se enciende sin él, `StageBegin` despierta y `StageOutro` duerme.
+  - Al final de la etapa llama `TourSleep`, que es idempotente y no toca la esfera.
+- ✅ **PIE (2026-09-30)**, con valores temporales ya restaurados (`bContractTest`, `bFakeBeat` 60, `StageBeats` 8, `HeartVDropMin` −100, `bIgnoreTracking`):
+  - `StageIntro` a los 33,27 s → `StageBegin` a los 41,27 s.
+  - `UMBRAL IN` → un latido cada 1,00 s, con un pulso visual por latido en la membrana.
+  - 8 latidos → `bStageDone` + `StageOutro` a los 48,84 s → `EntryT` 0.
+  - 0 `Accessed None`.
+- 🔴 Trampa nueva del DSL: los **literales numéricos** pasados a una función PROPIA también se pierden, igual que los string de la §4 de `dsl.md`. `(CallFunction|ScapeGo 1.0)` y `-1.0` quedaron en 0.0. Se arreglaron con `set_pin_value` y se verificaron con `get_pin_value`.
+
 ## Uso en `Test_Heart` (2026-09-29)
 Actor con label `HeartManager` (`BeatDiv` 1) + `BioHub`. Su consumidor es [[BP_HeartScape_SC]] (`Assign OnHeartBeat` en su `BeginPlay`). **Modo de prueba sin sensor: `bFakeBeat`** (E - Prueba), guardado en **false**. Para PIE de escritorio, además `HeartVDropMin` −100 y `bIgnoreTracking` true (guardados en 10 / false).
 ⚠ Sin verificar: con `bFakeBeat` false y sin OSC, si `HeartSmooth` de BioHub queda en 0, `ReadBPM` lo clampa a 30 lpm (un latido lento, no ausencia de latido).
 - **2026-09-29** — ✅ primer PIE real: `HEART: listo`, `UMBRAL IN`, latido cada 1,0 s a 60 BPM, 0 `Accessed None`.
+
+## 🫀 2026-09-30 noche (turno 2) — latido de respaldo + sensor rojizo (sesión Heart, aprobado por Narrativa)
+- **Por qué:** sin mando en el pecho o sin sensor no hay latidos → ni pulsos ni lunas, y `StageBeats` nunca se cumple (callejón sin salida). El APK de postulación corre sin sensor y en autoplay.
+- **`BeatBackup()`** (lo llama `StageCheck` al principio, en cada tick de la etapa despierta): si `BeatCount` no sube durante `BackupAfter` (perilla, **8 s**; **1 s** si `BioRef.bFakeSignal`) → `bForceZone` = true + `bBackupOn` + log `HEART: latido de respaldo`. `NoBeatT`/`BackupLastCount` (Z).
+- **`BackupReset()`** (al final de `StageBegin` y de `StageOutro`): pone en cero el contador y, si el respaldo estaba prendido, apaga `bForceZone`.
+- ✅ PIE con el runner del ensayo (TOUR): entró a los **8,0 s** del `StageBegin`, llegan latidos, `SpawnOrb` corre, 0 Accessed None. ⚠ Sin señal el BioHub publica 0 y `ReadBPM` clampa a **30 lpm** → 38 latidos ≈ 76 s.
+- **Sensor rojizo** (hallazgo de Breath: nadie llamaba al UserTool): `StageIntro` → **`SensorTint()`** = `GetActorOfClass(BP_UserTool_SC)` → `SetSensorColor(SensorColor)` (perilla, **1 / 0,34 / 0,28**, el `colorGlow` de la paleta); `StageOutro` → **`SensorRelease()`** → `Release()`. Sin UserTool → log `HEART: sin UserTool` y sigue. ⚠ El read los rotula `Variables|Default|SetSensorColor`, pero `get_node_infos` confirma que son llamadas con `self` = BP_UserTool_SC. ⬜ Probado solo en Test_Heart (que no tiene UserTool); falta verlo en la Obra con `UserTool_Obra`.
+- Agregados por CIRUGÍA (create_node + connect al final de cada función) para no reescribir `StageIntro`/`StageOutro` y perder el literal de `ScapeGo`.
+
+## 🌀 2026-10-01 — la vuelta: disparo a mitad de etapa + la etapa espera que termine
+- `OrbitAtBeat` (int, editable, **19** = mitad de 38; 0 = sin vuelta). Estado (`Z - Estado`): `bOrbitAsked`, `bOrbitDone`, `ScapeRef`.
+- `StageCheck` reescrito (gotcha 99): `BeatBackup` → **`OrbitAsk`** (a `BeatCount ≥ OrbitAtBeat`, una vez: `ScapeRef = GetActorOfClass(scape)` → `OrbitGo`, log `HEART: empieza la vuelta`) → **`OrbitDoneCalc`** (`bOrbitDone` = sin pedir: `OrbitAtBeat ≤ 0`; pedida: `ScapeRef.OrbitT ≥ 1`, o true si no hay scape) → `bStageDone` solo si `BeatCount ≥ StageBeats` **y** `bOrbitDone`.
+- `StageBegin` → al final **`OrbitRestart`** (flags en false + `OrbitReset` del scape).
+- Tiempos: a 50 lpm la vuelta arranca a ~23 s y la etapa cierra a ~83 s (antes ~46 s); a 30 lpm (respaldo) ~38 s → ~98 s. ⬜ PIE y visor.

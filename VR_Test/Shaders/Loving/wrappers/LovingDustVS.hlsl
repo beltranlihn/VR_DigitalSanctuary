@@ -69,14 +69,29 @@ float3 Vb = cross(ax, U);
 float zW0, zW1;
 L.ArmWindow(a1, a2, a3, a4, a5, b0, b1, b2, Lx, zW0, zW1);
 float zs = clamp(lerp(zW0, max(zW1, zW0), UVa.x) + 1.5 * DustK.z * sin(T * 0.29 + 6.2831853 * e), zW0, max(zW1, zW0));
-float3 qd = normalize(d - ax * dot(d, ax) + float3(1.0e-4, 0.0, 0.0));
+// 🔴 2026-09-30 (Beltran: "en las tiras largas hay agrupaciones de particulas que suben y bajan en vez de
+// quedarse envolviendo la tira"): la direccion alrededor de la hebra salia de d, cuya componente z es
+// 2 UVa.x - 1, y UVa.x es TAMBIEN la posicion a lo largo del tramo. En una hebra horizontal eso ponia el
+// primer 40 % de sus particulas TODO debajo de la hebra y el ultimo 40 % TODO arriba (una banda que cruza de
+// abajo hacia arriba; 4x mas densa que lo parejo en un sector). Ahora el angulo alrededor del eje es el azimut
+// propio de la particula (phd = 2 pi UVa.y), independiente de la posicion: anillo parejo en todo el tramo
+// (medido en Python: 1,0x en todos los quintos y orientaciones). Mismo marco U/Vb que los anillos del brazo.
+float3 qd = U * cos(phd) + Vb * sin(phd);
 float3 Pstr = Pc + ax * zs + qd * (a3.x + 0.35 * off);
 float3 sdz;
 Pstr += L.StrandCurl(Pstr, Pc, ax, U, Vb, zW0, zW1, saturate(LV1.x), saturate(LV1.z), LV5.y, kf, T, sdz);
 // eleccion (sin ramas)
 float isCore = step(sel, 0.34);
 // hebra corta (en calma el grupo se acerca): sus particulas se amontonarian en el cuello -> van a la envoltura
-float isEnv  = max(step(e, 0.62), 1.0 - L.SS(4.0, 12.0, zW1 - zW0));
+// 🔴 2026-09-30: antes isEnv era FRACCIONAL entre 4 y 12 cm de tramo libre: la particula quedaba en un punto
+// INTERMEDIO entre la hebra y la bolsa (en el aire) y, mientras el tramo cambiaba, viajaba de uno a otro (en calma,
+// con la celula mas contraida, se veia como el mismo 'suben y bajan'). Ahora cada particula de hebra tiene su
+// PROPIO umbral (4-12 cm): de un lado esta en la hebra, del otro en la bolsa; al cruzarlo se achica a 0 en una
+// banda de +-1,5 cm de tramo y reaparece del otro lado (nunca en el aire, nunca un salto visible).
+float Lf  = zW1 - zW0;
+float thr = 4.0 + 8.0 * frac(e * 13.37);
+float isEnv = max(step(e, 0.62), 1.0 - step(thr, Lf));
+float swp = lerp(saturate(abs(Lf - thr) / 1.5), 1.0, step(e, 0.62));
 float3 P = lerp(lerp(Pstr, Penv, isEnv), Pcore, isCore);
 float vis = lerp(step(0.5, Gs.w), 1.0, isCore);
 float isStr = (1.0 - isCore) * (1.0 - isEnv);
@@ -89,7 +104,7 @@ float3 f   = normalize(CamL.xyz - P + float3(1.0e-4, 0.0, 0.0));
 float3 rgt = normalize(cross(float3(0.0, 0.0, 1.0), f) + float3(1.0e-4, 0.0, 0.0));
 float3 upv = cross(f, rgt);
 float2 c   = Crn.xy * 2.0 - 1.0;
-float  sz  = max(DustK.x, 0.0) * (0.6 + 0.8 * frac(e * 3.7)) * vis;
+float  sz  = max(DustK.x, 0.0) * (0.6 + 0.8 * frac(e * 3.7)) * vis * lerp(1.0, swp, 1.0 - isCore);
 float3 dst = P + (rgt * c.x + upv * c.y) * sz;
 float  tw  = 0.55 + 0.45 * sin(T * (0.7 + 0.9 * UVa.y) + 6.2831853 * e);
 DustUV = float3(c, max(DustK.y, 0.0) * tw * vis);

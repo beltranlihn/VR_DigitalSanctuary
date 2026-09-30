@@ -503,3 +503,58 @@ Pedido de Beltrán: *"meter los slot dentro del BP de blob chain… si agrando, 
 - 🧹 Intro sin esfera: borradas `SpawnIntroOrb`, `DropIntroOrb`, `SpawnOneOrb`, `RaiseSlots`, `RaiseOneSlot` y las variables `IntroOrb`/`IntroTag`. `SeqIntroGo` = Print → `ShowPanelNow` → `ShowSlots` → `ArmBeamNow` → `SetIntroReady`. El TP `IntroTP` se borró del nivel.
 - ✅ Verificado en PIE (`Phase` forzado a 5 y **devuelto a no-editable** después): 8 slots numerados 0-7, la mesa reaparece, dos pasadas, `OnStageFinished`; slot 0 en **(363124,4 / 99903,0 / 98,2)** y slot 7 en su espejo Y, escala **1,555** = la del TP. `Test_Sequencer`: 24 actores, guardado.
 - Dependencias del gusano medidas: `BP_SeqSlot_SC`, `BP_Sequencer_SC`, `BP_SoundOrb_SC`, sus materiales y mallas. **El paquete de la mesa = `BP_BlobChain_SC` + `BP_SeqSlot_SC`.**
+
+
+## 🎬 2026-09-30 (noche) — CONTRATO DE LA OBRA + SAVE nuevo + cuadro de resultados (turno Secuencer, director Narrativa)
+Plan de la noche: `docs/PLAN-NOCHE-2026-09-30.md`. Todo verificado en PIE de punta a punta (sin errores ni Accessed None).
+
+### Contrato (lo llama `BP_Obra_SC`; en la Obra **no** se llama `TourWake`, que arranca el flujo viejo `SeqIntro`)
+| API | Qué hace |
+|---|---|
+| `StageIntro()` | solo si `Phase` 0: `bContractMode`, despierta (`TourDormant` false), `Phase` 1, sonido `SBubbleHoverOn` + `ShowWorm` (los 8 slots → el gusano nace) → timer `IntroOrbs` (`IntroOrbsAt` 1,2 s: `ProtoHover` + `SpawnOrbs`) → timer `IntroTools` (`IntroToolsAt` 2,4 s: `ProtoSelect` + `CallRigWake`, los mandos crecen) |
+| `StageBegin()` | si `Phase` 0 llama `StageIntro` antes; `BeginGo`: `Phase` 2, `IntroReady`, `ArmBeamNow` (láser), `ShowButton` (SAVE), pad a `PadDelay` |
+| `bStageDone` | en contrato lo pone `CloseOut` al terminar las `FinalPasses` después del SAVE (`bReplayOnSave` true = la coda del 27: la mesa se va, reaparece en el TP y suena 2 veces). Con `bReplayOnSave` false se prende apenas se guarda |
+| `StageOutro()` | idempotente (`bOutroStarted`): limpia timers, `SBubbleHoverOut` + `BeamOff` (mandos y láser) + `HideButton` (SAVE) → `OutroOrbs` a `OutroStep` 0,5 s (esferas SUELTAS) → `OutroWorm` a 1,0 s (`CloseGuts`: gusano + pad en fundido) → `FinaleEnd` 1,5 s después: `Phase` 9 + `OnStageFinished` |
+- Prueba suelta: **`bContractTest`** (9-Debug; en la instancia true). Corre solo si **no hay actor con tag `TOUR`** (`CtCheck`): `StageIntro` → `StageBegin` a `ContractGap` 8 s → `StageOutro` cuando `bStageDone`. `DebugTourCmd`: 3 SAVE simulado · 4 Outro · 5 Intro · 6 Begin · 7 resultados · 8 fin de resultados.
+- **`VanishAll` en contrato solo borra las SUELTAS** (`ClearLoose`): las colocadas quedan vivas y en tamaño 0 (siguen a su gota) para el cuadro de resultados.
+- Fases nuevas: **7** = recién teletransportado (la aparición arranca 0,12 s después: regla del director, nada anima en el cuadro del teleport; `FinaleAppear` → `FinaleShow`) · **8** = resultados saliendo · 9 = cerrado.
+
+### Cuadro de resultados
+- `ResultsShow(Xf)`: `ResultsWake` (prende el Tick de secuenciador, gusano, slots y esferas) → `ResultsPlace`: todo a 0 exacto (como `Teleport`), `ResultsMeasure` (centro y medio ancho de los slots en local del gusano: (3,2, 0, −20) y 62,37) → escala = `ResultsWidth` / (2·medio + 2·`ResultsPad`) = **0,6305** para 90 cm → `SetActorTransform(gusano, T(−centro) · Rot(yaw −90)·Escala · Xf)`: la fila de slots va sobre el **X local de Xf**, slot 0 en −X. `ResultsOrbFit` escala `OrbFit` del gusano con el mismo factor (las esferas toman su tamaño en unidades locales). Timer `ResultsEnter` 0,12 s: sonido + `ShowWorm` + `Phase` 3 + pad → suena en bucle (`CloseOut` no cierra con `bResultsMode`).
+- `ResultsHide()`: `Phase` 8, `HideSlots`, `TickResults` baja el pad con curva (ResFade², `ExitTime` 1,5 s) → `Stop` → `Phase` 9. No vuelve a disparar `OnStageFinished`.
+- Prueba: **`bResultsTest`** → tras la salida del contrato, `ResultsTestGo` (1,5 m frente a la cámara) + láser de resultados del rig; `ResultsTestEnd` a `ResultsHold` s.
+
+### Trampas pagadas en este turno (gotchas 535-539)
+- `SetVolumeMultiplier` sobre `PadAudio`/`ChargeAC` cae en la sobrecarga de **SynthComponent** → helpers **`PadVolume(V)`** (acá) y `ChargeVolume(V)` (en `BP_SaveMelody_SC`) hechos por cirugía con `declaring_class=/Script/Engine.AudioComponent`.
+- Las variables instance-editable NUEVAS nacieron en **0 en la instancia** (no el default del CDO): `ContractGap`, `IntroOrbsAt`… y `bReplayOnSave` false. Se escribieron a mano en la instancia.
+
+## ✨ 2026-09-30 (noche, 2º turno) — HALO de las esferas + resultados v5 (pedido de Beltrán + Narrativa)
+
+### Hover sin sonido ni háptico (verificado en vivo, sin cambios)
+Beltrán vio en la línea de tiempo web un sonido por hover. **En Unreal ya no existe desde el 09-24**: `UpdateHover` → `RefreshHover` es solo visual (`HoverScale` 1,15); `PlayPreview` quedó huérfana (sin llamadas). El sample suena en `GrabStart` (0,5) y el háptico sale de `GrabTryR/L` → `Pulse` y de `PlacePulse` (encaje en slot). Narrativa corrigió la web.
+
+### Halo de partículas (`BP_SoundOrb_SC` + `NS_OrbHalo_SC`)
+*"que cada una de las esferas flotantes tengan una esfera de partículas… muy sutil… con un curl noise… cuando las agarramos se exploten un poco suavemente y desaparezcan… si vuelve a su lugar, vuelven a aparecer suavemente… muy pequeñas, translúcidas y del color de cada esfera"*.
+- **Componente `Halo`** (NiagaraComponent, `NS_OrbHalo_SC`, `bAutoActivate` false) colgado de `DefaultSceneRoot` (NO del `Body`, que gira y pulsa).
+- **`NS_OrbHalo_SC`** (duplicado de `NS_OrbAttract_SC`, CPU): **espacio de MUNDO** (el estallido se queda donde estaba la esfera mientras ella viaja a la mano) · `ShapeLocation` esfera con `Sphere Surface Distribution` 1 y radio `User.Radius` · `AddVelocity` apagado · `Drag` 1,5 · **`CurlNoiseForce`** (Baked Medium, frecuencia 50) con fuerza `User.Noise` · `PointAttractionForce` con fuerza `User.Push` hacia `User.Target` (0 en reposo; NEGATIVO = estallido), sin matar partículas · `ScaleColor.Scale Alpha = User.Fade × RampInOut` (cada partícula entra en el 25 % inicial de su vida y se apaga en el 30 % final). User vars nuevas: `Radius`, `Push`, `Fade`, `Noise`.
+- **Máquina de estado** (Tick → `HaloTick(DT)` al final de la cadena, con el DT ya limitado a 1/30):
+  - `want = HaloOn && !Grabbed && !Placed && !Moving && !Dying && RevealTgt > 0,5`.
+  - Flanco a `want`: `HaloEdge` → `HaloFromDirector` (copia las 11 perillas del director) + `HaloParams` (color de la esfera con alpha `HaloAlpha`, tasa, vida, tamaños, radio = 50 × `OrbScale` × `HaloRadius`, ruido, `Push` 0, `Target` = `HomeLoc`) → si está inactivo o con fundido en 0, `Activate(true)`.
+  - Flanco a `!want`: `SpawnRate` 0 + `Push = −HaloPush × OrbScale` (estallido suave).
+  - `HaloFadeStep`: `HaloFade` lineal (`HaloInTime` 1,6 s / `HaloOutTime` 0,9 s), empuja `Fade = smoothstep(HaloFade) × (want ? 1 : RevealT)` (al morir, el halo se apaga con la esfera y no hay corte cuando se destruye); en 0 → `Deactivate`.
+- ✅ **PIE** (`Test_Sequencer`): las 68 esferas con `HaloWant` true / `HaloFade` 1 a los 7 s; la salida (`OutroOrbs` → `Vanish`) corrió sin errores. ⬜ **Visor**: tamaño, densidad y contraste. Con la paleta Uyuni (todo claro sobre cielo claro), partículas translúcidas del color de la esfera **pueden leerse poco**: si pasa, subir `HaloAlpha`/tamaños en el director. ⬜ **Rendimiento en Quest**: 68 sistemas CPU; A/B con `ke * PerfHaloOff` / `ke * PerfHaloOn` (director) en el próximo APK.
+
+### Resultados v5 (pedido de Narrativa)
+- **`ResultsShow(Xf)`**: modo resultados + fase 7 + `ResultsWake` + **`ResultsSampleIfEmpty`** (ANTES de `ResultsPlace`, así las de muestra reciben `ZeroOccupant`/`ResultsOrbFit`) + `ResultsPlace` + timer `ResultsEnter` (0,12 s: SOLO `ShowWorm`). **Sin sonido.**
+- **`ResultsPlay()`**: solo en modo resultados y fase 7 → `PadVolume 1`, fase 3, `PassCount` 0, `StartPad`. Lo llama la Obra cuando el pawn queda quieto. Debug: `DebugTourCmd` 9. `ResultsTestGo` lo llama a los 2 s (cirugía: un timer más).
+- **Melodía de muestra** (`ResultsCountOcc` → `ResUserOrbs`; si 0 → `ResultsSample`): `SampleOrb(Slot, Clip)` en slots 0/2/3/5/7 con clips 0/5/9/12/16: spawn → `SetLookIndex` → `Setup` → `Reveal` → **`BP_SoundOrb_SC.PlaceQuiet(Slot)`** (ocupa el slot, lo pinta y aplica color, **sin** `NotifyPlaced`, sin mensaje y sin `PlacePulse`: nada de háptico al aparecer los resultados).
+- ✅ PIE `Test_Sequencer`: 5 de muestra, colocadas, sin halo, calladas; `ResultsPlay` → fase 3 + pad. ✅ Obra (`bDebugEnding` + `bPhotos`, dos vueltas): `ResultsShow` + muestra sin `Accessed None`; **la Obra todavía no llama `ResultsPlay`** (le toca a Narrativa).
+- 🔴 **Pendiente — profundidad del gusano en la ventana** (medido en la Obra, cuadro en x = 110): ancho OK (±39,3 cm) y alto OK (z = 164 = centro de la ventana), pero el gusano conserva su **arco horizontal de la galería**: el medio queda 6 cm delante del cuadro y las puntas **17,5 cm detrás** (atraviesan el panel; en la foto las puntas se ven subidas sobre el borde). Arreglo: aplanar la profundidad en `ResultsPlace` o llevar el arco al plano de la ventana (sin pasarse de su alto, ~15 cm). Foto: `Saved/Screenshots/WindowsEditor/HighresScreenshot00062.png`.
+
+## 2026-09-30 (noche, 3er turno) — resultados visibles en la Obra, gusano en recta, reloj de autor
+- 🔴 **Causa de "falta láser y puntero" (Beltrán):** la Obra apaga la celda de Attracting al terminar la etapa (`QueueCell(3,false)`: `SetVisibleInSceneCaptureOnly(true)` en cada PrimitiveComponent + sin colisión + sin tick + audio en pausa) y **no la re-prende en la fase 12**. `SetVisibility(true)` NO anula el modo solo-captura. Afectaba también al **gusano** (la foto de la tarde mostraba las 5 esferas de muestra —spawneadas nuevas, fuera de la celda— pero no el tubo).
+- **`ResultsUnhide(A: Actor)`**: `SetVisibleinSceneCaptureOnly(false)` en cada PrimitiveComponent de `A` + `SetPaused(false)` en cada AudioComponent. **`ResultsUnhideAll()`**: cadena(s) + cada slot + su `Occupant` válido + self. **No** toca las 68 del domo (también son de la celda). `ResultsShow` la llama después de `ResultsSampleIfEmpty`.
+- ✅ **Gusano ya resuelto: se desenrolla en recta.** **`ResultsUnroll(C)`** (antes de `ResultsMeasure` en `ResultsPlace`, insertado por cirugía entrando por el frente): cada slot a `TransformLocation(chainXf, (0, (StepIndex − 3,5) × ResultsSpacing, −20))`. **`ResultsSpacing`** 21,4 (0-Config, no IE). La malla no se rompe: `SM_BlobTube_SC` es un tubo recto y el recorrido lo pone el material desde C0..C7. Medido en la Obra: 8 slots en x = 114 (4 cm delante del cuadro en x = 110), paso 11,5 cm, ±40,2, z 163,97, escala 0,536.
+- **Regla de Beltrán "los tiempos los fija el timeline, nunca la duración del sonido"**: `Boot` ya no hace `Duration(PadSound)/NumSteps`; llama **`CalcStepDur`** = `60 / max(StepBPM, 1)`. **`StepBPM`** 90 (0-Config, no IE) → `StepDur` 0,6667 (el mismo valor de antes). Los nodos viejos se borraron.
+- **`ResultsPlay`** usa **`ResultsPadDelay`** 0,5 s (0-Config, no IE) en vez de `PadDelay`: en la Obra el pad arrancaba 18,8 s después de `ResultsPlay`. ✅ Verificado por Narrativa en el PIE completo: el pad suena 0,5 s después.
+- ✅ PIE de la Obra (`bDebugEnding` + `bPhotos`, `HighresScreenshot00102`): gusano completo en recta dentro de la ventana, `ResultsPlay` → "pad ON", sin `Accessed None`. Obra guardada limpia (59 actores, flags false/false, Speed 1).

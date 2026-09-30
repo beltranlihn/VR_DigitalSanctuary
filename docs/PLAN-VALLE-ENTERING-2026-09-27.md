@@ -511,6 +511,7 @@ salida = cielo + dither
 | `9 - Interno` | `ShadowCenter` | vector | (380, 0, 125) | — | Centro del metaball en local (cm). Lo escribe el BP |
 | `9 - Interno` | `ShadowRadius` | escalar | 85 | — | Radio efectivo (cm). Lo escribe el BP |
 | `9 - Interno` | `ShadowStrength` | escalar | 1,5 | — | Intensidad efectiva. Lo escribe el BP (0 = sin sombra) |
+| `9 - Interno` | `SwellTimeOfs` | escalar | 0 | — | 🆕 2026-09-30 (pedido de Beltrán: "al exhalar la ondulación más rápida"). **Lo escribe el BP** (`StepSwell`): segundos EXTRA del reloj del oleaje, de su sombreado y de la respiración de las colinas (`Tt = View.GameTime + SwellTimeOfs`). Crece solo al exhalar (`(k − 1)·dt`), así la ondulación se acelera sin saltar de fase. 0 = la v2 exacta |
 | `9 - Interno` | `LiveFogDist` | escalar | 1 | — | 🆕 capa viva. **Lo escribe el BP** (`PushLive`; neutro = 1 = la v2 exacta). × `FogDist` (la bruma respira: 1,2 inhalado, 0,85 exhalado) |
 | `9 - Interno` | `LiveHFogDist` | escalar | 1 | — | 🆕 capa viva. **Lo escribe el BP** (`PushLive`; neutro = 1 = la v2 exacta). × `HFogDist` |
 | `9 - Interno` | `LiveHFogFall` | escalar | 1 | — | 🆕 capa viva. **Lo escribe el BP** (`PushLive`; neutro = 1 = la v2 exacta). × `HFogFall` (la bruma baja sube al exhalar: 1,35) |
@@ -546,7 +547,7 @@ Es el **cuerpo** de cada Custom. En los `.hlsl` va además la cabecera de interf
 // Sin bucles ni arreglos (gotcha 399): las 4 dunas y las 4 olas van escritas una por una.
 float pm = floor(PerfMode + 0.5);
 if (Part > 0.5 || pm == 1.0 || pm == 3.0) { return float3(0.0, 0.0, 0.0); }
-float Tt = View.GameTime;
+float Tt = View.GameTime + SwellTimeOfs;
 float x = LP.x;
 float y = LP.y;
 float r = sqrt(x * x + y * y);
@@ -647,7 +648,7 @@ return float3(0.0, 0.0, h);
 // SwellShadeFull, r): el llano ondula en la luz sin mover la geometria (sin bordes de oclusion). No incluye Av' s.
 float pm = floor(PerfMode + 0.5);
 if (Part > 0.5 || pm == 1.0 || pm == 3.0) { return float4(0.0, 0.0, 0.0, 0.0); }
-float Tt = View.GameTime;
+float Tt = View.GameTime + SwellTimeOfs;
 float x = LP.x;
 float y = LP.y;
 float r = sqrt(x * x + y * y);

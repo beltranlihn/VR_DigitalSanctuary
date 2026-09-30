@@ -114,6 +114,7 @@ GUSANO = [
     ("5 - Gusano", "WormCol", "v", s2l("#f0c9d6"), "", "Color del reflejo bajo el gusano"),
 ]
 PARAMS = PARAMS + (GUSANO if CON_GUSANO else []) + [
+    ("0 - Piso", "Plain", "s", 0, "0 / 1", "1 = piso LISO y quieto: el patron queda APAGADO, no borrado (sin mandala, poligonos, grano ni ola; quedan el tono del plano, el agua y la bruma). Lo escribe el actor desde FloorPattern (2026-09-30, pedido de Beltran)"),
     ("9 - Interno", "PerfMode", "s", 0, "0 … 9", "Banco de medicion: " + " · ".join("%d %s" % (i, n) for i, n in enumerate(PERF_MODOS)) + " (lo escriben los eventos ChladniPerfN)"),
     ("9 - Interno", "PerfForce", "s", 0, "0 / 1", "Banco: 1 = las 8 figuras encendidas, peor caso fijo (lo escriben los eventos ChladniPerfN)"),
     ("9 - Interno", "Part", "s", 0, "0 / 1", "0 piso, 1 cielo (lo pone el Construction Script)"),
@@ -122,7 +123,7 @@ PARAMS = PARAMS + (GUSANO if CON_GUSANO else []) + [
   + ([("9 - Interno", "WS%d" % i, "v", [0.0, 0.0, -1.0], "", "Posicion del slot %d del gusano (cm, local del piso; z < 0 = no hay). La escribe el actor" % i) for i in range(8)] if CON_GUSANO else []) \
   + [("9 - Interno", "V%d" % i, "s", 0, "0 … 1", "Ola de formacion del slot %d, curva de Heart (lo escribe el actor)" % i) for i in range(8)]
 
-FIG = ["Sym", "Kr", "BaseW", "PlateR", "CenterX", "Calm", "Warp", "ReliefH", "ReliefW", "SwellH", "SwellW", "EdgeIn", "Geo", "GeoFreq", "Round", "Sharp", "VibAmp", "Order"] + ["W%d" % i for i in range(8)] + ["V%d" % i for i in range(8)] + ["PerfMode", "PerfForce"]
+FIG = ["Sym", "Kr", "BaseW", "PlateR", "CenterX", "Calm", "Warp", "ReliefH", "ReliefW", "SwellH", "SwellW", "EdgeIn", "Geo", "GeoFreq", "Round", "Sharp", "VibAmp", "Order"] + ["W%d" % i for i in range(8)] + ["V%d" % i for i in range(8)] + ["PerfMode", "PerfForce", "Plain"]
 
 
 def modo(n):
@@ -304,6 +305,7 @@ def vs():
            ("Part", "float", "ScalarParameter Part", "0 piso, 1 cielo")]
     ent += [(n, "float", "ScalarParameter " + n, "") for n in FIG]
     L = ["if (Part > 0.5) { return float3(0.0, 0.0, 0.0); }",
+         "[branch] if (Plain > 0.5) { return float3(0.0, 0.0, 0.0); }   // piso liso: quieto",
          "[branch] if (%s) { return float3(0.0, 0.0, 0.0); }   // banco: sin WPO" % modo(3)]
     L += forzar()
     L += cabecera_comun()
@@ -342,7 +344,23 @@ def ps():
          "  [branch] if (%s) { return SkyMid; }   // banco: cielo plano" % modo(5)]
     L += ["  " + l for l in cielo("Vw", "skyC")]
     L += ["  return skyC;", "}",
-          "[branch] if (%s) { return lerp(SaltShade, SaltLit, FlatTone); }   // banco: piso plano" % modo(4)]
+          "[branch] if (%s) { return lerp(SaltShade, SaltLit, FlatTone); }   // banco: piso plano" % modo(4),
+          "// piso LISO (el patron apagado, no borrado): el tono del plano + el agua y la bruma, para que siga fundiendose con",
+          "// el horizonte. Sin mandala, poligonos, grano ni ola",
+          "[branch] if (Plain > 0.5) {",
+          "  float3 colP = lerp(SaltShade, SaltLit, FlatTone);",
+          "  float fresP = pow(1.0 - saturate(-Vw.z), 5.0) * Wet;",
+          "  [branch] if (fresP > 0.002) {",
+          "    float3 RwP = reflect(Vw, float3(0.0, 0.0, 1.0));"]
+    L += ["    " + l for l in cielo("RwP", "refP")]
+    L += ["    colP = lerp(colP, refP, saturate(fresP));",
+          "  }",
+          "  float3 HdP = normalize(float3(Vw.xy, 0.0001));"]
+    L += ["  " + l for l in cielo("HdP", "fogP", e="0.0")]
+    L += ["  colP = lerp(colP, fogP, (1.0 - exp(-Dist / max(FogDist, 1.0))) * 0.85);"]
+    L += ["  " + l for l in hash_bloque("dzP", "floor(Parameters.SvPosition.xy)")]
+    L += ["  return colP + (dzP - 0.5) * Dither / 255.0;",
+          "}"]
     L += forzar()
     L += cabecera_comun()
     L += ["float2 p = LPi.xy;",

@@ -176,8 +176,8 @@ Todo es invariante a traslaciones y giros en yaw: `s`, `e0`, `e1`, `W`, `Lf0`, `
 | `3 - Rafaga` | `DriftFar` | escalar | 3 | 1 … 5 | Lejos la deriva crece con la distancia hasta × DriftFar (para que se vea a 10-30 m) |
 | `4 - Confort` | `NearMin` | escalar | 120 | 110 … 150 | 🔴 cm a los ojos: invisible debajo. **No bajar de 110**: el volumen del aliento (inhalar 40-95 cm, pluma hasta 110) es SUYO |
 | `4 - Confort` | `NearFull` | escalar | 180 | NearMin + 30 … 250 | cm: plena desde acá |
-| `4 - Confort` | `FarFade0` | escalar | 2600 | 1500 … 3000 | cm: las lejanas empiezan a apagarse |
-| `4 - Confort` | `FarFade1` | escalar | 3600 | FarFade0 + 500 … 3600 | cm: apagadas (la nube llega a 36 m) |
+| `4 - Confort` | `FarFade0` | escalar | 8000 | 1500 … 10000 | cm: las lejanas empiezan a apagarse (rev. 3: 2600 → 8000) |
+| `4 - Confort` | `FarFade1` | escalar | 11000 | FarFade0 + 500 … 11000 | cm: apagadas (rev. 3: la nube llega a 110 m; antes 36 m) |
 | `4 - Confort` | `SpeedFade0` | escalar | 6 | 4 … 10 | grados/s en la vista: desde acá lo que se mueve rápido se apaga |
 | `4 - Confort` | `SpeedFade1` | escalar | 12 | SpeedFade0 + 3 … 20 | grados/s: apagado del todo |
 | `4 - Confort` | `SoulMargin0` | escalar | 2 | 0 … 6 | grados alrededor del disco del metaball sin polvo |

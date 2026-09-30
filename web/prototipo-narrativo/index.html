@@ -1,0 +1,352 @@
+<meta charset="utf-8">
+<title>Prototipo Soul Charger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: el mundo 3D arriba; abajo la consola, que se abre en una línea de tiempo tipo editor de video. */
+:root {
+  --void: #05070d;          /* el negro del vacío */
+  --fog: #9fb3e6;           /* la niebla azul del inicio */
+  --warm: #e9b77f;          /* la luz cálida del Hall */
+  --ink: #e8ecf6;           /* texto sobre el mundo */
+  --dim: #8d96ad;           /* texto secundario */
+  --line: rgba(232,236,246,.14);
+  --panel: rgba(8,11,20,.72);
+  --deck: #0b0e17;          /* fondo del editor */
+  --deck2: #0f1320;
+  --fx: #9fe0d0;            /* sonido */
+  --hap: #f2c46d;           /* háptica */
+  --vo: #c9b8ff;            /* voz de Alma */
+  --amb: #9cc3ff;           /* música */
+  --pawn: #b8c4d8;          /* movimientos del pawn */
+  --world: #7fb3a8;         /* mundo: luz, entornos, títulos */
+  --obj: #d7a4c8;           /* objetos: Alma, timbre, sensor, anillo */
+  --ui: #e6e1a8;            /* instrucción: fantasma y texto */
+  --int: #ef8f7a;           /* interacción: esperas del usuario */
+  --display: "Michroma", "Eurostile", "Arial Narrow", sans-serif;
+  --body: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
+  --tlh: 96px;              /* alto de la consola inferior (lo actualiza el script) */
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; }
+[hidden] { display: none !important; }
+body { background: var(--void); color: var(--ink); font-family: var(--body); overflow: hidden; }
+#stage { position: fixed; left: 0; right: 0; top: 0; bottom: var(--tlh); }
+#stage canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+
+/* barra superior: dónde estamos en el guion */
+#top { position: fixed; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+  display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; pointer-events: none;
+  background: linear-gradient(var(--panel), transparent); }
+#where { display: grid; gap: 4px; min-width: 0; }
+#act { font-family: var(--display); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
+#beat { font-size: 15px; font-weight: 600; text-wrap: balance; }
+#beatdesc { font-size: 13px; color: var(--dim); max-width: 62ch; line-height: 1.45; }
+#clock { font-family: var(--mono); font-size: 12px; color: var(--dim); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#clock b { color: var(--ink); font-weight: 500; }
+
+/* marcas de producción: sonidos, hápticos, efectos */
+#cues { position: fixed; right: 16px; top: 96px; display: grid; gap: 6px; justify-items: end; pointer-events: none; max-width: min(46vw, 360px); }
+.cue { font-family: var(--mono); font-size: 11px; padding: 4px 8px; border-radius: 3px; background: var(--panel);
+  border: 1px solid var(--line); animation: cue 3.2s ease forwards; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.cue.fx { color: var(--fx); } .cue.hap { color: var(--hap); } .cue.vfx { color: var(--ink); } .cue.amb { color: var(--amb); }
+.cue i { font-style: normal; color: var(--dim); margin-right: 6px; }
+@keyframes cue { 0% { opacity: 0; transform: translateX(8px); } 8% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+/* subtítulo de Alma */
+#vo { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tlh) + 18px);
+  width: min(760px, calc(100% - 32px)); text-align: center; pointer-events: none; display: grid; gap: 6px; }
+#vo .id { font-family: var(--mono); font-size: 11px; color: var(--vo); letter-spacing: .06em; }
+#vo .txt { font-size: clamp(15px, 2.1vw, 20px); line-height: 1.45; text-shadow: 0 1px 12px rgba(0,0,0,.8); text-wrap: balance; }
+
+/* la línea mínima de instrucción (bajo el fantasma) */
+#hint { position: fixed; left: 50%; top: calc((100% - var(--tlh)) * .62); transform: translateX(-50%); font-size: 15px; letter-spacing: .02em;
+  color: #f4f6fb; text-shadow: 0 0 18px rgba(0,0,0,.9); pointer-events: none; transition: opacity .6s; text-align: center; padding-inline: 16px; }
+
+button, select, input, textarea { font: 500 12px var(--body); color: var(--ink); }
+button, select { background: rgba(232,236,246,.08); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+button:hover, select:hover { background: rgba(232,236,246,.16); }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--fog); outline-offset: 1px; }
+button.on { border-color: var(--fog); color: #fff; }
+
+/* ===== consola inferior / línea de tiempo ===== */
+#bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--deck); border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom, 0px); z-index: 3; }
+#tl-grip { height: 6px; cursor: ns-resize; flex: none; display: none; }
+#tl-grip::after { content: ""; display: block; width: 44px; height: 3px; border-radius: 2px; background: var(--line); margin: 2px auto 0; }
+body.tl-open #tl-grip { display: block; }
+#controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 8px 12px 6px; flex: none; }
+#controls .sep { flex: 1; }
+#controls .view label { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--dim); }
+#controls .view input[type=range] { width: 76px; accent-color: var(--fog); }
+#controls .view output { font-family: var(--mono); font-size: 11px; color: var(--ink); min-width: 34px; }
+/* nada de la interfaz se selecciona como texto al hacer clic o arrastrar; solo los campos editables */
+body { -webkit-user-select: none; user-select: none; }
+input, textarea, #tl-modal textarea { -webkit-user-select: text; user-select: text; }
+#tl-scroll.panning, #tl-scroll.panning * { cursor: grabbing !important; }
+#controls .grp { display: flex; gap: 4px; align-items: center; }
+#controls .grp + .grp { margin-left: 6px; padding-left: 10px; border-left: 1px solid var(--line); }
+#tl-time { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; min-width: 104px; color: var(--ink); }
+#tl-status { font-size: 11px; color: var(--dim); white-space: nowrap; }
+#b_skip.on { border-color: var(--int); color: #fff; }
+.edonly { display: none !important; }
+body.tl-open .edonly { display: flex !important; }
+body.tl-open .miniononly { display: none !important; }
+#track { position: relative; height: 26px; cursor: pointer; margin: 0 12px 8px; flex: none; }
+#track .acts { position: absolute; inset: 14px 0 6px; display: flex; gap: 2px; }
+#track .seg { height: 6px; border-radius: 1px; background: rgba(232,236,246,.16); position: relative; }
+#track .seg:hover { background: rgba(232,236,246,.34); }
+#track .seg span { position: absolute; top: -14px; left: 0; font-size: 10px; color: var(--dim); white-space: nowrap; font-family: var(--mono); pointer-events: none; overflow: hidden; max-width: 100%; }
+#track .head { position: absolute; top: 9px; width: 2px; height: 16px; background: var(--ink); border-radius: 1px; pointer-events: none; }
+
+#tl-body { flex: 1; min-height: 0; display: none; }
+body.tl-open #tl-body { display: grid; grid-template-columns: 1fr 288px; }
+#tl-scroll { overflow: auto; position: relative; background: var(--deck); overscroll-behavior: contain; }
+#tl-ruler { position: sticky; top: 0; height: 22px; z-index: 6; background: var(--deck2); border-bottom: 1px solid var(--line); cursor: text; }
+#tl-corner { position: sticky; left: 0; width: 124px; height: 22px; background: var(--deck2); z-index: 2; float: left; border-right: 1px solid var(--line); box-sizing: border-box; }
+#tl-ticks .tick { position: absolute; top: 0; height: 22px; border-left: 1px solid var(--line); padding-left: 4px; font: 10px/22px var(--mono); color: var(--dim); pointer-events: none; }
+#tl-rh { position: absolute; top: 0; left: 0; width: 0; height: 22px; pointer-events: none; z-index: 3; }
+#tl-rh::before { content: ""; position: absolute; left: -5px; top: 10px; border: 5px solid transparent; border-top-color: #fff; }
+#tl-rows { position: relative; }
+#tl-heads { position: sticky; left: 0; width: 124px; z-index: 7; background: var(--deck2); border-right: 1px solid var(--line); box-sizing: border-box; }
+#tl-heads .hd { box-sizing: border-box; padding: 3px 8px; font-size: 11px; color: var(--ink); border-bottom: 1px solid rgba(232,236,246,.06); display: flex; align-items: flex-start; gap: 6px; }
+#tl-heads .hd::before { content: ""; width: 3px; align-self: stretch; border-radius: 2px; background: var(--c, var(--line)); flex: none; }
+#tl-heads .hd.sub { color: var(--dim); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; align-items: center; }
+#tl-layer { position: absolute; left: 124px; top: 0; }
+.rowbg { position: absolute; left: 0; border-bottom: 1px solid rgba(232,236,246,.05); }
+.rowbg.odd { background: rgba(232,236,246,.018); }
+.actblk { position: absolute; height: 16px; border-radius: 2px; background: rgba(159,179,230,.10); border-left: 2px solid var(--fog); overflow: hidden; cursor: pointer; }
+.actblk span { font: 10px/16px var(--mono); color: var(--fog); padding-left: 5px; white-space: nowrap; }
+.beatblk { position: absolute; height: 20px; border-radius: 3px; background: rgba(232,236,246,.07); border: 1px solid rgba(232,236,246,.14); box-sizing: border-box; overflow: hidden; cursor: grab; touch-action: none; }
+.beatblk span { font-size: 10.5px; line-height: 18px; padding: 0 5px; white-space: nowrap; color: #cfd6e8; }
+.beatblk b { font-family: var(--mono); font-weight: 500; color: var(--dim); margin-right: 3px; }
+.beatblk:hover { background: rgba(232,236,246,.12); }
+.clip { position: absolute; height: 17px; border-radius: 3px; box-sizing: border-box; --c: var(--dim);
+  background: color-mix(in srgb, var(--c) 20%, transparent); border: 1px solid color-mix(in srgb, var(--c) 58%, transparent);
+  overflow: hidden; cursor: grab; touch-action: none; white-space: nowrap; }
+.clip span { font-size: 10.5px; line-height: 15px; padding: 0 4px; color: color-mix(in srgb, var(--c) 45%, #fff); pointer-events: none; display: block; overflow: hidden; text-overflow: ellipsis; }
+.clip span b { font-family: var(--mono); font-weight: 500; margin-right: 3px; }
+.clip:hover { background: color-mix(in srgb, var(--c) 32%, transparent); }
+.clip .rz { position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; }
+.clip.inst { background: none; border-color: transparent; overflow: visible; }
+.clip.inst::before { content: ""; position: absolute; left: -4px; top: 4px; width: 8px; height: 8px; transform: rotate(45deg); background: var(--c); border-radius: 1px; }
+.clip.inst span { padding-left: 8px; }
+.clip.inst .rz { display: none; }
+.clip.gate { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c) 26%, transparent) 0 6px, color-mix(in srgb, var(--c) 10%, transparent) 6px 12px); overflow: visible; }
+.clip.gate .fw { position: absolute; top: -2px; width: 2px; height: 21px; background: #ff5a4a; pointer-events: none; }
+.clip.help { border-style: dashed; background: color-mix(in srgb, var(--c) 9%, transparent); }
+.clip.help.off { opacity: .35; }
+.clip.simonly { border-style: dotted; }
+.clip.span { border-right-style: dashed; }
+.clip.edited span::after { content: " ✎"; color: var(--vo); }
+.clip.has-audio span::before { content: "♪ "; color: #fff; }
+.clip.t-vo.has-audio .rz, .clip.t-fx.has-audio .rz { display: none; }
+.clip .tail { position: absolute; left: 0; top: 13px; height: 2px; background: color-mix(in srgb, var(--c) 70%, transparent); pointer-events: none; }
+.clip .fi, .clip .fo { position: absolute; top: 0; bottom: 0; pointer-events: none; }
+.clip .fi { left: 0; background: linear-gradient(to top left, transparent 50%, rgba(5,7,13,.55) 50%); }
+.clip .fo { background: linear-gradient(to top right, transparent 50%, rgba(5,7,13,.55) 50%); }
+.clip.inst .fi { top: 10px; height: 7px; bottom: auto; background: linear-gradient(to top left, color-mix(in srgb, var(--c) 70%, transparent) 50%, transparent 50%); }
+.clip.inst .fo { display: none; }
+.clip.drop { outline: 2px dashed #fff; background: color-mix(in srgb, var(--c) 45%, transparent); }
+body.dropping #bar { box-shadow: 0 -2px 0 var(--fog); }
+#tl-insp .aud { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 5px; background: rgba(232,236,246,.03); }
+#tl-insp .aud b { font-family: var(--mono); font-weight: 500; font-size: 11px; color: var(--fx); }
+#tl-insp .snd { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; padding: 4px 0; border-top: 1px solid rgba(232,236,246,.06); }
+#tl-insp .snd span { color: var(--dim); font-size: 11px; flex: 1; min-width: 90px; }
+#tl-insp .snd button { padding: 3px 8px; font-size: 11px; }
+.clip.sel, .beatblk.sel { outline: 2px solid #fff; outline-offset: 0; z-index: 3; }
+.clip.kid, .beatblk.kid { box-shadow: 0 0 0 1px var(--warm) inset; background: color-mix(in srgb, var(--warm) 22%, transparent); }
+.clip.par, .beatblk.par { box-shadow: 0 0 0 1px var(--fog) inset; }
+.t-vo { --c: var(--vo); } .t-fx { --c: var(--fx); } .t-amb { --c: var(--amb); } .t-hap { --c: var(--hap); } .t-pawn { --c: var(--pawn); }
+.t-world { --c: var(--world); } .t-obj { --c: var(--obj); } .t-ui { --c: var(--ui); } .t-int { --c: var(--int); }
+#tl-locs { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 4; }
+.locline { position: absolute; top: 0; width: 0; border-left: 1px dashed rgba(242,196,109,.28); pointer-events: none; }
+.locline.sel { border-left-color: rgba(242,196,109,.8); }
+.loc { position: absolute; height: 18px; transform: translateX(-1px); cursor: ew-resize; touch-action: none; display: flex; align-items: center; }
+.loc::before { content: ""; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 9px solid var(--hap); margin-left: -6px; flex: none; }
+.loc span { font: 10.5px/18px var(--body); color: var(--hap); padding: 0 6px 0 3px; white-space: nowrap; background: var(--deck); border-radius: 2px; }
+.loc.sel span { color: #fff; background: color-mix(in srgb, var(--hap) 30%, var(--deck)); }
+.locscale { position: absolute; height: 18px; pointer-events: none; background: repeating-linear-gradient(90deg, rgba(242,196,109,.10) 0 6px, transparent 6px 12px); border-top: 1px solid rgba(242,196,109,.4); display: flex; justify-content: center; }
+.locscale span { font: 10px/16px var(--mono); color: var(--hap); background: var(--deck); padding: 0 4px; height: 16px; }
+#b_addloc { padding: 0 6px; font-size: 11px; line-height: 14px; margin-left: 6px; }
+#tl-insp input[type=text] { background: rgba(232,236,246,.06); border: 1px solid var(--line); border-radius: 3px; padding: 4px 6px; }
+#tl-ph { position: absolute; left: 0; top: 0; width: 1px; background: #fff; pointer-events: none; z-index: 5; box-shadow: 0 0 6px rgba(255,255,255,.5); }
+#tl-links { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 4; overflow: visible; }
+#tl-links path { fill: none; stroke-width: 1.5; }
+#tl-links path.kid { stroke: var(--warm); } #tl-links path.par { stroke: var(--fog); stroke-dasharray: 4 3; }
+
+#tl-insp { border-left: 1px solid var(--line); background: var(--deck2); overflow: auto; padding: 12px; font-size: 12px; display: grid; gap: 8px; align-content: start; }
+#tl-insp h4 { margin: 0; font-size: 13px; font-weight: 600; }
+#tl-insp .meta { margin: 0; color: var(--dim); font-size: 11px; line-height: 1.45; }
+#tl-insp .desc { margin: 0; color: #c6cde0; line-height: 1.45; }
+#tl-insp .vo { margin: 0; color: var(--vo); }
+#tl-insp ul { margin: 0; padding-left: 16px; display: grid; gap: 6px; color: #c6cde0; line-height: 1.45; }
+#tl-insp label { display: flex; gap: 6px; align-items: center; color: var(--dim); flex-wrap: wrap; }
+#tl-insp label.wide { display: grid; gap: 4px; }
+#tl-insp label em { color: var(--vo); font-style: normal; }
+#tl-insp input[type=number] { width: 72px; background: rgba(232,236,246,.06); border: 1px solid var(--line); border-radius: 3px; padding: 4px 6px; font-family: var(--mono); }
+#tl-insp select { width: 100%; }
+#tl-insp textarea { width: 100%; box-sizing: border-box; background: rgba(232,236,246,.06); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; font: 13px/1.45 var(--body); color: var(--ink); resize: vertical; }
+#tl-insp .row { display: flex; gap: 6px; flex-wrap: wrap; }
+kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+
+/* panel de exploración (las animaciones que se deciden juntos) */
+#explore { position: fixed; left: 16px; top: 96px; width: min(280px, calc(100% - 32px)); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 6px; padding: 12px; display: grid; gap: 10px; font-size: 12px; max-height: calc(100% - var(--tlh) - 130px); overflow: auto; }
+#explore h3 { font-family: var(--display); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); margin: 0; font-weight: 400; }
+#explore label { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; }
+#explore label output { font-family: var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; }
+#explore input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--fog); }
+#explore select { width: 100%; }
+#look { display: grid; gap: 8px; }
+#explore label.lk { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#explore label.lk.rg { display: grid; grid-template-columns: 1fr auto; }
+#explore label.lk input[type=color] { width: 44px; height: 22px; padding: 0; border: 1px solid var(--line); border-radius: 3px; background: none; cursor: pointer; }
+#explore label.chk { display: flex; gap: 6px; align-items: center; color: var(--dim); }
+#explore h3 + #look { margin-top: -2px; }
+#explore { max-height: calc(100% - var(--tlh) - 110px); }
+
+/* mano izquierda: el mando no dominante (SAVE, paleta) */
+#lefthand { position: fixed; left: 16px; bottom: calc(var(--tlh) + 16px); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; max-width: calc(100% - 32px); }
+#lefthand .sw { width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); cursor: pointer; padding: 0; }
+#lefthand .sw.on { border-color: #fff; }
+#save { font-family: var(--display); letter-spacing: .14em; font-size: 11px; padding: 10px 14px; position: relative; overflow: hidden; }
+#save .fill { position: absolute; inset: 0; background: rgba(233,183,127,.35); transform-origin: left; transform: scaleX(0); }
+#save span { position: relative; }
+
+#intro { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(5,7,13,.88); z-index: 10; padding: 24px; overflow: auto; }
+#intro .card { max-width: 580px; display: grid; gap: 14px; line-height: 1.55; font-size: 14px; }
+#intro h1 { font-family: var(--display); font-weight: 400; font-size: clamp(20px, 4vw, 30px); letter-spacing: .12em; margin: 0; }
+#intro p { margin: 0; color: #c6cde0; }
+#intro ul { margin: 0; padding-left: 18px; color: #c6cde0; display: grid; gap: 4px; }
+#intro .go { display: flex; gap: 8px; flex-wrap: wrap; }
+
+#tl-modal { position: fixed; inset: 0; background: rgba(5,7,13,.8); z-index: 12; display: grid; place-items: center; padding: 16px; }
+#tl-modal .box { width: min(760px, 100%); max-height: 100%; overflow: auto; background: var(--deck2); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 10px; }
+#tl-modal h3 { margin: 0; font-size: 14px; }
+#tl-modal p { margin: 0; color: var(--dim); font-size: 12px; line-height: 1.5; }
+#tl-modal textarea { width: 100%; box-sizing: border-box; height: 180px; background: rgba(232,236,246,.05); border: 1px solid var(--line); border-radius: 4px; font: 11px/1.4 var(--mono); color: var(--ink); padding: 8px; }
+#tl-modal .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+#toast { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); z-index: 14; background: var(--deck2); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; font-size: 12px; max-width: calc(100% - 32px); }
+
+@media (max-width: 860px) { body.tl-open #tl-body { grid-template-columns: 1fr; } #tl-insp { display: none; } }
+@media (max-width: 720px) { #explore { display: none; } #cues { top: 120px; } #beatdesc { display: none; } #tl-status { display: none; } }
+@media (prefers-reduced-motion: reduce) { .cue { animation-duration: .01s; } }
+</style>
+
+<div id="stage"></div>
+
+<div id="top">
+  <div id="where">
+    <div id="act">Acto 0 · Arranque</div>
+    <div id="beat">Cargando</div>
+    <div id="beatdesc"></div>
+  </div>
+  <div id="clock"><b id="t">0:00.0</b> / <span id="tt">~14:15</span><br><span id="spd">1×</span></div>
+</div>
+
+<div id="cues" aria-live="polite"></div>
+<div id="vo" hidden><div class="id"></div><div class="txt"></div></div>
+<div id="hint"></div>
+
+<aside id="explore" aria-label="Estética y animaciones" hidden>
+  <h3>Estética de cada parte</h3>
+  <div id="look"></div>
+  <h3>Animaciones</h3>
+  <label>Baldosas: elevación <output id="o_lift">3 cm</output><input id="x_lift" type="range" min="1" max="10" step="1" value="3"></label>
+  <label>Baldosas: brillo <output id="o_glow">0.45</output><input id="x_glow" type="range" min="0.1" max="1" step="0.05" value="0.45"></label>
+  <label>Anillo: giro <output id="o_spin">lento</output><input id="x_spin" type="range" min="0" max="2" step="1" value="1"></label>
+  <label>Fantasma: poses/s <output id="o_gfps">11</output><input id="x_gfps" type="range" min="6" max="30" step="1" value="11"></label>
+  <label>Fantasma: ecos <output id="o_gecho">4</output><input id="x_gecho" type="range" min="0" max="6" step="1" value="4"></label>
+  <label>Velo <output id="o_veil"></output>
+    <select id="x_veil"><option value="0">Suave</option><option value="2">Tono</option><option value="3" selected>Plano</option></select></label>
+  <label hidden>Carga: la luz viaja al anillo <output id="o_travel">sí</output><input id="x_travel" type="range" min="0" max="1" step="1" value="1"></label>
+  <label>Carga: chispa entre lugares <output id="o_spark">no</output><input id="x_spark" type="range" min="0" max="1" step="1" value="0"></label>
+</aside>
+
+<div id="lefthand" hidden></div>
+
+<div id="bar">
+  <div id="tl-grip" title="Arrastra para cambiar el alto de la línea de tiempo"></div>
+  <div id="controls">
+    <div class="grp">
+      <button id="b_play">Play</button>
+      <span id="tl-time">0:00.0 / 0:00</span>
+      <button id="b_speed">Velocidad 1×</button>
+    </div>
+    <div class="grp">
+      <button id="b_live" class="on" title="En vivo: las esperas aguardan tu acción. Simulada: duran lo esperado y se resuelven solas.">Interacción: en vivo</button>
+      <button id="b_skip" title="Resuelve la espera en curso como si el usuario hubiera actuado">Resolver espera</button>
+      <button id="b_sound">Sonido: apagado</button>
+      <button id="b_vomode" title="Cómo suenan las voces de Alma: el texto (subtítulo y voz sintética, con la duración que da el texto), el audio cargado (sin subtítulo) o los dos">Voz: texto + audio</button>
+      <button id="b_voice">Voz sintética: apagada</button>
+    </div>
+    <div class="grp view" title="Solo para revisar en pantalla: no cambia lo que se ve en el visor">
+      <label>FOV <input id="x_fov" type="range" min="50" max="120" step="1" value="72"><output id="o_fov">72°</output></label>
+      <label>Cámara atrás <input id="x_back" type="range" min="0" max="3" step="0.1" value="0"><output id="o_back">0.0 m</output></label>
+      <button id="b_view" title="FOV 72° y cámara en los ojos del pawn">Ojos</button>
+    </div>
+    <div class="grp edonly">
+      <button id="b_zout" title="Alejar">−</button><button id="b_zin" title="Acercar">+</button><button id="b_fit">Ver todo</button>
+      <button id="b_snap" class="on" title="Pegar a los bordes de otros clips y al cabezal">Imán</button>
+      <button id="b_follow" class="on" title="La vista sigue al cabezal durante el play">Seguir</button>
+    </div>
+    <div class="grp edonly">
+      <button id="b_undo" title="Ctrl+Z">Deshacer</button><button id="b_redo" title="Ctrl+Shift+Z">Rehacer</button>
+      <button id="b_resetall">Restablecer</button><button id="b_export">Exportar</button>
+    </div>
+    <span class="sep"></span>
+    <span id="tl-status">Cargando…</span>
+    <button id="b_audio" title="Carga uno o varios archivos: cada uno va al sonido que dice su nombre (FX_DOOROPEN.wav, VO_02.mp3, AMB_03.ogg). También puedes soltar archivos sobre la ventana o sobre un clip.">Audios</button>
+    <input id="audio-many" type="file" accept="audio/*,.wav,.mp3,.ogg,.m4a,.flac,.aac,.opus" multiple hidden>
+    <input id="audio-one" type="file" accept="audio/*,.wav,.mp3,.ogg,.m4a,.flac,.aac,.opus" hidden>
+    <button id="b_explore" title="Colores de niebla, cielo, suelo, partículas y velo de cada parte, y las animaciones por decidir">Estética</button>
+    <button id="b_fs">Pantalla completa</button>
+    <button id="b_tl" class="on">Timeline</button>
+  </div>
+  <div id="track" class="miniononly" title="Salta a cualquier acto"><div class="acts"></div><div class="head"></div></div>
+  <div id="tl-body">
+    <div id="tl-scroll">
+      <div id="tl-ruler"><div id="tl-corner"></div><div id="tl-ticks"></div><div id="tl-rh"></div></div>
+      <div id="tl-rows"><div id="tl-heads"></div><div id="tl-layer"></div></div>
+    </div>
+    <aside id="tl-insp" aria-label="Inspector del clip"></aside>
+  </div>
+</div>
+
+<div id="tl-modal" hidden>
+  <div class="box">
+    <h3>Exportar la línea de tiempo</h3>
+    <p>Tus cambios ya quedan guardados en la obra y Claude los puede leer. Esto es un respaldo: copia el JSON para guardarlo, o pega uno y usa «Importar» para recuperarlo.</p>
+    <textarea id="tl-json" spellcheck="false"></textarea>
+    <p>Tiempos de cada momento (para pegar en el guion):</p>
+    <textarea id="tl-table" spellcheck="false"></textarea>
+    <div class="row"><button id="b_import">Importar el JSON pegado</button><button id="b_close" class="on">Cerrar</button></div>
+  </div>
+</div>
+<div id="toast" hidden></div>
+
+<div id="intro">
+  <div class="card">
+    <h1>SOUL CHARGER</h1>
+    <p>Prototipo narrativo del guion V5, ahora como línea de tiempo. Recorre la obra completa (~14 min) y ajusta el ritmo moviendo los clips, como en un editor de video.</p>
+    <ul>
+      <li><b>El mouse es tu mano</b>: mueve para arremolinar el polvo; <kbd>clic</kbd> o <kbd>mantener clic</kbd> es el gatillo. <b>Mirar alrededor</b>: arrastra con el botón derecho.</li>
+      <li><b>Timeline</b> abre el editor: cada fila es una pista (voz, sonido, música, háptica, pawn, mundo, objetos, instrucción, interacción). Arrastra un clip y lo que está anclado a él se mueve con él.</li>
+      <li>Las <b>esperas</b> son el tiempo del usuario: en vivo aguardan tu acción; en «simulada» se resuelven solas para revisar solo el ritmo.</li>
+      <li>Toca un clip de voz para <b>cambiar el texto de Alma</b>; la duración se ajusta sola hasta que llegue el audio real.</li>
+      <li><b>Audios</b>: carga tus archivos con el botón «Audios» (varios a la vez) o suéltalos sobre la ventana; cada uno va al sonido que dice su nombre (<kbd>FX_DOOROPEN.wav</kbd>, <kbd>VO_02.mp3</kbd>). Soltar un archivo sobre un clip lo asigna a ese sonido. Reemplazar un archivo lo actualiza en todos sus clips.</li>
+      <li>Todo lo que ajustas se guarda en la obra.</li>
+    </ul>
+    <div class="go"><button id="b_start" class="on">Comenzar (dar play por OSC)</button><button id="b_start_sound">Comenzar con sonido</button><button id="b_start_edit">Abrir el editor</button></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="world.js" charset="utf-8"></script>
+<script src="ensayo.js" charset="utf-8"></script>
+<script src="timeline.js" charset="utf-8"></script>
+<script src="guion.js" charset="utf-8"></script>

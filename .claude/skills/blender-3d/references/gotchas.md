@@ -38,4 +38,49 @@
 21. 🔴 **Orden de la pila: `WEIGHTED_NORMAL` ANTES de `TRIANGULATE` (con `keep_custom_normals`).** Al revés, el área de cada cara plana se reparte en triángulos chicos, el redondeo "gana" el promedio y la cara sale con dientes de sierra. Y para n-gons cóncavos, `ngon_method='CLIP'`.
 22. 💡 **Control de sombreado numérico, sin render**: en las caras que deben ser planas, el ángulo entre la normal de cada esquina (`me.corner_normals`) y la normal de la cara. Sano: máx. < 2°. Más la cuenta de caras "al revés" (normal.x con signo opuesto al lado). Los dos números separan en segundos lo que en render parecen "estrías" o "sierra" sin causa.
 
+## Luz horneada para la obra unlit (2026-09-29, `SM_HallShell_SC`)
+
+23. 🔴 **El import de FBX por MCP (`StaticMeshTools.import_file`) DESCARTA los colores de vértice** (el FBX los traía: verificado leyéndolo de vuelta). Síntoma: el material ve blanco uniforme. **Controlarlo con una perilla que escale solo esa entrada** (si todo el cuadro cambia parejo, el dato no llegó). Arreglo: pasar el dato por **canales de UV** (float, sin sRGB, sin recorte): UV2 = (R,G), UV3 = (B,0), UV1 libre para el lightmap. Recordar que Unreal invierte la V.
+24. **Horneado a vértices en Cycles (`bake target VERTEX_COLORS`)**: cada vértice es una muestra aislada → manchas de ruido aunque haya 256 muestras. Receta: **4096 muestras + suavizado laplaciano** de la irradiancia (12 pasadas por vecinos); la luz es de baja frecuencia, el ruido no. Y **normalizar contra la luz que importa** (percentil de lo iluminado), no contra el máximo: un punto pegado al emisor (el labio del óculo, 30×) aplasta todo lo demás a negro.
+
+25. 🔴 **`bmesh.ops.inset_region` y `bevel` sobre una forma CÓNCAVA (sector de anillo) se cruzan consigo mismos** (2026-09-29, baldosas del hall): en Unreal se veían triángulos en punta encimados. Arreglo: construir los anillos a mano, **el mismo contorno analítico desplazado** (R1+o, R2−o, junta+2o, filete−o) con la **misma cantidad de puntos** → tiras de quads limpias; el canto redondeado se hace igual (cuarto de círculo de anillos).
+26. **Horneado a vértices de una pieza chica apoyada sobre una superficie ya horneada: COPIAR la luz de abajo** (KDTree + distancia inversa) en vez de hornearla. El horneado propio de las baldosas dio 20× más oscuro que el piso vecino (con la malla rota de la trampa 25, pero no se volvió a probar); copiar garantiza que encaje y no tiene ruido.
+27. **Un contorno generado con `atan2` puede salir en sentido horario** → las caras nacen mirando a −Z y `recalc_face_normals` en un sólido abierto puede elegir mal. Orientar por **área con signo** del contorno antes de crear caras.
+
+28. 🔴 **"has degenerate tangent bases / nearly zero tangents / bi-normals" al importar en Unreal = UV0 con triángulos de área CERO** (2026-09-29, baldosas). Dos causas, las dos medibles en Blender antes de exportar (área UV y área 3D por triángulo): (a) **UV planar XY en caras verticales** (costados, canto) → toda la columna comparte UV. Arreglo: correr la UV hacia afuera según lo que baja, `uv = xy + n_horiz·(ztop − z)`. (b) **`TRIANGULATE` CLIP sobre un n-gon con tramos rectos** toma 3 vértices colineales como oreja → triángulo de área cero (Unreal además lo descarta: 8.160 → 8.152). Arreglo: `bmesh.ops.beautify_fill` sobre la cara plana después de triangular. Resultado: 0 y 0, sin advertencias, 8.160 = 8.160.
+
+## Superficie de subdivisión calculada sobre un modelo de referencia (2026-09-29, mando `SM_QuestCtrl_*_SC`)
+
+29. 🔴🔴 **Un modelo de producto "de juego" (paneles separados + mapa de normales) NO se arregla: se MIDE.** El Touch Plus oficial son 25 paneles abiertos, piezas internas y juntas cuyos bordes se curvan hacia adentro. Remallar, fundir por campo de distancia o Poisson, o parchar agujeros siempre dejó juntas, escalones o parches (7 vueltas). Lo que funciona: **jaula de subdivisión (QuadriFlow) + ajuste ICP punto-plano** de sus puntos de control a los datos, **sin** botones, juntas ni 1,2 mm de borde de pieza. La superficie no puede reproducir lo que es más chico que la jaula, y el resto queda a centésimas de mm. Receta y scripts: `assets/quest-controller.md`.
+30. **QuadriFlow cancela con "The mesh needs to be manifold and have face normals that point in a consistent direction"** aunque la malla sea perfecta: además toma como *arista de largo cero* toda arista < 1e-4 **unidades**, y en metros eso es 0,1 mm. Fix: `me.transform(Matrix.Scale(1000, 4))` antes y 0,001 después.
+31. **Puntitos blancos/grises en Cycles sobre una malla de marching cubes = triángulos degenerados** (normales NaN). `bmesh.ops.dissolve_degenerate` antes de renderizar o exportar (la malla MC de skimage trae cientos).
+32. **Poisson (sin "screening") en un hueco grande sin datos se HUNDE como membrana**: sirve para cerrar rendijas de 1 a 2 mm, no para rehacer una zona de 2 cm.
+33. **Espejo para el lado contrario: validarlo contra el modelo oficial del otro lado**, no suponerlo. Mediana de distancia en sus vértices: 0,18 mm → el espejo vale.
+
+## Barridos y texturas de texto (2026-09-30, botón `SM_SaveMelody_*_SC`)
+
+34. **Un PNG de texto va SIN voltear.** Blender pone la fila de arriba del archivo en V=1, y el FBX invierte V al pasar a Unreal (V=0 = fila de arriba), así que el mismo PNG se lee derecho en los dos. Voltearlo "porque V crece hacia arriba" dejó el texto cabeza abajo.
+35. **Un barrido sobre un contorno en sentido HORARIO da vuelta TODAS las caras laterales.** El chequeo de normales las cuenta: si da el 100 %, es el orden del quad y no la geometría. En `sweep_rrect`: `(A[j], B[j], B[j2], A[j2])`.
+36. **Un llenado por UV sobre un aro cerrado deja una marquita en 0 % y una ranura en 100 % en la costura** (x = 0/1) si el borde suave está centrado en `Progress`. Hay que usar el progreso efectivo `Progress · (1 + 2e)` y el borde `smoothstep(0, 2e, pe − x)`.
+37. **El Python de Blender no trae PIL**: la textura se hace con el Python del sistema y un script aparte que lee las medidas del generador por `ast` (`gen_save_melody_text.py`).
+
+38. 🔴 **Una malla de revolución puede salir DADA VUELTA ENTERA y el control de `revolve` no lo ve** (2026-09-30, botón del timbre). El control compara cada cara con las normales del MISMO perfil, así que si el perfil va en sentido horario, las dos cosas quedan hacia adentro y coinciden.
+    - Blender la muestra bien, porque la emisión se ve de los dos lados. Unreal descarta la cara de atrás y el botón se vio "con la cara abierta".
+    - ✅ Control nuevo: el **volumen con signo** de toda malla cerrada, `Σ a·(b×c)/6` sobre los triángulos, tiene que dar > 0.
+    - Arreglo: dar vuelta el perfil (`pts[::-1]`, corriendo la parte de cada tramo a su punto de arranque).
+39. 🔴 **Unreal INVIERTE la V del FBX.** Un material de Unreal que lee `UV.y` como "0 en el origen" tiene que usar `1 − UV.y` si la vista previa de Blender usaba `UV.y` directo.
+    - Pasó con los aros del sensor: en Blender salían del sensor hacia afuera y en Unreal viajaban hacia adentro.
+    - Revisar todo material que dependa del SENTIDO de V. Si V solo se usa para un perfil simétrico a lo ancho (el trazo), da igual.
+
+40. ⚠ **Blender headless desde Git Bash: los paths de salida van ABSOLUTOS y en formato Windows** (2026-09-30, `render_hall_tiles_check.py`).
+    - Con `-- check_v3` (relativo), el render imprimió OK y no escribió nada: el `render.filepath` relativo no resuelve contra el directorio de la terminal.
+    - Pasar `"$(cygpath -w "$PWD/check_v3")"` y citar cada path en un arreglo de bash (`FILES+=("$(cygpath -w …)")`): la ruta del proyecto tiene espacios y un `$FILES` sin comillas la parte.
+41. 💡 **`Mesh.transform(M)` en Blender 5.2 SÍ gira las normales a medida** (atributo `custom_normal`; verificado con una normal (0,6, 0, 0,8) que salió (0,8, 0,6, 0)).
+    - Con eso se puede construir en el marco cómodo de los helpers (acostado, cara +Z) y exportar girado a los ejes finales, sin rehacer las normales. Lo usa `gen_results.py`: cara +X para Unreal, cara +Z de glTF para la web.
+42. 🎨 **Una lámina translúcida CALADA muestra sus huecos durante una entrada por piezas** (2026-09-30, cuadro de resultados).
+    - Las ventanas llegaban después que la lámina, y los agujeros se leían como ranuras claras.
+    - Solución: lámina ENTERA + el vidrio de cada ventana apoyado encima, con la opacidad compensada: 1 − (1 − 0,55)(1 − a) = el oscuro que tenía la ventana sola.
+    - Cuesta una capa translúcida más; se justifica en una pantalla sin mecánica corriendo.
+    - La regla del HUD ("la lámina no se mete debajo de un contorno translúcido") sigue valiendo para los CONTORNOS: ahí la superposición parcial sí se ve como un escalón.
+
 <!-- Agregar acá cada trampa nueva con fecha, síntoma y arreglo. -->

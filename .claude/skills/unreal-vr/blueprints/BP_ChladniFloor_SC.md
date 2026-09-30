@@ -124,3 +124,10 @@ Medido por Narrativa en el visor (APK del recorrido): **Attracting 36 fps los 60
 - Banco ronda 2: **0 = la obra optimizada**; 1 sin arena · 2 sin mandala · 3 sin WPO · 4 piso plano · 5 cielo plano · 6 sin acabado · 7 sin polígonos · 8 sin agua · 9 sin bruma (eventos `ChladniPerf0..9`).
 - ✅ **RONDA 2 MEDIDA en el visor** (2026-09-29 11:45, `perf/chladni_<fecha>/`, resolución 0,01 ms, 8 figuras forzadas): **obra 11,43 ms, 72 fps** (era 25,48). Piso entero **2,55 ms** (era 15,8): mandala **0,48** (era 11,2) · acabado 1,79 (agua 0,61 · bruma 0,61 · arena 0,45 · polígonos 0,09) · cielo 0,39 · WPO 0,04. El resto de la escena (esferas, gusano) ~8,9 ms. Sin tocar FFR, resolución, PixelDensity ni MSAA.
 - El banco queda en el BP y en el material (en la obra `PerfMode` 0 y `PerfForce` 0). Para volver a medir: empaquetar `Test_Sequencer` como `com.almadigital.sequencer` (receta en `docs/WORKFLOW-EQUIPO.md`) y correr `scripts/quest_chladni_perf.ps1`.
+
+
+## 2026-09-30 (noche) — piso BLANCO LISO (apagado, no borrado) + paleta Uyuni
+Pedido de Beltrán (audio, vía Narrativa): *"el piso blanco sin patrón ni movimiento (apagado, no borrado: se retoma)"* y paleta *"blanco-naranja-amarillo poco saturado, Uyuni al atardecer, surreal"*.
+- Material: parámetro **`Plain`** (grupo `0 - Piso`) en los dos Custom: el VS devuelve 0 (quieto) y el PS devuelve el tono del plano (`lerp(SaltShade, SaltLit, FlatTone)`) + agua + bruma + dither. Sin mandala, polígonos, grano ni ola.
+- BP: perilla **`FloorPattern`** (`1 - Figura`; CDO true, **instancia false**) → `PushPreview` escribe `Plain` = !FloorPattern. **Todas las perillas del patrón siguen con los valores de Beltrán**: FloorPattern true lo devuelve tal cual.
+- Paleta de la instancia (antes → después, hex sRGB): SkyTop #8ea3cb→#efe0d0 · SkyMid #cbb3cc→#f6dcc2 · SkyHorizon #f2cbb2→#fce9c6 · SunColor #ffd6b0→#fff2d8 · SaltLit #fff4ea→#fffaf2 · SaltShade #b7b0d0→#efe3d4. Esferas y gusano en `BP_OrbDirector_SC.md` / `BP_Sequencer_SC.md`.

@@ -102,6 +102,13 @@ Condiciones: `/Game/Test_Entering`, PIE en el viewport, en la instancia de PIE `
 ## Banco y depuración
 `ke * PerfE5` = aire lleno · `PerfE6` = sin aire · `PerfE0` = normal (ecos `PERF: entering modo N`). `scripts/quest_entering_perf.ps1 -Modos 0,4,5,6` → **aire = m5 − m6** (medido con el valle oculto: `BP_PerfEntering_SC` no tiene `PerfE5/E6`). `ke * AirDbg` → una línea `AIRE DBG v … modo … S …` (ruido real en el visor, plan §8).
 
+## 🎛️ 2026-09-29 — ajustes de Beltrán en visor (inhalar/exhalar simétricos, sin corte al mover la cabeza)
+Pedidos: *"el cono de inhalación es muy abierto"* · *"las de exhalación deben ser iguales en tamaño y forma, y más instantáneas"* · *"si muevo la cabeza mientras inhalo o exhalo se cortan; no debe pasar"*.
+- **MI_BreathAir_SC:** `InSpreadH` 30→**18**, `InSpreadV` 12→**8** (cono más cerrado) · exhalar = espejo de inhalar: `OutStart` 15→**40**, `PlumeLen` 110→**95** (el mismo volumen 40-95 cm), `OutSpread` 16→**18**, `OutFlat` 0,6→**0,45** (= 8/18), `OutSizeCm` 0,28→**0,22**, `OutGrow` 0,8→**0**, `MaxDegOut` 0,55→**0,4**, `OutAlpha` 0,5→**0,45** · `SpeedFade0/1` 20/40→**90/180** °/s.
+- **Por qué la exhalación tardaba:** nacía a 15 cm de la boca, DENTRO de la zona invisible por confort (`NearMin`/`NearFull` 22/45 cm del ojo), y el frente (`FrontLead` 1,6) tardaba ~1,5 s en llevarla a donde se ve. Ahora nace ya visible y **`FrontLead` 1,6→6**.
+- **Por qué se cortaba:** `TurnFade0/1` 6/20 °/s apagaban el aire con cualquier movimiento normal de cabeza (a propósito, para esconder el retardo del marco). → **400/800** (solo un salto imposible, p. ej. recentrado, lo apaga) + marco más pegado: `LagRot` 0,8→**0,25**, `LagPos` 0,3→**0,1**, `PitchFollow` 0,75→**1**.
+- Todo en el CDO; `Entering_Aire` hereda (sin overrides). **Medido en PIE** (`bFakeBreath` 6 s): exhalar `Eout` 0,5 a 0,20 s y 0,9 a 0,68 s = **idéntico** a inhalar (`Ein` 0,20 / 0,69); `Fout` 0,5 a 0,5 s, 1 a 0,75 s. Giro de 120 °/s ida y vuelta: `MoveFade` y `Glob` mínimos **1,0** (no se corta). Un salto de 30° en un cuadro (1800 °/s) sí lo apaga, como debe.
+- Rollback: `VR_Test/Saved/ClaudeScripts/vida/ajustes_0929/rollback_valores_antes.md`.
 ## Session log
 - **2026-09-28 (rev. 2, disco):** modelo, HLSL, malla, scripts, DSL, verificadores.
 - **2026-09-28 (fases E y T, editor):** assets, material, BP y actor `Entering_Aire` (E1-E14, evidencia en `capa_viva/aliento/` y `capa_viva/verif_aliento/`); PIE, giro, presencia y Simulate (T1-T8, arriba). Los BP ensuciados por `read_graph_dsl` (gotcha 487) se compilaron (`warnings_as_errors`, sin errores) y se guardaron con ruta explícita antes del PIE.

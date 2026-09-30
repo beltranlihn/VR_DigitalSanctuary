@@ -1,6 +1,6 @@
 // @uses FluidColor,AbsorbAt,SinCurl,RotR,RotRT,FlowAt,WrapHead,PCG,Bits,LiveClock,CellLobe,CellAmoeba
 // @inputs LocalPos,CellI,PieceI,CamL,Head,Drift,DriftVel,Phase,Flow,Absorb,FTop,FMid,FBot,Glow,Caus,FarA,Extras,Light
-// @outputs return:Float3,NrmC:Float4,FluidAb:Float4,Pw:Float4
+// @outputs return:Float3,NrmC:Float4,FluidAb:Float4,Pw:Float4,Ctr:Float4
 // CÉLULAS MEDIAS (F2): hasta 16 amebas OPACAS con 3-5 bolas satélite, todas en UNA malla
 // (SM_FluidMidCells_SC: por célula un núcleo de 642 vértices + 5 satélites de 42). Cada vértice
 // trae su célula (UV1.x) y su pieza (UV2.x: 0 = núcleo, 1-5 = satélites); la posición del
@@ -28,6 +28,9 @@ float pk = floor(PieceI.x + 0.5);
 NrmC = float4(0.0, 0.0, 1.0, 0.0);
 FluidAb = float4(0.0, 0.0, 0.0, 1.0);
 Pw = float4(0.0, 0.0, 0.0, 0.0);
+// Ctr = (centro de ESTA pieza, radio de su NUCLEO PERLA interior) para el PS: la pieza se dibuja como MEMBRANA
+// translúcida y adentro se ve un núcleo analítico (2026-09-30, Beltrán: "se ven como globitos flotando, low poly").
+Ctr = float4(0.0, 0.0, 0.0, 0.0);
 float3 dead = Head.xyz - float3(0.0, 0.0, 5000.0) - LocalPos.xyz;
 uint c1 = L.PCG(200.0 + ci * 5.3 + 0.11);                     // ancla (3 x 10 bits)
 uint c2 = L.PCG(200.0 + ci * 5.3 + 0.29);                     // satélites, escala, giro (8 bits c/u)
@@ -50,10 +53,13 @@ float3 u = normalize(LocalPos.xyz + float3(1.0e-4, 0.0, 0.0));
 float coreR = 16.0;
 float3 q;
 float3 n;
+float3 cq = float3(0.0, 0.0, 0.0);
+float ri = 0.0;
 if (pk < 0.5)
 {
     float r = L.CellAmoeba(u, ci, T, 0.5, n);
     q = u * (coreR * r);
+    ri = coreR * 0.50;                       // núcleo perla: SIEMPRE adentro (cota: 4 lóbulos en su mínimo -0,14 -> r >= 0,72)
 }
 else
 {
@@ -69,16 +75,20 @@ else
     float3 S = float3(-(dz + 2.0 * sin(T * 0.33 + ph)), rk * cos(a), rk * sin(a) + 0.3 * dz);
     q = S + u * sz;
     n = u;
+    cq = S;
+    ri = sz * 0.45;
 }
 float cr = cos(th), sr = sin(th);
 q = float3(cr * q.x - sr * q.y, sr * q.x + cr * q.y, q.z);
 n = float3(cr * n.x - sr * n.y, sr * n.x + cr * n.y, n.z);
+cq = float3(cr * cq.x - sr * cq.y, sr * cq.x + cr * cq.y, cq.z);
 float3 P = Pc + q * sc;
 float3 toP = P - CamL.xyz;
 float dist = max(length(toP), 1.0);
 NrmC = float4(n, dot(n, -toP / dist));              // .w = N.V (para el borde tipo gelatina del PS)
 FluidAb = float4(L.FluidColor(toP / dist, FTop, FMid, FBot, Glow, Absorb), L.AbsorbAt(dist, Absorb));
 Pw = float4(P, 0.0);
+Ctr = float4(Pc + cq * sc, ri * sc);
 float3 off = P - LocalPos.xyz;
 if (!(dot(off, off) < 1.0e12)) { off = float3(0.0, 0.0, 0.0); }
 float ol = length(off);

@@ -704,6 +704,18 @@ for S_ in (-1.0, -0.4, 0.3, 1.0):
         ev = max(ev, float(np.abs(c.a - cm).max()))
 chk("capa viva, respirando (S -1 .. +1, familias no default): PS traducido = modelo con efectivos() (suelo y cielo)",
     ev < 1e-4, "max |dif| %.1e" % ev)
+# 2026-09-30 SwellTimeOfs: el HLSL con (t, ofs) es EXACTAMENTE el de (t + ofs, 0) en los dos VS (reloj integrado por el BP),
+# y ofs != 0 SI cambia la altura lejana (control positivo: el parametro llega a la cuenta).
+_q0 = dict(P); _q0["SwellTimeOfs"] = 0.0
+_q1 = dict(P); _q1["SwellTimeOfs"] = 37.25
+_d_ig, _d_pos = 0.0, 0.0
+for (_x, _y) in ((45000.0, 3000.0), (-30000.0, 20000.0), (9000.0, -8000.0), (52000.0, -9000.0)):
+    for _fn in (HVS, GVS):
+        _a = _u(vs(_fn, _x, _y, 10.0, _q1)); _b = _u(vs(_fn, _x, _y, 47.25, _q0)); _c = _u(vs(_fn, _x, _y, 10.0, _q0))
+        _d_ig = max(_d_ig, float(np.max(np.abs(np.asarray(_a) - np.asarray(_b)))))
+        _d_pos = max(_d_pos, float(np.max(np.abs(np.asarray(_a) - np.asarray(_c)))))
+chk("SwellTimeOfs: VS(t, ofs) = VS(t + ofs, 0) en los dos VS, y ofs mueve las colinas (control positivo)",
+    _d_ig < 1e-6 and _d_pos > 1.0, "igual %.1e, cambia %.1f" % (_d_ig, _d_pos))
 BUILD = ROOT / "VR_Test" / "Saved" / "ClaudeScripts" / "valley_build.json"
 BK = ROOT / "VR_Test" / "Saved" / "ClaudeScripts" / "valle_v2_aplicada_backup" / "valley_build.json"
 if BUILD.exists() and BK.exists():
@@ -719,9 +731,13 @@ if BUILD.exists() and BK.exists():
                 cambios.append("%s.%s" % (cn["desc"], a_["name"]))
     pn = {p["name"] for p in bn["params"]} - {p["name"] for p in bo["params"]}
     viejos_iguales = all(p in bn["params"] for p in bo["params"])
-    chk("capa viva: valley_build.json = respaldo de la v2 aplicada + 11 parametros + 9 fuentes del PS (codigo igual)",
-        sorted(cambios) == sorted("ValleyPS." + k for k in LIVE_SRC) and len(pn) == 11 and viejos_iguales,
-        "cambios %d, parametros nuevos %d" % (len(cambios), len(pn)))
+    # 2026-09-30: SwellTimeOfs (el BP acelera el oleaje al exhalar) cambia el codigo de los dos VS (Tt = GameTime +
+    # SwellTimeOfs), agrega la entrada 30 (en ValleyGradVS corre SwellShade/SwellShadeFull a 31/32) y un parametro.
+    ESPERA = ["ValleyPS." + k for k in LIVE_SRC] + ["ValleyHeightVS: codigo", "ValleyGradVS: codigo",
+                                                     "ValleyGradVS.SwellTimeOfs", "ValleyGradVS.SwellShade"]
+    chk("capa viva + SwellTimeOfs: valley_build.json = respaldo de la v2 aplicada + 12 parametros + 9 fuentes del PS + el reloj de los VS",
+        sorted(cambios) == sorted(ESPERA) and len(pn) == 12 and "SwellTimeOfs" in pn and viejos_iguales,
+        "cambios %d %s, parametros nuevos %d" % (len(cambios), sorted(set(cambios) ^ set(ESPERA)), len(pn)))
 else:
     print("--    valley_build.json o su respaldo no estan: se saltea la comparacion del plan de armado")
 

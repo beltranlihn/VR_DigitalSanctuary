@@ -55,7 +55,7 @@ MAT = dict(
     EddyCm=10.0, EddyNear=250.0, Lift=1.2, GustDustAlpha=0.6, DriftCm=40.0, DriftFar=3.0,
     # 4 - Confort (no bajar sin probar en el visor). NearMin/NearFull 120/180: el polvo queda FUERA del volumen del
     # aliento (inhalar 40-95 cm, pluma hasta 110 cm): no se confunde con el y no le quita la lectura causal.
-    NearMin=120.0, NearFull=180.0, FarFade0=2600.0, FarFade1=3600.0, SpeedFade0=6.0, SpeedFade1=12.0,
+    NearMin=120.0, NearFull=180.0, FarFade0=8000.0, FarFade1=11000.0, SpeedFade0=6.0, SpeedFade1=12.0,
     SoulMargin0=2.0, SoulMargin1=8.0,
     # 5 - Color (van al pixel shader; lineal). Vocabulario PROPIO, distinto del aliento (frio azul InColor / tibio rosa
     # OutColor): polvo dorado contra la luz, blanco lavanda apagado en sombra (sin el azul saturado del aliento;
@@ -129,8 +129,10 @@ FLOOR_REL = VALLE_Z - ACTOR[2]               # el piso en el espacio del actor (
 SOUL_W = np.array([380.0, 0.0, 125.0])       # el metaball (mundo)
 IPD = 6.4
 
-N_BASE, N_GUST = 1536, 512
+N_BASE, N_GUST = 5120, 1024  # rev. 3 (2026-09-29, Beltran en visor: "muy pocas, que lleguen mas lejos"); antes 1536, 512
 R_BASE_MIN = 130.0      # cm: rev. 2, la nube de base empieza fuera del volumen del aliento (NearMin 120)
+R_BASE_MAX = 11000.0    # cm: rev. 3, la nube de base llega a 110 m (antes 36 m); FarFade0/1 8000/11000 en la MI
+R_GUST_MAX = 6000.0     # cm: rev. 3, el polvo de rafaga llega a 60 m (antes 36 m)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -242,8 +244,8 @@ def seeds(n_base=N_BASE, n_gust=N_GUST, seed=20260928, floor_rel=FLOOR_REL):
             pts.extend(p[ok].tolist())
         return np.array(pts[:n])
 
-    pb = nube(n_base, R_BASE_MIN, 3600.0, None, True)
-    pg = nube(n_gust, 150.0, 3600.0, 600.0, False)
+    pb = nube(n_base, R_BASE_MIN, R_BASE_MAX, None, True)
+    pg = nube(n_gust, 150.0, R_GUST_MAX, 600.0, False)
     n = n_base + n_gust
     out = dict(P0=np.concatenate([pb, pg]))
     out["n"] = rng.integers(0, 1024, n).astype(np.float64)

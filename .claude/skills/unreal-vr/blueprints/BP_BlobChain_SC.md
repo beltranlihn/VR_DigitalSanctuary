@@ -148,3 +148,8 @@ Pedido de Beltrán (mecánicas migrables, la menor cantidad de BPs sueltos): mov
 Beltrán corrió el cierre completo y salieron **262 `Attempted to access missing property 'none'`**, todos de `BP_SoundOrb_SC.PushFuse` (nodo `IsValid`). `PushFuse` hacía `SnapSlot.ChainRef` → `SetFuseOrb`, pero `ChainRef` ya no existe en `BP_SeqSlot_SC`. Además ese `ChainRef` era de tipo `BP_SlotChain_SC` (el raymarch parkeado), así que la fusión **nunca le llegaba al gusano**.
 ✅ Ahora: `IsValid(SnapSlot)` → **`Cast To BP_BlobChain_SC (SnapSlot.GetParentActor())`** → `BP_BlobChain_SC.SetFuseOrb(ActorLocation, ScaleMul·50)`. El padre del slot es el gusano porque los slots son sus ChildActors. Como la fusión antes no llegaba, **en visor puede verse algo nuevo**: el gusano se abomba hacia la esfera mientras está en la SnapZone. La perilla es `OrbFuse`, que está en 0,872; 0 la apaga.
 💡 Para buscar quién lee una variable borrada: `grep -rla <Nombre> --include=*.uasset Content/`.
+
+
+## 2026-09-30 (noche)
+- Paleta Uyuni en la instancia `GAL_12_BlobChain`: ColorLow #9b8bc2→#e5c6a3 · ColorHigh #f6d8cb→#fff3e2. El tinte de activación (`ChainColorPulse`) sale del color de cada esfera, que ya es de la paleta.
+- El cuadro de resultados (`BP_Sequencer_SC.ResultsShow`) mueve y escala este actor y le escala `OrbFit` (0,9 → 0,567 a 90 cm): las esferas toman su tamaño en unidades LOCALES, no con la escala del actor.

@@ -49,9 +49,16 @@ Pisos de las cavidades, UV0: **`U = etapa + t`** (0..5), **`V = 1 − radial`** 
 | `3 - Luz` | `EmptyLevel` 0,1 (cavidad vacía = vidrio tintado oscuro) · `FullLevel` 0,9 · `EdgeSoftness` 0,015 (ancho del frente de carga) | ambos |
 | `3 - Luz` | `FrontGlow` 0,6 (brillo del frente mientras carga) | luz |
 | `3 - Luz` | `WallGlow` 0,55 (cuánto tiñe la luz las paredes de su cavidad) | metal |
-| `4 - Metal` | `MetalColor` · `LightDir` (dirección a la luz, **mundo**) · `Ambient` · `Diffuse` · `Spec` · `Gloss` · `SkyColor` · `GroundColor` · `Env` | metal |
+| `4 - Metal` (hoy hormigón) | `Base` (antes `MetalColor`) · `LightDir` (dirección a la luz, **mundo**) · `Ambient` · `Diffuse` · `Fill` (antes `Spec`) · `Wrap` (antes `Gloss`) · `SelfGlow` (antes `Env`) · `RimLight` (antes `SkyColor`) · `GroundColor` sin uso | cuerpo |
 
-- **Metal:** luz fingida en el shader (difuso + especular + reflejo cielo/suelo por la dirección reflejada + fresnel, que es lo que hace brillar los biseles) + **rebote**: calcula por `LocalPosition` en qué cavidad y a qué altura de la carga está cada pixel de pared, y la tiñe con el color de esa etapa si está cargada. 🔴 Esa cuenta tiene **constantes de la malla** (R 23 cm, cavidades, cara, piso, barras): si cambia la malla, se cambian en `ChargeRingFramePS.hlsl`.
+- 🔴 **v2-v3 (2026-09-30, Beltrán):**
+  - *"El material del anillo está muy oscuro; debe ser más de la onda de los otros botones"* → el cuerpo pasa del metal oscuro al **HORMIGÓN de la familia** (el sombreado de `SCObjectShadePS`: hemisferio + luz con wrap + relleno de vista, manchado y grano). Valores: `Base` (0,62, 0,56, 0,48), `Ambient` 0,30, `Diffuse` 0,55, `Fill` 0,25, `Wrap` 0,4, `SelfGlow` 0,10, `LightDir` (−0,35, 0,30, 0,88).
+  - *"Que el aro delgado que está por afuera en el borde sea de luz, cálida"* → el canto exterior del **núcleo** (lo que sobresale de las placas, r > 0,955 R) es luz cálida: `RimLight` (0,80, 0,58, 0,36); negro = apagado.
+  - Se conserva el rebote de las cavidades.
+  - Los PINES del Custom conservan los nombres de la v1 (no se recableó); los PARÁMETROS se renombraron.
+  - Aplica a `M_ChargeRing_Frame_SC` y a la variante del HUD `M_ChargeRing_FrameHUD_SC`, más sus MI. v1 respaldada en `unreal-vr/scripts/hlsl_backups/ChargeRingFramePS_v1_metal.hlsl`.
+  - Vista previa en Blender: `scripts/render_ring_family.py`. Foto en Unreal: `Saved/ClaudeScripts/Ring/ue_ring_zoom.png`.
+- **Metal (v1, reemplazado):** luz fingida en el shader (difuso + especular + reflejo cielo/suelo por la dirección reflejada + fresnel, que es lo que hace brillar los biseles) + **rebote**: calcula por `LocalPosition` en qué cavidad y a qué altura de la carga está cada pixel de pared, y la tiñe con el color de esa etapa si está cargada. 🔴 Esa cuenta tiene **constantes de la malla** (R 23 cm, cavidades, cara, piso, barras): si cambia la malla, se cambian en `ChargeRingFramePS.hlsl`.
 - **Dither R2 de 1 LSB** en los dos (receta de `materials-vr.md` contra bandas de 8 bits).
 - `floatPrecisionMode` por defecto (half): U llega a 5 → paso de 0,4 % en t, invisible. Sin `Time`.
 

@@ -2,7 +2,7 @@
 // GENERADO por scripts/gen_chladni_material.py: NO editar a mano (se pisa). Plan: docs/PLAN-SALAR-CHLADNI-2026-09-28.md
 // Modos DESPLEGADOS, sin arreglos ni bucles (gotcha 399); hash sin seno (gotcha 481). Cuerpo de un Custom: termina en return.
 // NODO  MaterialExpressionCustom  Description "ChladniPS"  OutputType CMOT_Float3
-// ENTRADAS (65, en este orden):
+// ENTRADAS (66, en este orden):
 //   1  LPi        float3  VertexInterpolator_1  posicion local interpolada (sin el WPO)
 //   2  CamVec     float3  CameraVector  del punto hacia la camara (mundo)
 //   3  Dist       float   Distance(AbsoluteWorldPosition, CameraPositionWS)  distancia real a la camara (cm)
@@ -46,28 +46,29 @@
 //  41  V7         float   ScalarParameter V7
 //  42  PerfMode   float   ScalarParameter PerfMode
 //  43  PerfForce  float   ScalarParameter PerfForce
-//  44  SaltLit    float3  VectorParameter SaltLit
-//  45  SaltShade  float3  VectorParameter SaltShade
-//  46  FlatTone   float   ScalarParameter FlatTone
-//  47  LightGain  float   ScalarParameter LightGain
-//  48  PolyH      float   ScalarParameter PolyH
-//  49  PolyKeep   float   ScalarParameter PolyKeep
-//  50  PolyW      float   ScalarParameter PolyW
-//  51  CellSize   float   ScalarParameter CellSize
-//  52  SaltNoise  float   ScalarParameter SaltNoise
-//  53  Wet        float   ScalarParameter Wet
-//  54  Grain      float   ScalarParameter Grain
-//  55  GrainSize  float   ScalarParameter GrainSize
-//  56  Granite    float   ScalarParameter Granite
-//  57  SkyTop     float3  VectorParameter SkyTop
-//  58  SkyMid     float3  VectorParameter SkyMid
-//  59  SkyHor     float3  VectorParameter SkyHor
-//  60  SunCol     float3  VectorParameter SunCol
-//  61  SunSize    float   ScalarParameter SunSize
-//  62  SunGlow    float   ScalarParameter SunGlow
-//  63  Haze       float   ScalarParameter Haze
-//  64  FogDist    float   ScalarParameter FogDist
-//  65  Dither     float   ScalarParameter Dither
+//  44  Plain      float   ScalarParameter Plain
+//  45  SaltLit    float3  VectorParameter SaltLit
+//  46  SaltShade  float3  VectorParameter SaltShade
+//  47  FlatTone   float   ScalarParameter FlatTone
+//  48  LightGain  float   ScalarParameter LightGain
+//  49  PolyH      float   ScalarParameter PolyH
+//  50  PolyKeep   float   ScalarParameter PolyKeep
+//  51  PolyW      float   ScalarParameter PolyW
+//  52  CellSize   float   ScalarParameter CellSize
+//  53  SaltNoise  float   ScalarParameter SaltNoise
+//  54  Wet        float   ScalarParameter Wet
+//  55  Grain      float   ScalarParameter Grain
+//  56  GrainSize  float   ScalarParameter GrainSize
+//  57  Granite    float   ScalarParameter Granite
+//  58  SkyTop     float3  VectorParameter SkyTop
+//  59  SkyMid     float3  VectorParameter SkyMid
+//  60  SkyHor     float3  VectorParameter SkyHor
+//  61  SunCol     float3  VectorParameter SunCol
+//  62  SunSize    float   ScalarParameter SunSize
+//  63  SunGlow    float   ScalarParameter SunGlow
+//  64  Haze       float   ScalarParameter Haze
+//  65  FogDist    float   ScalarParameter FogDist
+//  66  Dither     float   ScalarParameter Dither
 // --------------------------------------------------------------------------------------------------------
 float sunR = max(SunSize, 0.5) * 0.0174533;
 float3 Vw = -normalize(CamVec);                     // de la camara hacia el punto
@@ -83,6 +84,36 @@ float3 Vw = -normalize(CamVec);                     // de la camara hacia el pun
   return skyC;
 }
 [branch] if (abs(PerfMode - 4.0) < 0.5) { return lerp(SaltShade, SaltLit, FlatTone); }   // banco: piso plano
+// piso LISO (el patron apagado, no borrado): el tono del plano + el agua y la bruma, para que siga fundiendose con
+// el horizonte. Sin mandala, poligonos, grano ni ola
+[branch] if (Plain > 0.5) {
+  float3 colP = lerp(SaltShade, SaltLit, FlatTone);
+  float fresP = pow(1.0 - saturate(-Vw.z), 5.0) * Wet;
+  [branch] if (fresP > 0.002) {
+    float3 RwP = reflect(Vw, float3(0.0, 0.0, 1.0));
+    float refP_e = RwP.z;
+    float3 refP = lerp(SkyMid, SkyTop, smoothstep(0.03, 0.75, refP_e));
+    refP = lerp(SkyHor, refP, smoothstep(-0.03, 0.26, refP_e));
+    float refP_a = acos(clamp(dot(RwP, SunDir), -1.0, 1.0));
+    refP += SunCol * exp(-refP_a / (sunR * 2.2)) * SunGlow * 0.3;
+    refP = lerp(refP, SunCol, (1.0 - smoothstep(sunR * 0.9, sunR, refP_a)) * 0.92);
+    refP = lerp(refP, SkyHor, exp(-abs(refP_e) / 0.03) * Haze * 0.7);
+    colP = lerp(colP, refP, saturate(fresP));
+  }
+  float3 HdP = normalize(float3(Vw.xy, 0.0001));
+  float fogP_e = 0.0;
+  float3 fogP = lerp(SkyMid, SkyTop, smoothstep(0.03, 0.75, fogP_e));
+  fogP = lerp(SkyHor, fogP, smoothstep(-0.03, 0.26, fogP_e));
+  float fogP_a = acos(clamp(dot(HdP, SunDir), -1.0, 1.0));
+  fogP += SunCol * exp(-fogP_a / (sunR * 2.2)) * SunGlow * 0.3;
+  fogP = lerp(fogP, SunCol, (1.0 - smoothstep(sunR * 0.9, sunR, fogP_a)) * 0.92);
+  fogP = lerp(fogP, SkyHor, exp(-abs(fogP_e) / 0.03) * Haze * 0.7);
+  colP = lerp(colP, fogP, (1.0 - exp(-Dist / max(FogDist, 1.0))) * 0.85);
+  float3 dzP_p = frac(float3((floor(Parameters.SvPosition.xy)).xyx) * 0.1031);
+  dzP_p += dot(dzP_p, dzP_p.yzx + 33.33);
+  float dzP = frac((dzP_p.x + dzP_p.y) * dzP_p.z);
+  return colP + (dzP - 0.5) * Dither / 255.0;
+}
 [branch] if (PerfForce > 0.5) { Order = 1.0; W0 = 1.0; V0 = 0.0; W1 = 1.0; V1 = 0.0; W2 = 1.0; V2 = 0.0; W3 = 1.0; V3 = 0.0; W4 = 1.0; V4 = 0.0; W5 = 1.0; V5 = 0.0; W6 = 1.0; V6 = 0.0; W7 = 1.0; V7 = 0.0; }
 const float PI = 3.14159265;
 float R = max(PlateR, 1.0);

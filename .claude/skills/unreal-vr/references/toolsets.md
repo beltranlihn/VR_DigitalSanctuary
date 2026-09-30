@@ -219,7 +219,7 @@ Add StaticMeshComponent primitives to an actor — pass the BP's **CDO** (get_de
 - **create** / **import_file**(…, source_file: Key+SourceString) / **list_keys** / **get_entry** / **set_entry**(st, key, value) / **remove_entry** / **get_namespace** / **get_table_id**.
 
 ## EditorAppToolset (`EditorToolset.EditorAppToolset`)
-- PIE: **StartPIE**({bSimulate, playMode, warmupSeconds, startTransform?}) / **StopPIE**() / **IsPIERunning**().
+- PIE: **StartPIE**({**options**: {bSimulate, playMode, warmupSeconds, startTransform?}}) — va envuelto en `options` / **StopPIE**() / **IsPIERunning**().
 - Capture: **CaptureViewport**(captureTransform?, annotations?, bShowUI?) / **CaptureEditorImage**() / **CaptureAssetImage**(assetPath).
 - Camera: **GetCameraTransform** / **SetCameraTransform** / **FocusOnActors**(actors[]).
 - Selection: **GetVisibleActors** / **GetSelectedActors** / **SelectActors**(actors[]) / **GetSelectedAssets** / **SelectAssets**(paths[]) / **GetOpenAssets** / **OpenEditorForAsset**(assetPath).

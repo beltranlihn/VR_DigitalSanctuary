@@ -59,6 +59,12 @@ Creado 2026-09-29 (noche) por la sesión "Narrativa" para el APK de prueba de Be
 - **Diagnóstico:** `-trace=cpu,frame,bookmark,log -tracefile=x.utrace` en el device, y después `UnrealInsights.exe -OpenTraceFile=… -NoUI -AutoQuit -ExecOnAnalysisCompleteCmd="TimingInsights.ExportTimingEvents out.csv -columns=… -threads=… -startTime=… -endTime=…"`. El "Self" de World Tick en `stat dumphitches` es **`xrWaitFrame`** (la espera del runtime), no trabajo.
 - **Queda (medido):** 1→2 = 8, 2→3 = 9, 3→4 = 7. En 1→2 el CPU está limpio: el único cuadro lento es una espera de 27 ms en `xrWaitFrame`, justo después de prenderse la membrana del latido. La célula de LOVING cuesta 6-8 ms de Tick por cuadro (`Simulate` + 48 `SetColorParameterValueOnMaterials`): es optimización propia de esa etapa.
 
+### v6 (2026-09-29, 17:15) — con el Tick de `BP_LovingCell_SC` optimizado (sesión Mind, `SimDivider` 3)
+- Cuadros perdidos seguidos (máx.): **1→2 = 7-8 · 2→3 = 5 · 3→4 = 5 · 4→5 = 2**. LOVING promedio 72,4 fps (antes 71,5).
+- Queda: 1→2 (espera en `xrWaitFrame` al prenderse la membrana del latido, sin explicar) y 2→3 / 3→4 en el borde de lo visible (5).
+- Aparte de las transiciones: **ATTRACTING dentro del recorrido promedia 66 fps (mínimo 54)**, en v5 y en v6. Solo, en `Test_Sequencer`, daba 72: algo de las otras celdas sigue costando ahí.
+- Analizador: `tr.py <logcat>` (en el scratchpad de la sesión): ventanas entre marcas TOUR → fps mín/prom y racha máxima de Stale.
+
 ## Trampas que salieron acá
 - **Editor minimizado = PIE congelado**: con la ventana de Unreal minimizada el mundo de PIE no tickea (ni Tick ni timers), aunque BeginPlay corre. Restaurar la ventana (`ShowWindow(h, 9)` por PowerShell) lo arregla.
 - **`bind` no es asignación** (otra vez): en `Step`, `dt = now - LastTime` se evaluaba después de `SetLastTime(now)` → dt = 0 siempre. Llamar a TickAll ANTES de guardar LastTime.

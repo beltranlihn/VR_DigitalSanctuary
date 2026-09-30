@@ -1,0 +1,70 @@
+<meta charset="utf-8">
+<title>Creditos</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&display=swap">
+<body style="background:#111;color:#ccc;font:13px sans-serif">
+<div id="out"></div>
+<div id="prev"></div>
+<script>
+// Hornea las tarjetas de creditos para Unreal, mismo formato que los titulos: R = letra nitida, G = letra difusa.
+// Creditos dictados por Beltran 2026-09-30. Una tarjeta por rol: rol chico arriba, nombre grande abajo.
+const W = 2048, H = 512, LS = 0.1, fam = "Michroma, sans-serif";
+const CARDS = [
+  ['CR1', 'CREATED AND PRODUCED BY', ['ALMA DIGITAL STUDIO']],
+  ['CR2', 'WRITTEN AND DIRECTED BY', ['VICENTE MANZANO']],
+  ['CR3', 'MUSIC BY', ['VICENTE MANZANO']],
+  ['CR4', 'DEVELOPMENT DIRECTOR', ['BELTRÁN LIHN']],
+  ['CR5', 'DEVELOPMENT ASSISTANT', ['NICOLÁS PERILLI']],
+  ['CR6', 'IN COLLABORATION WITH', ['JOHNS HOPKINS', 'BERMAN INSTITUTE OF BIOETHICS']],
+];
+function widthAt(g, text, fs) { g.font = `400 ${fs}px ${fam}`; return [...text].reduce((a, ch) => a + g.measureText(ch).width, 0) + LS * fs * (text.length - 1); }
+function line(g, text, fs, y) {
+  g.font = `400 ${fs}px ${fam}`; g.textBaseline = 'middle'; g.fillStyle = '#fff';
+  const chars = [...text], ws = chars.map(ch => g.measureText(ch).width), sp = LS * fs;
+  let x = (W - (ws.reduce((a, b) => a + b, 0) + sp * (chars.length - 1))) / 2;
+  chars.forEach((ch, i) => { g.fillText(ch, x, y); x += ws[i] + sp; });
+}
+function blur(src, f) {
+  let cur = src, w = W, h = H, st = [];
+  while (w > W / f) { w = Math.round(w / 2); h = Math.round(h / 2); const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(cur, 0, 0, w, h); st.push(c); cur = c; }
+  for (let i = st.length - 2; i >= -1; i--) { const tw = i >= 0 ? st[i].width : W, th = i >= 0 ? st[i].height : H;
+    const c = document.createElement('canvas'); c.width = tw; c.height = th; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(cur, 0, 0, tw, th); cur = c; }
+  return cur;
+}
+window.bake = async () => {
+  await document.fonts.load('400 100px Michroma');
+  const probe = document.createElement('canvas').getContext('2d');
+  // un solo tamano de nombre para todas las tarjetas: el de la linea mas larga a 0,86 del ancho, tope 118 px
+  const names = CARDS.flatMap(c => c[2]);
+  let fsN = 118; for (const n of names) fsN = Math.min(fsN, Math.floor(118 * (W * 0.86) / widthAt(probe, n, 118)));
+  const fsR = Math.round(fsN * 0.46);
+  const res = {}, prev = document.getElementById('prev');
+  for (const [key, role, nm] of CARDS) {
+    const s = document.createElement('canvas'); s.width = W; s.height = H;
+    const g = s.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+    if (nm.length === 1) { line(g, role, fsR, H * 0.34); line(g, nm[0], fsN, H * 0.60); }
+    else { line(g, role, fsR, H * 0.22); line(g, nm[0], fsN, H * 0.47); line(g, nm[1], fsN, H * 0.74); }
+    const b = blur(s, 16);
+    const A = g.getImageData(0, 0, W, H).data, B = b.getContext('2d').getImageData(0, 0, W, H).data;
+    let mb = 1; for (let i = 0; i < B.length; i += 4) if (B[i] > mb) mb = B[i];
+    const o = document.createElement('canvas'); o.width = W; o.height = H; const og = o.getContext('2d'); const img = og.createImageData(W, H);
+    for (let i = 0; i < A.length; i += 4) { img.data[i] = A[i]; img.data[i + 1] = Math.min(255, B[i] * 255 / mb); img.data[i + 2] = 0; img.data[i + 3] = 255; }
+    og.putImageData(img, 0, 0);
+    res[key] = o.toDataURL('image/png');
+    s.style.width = '1024px'; s.style.display = 'block'; s.style.border = '1px solid #333'; prev.appendChild(s);
+  }
+  window.__cards = res;
+  document.getElementById('out').textContent = 'listo: fsN ' + fsN + ' fsR ' + fsR + ' · ' + Object.keys(res).join(', ');
+  return { fsN, fsR, n: Object.keys(res).length };
+};
+window.send = async () => {
+  const out = [];
+  for (const k of Object.keys(window.__cards)) {
+    const blob = await (await fetch(window.__cards[k])).blob();
+    const r = await fetch('http://127.0.0.1:8767/save?name=T_Credit_' + k, { method: 'POST', body: blob });
+    out.push(k + ':' + r.status);
+  }
+  return out;
+};
+</script>
+</body>

@@ -148,6 +148,66 @@ Plan listo (2026-09-29): variables `GlowColorCalm`, `GlowPowerCalm`, `ColorSmoot
 Narrativa (orquestador, noche 09-28/29): **esta noche no**, la estética la decide Beltrán mirando → mostrárselo en PIE.
 `Test_Recorrido` carga `Test_Fluid` ENTERO como instancia de nivel: no tocar `Test_Fluid` ni este BP hasta que el APK esté listo.
 
+- 🟢 **2026-09-29 (tarde): Beltrán ajustó en el editor `FluidTop`** (0,0307 0,0437 0,0648) → **(0,0125 0,0324 0,0648)** (arriba más azul) en la instancia de `Test_Fluid`. Guardado por Mind a pedido de Heart (el nivel estaba sucio al cambiar de nivel).
+
+## 🫧 AMEBAS MEDIAS = MEMBRANA + NÚCLEO PERLA (2026-09-30, pedido directo de Beltrán)
+*"Las otras amebas que flotan alrededor quedaron demasiado low poly y se ven como globitos flotando; más cercanas a la estética de la
+principal, sin consumir mucho recurso."* Solo `M_FluidMidCells_SC` (wrappers `FluidMidCellsVS/PS`); sin BP, sin mallas nuevas.
+- **Sigue siendo UNA pasada opaca** (sin orden de translúcidos ni sobre-dibujo; lo de atrás es el color del medio, `FluidAb`).
+- VS: salida nueva **`Ctr`** = (centro de la pieza, radio del núcleo interior) → **VertexInterpolator nuevo**; núcleo 0,50 del radio
+  base (cota: la ameba nunca baja de 0,72 con 4 lóbulos en su mínimo −0,14), satélites 0,45 de su radio.
+- PS (+ entradas `Ctr` y `CamL`): **núcleo perla ANALÍTICO** (rayo cámara → píxel contra la esfera `Ctr`: redondo y sin facetas aunque la
+  malla sea de 642 / 42 vértices), borde difuso (`disc / 0,45 r²`, elegido mirando 0,12 / 0,45 / 0,8 en un render offline), opacidad
+  0,85, `CellShade` perla + cáusticas · **membrana** = la superficie (la ameba): color `CellHigh`, opacidad 0,10 + 0,25·CellBody en el
+  cuerpo → 0,75 en el Fresnel (`(1 − N·V)^2,5`) → **0 en el limbo** (`smoothstep(0, 0,22, N·V)`): la silueta facetada se funde en el agua.
+- Aplicado con el constructor de materiales del fluido (sincroniza los dos Custom desde `Saved/ClaudeScripts/Fluid/composed`, crea el
+  interpolador que falte y cablea `CamL`); `vs_ok`/`ps_ok`; compila sin errores; emisiva = `Custom_1` (PS).
+- Capturas (editor, antes/después; son células distintas porque en el editor derivan con el tiempo):
+  `Saved/ClaudeScripts/Loving/turno_0930/medias/recortes_medias.png`. Medido a ~8 m: núcleo #6F6473, membrana #433B49, agua #2D2733.
+  Vista previa offline: `scratchpad` → `amebas_medias_antes_despues.png` (enviada a Beltrán). ⬜ visor.
+
+## 🌪️ EL MUNDO SE ACTIVA CON LA AMEBA (2026-09-30, pedido directo de Beltrán)
+*"Cuando la actividad hace que la ameba se mueva y se active, las partículas del mundo tengan más velocidad de movimiento también,
+para sentir que todo el world se activa."* Fuente: `scripts/fluid_active_boost.dsl`.
+- `FluidStep` REESCRITO (= `fluid_medium.dsl` + esto; verificado igual al grafo antes de vaciarlo): perilla **`0-EEG|ActiveBoost`**
+  (CDO 0 = idéntico). `boost = 1 + ActiveBoost × a²` (a = actividad = 1 − EEG suavizado; al cuadrado: en calma no toca nada)
+  multiplica `EffCurrent` (la corriente: traslada TODAS las motas y las medias) y `EffFlowSpeed` (remolinos); las cáusticas a la
+  mitad del factor. Todo por fases/derivas integradas (cambiar la velocidad no salta posiciones). Paso = min(DT, 1/30).
+- La célula (`BP_LovingCell_SC.StageCouple`) acopla SIEMPRE que vive (fases 0/2/3/4): EEG del fluido = SS(0,2; 0,9; S) = la misma
+  actividad que su `AgTarget`, y apaga el falso propio del fluido (en el tour el agua y la ameba se activaban a destiempo).
+- Instancia de `Test_Fluid`: ActiveBoost 0 → **2** · EEGSmoothing 6 → **1,5 s**.
+- ✅ PIE: activa (S 0,26) corriente **10,1 cm/s** y remolinos 0,52 (antes ~3,5 y 0,18); la ameba se contrae en la entrada → el agua se
+  calma a 1,7 cm/s en ~4 s; en la mecánica vuelven a activarse juntas (10,3 cm/s, ~1,5 s de retardo). ⬜ visor.
+
+## 🖐️ F4 — MANOS (2026-09-30, noche; "etapa sin sensor: las manos mueven las partículas y generan turbulencia")
+El shader ya lo tenía (`Stir` en `FluidMotesVS`, rama uniforme por `HandV.w`); faltaba el BP. Fuente: `scripts/fluid_hands.dsl`.
+`HandRefs()` toma los grips del pawn (`BP_VRPawn_SC.GetMotionController{Left,Right}Grip`; reintenta cada cuadro hasta tenerlos) ·
+`HandStep(DT)` (empalmado al final del Tick, tras `PushCells`): posición local de cada mano → `Hand0/Hand1` = (pos, StirRadius);
+velocidad = diferencia / DT (tope `HandMaxSpeed` 300 cm/s), suavizada con `VInterpTo` a `HandVelSpeed` 5/s → `HandV0/HandV1` = (vel,
+StirStrength). Con `bHandStir` false la velocidad objetivo es 0 y el remolino se APAGA con curva; `HandV.w` = 0 recién con < 0,5 cm/s.
+Paso ≤ 1/30. Variables: `6-Manos` HandVelSpeed · HandMaxSpeed · `Z-Interno` HandL/HandR (SceneComponent) · HandsReady · HandsPrimed ·
+HandPL/PR · HandVL/VR. La célula de Loving la maneja en el contrato (TourWake/fin: off, StageBegin: on) y le escribe `EEG` = su S
+durante la mecánica (el EEG del fluido y la célula ya son UNA entrada: pendiente del TODO de abajo, resuelto para la Obra).
+Instancia de `Test_Fluid`: bHandStir true · HandVelSpeed 5 · HandMaxSpeed 300 · **EEGFlow 0,7 → 1,0** (más contraste activo/calma) ·
+**paleta morada** (misma luminancia): FluidTop #1D3248 → #362E3E · FluidMid #19212B → #241E2A · FluidBottom #0D1219 → #131115 ·
+GlowColor #D2C7B3 → #D3C3D9 · MoteColor → #DDCAE6 · CellHigh → #C0ACCC · CellLow → #342A3E · CellFill → #3B3047 (valores lineales en
+`Saved/ClaudeScripts/Loving/turno_0930/instancias_despues.json`). ✅ PIE: HandsReady true. ⬜ Visor con mandos.
+
+## 🚀 EL VIAJE: "que el pawn y la neurona avancen" (2026-09-30, Beltrán vía Narrativa)
+*"Que el vr pawn y la neurona avancen. Hazlo moviendo las partículas, para no mover el pawn. Que se sienta que vamos avanzando."*
+Fuente: `scripts/fluid_travel.dsl`. Nada se mueve en la escena: **`TravelStep(DT)`** suma una velocidad de viaje a la deriva
+integrada (`DriftVel += TravelVel`, `Drift += TravelVel·dt`), que ya traslada TODAS las capas por shader (motas, amebas medias,
+siluetas, velos). El fondo está en el infinito: el horizonte no se mueve. Costo GPU cero.
+- Curva: `TravelU` va a la meta (`bTravel`) a ritmo lineal (1/`TravelEase` al subir, 1/`TravelEaseOut` al bajar);
+  velocidad = `TravelSpeed` × smootherstep(`TravelU`). Paso ≤ 1/30.
+- Empalmes: Tick `FluidStep → TravelStep → UpdateHead` · BeginPlay `FluidStep → TravelBegin` (TravelU 0) · CS `FluidStep → TravelPreview`
+  (TravelU 1: **en el viewport del editor el viaje se ve siempre**, para ajustar `TravelSpeed` mirando).
+- Lo maneja la célula (`BP_LovingCell_SC.FluidTravel(On)`): TourWake/TourSleep off · **StageBegin on** · **StageOutro off**.
+- Variables: `7-Viaje` bTravel (false; lo prende el contrato) · TravelSpeed 25 · TravelEase 4 · TravelEaseOut 2 · TravelYaw 180 · TravelPitch 0 ·
+  `Z-Interno` TravelU · TravelVel. Instancia de `Test_Fluid`: TravelYaw **−180** (de la célula hacia el PlayerStart, calculado), resto = CDO.
+- ✅ PIE con el runner del ensayo: 0 hasta Begin → 25 cm/s en 4,0 s → en el outro 0 en ~2,0 s (antes de la fase 5); salto máximo entre
+  lecturas 0,78 cm/s. **Efecto** verificado: `Drift.x` avanza −23,9 cm/s con el viaje lleno. Registro: `Saved/ClaudeScripts/Loving/turno_0930/pie_viaje.json`. ⬜ visor.
+
 ## TODO
 - [x] PIE con `bFakeEEG` (2026-09-28, período 30 s): el BP integra EXACTO — `EEGS` medido en t = 8,68 / 23,30 / 32,92 s =
   0,4308 / 0,6040 / 0,0497 contra una simulación del mismo filtro 0,4314 / 0,604 / 0,0495. Activo (EEG 0,04): `EffFlowSpeed` 0,213,

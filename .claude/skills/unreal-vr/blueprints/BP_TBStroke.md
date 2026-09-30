@@ -2195,3 +2195,326 @@ target (fases 1-5) la mesa sigue visible; al volver a 0 con el sistema cerrado q
 - **Sonidos fuera de `/Engine/VREditor`** (mismo turno): `VR_click1/2`, `VR_shep_scale_up_01/02`, `VR_shep_scale_down_02`
   copiados a `/Game/NeuralCanvas/Sound/`; reapuntados en el CDO del director, su instancia, el CDO de `BPC_TBTool_NC` y la
   plantilla `TBTool` (la instancia del componente queda en None: el director le empuja los sonidos). `grep VREditor` = 0.
+
+### 5t - En el recorrido el gatillo no dibujaba: el director instala `IMC_Weapon_*` (2026-09-29, copia de SC)
+Beltrán, en el APK de `Test_Recorrido`: *"el trigger de dibujo no estaba funcionando"*. **Causa (medida en PIE):** el gatillo
+llega por `IA_Shoot_*`, que solo mapean `IMC_Weapon_Right/Left` (el pawn los agrega al poseer). En la etapa 4,
+`BP_SeqRig_SC.RigSleep` → `DropInput` hace `RemoveMappingContext(IMC_Weapon_Right/Left)`: Enhanced Input no cuenta
+referencias, así que se lleva también el del pawn. Sonda `HasMappingContext` en `InstallInput` al despertar en la etapa 5:
+**antes NO/NO, después SI/SI**.
+**Arreglo:** `InstallInput` agrega `IMC_Weapon_Right` y `IMC_Weapon_Left` (prioridad 1000, `bIgnoreAllPressedKeysUntilRelease`
+false, `bForceImmediately` true). El segundo nodo reusó el `AddMappingContext` que agregaba `IMC_TB_Draw_R` dos veces. No se
+quitan en `RemoveDrawIMC`: son del pawn. Con las dos manos disparando, `TB_PressFrom` ya ignora la mano de la paleta.
+Regla para cualquier mecánica portable: **el que necesita un IMC del anfitrión lo vuelve a agregar al activarse**, porque otra
+mecánica puede haberlo quitado. ⬜ Visor.
+
+### 5u - PALETA 3D (la de Mesh 3D) reemplaza a la de ProceduralMesh (2026-09-29, copia de SC)
+Pedido de Beltrán: integrar `BP_DrawPalette_SC` (Ø 40 cm, hormigón, 4 colores + 4 pinceles + undo/redo + slider en arco +
+casquete) con toda la interacción de la paleta vieja; **Clear y Save se esconden pero no se borran** (quizás vuelvan en otra
+experiencia).
+**Arquitectura:** `BP_TBPalette` sigue siendo la paleta que conoce el director (nada del director cambió). Con
+**`3D > bArt3D`** (true) su Tick corre **`PaletteTick` → `PickArt`** en vez de `PickSlot`; en BeginPlay **`BuildArt`** spawnea
+`BP_DrawPalette_SC`, la cuelga del componente `Mesh` (así `PlacePalette`/`MirrorPalette` del director la siguen moviendo) con
+**`ArtOffset` (0,−6,−12) / `ArtRot` (0,−90,−90) / `ArtScale` 1**, y oculta el `Mesh` viejo. `ArtRot` pasa los ejes de la paleta 3D
+(+X colores, +Y slider, +Z cara) al marco visto del `Mesh` (+X lejos, +Y izquierda, +Z abajo) → colores a la derecha, slider
+abajo, cara al usuario. ⚠ Offset/rotación de **primera aproximación**: se ajustan en visor (perillas del CDO de la paleta).
+**`PickArt`** (cada cuadro): `ArtSense` → `ArtColorAct` → `ArtBrushAct` → `ArtSliderAct` → `ArtUndoAct` → `ArtRedoAct` →
+`PushSelection` → `ArtPush` → `ClickScan` → `SliderScan` → `ArtTouch`.
+- **`ArtSense`**: punta (`Tip`) en el espacio local de la paleta 3D (`ArtP`) → radio `r`, ángulo `a` = atan2(y,x), altura `z`.
+  Zona de toque: `z` entre −`PickDown` y `PickUp` (4 / 4 cm). Colores: `r` 5–15,5 y `a` a < `KeyHalfAng` (14°) de −60/−20/20/60;
+  pinceles: igual en −120/−160/−200/−240 (`BrushIds` [0,5,3,6] en ese orden); undo: `r` 19–26,5 y `a` a < 13° de **+166**;
+  redo: de **−166**; slider: `r` 18,5–25 y `a` en 41–139 → `SliderT = (133 − a)/86` (izquierda fino, derecha grueso).
+  **`NearPal`**: `r` < 27 y `z` entre −6 y +10 → `bCanDraw` false (no se EMPIEZA un trazo en la paleta).
+  Geometría medida con `get_bounds` (cuña r 5,7–14,8; lateral r 19,6–25; slider r 21,7 entre 46° y 134°).
+- **Qué hace cada toque** (igual que la vieja: por proximidad, sin gatillo): color → `PickColor(k)` (color + degradado de
+  `SlotColorA/B`); pincel → `Selected` → `PushSelection`; slider → `SetSliderValue` mientras la punta está en el arco;
+  undo/redo → `FireUndo`/`FireRedo` **por flanco** (con `bUndoWasIn`/`bRedoWasIn` de siempre) + pulso visual.
+- **`ArtPush`** escribe en la paleta 3D: `SelectedColor` = `ColorSel`, `SelectedBrush` = `Selected`, `Thickness` = `Size01`
+  y los hover. **`ArtColors`** (al frente de `ApplyColorMode`, o sea después de que el director empuja `SlotColorA`) pinta las
+  4 teclas con **los colores reales del dibujo** (`SlotColorA`), no con los de las MI de Mesh.
+- Sonidos: `ClickScan`/`SliderScan` sin cambios (clic al cambiar de pincel/color y al entrar a undo/redo; tic por escalón del
+  10% del grosor). `ArtTouch` suma el clic al TOCAR una tecla ya elegida (como `PaletteExtras`).
+- **Clear y Save**: `TestClear`/`TestSaveHold`/`SaveHoverStep` siguen en `PickSlot` (paleta vieja, `bArt3D` false) y
+  `FireClear`/`FireSave` siguen existiendo y se pueden llamar; la paleta 3D **no tiene** esas teclas, así que en modo 3D no se
+  llaman. Para volver a mostrarlos: modelar sus teclas y llamar a los `Test*` con su zona.
+- **Visibilidad**: la paleta 3D se esconde sola cuando la paleta lógica deja de tickear (TourSleep, fin del sistema).
+- **Depuración**: `3D Debug > bDebugTip` + `DebugTipLocal` reemplazan la punta por un punto en el espacio local de la paleta 3D
+  (así se probó en PIE sin mandos).
+✅ **PIE en `L_TBTest_SC` con punta virtual**: arranque = color 0 y pincel 0 elevados 0,66 cm y brillo 0,5 (base 0,15); teclas
+con los 4 `SlotColorA` del director; casquete = TaperedMarker, 1 fila, color 0. Pincel 2 (a 160°) → `Selected` 2,
+`Tool.BrushIndex` 3 (Light), tecla 0,96 cm (0,66 + 0,3 de hover), casquete a `T_TB_Light`, `bCanDraw` false, 2 clics. Color 3
+(60°) → casquete y `Tool.BrushColor` = `SlotColorA[3]`. Slider a 90° → `Size01` 0,5, disco en 90° escala 1,05; a 50° →
+0,965, escala 1,56. Undo (166°) → dispara una vez (`bUndoWasIn`), hover 0,3 cm. Redo (−166°, pulso alargado) → −0,40 cm y
+brillo 0,91. Lejos → sin hover, `bCanDraw` true. Log sin errores. ⬜ **Visor**: ergonomía de `ArtOffset/ArtRot`, que la
+punta alcance las teclas cómodamente, lectura de los colores saturados sobre el hormigón.
+
+### 5v - Paleta 3D v2 (2026-09-29, primera vuelta de visor): mate, casquete entero, 60 %
+Beltrán: *"está todo muy brillante... el cuerpo es más mate... los botones de color brillantísimos, con grano... el círculo
+central debe pintarse completo con el tipo de textura... no se notan los íconos... achicar al 60 % pero Undo y Redo del tamaño
+que tienen"*. Detalle de materiales y animación en `BP_DrawPalette_SC.md` (v2).
+- `BP_TBPalette`: **`ArtScale` 0,6**, `ArtOffset` (0, −3,6, −7,2) (el de antes × 0,6, para que la mano quede en el mismo lugar
+  relativo), `PickUp/PickDown` 5 (locales → 3 cm reales), `NoDrawR` 31. `BuildArt` ahora ajusta la zona de deshacer/rehacer a
+  su tamaño compensado: `SideRMax` = 19,6 + 5,8·S y `SideHalfAng` = atan2(5·S, 19,6 + 2,7·S) con S = 1/`ArtScale`
+  (0,6 → 29,3 y 19°).
+✅ PIE con punta virtual: escala 0,6, Undo/Redo a 1,667 relativos (tamaño real 1,0) y desplazados (12,68, ∓3,16, 1,14); lo
+elegido brilla 0,28 y lo demás 0; teclas de color = `SlotColorA` × 0,7 (la herramienta sigue con el color completo); pincel
+OilPaint → casquete con `BrushBump` = `T_TB_OilPaint_N`, `BumpAmt` 0,4, 4 filas; deshacer detectado en su nueva posición.
+Log sin errores. ⬜ Visor.
+
+### 5w - Pose de la paleta 3D con gizmo en el centro del disco + Undo/Redo al 65 % (2026-09-29)
+Beltrán: *"¿desde dónde está definido el gizmo? Debiera ser desde el centro del mesh circular... estoy probando rotarla y
+está muy difícil"*. Causa: la paleta 3D colgaba del `Mesh` viejo; él giraba `07 PALETA > PaletteRot` en la **instancia** del
+director (−52,7 / 236,1 / 0, offset 2 / −4 / 11,9), que rota el `Mesh` alrededor de SU origen, a ~8 cm del centro del disco,
+y encima se componía `ArtRot` (0/−90/−90) → cada cambio la hacía orbitar.
+**Ahora:** componente **`ArtAnchor`** (ChildActorComponent, clase `BP_DrawPalette_SC`) en `BP_TBPalette`, hijo del root (= el grip
+de la mano de la paleta). **Su transform ES la pose de la paleta**: se ve en el viewport del BP y el gizmo gira alrededor del
+centro del disco. Arranca en la pose que tenía Beltrán (compuesta y verificada numéricamente): loc (2,19 / 2,76 / 7,51), rot
+(0 / 146,12 / −37,31), escala 0,6. **`GripPreview`**: el mando izquierdo (`Controllerleft`, misma transformada que `SM_LHand`
+del director) como referencia en el viewport; `bHiddenInGame` + `bIsEditorOnly`.
+- `BuildArt` toma la paleta del ChildActor (`GetComponentByClass(ChildActorComponent)` → `GetChildActor` → cast); con
+  `bArt3D` false lo destruye (`SetChildActorClass(None)`). Variables `ArtOffset/ArtRot/ArtScale` **borradas**.
+- ⚠ `07 PALETA > PaletteOffset/PaletteRot` del director ya NO mueven la paleta 3D (solo el `Mesh` viejo, oculto).
+- ⚠ **Zurdo pendiente**: `MirrorPalette` espeja el `Mesh`, no `ArtAnchor`. Para zurdos: loc (x, −y, z), rot (p, −yaw, −roll),
+  escala (0,6, −0,6, 0,6) (Unreal invierte el winding solo con escala negativa).
+- `BP_DrawPalette_SC.SideCheck` ahora compara escala de MUNDO propia / del padre (`ParentScale`), porque como ChildActor su
+  escala relativa es 1. `SideSize` **0,65**.
+✅ PIE: Art = el ChildActor, `ArtAnchor` en la pose, `SideScale` 1,083 (= 0,65/0,6), zona de deshacer 25,9 / ±13,5°, teclas con
+los colores nuevos de la instancia del director, `GripPreview` oculto en juego, log limpio.
+- 🔴 Trampa: `write_graph_dsl` perdió el literal de clase de `GetComponentByClass` (quedó `ActorComponent`); arreglado con
+  `set_pin_value`. Leer el grafo después de escribir literales de clase.
+
+### 5x - Mando nuevo de Mesh 3D con gatillo animado (2026-09-29)
+Beltrán: *"reemplaza el motion controller por el nuevo... espejarlo para la mano izquierda"* y *"la animación del botón apretado
+cuando lo estemos apretando en la experiencia real"*. Assets de Mesh 3D en `/Game/SoulCharger/Mechanics/QuestController/`
+(`SM_QuestCtrl_Body/Trigger_R/L_SC`, `MI_QuestCtrl_Body_SC`, `MI_QuestCtrl_Trigger_SC` con `Pressed`), mismo marco y tamaño
+que `/Game/NeuralCanvas/Mesh/Controller` (bounds iguales al mm) → transformadas de `SM_RHand/SM_LHand` sin tocar.
+- **Todo en runtime** (una instancia ya colocada no recibe bien componentes nuevos, gotcha 396; y los getters de componentes
+  nuevos no aparecían en el DSL, gotcha 506): **`InstallCtrl`** (al frente de `FixHands`) pone malla + MI del cuerpo nuevo en
+  `SM_RHand`/`SM_LHand` y llama **`MakeTrigR/L`**: si `Z-Mando > TrigR/TrigL` no existe, `AddComponentByClass(StaticMesh)` →
+  malla/MI del gatillo, `AttachComponentToComponent` al cuerpo, bisagra R (1,565, 2,432, −0,145) / L (−1,565, 2,432, −0,145),
+  escala 1, sin sombra.
+- **`TrigStep`** (al final de `DirectorStep`): `GetInputAnalogKeyState(OculusTouch_{Right,Left}_Trigger_Axis)` → **`TrigApply`**
+  (T, Body, Axis, V): `SetRelativeRotation(RotatorFromAxisAndAngle(Axis, −14·V))` (eje R (0,976, −0,2177, −0,0083), L (0,976,
+  0,2177, 0,0083), verificado por Mesh 3D), `Pressed` = V, visibilidad = la del cuerpo.
+- `SetVisibility` de las manos en `FixHands` y `TourShow` ahora propagan a los hijos (dormido el director no tickea).
+- Zurdo: `FixHands` ya muestra `SM_LHand` (cuerpo L espejado + su gatillo) en la mano que dibuja.
+- `BP_TBPalette.GripPreview` → cuerpo L nuevo.
+✅ PIE: cuerpo R nuevo, `TrigR` hijo de `SM_RHand` en la bisagra con su MID, `TrigL` oculto (diestro), log limpio. ⬜ Visor
+(giro con el gatillo real).
+
+### 5y - Perillas nuevas del director (2026-09-29)
+- **`03 SKETCH > TableColor`** (0,25/0,55/1): `PushTableColor` (al final de `PushTable`) → `TableColor` del material de la mesa.
+  Solo en juego (en el editor la mesa muestra el default del material).
+- **`07 PALETA > SliderMinSize` / `SliderMaxSize`** (0,5 / 1,5): el rango del slider de grosor. Son FRACCIONES del rango de cada
+  pincel en la curva de TB (0 = mínimo real del pincel, `SizeMins`; 1 = máximo del preset; > 1 extrapola). `PushSizeRange` (al
+  final de `PushStartSize`) → herramienta `CfgSizeLo/CfgSizeHi` → **`ApplySizeRange`** en `BeginStroke` (antes de
+  `StartStroke`) → `SizeLo/SizeHi` del trazo. Antes vivían solo en el CDO de `BP_TBStroke`.
+- 🔴 Las tres nacieron en **0 en la instancia** de `L_TBTest_SC` (gotcha "instance editable nace en cero"): puestas a mano y nivel
+  guardado.
+
+### 5z - Pose de la paleta 3D por perillas del director, con giro en SUS ejes y ajuste en vivo (2026-09-29/30)
+Beltrán: *"las perillas de rotación no funcionan"* → *"¿estás seguro? está demasiado difícil ajustarlo"*.
+- `07 PALETA > PaletteOffset / PaletteRot / PaletteScale` (nueva) ahora mueven la paleta 3D (`ArtAnchor` de `BP_TBPalette`)
+  con **pivote en el centro del disco**: `PlaceArt` (al final de `PlacePalette` y `MirrorPalette`, y **cada cuadro al final de
+  `DirectorStep`**, con firma `Z-Paleta > PlacedSig` para no reescribir si nada cambió). El `Mesh` viejo sigue con los mismos
+  valores (oculto, sin efecto). `ArtAnchor` en el viewport de `BP_TBPalette` queda como vista previa: en juego manda el director.
+- **`PaletteTilt` / `PaletteBank` / `PaletteSpin`** (grados, nuevas): giros sobre los ejes PROPIOS de la paleta, compuestos
+  después de `PaletteRot` como **tres rotadores encadenados**: rot = Base · Tilt · Bank · Spin, o sea
+  `Combine(MR(0,0,Spin), Combine(MR(0,Bank,0), Combine(MR(Tilt,0,0), Base)))`. Spin es el más interno, así que siempre gira
+  en el plano del disco.
+  - 🔴 **Arreglo del 2026-09-30.** La v1 metía los tres en UN solo rotador: `Combine(MakeRotator(Tilt, Bank, Spin), Base)`.
+    Dentro de un FRotator el yaw se aplica al final, respecto del padre (R = Yaw·Pitch·Roll).
+    - Con `Bank` −50,9, el valor de Beltrán, `Spin` 40 daba yaw 40 alrededor de la vertical del mundo. Beltrán: *"no rota en su propio plano, hace lo mismo que el tilt"*.
+    - Medido en PIE después del arreglo: normal del disco (0,776, 0, 0,631) antes y después de `Spin` 40, y el eje X gira 40,00° en el plano.
+    - Regla: **perillas de giro independientes = un rotador por perilla, encadenados; nunca las tres en un `MakeRotator`.**
+  - Ejes locales de la paleta:
+  +X derecha (colores), +Y abajo (slider), +Z hacia el usuario → Tilt = inclinar arriba/abajo (sobre X), Bank = girar los bordes
+  izquierdo/derecho (sobre Y), Spin = girar en su plano (sobre Z). `PaletteRot` de Euler desde el grip (que va inclinado en la
+  mano) era lo que lo hacía "demasiado difícil".
+- **`PaletteSide` / `PaletteUp` / `PaletteNear`** (cm, nuevas 2026-09-30). Beltrán: *"PaletteOffset está rarísimo de mover…
+  necesito acercarlo o alejarlo de mí, subirlo o bajarlo de mi mano"*.
+  - Por qué `PaletteOffset` se sentía raro: está en el marco del **grip** izquierdo, que va inclinado en la mano, así que sus X/Y/Z no son adelante/arriba para quien mira.
+  - Las nuevas mueven la paleta sobre **sus propios ejes, después del giro**: `Side` a lo largo del eje de los colores (+ hacia la mano que dibuja), `Up` hacia arriba de la paleta (+ sube) y `Near` por su normal (+ hacia el usuario).
+  - Fórmula: `loc = PaletteOffset + RotateVector((Side, −Up, Near), rot)`. En zurdo, `(Side, +Up, Near)` con el rotador espejado.
+  - Medido en PIE: `Up` 3 + `Near` 5 → desplazamiento (4,82, −2,60, 1,99) = R·(0, −3, 5) exacto.
+  - `PaletteOffset` queda como base en el marco de la mano (default del CDO, que usa el recorrido); para ajustar a ojo, dejarlo en 0 y usar las tres nuevas.
+  - `PlaceArt` se reescribió entero el 2026-09-30: se borraron sus 83 nodos salvo la entrada y se escribió con el DSL. Firma y llamadas, iguales.
+- **Ajuste en vivo**: cambiar esas perillas en la instancia del director DURANTE el PIE mueve la paleta al instante (verificado:
+  Tilt 20 en PIE → Roll 20 en el mismo segundo). Al parar el PIE se pierden: copiar los valores a la instancia del editor.
+- Zurdo: `PlaceArt` espeja posición (−Y), rotación (−yaw, −roll de la base; −Tilt, −Spin del ajuste) y escala Y (−), así que el
+  contenido también se espeja.
+
+### 5aa - Trazo INCREMENTAL + U en el material con punta de largo fijo (2026-09-30)
+Beltrán: *"si mantengo el trazo más de 3 o 4 segundos empieza a dropear frames"* y *"el inicio del trazo es cada vez más
+lejos de mi mano"*. Diagnóstico sobre los grafos reales: workflow `wf_e84a4d4d-1c0`, informe en el scratchpad de la sesión.
+
+**Causa 1, los fps:** `RebuildChunk` rehacía el trazo ENTERO cada cuadro (`FramePass` + `PostFrame` + `EmitPass` + `EmitExtras`, del nudo 0 al N−1).
+- Medido en PIE (PC) con el trazo sintético, camino viejo: 2,1 ms con 36 nudos → 13,4 ms con 180 → 25,1 ms con 324. Crece en línea recta.
+- A 72 fps entra 1 nudo por cuadro, así que N ≈ 72·t y el codo cae siempre a los mismos segundos.
+- Tilt Brush toca solo los últimos 3-4 nudos (`m_FirstChangedControlPoint`).
+
+**Arreglo:** `RebuildChunk` → `RebuildBody`, que elige el camino.
+- **Camino nuevo:** si `bIncRebuild` (03 TROZO, default **true**) y es una cinta (`TubeSides < 3`, `ShapeMod == 0`, o sea los 4 pinceles de la paleta y 3 más), va a `RebuildInc` → `MeshPush`.
+- **Camino viejo:** los tubos, Petal y Spikes siguen por `FramePass…EmitExtras` → `MeshPush`, intactos.
+- `RebuildInc` recalcula solo desde `IncFrom = max(ChunkStart, min(IncN, N) − 4)`:
+  - nudos: `IncKnot(I)` calcula todo con nodos puros y le pasa los valores a `IncKnotSet`, que escribe. Así `ComputeSurfaceFrame` y `PressuredSize` se evalúan una vez por nudo y no hay lectura después de escritura.
+  - filas: `IncRow` → `IncRowSet`.
+  - quads: `IncQuad`.
+  - Los arreglos `V_*` se redimensionan con `Resize`, sin `Clear`.
+  - Arranque completo si cambió el trozo (`IncChunk`) o `V_Pos` está vacío.
+- Misma matemática que `FramePass`/`EmitPass`, nodo por nodo: marco con tangente central, presión suavizada por distancia, límite de crecimiento y clamp xor de auto-intersección, suavizado 0,3/0,4/0,3 y filas crudas en 0 y en N−2..N−1.
+- `MeshPush` = el mismo `CreateMeshSection` de antes (sin colisión, sin sRGB).
+- `K_U` ya no se escribe en el camino nuevo, y `V_UV.x` = 0: la U la calcula el material (abajo).
+
+**Causa 2, la cabeza "lejos":** con la U estirada a todo el trazo (UVStyle Stretch, fiel a Tilt Brush), la punta de la textura ocupa un porcentaje fijo del LARGO.
+- Medido en las PNG de ob-tools: el marcador se afina de 0,94 en u 0,2 a 0,51 en u 0,8 y 0,15 en u 0,95; Óleo, WetPaint y Light cierran en u 0,8-1.
+- En un trazo de 60 cm, los últimos ~12 cm junto a la mano quedaban finitos, y crecía con el trazo.
+
+**Arreglo:** función de material nueva **`MF_TB_StrokeU`** (HLSL `scripts/hlsl/StrokeUVS.hlsl`).
+- Se calcula en el **vertex shader** (Custom → VertexInterpolator, fp32).
+- Va enchufada a los `UVs` de las texturas de `M_TB_Additive`, `M_TB_Masked` y `M_TB_Paint` (las 2 de Paint).
+- `u = arco/StrokeLen`, pero la punta [UTip, 1] mide **`TipCm`** cm fijos y el arranque [0, UHead] mide `HeadCm` (0 = proporcional, como Tilt Brush).
+- Parámetros (grupo *Stroke U*): `UArc` 0 = neutro (devuelve UV0, así cualquier otro uso del maestro queda igual) · `TipCm` **4** · `HeadCm` 0 · `UTip` 0,8 · `UHead` 0,2.
+- Los trazos de hasta ~20 cm quedan **idénticos a Tilt Brush**, y con `TipCm` 0 todo el trazo también (verificado numéricamente).
+- `RebuildInc` empuja `StrokeLen` (arco total, en el mismo cuadro, después del rebuild) y `UArc` 1 por `SetScalarParameterValueOnMaterials`.
+- La normalización global O(N) (`StretchAccum`/`StretchNorm`) ya no corre en el camino nuevo.
+
+**Instrumentos (debug, apagados):**
+- `bProfile` (03 TROZO, en el CDO) cronometra `RebuildChunk` con `GetAccurateRealTime` e imprime `REBUILD inc=… N=… ms_avg=… ms_max=…` cada 36 cuadros.
+- **Trazo sintético** en `BPC_TBTool_NC` (09 DEBUG): `bSynth`, `SynthSpeed` 45, `SynthR` 15, `SynthDur` 8, `SynthDelay` 3.
+  - `SynthStep` (al frente del Tick) mueve `Tip` en una espiral con **paso fijo de 1/72 s por cuadro**, así la entrada es idéntica entre corridas, y dibuja con presión 0,5.
+  - `GateStop` lo respeta (`bSynthOn`).
+  - Al terminar, restaura la posición relativa del `Tip` y se apaga solo.
+  - Se prende en la instancia del director del EDITOR antes del PIE, nunca en PIE (gotcha 509), y se apaga antes de guardar.
+
+**Medido (PIE en PC, trazo sintético de paso fijo, 577 nudos, `bProfile`):**
+
+| | Tiempo por cuadro |
+|---|---|
+| Camino viejo | 2,1 ms (36 nudos) → 13,4 (180) → 25,1 (324) → **47 ms (576)** |
+| Camino nuevo | **0,47-0,51 ms plano** de 36 a 576 nudos |
+
+- **Equivalencia:** volcado de los arreglos del mismo trazo por los dos caminos (`Saved/ClaudeScripts/tbcheck/`, `dump_stroke.py` + `compare.py`).
+  - `K_Pos`, `K_Size`, `K_Right`, `K_Surface`, `K_SmoothPress`, `K_Arc`, `V_Pos`, `V_Normal`, `V_Color` y `V_Tri`: diferencia **0**. `V_UV1`/`V_UV2`: 1e-14.
+  - U del material (`TipCm` 0) contra la U vieja: diferencia 0.
+  - O sea, la ventana incremental da bit a bit lo mismo que reconstruir todo.
+- ⬜ Falta medir en la Quest (APK Development, el mismo sintético) y verlo en el visor.
+
+**Remate al soltar (diagnóstico 3a):** `EndStroke` = `TrimEnd` → `RebuildChunk` → `SwayArm` → `PushLook`.
+- Si el último tramo mide < 0,05 cm (el nudo duplicado por `CommitKnot`), `TrimAt(N−1)` lo saca de los 12 arreglos `K_*`, con `K_Pos` al final.
+- Antes la última fila caía al `K_Fwd` del mando y dejaba una punta de flecha torcida. Es el mínimo de movimiento de Tilt Brush (5e-4 m).
+- Verificado: 577 → 576 nudos, últimos tramos 0,63 cm.
+
+**Orden de tick (diagnóstico 4a):** `BPC_TBTool_NC` hace `SetTickGroup(TG_PostPhysics)` en su `BeginPlay`. `FeedStroke` lee la punta después de que el mando actualizó su pose en ese cuadro (el mando tickea en PrePhysics), así que no hay un cuadro de atraso.
+
+**Pendiente del diagnóstico (no hecho):**
+- 3b: mínimo de movimiento en `UpdatePosition` y corte por reversa.
+- 3d: presión del nudo 0.
+- E: `UpdateMeshSection` con capacidad por bloques en vez de `CreateMeshSection` por cuadro.
+- F: `SwayStep` sin Tick en los trazos archivados, `HandsStep`.
+
+### 5ab - Relieve sutil del marcador (2026-09-30)
+Beltrán: *"el pincel 1 quedó demasiado plano, pero algo muy sutil, porque me gusta que sea el más plano de todos"*. El pincel 1 es TaperedMarker, la primera tecla.
+- En `M_TB_Masked`, entre `textura × color de vértice` (Multiply_0) y el tinte del degradado (Multiply_2):
+  - Custom `MarkerRelief`: `C · max(1 + ReliefAmt·R, 0)`, con R = canal R de `ReliefTex` (`T_TB_WetPaint_N`, sampler Normal, rango −1..1). Es el mismo relieve falso que usa `M_TB_Paint`.
+  - Se muestrea con la UV del trazo (la salida de `MF_TB_StrokeU`) × (1; 0,25), o sea una sola fila del atlas: vetas finas a lo largo del trazo.
+- Detrás de un **static switch `bRelief`** (default false): CelVinyl, que comparte el maestro, no cambia y no paga la textura extra.
+- `MI_TB_TaperedMarker`: `bRelief` true y **`ReliefAmt` 0,15**. Es la perilla para subirlo o bajarlo.
+- Compila limpio. ⬜ Visto por Beltrán.
+
+### 5ac - ESTELA de previsualización (Tilt Brush) + HALO de energía en la punta (2026-09-30)
+**Estela.** Beltrán: *"un pequeño trazo del pincel pegado al puntito; con la mano quieta no se ve; se alarga con la velocidad; no existe mientras dibujamos"*. Es el `RebuildPreviewLine` de Tilt Brush (`open-brush/Assets/Scripts/PointerScript.cs:447-503`; valores del prefab `Pointer_Main`: vida 0,2 s, largo ideal 1 unidad = 10 cm).
+- **`BP_TBTrail_NC`**, HIJO de `BP_TBStroke`: hereda la malla, los pinceles (`ApplyPreset`, `PressuredSize/Opacity`, `PickAtlasRow`) y `IncRowSet`/`IncQuad`/`MeshPush`.
+  - Constructor propio y liviano, con topología fija de `TrailMax` filas. No usa los nudos del trazo.
+  - Se maneja solo: `TrailTick` (en TG_PostPhysics) → `TrailFind` (encuentra la herramienta por `GetOwner` → `GetComponentByClass`) → `TrailRun`.
+  - `TrailRun` oculta y vacía mientras se dibuja, mientras la punta está sobre la paleta (`bCanDraw` false) y durante `TrailShowDelay` después de soltar. Si no, llama a `TrailFeed`.
+  - `TrailFeed` = `TrailMaybeConfig` (reconfigura si cambia el pincel, el tamaño, el color o el rango) → `TrailPush` (pose de `Tip` + reloj; recorta por vida y por tope) → `TrailBuild` (arco, `lenScale = min(1, largo/TrailIdeal)`, filas con p = min(1,(i−1)/max(1,n−3))·lenScale como TB, `StrokeLen`, `MeshPush`, visible si largo > `TrailMinShow`).
+- Perillas en los **defaults de la clase `BP_TBTrail_NC`** (10 ESTELA): `bTrail` true · `TrailLife` 0,2 · `TrailIdeal` 10 cm · `TrailMax` 16 · `TrailShowDelay` 0,25 · `TrailMinShow` 0,3 cm.
+- La crea `BPC_TBTool_NC.SpawnTrail` en su `BeginPlay`, con el director como dueño.
+- Color = `BrushColor`, el primario; no usa el degradado.
+- Verificado en PIE con el sintético "seco" (`bSynthDry`, nuevo en 09 DEBUG: mueve la punta sin dibujar): 12 puntos, 6,9 cm a 45 cm/s, ancho de 0 en la cola a 2,2 cm en la cabeza, visible, 0 trazos creados, 0 errores.
+- **Ajuste 1 (Beltrán: *"toma demasiado largo; un poco más delgada que el grosor elegido"*):**
+  - Perilla nueva `TrailWidth` 0,7 (10 ESTELA). En `TrailRow` multiplica a `PressuredSize` antes del `0.5 ×`: la cabeza mide el 70 % del grosor elegido.
+  - `TrailLife` 0,2 → 0,12 s: la estela queda un 40 % más corta.
+  - `TrailIdeal` 10 → 6 cm, para que la rampa de ancho siga igual respecto del largo más corto.
+  - Compilado y guardado. ⬜ Visto por Beltrán.
+
+**Halo.** Beltrán: *"el punto desde donde se dibuja debe tener un halo, un poco más cool de que ahí sale energía"*.
+- **Material `M_TB_TipHalo`** (Unlit, Additive; HLSL `scripts/hlsl/TipHaloPS.hlsl`): resplandor `pow(dot(N,V))` más fuerte en el centro, anillos que salen hacia afuera y pulso lento.
+  - La fase (`WavePh`) y el pulso (`PulseV`) los calcula el BP, así el material no usa Time y se evita el fp16.
+  - `Boost` (dibujando): más anillos y más brillo.
+- **Director:**
+  - `HaloEnsure` crea en runtime una esfera básica colgada de `SM_Tip` (`AddComponentbyClass`, sin colisión ni sombra).
+  - `HaloApply` / `HaloStep(DT)`, al final de `DirectorStep`: color = `BrushColor`, visible = `bHalo` y la punta visible, `Boost` suavizado con `FInterpTo` 5. El reloj corre 2,5 veces más rápido al dibujar: la energía "sale".
+  - Perillas (06 PUNTA): `bHalo` · `HaloScale` 3 (× la punta) · `HaloIntensity` 0,6 · `HaloBoost` 1 · `HaloWaveSpeed` 0,35 · `HaloPulseSpeed` 0,4.
+- Verificado en PIE: creado, colgado de `SM_Tip`, visible, escala 3, material dinámico activo, 0 errores. ⬜ Visto por Beltrán.
+
+### 5ad - Estela y punta ajustadas, TINTA que marca el largo de la etapa (2026-09-30)
+- **Estela, ajuste 2.** Beltrán: *"al partir la experiencia la estela no funciona; solo se activa cuando cambio de color o pincel"*.
+  - No se reproduce en PIE: con el sintético seco desde el arranque, la estela sale configurada con el marcador, el color y el grosor correctos, y visible.
+  - Seguro barato: `TrailClear` ahora pone `TrailSig = −1`. Cada vez que la estela se apaga (al dibujar, sobre la paleta, tras soltar), al reaparecer se reconfigura con lo que tenga la herramienta en ese momento.
+  - ⬜ Confirmar en el visor. Si sigue, sospechar del contraste: el color inicial A[0] es casi blanco y la estela del marcador es fina.
+- **Punta.** Beltrán: *"el punto frente al control, que siempre esté un poco más brillante que su color, para que se note"*.
+  - `UpdateTipColor`: `Tint = BrushColor·TipGain + TipLift`.
+  - Perillas del director, 06 PUNTA: `TipGain` 1,5 y `TipLift` 0,06. Puestas en el CDO y en la instancia de `L_TBTest_SC`, porque nacieron en 0.
+  - `M_TBHand_NC` es Unlit: el `Tint` es la emisión directa.
+- **TINTA.** Beltrán: *"una variable de metros lineales que va disminuyendo a medida que dibujamos; al llegar al final activa save drawing; con eso marcamos el largo de la etapa"*.
+  - Director, **10 TINTA**: `bInk` (true) y `InkMeters` (30 m). Internas en Z-Tinta: `InkUsed`, `InkPrevP`, `bInkPrev`, `bInkFired`, `InkShown`.
+  - `InkStep` va al final de `DirectorStep` y llama a tres funciones:
+    - `InkTrack`: mientras la herramienta dibuja (y dibujaba el cuadro anterior), suma la distancia que recorrió `SM_Tip`, en metros.
+    - `InkPushArt`: calcula lo que queda (1 − usado/metros) y, si cambió en más de 0,0005, lo empuja a `Palette.Art.InkSet`.
+    - `InkEnd`: al agotarse, y una sola vez, llama a `InkRelease` (suelta el trazo si estaba dibujando) y a `InkSave` (`Tool.SaveSketch`, el MISMO guardado del botón). `bInkFired` = `SketchPhase > 0`: si el guardado no ocurrió (historial vacío), reintenta.
+  - Lo demás lo hace el cierre que ya existía (`OutroStep`): `bCanDraw` false, se encoge la paleta, etc.
+  - No devuelve tinta al deshacer: es el reloj de la etapa.
+  - ✅ PIE con el sintético DIBUJANDO y `InkMeters` 1 (temporal): `InkUsed` 1,0009 → `bInkFired`, `SketchPhase` 4, `bSystemDone`, `bCanDraw` false, `InkLevel` del arte 0. Sin errores nuevos. Se devolvió `InkMeters` 30 y `bSynth` false.
+  - ⬜ Visor: si 30 m da un largo de etapa razonable. Referencia: a ~30 cm/s de trazo, 30 m son ~100 s de dibujo efectivo.
+- **Gatillo animado del mando, arreglo (2026-09-30).** Beltrán: *"falta la animación del botón del motion controller cada vez que hacemos trigger"*.
+  - Causa: `TrigStep` (5x) leía `GetInputAnalogKeyState(OculusTouch_*_Trigger_Axis)`. En Quest eso da 0 siempre (`assets-existentes.md`: las teclas XR solo viajan por Enhanced Input). El gatillo nunca giró.
+  - Ahora: `V = max(Input|EnhancedActionValues|IA_TB_Pressure_R/L, la tecla de antes)` → `TrigApply`. Es la misma acción analógica que ya da la presión del pincel.
+  - Compila; en PIE, `TrigR/L` existen y no hay errores. ⬜ Visor: el giro con el gatillo real, y si la mano de la paleta también lo mueve (solo si su `IMC_TB_Draw_*` está puesto).
+  - 🔴 En el DSL, `CallFunction|<fn propia>` lleva `self` explícito como primer argumento aunque la lectura no lo muestre. Si falta: *"Could not connect pin X to self"*, y la función queda VACÍA hasta reescribirla.
+- ✅ **ETAPA CERRADA (2026-09-30).** Beltrán, después de probar en VR Preview: *"Funciona. Todo correcto. Damos por guardado esta etapa."* Incluye la estela, la punta, el gatillo, la tinta y la aparición y salida de la paleta (`BP_DrawPalette_SC.md` v6/v6b). Pendientes que no bloquean: APK/Quest (medir el trazo incremental y la paleta) y la prueba zurda (`MaskFlip`).
+
+### 5ae - CONTRATO DE ETAPA para la Obra + guardas de Tip + PlaceSketch (2026-09-30, noche; turno pedido por Narrativa)
+Plan de la noche: `docs/PLAN-NOCHE-2026-09-30.md`. Borrador que se pego: `scripts/tb_contract.dsl`.
+- **Guardas de Tip (el ruido de todas las sesiones).** Medido con el director dormido (`bForceTour`, = tag TOUR de la Obra): 903 `Accessed None trying to read property Tip` en 5 s, TODOS desde `BP_TBTrail_NC.TrailPush`. El mensaje nombra `BPC_TBTool_NC` porque `Tip` es variable de esa clase, pero el que lee es la estela: tickea siempre, aunque el director duerma.
+  - Arreglo: `TrailTipCheck` / `TrailTipCheck2` escriben `bTipOk` = Tip valido Y visible. `TrailRun` lo exige para alimentar la estela; si no, la limpia.
+  - Medido despues: dormido, 0 errores y `bTipOk` false; test normal, `bTipOk` true, la estela suma puntos, 0 errores.
+- **Contrato en `BP_TBDirector_NC`** (stubs de Narrativa):
+  - `StageIntro`: `bStageDone` false, candado on, `TableT` 0, `IntroTableZero` (TableFade 0 directo en el material de la mesa; la herramienta todavia no la conoce si no se instalo), `TourWake`, `IntroPalDelay`, `IntroStep`.
+  - `StageBegin`: candado off, `ContractT0`, `InstallInput`.
+  - `StageOutro`: `InkRelease`, `DisableInput`, `RemoveDrawIMC`. Si el cierre no ocurrio, captura las escalas y levanta `bSystemDone`; el `OutroStep` de siempre encoge mandos y punta, la paleta hace su Vanish y la mesa se funde. No borra trazos.
+  - `bStageDone` (en `ContractDone`, pegajoso) = `bSystemDone` Y `SketchPhase` 0: tinta agotada o SAVE -> presentacion -> vuelta a 0.
+- **Candado** entre Intro y Begin: `DisableInput` del director cada cuadro (`ContractLock`). El gatillo llega por `IMC_Weapon_*` del pawn, que `RemoveDrawIMC` no saca, y `bCanDraw` lo reescriben la paleta y `OutroStep` sin orden garantizado.
+- **Entradas con curva** (estandar high end):
+  - Mandos y punta crecen con smoothstep en `IntroTime` (0,8 s): `IntroArm` captura la escala cuando `bReady`; `IntroRun` escala.
+  - `IntroStep` va en el EventTick DESPUES de `CheckController` (instala en ese mismo cuadro: sin un cuadro a escala llena) y tambien en `StageIntro` (ya instalado).
+  - Mesa: la rampa de la fase 0 de `TableStepInner` (herramienta) paso de lineal a smoothstep.
+  - Salida forzada: `TableEndStep` escribe `TableFade` = 1 - smooth(OutroT/OutroTime) y oculta recien al final (`TableEndFade`).
+- **Paleta en el contrato:** `AppearDelay` = `ContractPaletteDelay` (0,6 s) en runtime, en modo tour (`PalDelayStep`, cada cuadro, e `IntroPalDelay`). Test suelto: los 3 s de la plantilla.
+- **Regla 4 de la obra:** EventTick -> `DirectorStep(min(DeltaSeconds, 0,0333))`. Lo heredan la presentacion del dibujo, la mesa, el encogido, el halo y la haptica. Tambien `IntroRun`.
+- **`bContractTest`** (11 CONTRATO): `TourBegin` lo trata como TOUR (nace dormido) y `ContractArm` arranca timers: `ContractIntroT` a 1 s -> `StageIntro`; + `ContractBeginDelay` (8 s) -> `StageBegin`; `ContractTestStep` -> `StageOutro` al terminar o por `ContractFirewall` (240 s).
+- **`PlaceSketch(Xf, Size)`** (para el cuadro de resultados):
+  - `PlaceSketchBounds` (la caja de `SketchSet` con `GrowBounds` de la herramienta) + `PlaceSketchWith`: M = Inv(transform de `SketchTarget`, o identidad) . T(-centro) . S(k) . Xf, con k = Size / lado mayor. Se aplica con `SketchApplyXf` (el mismo camino de `SketchRelocate`: `SetPlacementXf`, el vaiven sigue).
+  - Convencion: el +X de `Xf` apunta hacia quien mira (igual que `SketchTarget`).
+  - ⬜ Compila; NO ejercitado en PIE (hace falta un dibujo guardado; el sintetico no llego a PIE, ver abajo).
+- **Probado en PIE** (valores temporales devueltos):
+  - `bContractTest` + cortafuegos de 6 s. Intro a 1 s (despierto, instalado, candado; punta en su escala de reposo 0,006 tras la curva; paleta con 0,6 s). Begin a 9,02 s. Outro por cortafuegos: `bSystemDone`, `bStageDone`, `bOutroCalled`, paleta oculta tras su Vanish, punta encogida y oculta, mesa oculta. **0 errores.**
+  - Test normal: igual que antes (sin tour, paleta con 3 s, mesa visible, estela ok, 0 errores).
+  - ⚠ `bSynth` en true en el componente de la instancia llego en false al PIE en modo tour (en el editor seguia en true): el camino tinta -> SAVE -> `bStageDone` no se ejercito aca. Si se valido antes (5ad) y `ContractDone` es una linea.
+- **Valores de la instancia de `L_TBTest_SC`** (antes -> despues). Solo variables nuevas, que nacen en 0: `ContractBeginDelay` 0 -> 8 · `ContractFirewall` 0 -> 240 · `IntroTime` 0 -> 0,8 · `ContractPaletteDelay` 0 -> 0,6 · `bContractTest` false. Los de Beltran, intactos (`InkMeters` 30, `TipGain` 1,5, `PaletteScale` 0,464...). Nivel guardado: sin esos valores, la Obra los veria en 0.
+
+### 5af - El dibujo del CUADRO DE RESULTADOS aparece y se va con su animacion (2026-09-30, noche; encargo de Narrativa)
+Antes, `PlaceSketch` lo colocaba de golpe. Borrador y notas: `scripts/ghost/sketch_fx.dsl`.
+- **Lo que se leyo antes de escribir:**
+  - `BPC_TBTool_NC.SketchReveal(R)`: `SetReveal(R)` + `SetTaper` en cada trazo del `SketchSet`. `SketchShow` la llama con smoothstep; `SketchWait` toca `ShowSound` con `PlaySound2D` sin `IsValid`.
+  - `SketchArchive` -> `ArchiveOne` deja los trazos OCULTOS y fuera de `StrokeHistory`, pero siguen en `SketchSet`. **`PlaceSketch` no los muestra.**
+- **En el director:**
+  - 5 funciones: `SketchAppear`, `SketchVanish`, `SketchFxApply`, `SketchFxTick`, `SketchVis(On)`.
+  - Variables `Z-SketchFx`: `FxT`, `FxDir`, `bFxBusy`. Ninguna es instance-editable: usa las perillas que ya existen (`03 SKETCH > ShowTime/HideTime`, `04 AUDIO > ShowSound/HideSound/SfxVol`).
+  - `SketchAppear`: `FxDir` 1 -> `SketchFxApply` (Reveal = smoothstep(FxT), 0 al arrancar) -> `SketchVis(true)` en ESE orden (sin un cuadro dibujado entero) -> `ShowSound` -> timer `SketchFxTick` cada 0,0139 s.
+  - `SketchVanish`: lo mismo con `FxDir` -1 (Reveal = 1 - smoothstep) y `HideSound`. Al terminar, `SketchVis(false)`.
+  - **Reloj propio (timer), no el Tick:** en la Obra la celda del dibujo duerme durante los resultados, y despertar su Tick correria la logica de la etapa. Paso = `min(GetWorldDeltaSeconds, 0,0333) / tiempo`.
+  - **Interrupcion sin salto:** si `SketchVanish` llega a mitad de `SketchAppear` (o al reves), `FxT` pasa a `1 - FxT`. smoothstep es simetrico, asi que el Reveal no cambia en ese cuadro.
+- **Uso desde la Obra:** `PlaceSketch(Xf, Size)` -> `SketchAppear()` en `ResultsShow`; `SketchVanish()` en la salida de resultados.
+- ✅ Compila (warnings as errors, `null`), log limpio, guardado. ⬜ Sin probar con un dibujo real: con `SketchSet` vacio no hace nada. Queda para el turno de Narrativa en la Obra.

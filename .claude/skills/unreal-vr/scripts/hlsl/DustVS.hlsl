@@ -55,8 +55,8 @@
 //  30  DriftFar        float   ScalarParameter DriftFar 3                          lejos la deriva crece con la distancia, hasta x DriftFar
 //  31  NearMin         float   ScalarParameter NearMin 120                         cm a los ojos: invisible debajo (fuera del volumen del aliento)
 //  32  NearFull        float   ScalarParameter NearFull 180                        cm a los ojos: plena desde aca
-//  33  FarFade0        float   ScalarParameter FarFade0 2600                       cm: se empiezan a apagar
-//  34  FarFade1        float   ScalarParameter FarFade1 3600                       cm: apagadas
+//  33  FarFade0        float   ScalarParameter FarFade0 8000                       cm: se empiezan a apagar
+//  34  FarFade1        float   ScalarParameter FarFade1 11000                      cm: apagadas
 //  35  SpeedFade0      float   ScalarParameter SpeedFade0 6                        grados/s en la vista: desde aca lo rapido se apaga
 //  36  SpeedFade1      float   ScalarParameter SpeedFade1 12                       grados/s: apagado del todo
 //  37  SoulMargin0     float   ScalarParameter SoulMargin0 2                       grados alrededor del metaball sin polvo

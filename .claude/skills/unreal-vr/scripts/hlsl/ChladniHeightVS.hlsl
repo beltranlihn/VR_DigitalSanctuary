@@ -2,7 +2,7 @@
 // GENERADO por scripts/gen_chladni_material.py: NO editar a mano (se pisa). Plan: docs/PLAN-SALAR-CHLADNI-2026-09-28.md
 // Modos DESPLEGADOS, sin arreglos ni bucles (gotcha 399); hash sin seno (gotcha 481). Cuerpo de un Custom: termina en return.
 // NODO  MaterialExpressionCustom  Description "ChladniHeightVS"  OutputType CMOT_Float3
-// ENTRADAS (38, en este orden):
+// ENTRADAS (39, en este orden):
 //   1  LP         float3  LocalPosition, pin XYZ  posicion del vertice (cm, espacio del actor)
 //   2  Part       float   ScalarParameter Part  0 piso, 1 cielo
 //   3  Sym        float   ScalarParameter Sym
@@ -41,8 +41,10 @@
 //  36  V7         float   ScalarParameter V7
 //  37  PerfMode   float   ScalarParameter PerfMode
 //  38  PerfForce  float   ScalarParameter PerfForce
+//  39  Plain      float   ScalarParameter Plain
 // --------------------------------------------------------------------------------------------------------
 if (Part > 0.5) { return float3(0.0, 0.0, 0.0); }
+[branch] if (Plain > 0.5) { return float3(0.0, 0.0, 0.0); }   // piso liso: quieto
 [branch] if (abs(PerfMode - 3.0) < 0.5) { return float3(0.0, 0.0, 0.0); }   // banco: sin WPO
 [branch] if (PerfForce > 0.5) { Order = 1.0; W0 = 1.0; V0 = 0.0; W1 = 1.0; V1 = 0.0; W2 = 1.0; V2 = 0.0; W3 = 1.0; V3 = 0.0; W4 = 1.0; V4 = 0.0; W5 = 1.0; V5 = 0.0; W6 = 1.0; V6 = 0.0; W7 = 1.0; V7 = 0.0; }
 const float PI = 3.14159265;

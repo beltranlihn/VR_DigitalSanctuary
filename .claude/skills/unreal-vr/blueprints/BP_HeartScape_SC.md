@@ -24,7 +24,7 @@ El paisaje del latido: una membrana mate enorme donde **cada latido** hace latir
 |---|---|---|
 | **1 - Latido** | `bDemo` | En Play, latidos automáticos |
 | | `DemoBPM` → `PreviewBPM` | **Ritmo CARDÍACO** simulado (editor **y** Play) |
-| | `BeatDivider` (2) | Uno de cada N latidos se ve: 60 lpm → pulso y empuje a 30. El material divide el preview igual |
+| | `BeatDivider` (**1** desde 2026-09-30; antes 2) | Uno de cada N latidos se ve. Con 1, un pulso visual por cada sonido del manager (pedido de Beltrán 2026-09-30). El material divide el preview igual |
 | | `PulseRise` (0,45) | Segundos hasta la cima del pulso (tamaño/brillo). Curva suave `x²·e^(2(1−x))`, **un** pulso por latido visual |
 | **2 - Ola** | `WaveSpeed` → `Speed` | Velocidad de la onda (cm/s) |
 | | `WaveHeight` → `HeightStart` · `WaveHeightFar` → `HeightEnd` | Altura de la ola al nacer y al final de su viaje (cm) |
@@ -35,6 +35,7 @@ El paisaje del latido: una membrana mate enorme donde **cada latido** hace latir
 | | `PushSpeed` (1) | Velocidad del empuje: 1 = llega al fondo en 0,5 s; 2 = el doble de rápido. **La onda nace en el fondo** |
 | | `HeartSquash` (0,06) · `WellRest` → `WellDepth` (3) · `WellPush` → `WellBeat` (10) | Achatado al empujar · hoyuelo en reposo (cm) · cuánto hunde el empuje al agua (cm) |
 | | `HeartAmoeba` → `HeartMorph` · `HeartGrow` → `PulseScale` | Deformación ameba · cuánto crece en el latido |
+| | `EntryTime` (2,5) | Segundos que tarda la esfera en brotar del agua (`StageIntro`) o en hundirse (`StageOutro`). Solo BP |
 | **4 - Esferas que emergen** | `SizeMin` / `SizeMax` (8 / 60) | Radio de las esferas (cm, sorteo `rand^2,2`: muchas chicas, pocas grandes); solo BP |
 | | `SpawnMin` / `SpawnMax` (300 / 1500) · `OrbClearance` (500) | Anillo de nacimiento alrededor de la esfera central (cm) · distancia mínima al espectador: si caen más cerca o detrás de él, se reflejan al otro lado de la esfera |
 | | `AmebaMix` | Fracción de esferas ameba (1 = todas) |
@@ -160,6 +161,48 @@ Investigación de solo lectura con simulación cuadro a cuadro (workflow de 3 au
 - En `Test_Heart` la instancia quedó con `bDemo` = false. Sin manager en el nivel no pasa nada (el `IsValid` lo corta).
 - ✅ **PIE:** manager con `bFakeBeat` y zona forzada → un latido por segundo, `LastBeat − PrevBeat` = 2,0 s en la membrana, 0 `Accessed None`.
 
+## 🌅 Contrato de etapa: esfera que brota, pulso con cada latido, paleta blanca-rojiza (2026-09-30, noche del nivel final)
+Pedido de Beltrán (audio de las 04:30, vía Narrativa):
+- el pulso visual salía "uno por medio";
+- paleta blanca-rojiza, surreal, nada azul (el azul es de la respiración);
+- antes de las instrucciones, solo el mar;
+- la esfera aparece en las instrucciones y se va animada al final.
+
+**El bug del "uno por medio".** La membrana dividía por `BeatDivider` 2, la regla vieja del "pulso a la mitad del ritmo", superada. Además la instancia tenía `bDemo` en **true**, así que metía latidos propios sin sonido.
+- Ahora `BeatDivider` = **1** (instancia y CDO) y `bDemo` = **false** en la instancia.
+- Verificado en PIE: `LastBeat − PrevBeat` = 1,00 s con el manager a 60 lpm.
+
+**La esfera brota del agua.** Se usa el parámetro `HeartZ` en los MIDs de `Heart` y `Membrane` (la membrana lo usa para la luz de la esfera). La membrana es opaca, así que debajo del agua la esfera no se ve.
+- **`SphereGo(D)`** (pública): `D` = 1 sube, −1 se hunde, 0 la oculta al instante (`EntryT` 0 + `EntryApply`).
+- **`EntryStep(DT)`**, en el Tick después de `PushBeat`: el `DT` entra por `Min(DeltaSeconds, 1/30)`, regla del director para que un cuadro trabado no se coma la entrada. Avanza `EntryT` a razón de `EntryDir / EntryTime` y se detiene en 0 o en 1.
+- **`EntryApply()`**: `HeartZ = lerp(hide, HeartHeight, e)`.
+  - `e` es easeOutBack con c1 1,2: `1 + 2,2·m³ + 1,2·m²`, con `m = EntryT − 1`. Pasa ~5 % de largo y se asienta, como algo que flota.
+  - Al revés (salida), la misma curva da primero un impulso hacia arriba y después se hunde.
+  - `hide = −(1,5·HeartSize + HeartFloat + 10)`.
+- Variables nuevas: `EntryT` (Z - Interno, default **1** = visible, para que el modo libre no cambie), `EntryDir` (Z - Interno), `EntryTime` (perilla, 2,5).
+- Quién la llama: [[BP_HeartManager_SC]] vía `ScapeGo(D)`.
+  - `BeginPlay` con TOUR o `bContractTest` → 0.
+  - `StageIntro` → 1.
+  - `StageOutro` → −1.
+  - `TourWake` → 1.
+
+**Paleta** (perillas de la instancia en `Test_Heart`, valores lineales, antes → después):
+| Perilla | Antes | Después |
+|---|---|---|
+| `ColorLight` | 0.896 / 0.411 / 0.331 | 0.96 / 0.84 / 0.80 |
+| `ColorShadow` | 0.195 / 0.266 / 0.491 | 0.34 / 0.07 / 0.09 |
+| `ColorSheen` | 0.913 / 0.930 / 1.0 | 1.0 / 0.92 / 0.88 |
+| `ColorGlow` | 0.318 / 0.419 / 1.0 | 1.0 / 0.34 / 0.28 |
+| `ColorCrest` | 0.760 / 0.810 / 1.0 | 1.0 / 0.78 / 0.72 |
+| `HeartColorCore` | 0.939 / 0.947 / 1.0 | 1.0 / 0.62 / 0.56 |
+| `HeartColorRim` | 0.479 / 0.552 / 1.0 | 1.0 / 0.52 / 0.48 |
+| `SkyColorHorizon` | 0.672 / 0.716 / 0.823 | 0.95 / 0.85 / 0.83 |
+| `SkyColorGlow` | 0.855 / 0.768 / 0.823 | 1.0 / 0.82 / 0.76 |
+
+- Sin tocar: `HeartColor`, `HeartColorShadow` y `SkyColorTop` (ya eran rojizos). Tampoco los valores de Beltrán: `HeartPush` 24,4, `OrbAmoeba` 0,08, `HeartSize` 68,1 y `HeartHeight` 113, que él subió desde el 09-29.
+- Captura del viewport desde el ojo del usuario: `VR_Test/Saved/ClaudeScripts/Heart/cap_palette2.png`. Mar blanco-rosado, cielo rojizo arriba, esfera roja como foco. ⬜ Visor.
+- Respaldo de TODOS los valores de la instancia antes de tocar la estructura (gotcha 402): `Saved/ClaudeScripts/Heart/dump_0930_actors.json` y `dump_0930.json` (componentes).
+
 ## Pendiente
 1. **Nivel `Test_Heart` + PIE** (normal y Simulate) cuando el editor esté libre; verificar por log que `Wave0..7` y `Beat` cambian en el MID.
 2. Juicio de Beltrán en el viewport (la instancia anima sola) y en el visor.
@@ -170,4 +213,14 @@ Investigación de solo lectura con simulación cuadro a cuadro (workflow de 3 au
 ## Session log
 - **2026-09-27** — fases 1 a 3 construidas sin abrir niveles. Decisiones que cambiaron respecto del plan: (a) **un solo master con `Part`** en vez de materiales separados, para tener **una sola superficie de autoría**; (b) **MIDs en vez de `MPC_Heart_SC`** (no es global y esquiva la gotcha 416 del `ParameterId`); (c) la autoría de la forma vive en la **MI** (rangos y descripciones gratis), no en variables del actor. Gotchas nuevas: 446-452.
 - **2026-09-29** — enganchado a `BP_HeartManager_SC` en `Test_Heart` (con `BP_BioHub` y el manager colocados); `bDemo` apagado en la instancia. Verificado en PIE.
+- **2026-09-30** — contrato de etapa (esfera que brota/se hunde con `SphereGo`), `BeatDivider` 1 y `bDemo` false (pulso con cada sonido), paleta blanca-rojiza. PIE ok con el contrato del manager.
 - **2026-09-29** — decisiones de Beltrán: **esfera central SUAVE** (lóbulos 2,6/3,4/2,0/4,2, la del disco y el commit; no la "coliflor" del APK de las 23:11), y **que se hunda un poco en el agua tras el empuje es intencional** (sale de la lista de robustez v7).
+
+## 🌀 2026-10-01 — LA VUELTA (pedido directo de Beltrán)
+*"Empezar a elevarnos y a rotar alrededor de este océano. Muy suave. Siempre mirando al centro… bajar el océano y las lunas… a la mitad de la etapa, por cantidad de pulsos… que termine de dar una vuelta completa."*
+- **Por qué mover el ACTOR:** los 5 Custom (`HeartScapeVS/HeightVS/GradVS/XVS/PS`) trabajan en espacio LOCAL con centro en la esfera. Rotar el actor en su origen = orbitar el centro mirándolo; bajarlo = subir. El pawn, Alma, HUD y manos no se mueven y quedan como referencia fija (menos mareo). Root `Movable` (verificado).
+- **Perillas (cat. `5 - Vuelta`, editables):** `OrbitTime` 60 s · `OrbitRise` 400 cm · `OrbitSpin` 1 (vueltas y sentido: +1 antihoraria, −1 horaria). Estado (`Z - Interno`): `OrbitT`, `OrbitOn`, `OrbitBaseLoc`, `OrbitBaseRot`.
+- **`OrbitGo()`** (la llama el manager): si no empezó, guarda la base (`GetActorLocation/Rotation`, respeta el offset de LevelInstance) y prende.
+- **`OrbitStep(DT)`** (Tick, después de `EntryStep`, DT del `Min` 1/30): `OrbitT += dt/OrbitTime` → **smootherstep** `e = u³(10 − 15u + 6u²)` (velocidad Y aceleración 0 en los extremos) → `SetActorLocationAndRotation(base − (0,0,OrbitRise·e), yaw base + 360·OrbitSpin·e)` → `FindViewer()` (la regla del espectador de las lunas usa el viewer en LOCAL: al rotar el actor hay que recalcularlo) → a `u = 1` apaga y loguea `HEART: termino la vuelta`.
+- **`OrbitReset()`**: vuelve a la base (teleport) y `OrbitT` 0.
+- Velocidades con 60 s: giro medio 6°/s, pico 11,2°/s; subida pico 12,5 cm/s. ⬜ PIE y visor.

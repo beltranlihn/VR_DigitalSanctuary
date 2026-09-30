@@ -63,6 +63,7 @@ METABALL = np.array([380.0, 0.0, 125.0])
 # ---------------------------------------------------------------------------------------------
 P = dict(
     Part=0.0, PerfMode=0.0,
+    SwellTimeOfs=0.0,   # 2026-09-30: segundos extra del reloj del oleaje/respiracion (los integra el BP al exhalar)
     # 1 - Colinas (capa 1, colinas medias)
     HillAmp=2200.0, HillScale=8.0, HillSeed=63.0,
     HillNear=4500.0, HillFull=12000.0, HillFade=19000.0, HillEnd=26000.0,
@@ -267,6 +268,7 @@ def valley_grad(x, y, t, q=None, capas=(1, 2, 3), con_dt=False, sombreado=True):
     sombreado=False quita el termino de sombreado del oleaje (Av grad s): el gradiente queda EXACTO (el de h).
     h y hf no dependen de sombreado."""
     q = P if q is None else q
+    t = t + q.get("SwellTimeOfs", 0.0)   # el HLSL: Tt = View.GameTime + SwellTimeOfs
     x = np.asarray(x, dtype=np.float64)
     y = np.asarray(y, dtype=np.float64)
     r = np.sqrt(x * x + y * y)

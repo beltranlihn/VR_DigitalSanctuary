@@ -40,9 +40,12 @@
 //  27  SwellSeed       float   ScalarParameter SwellSeed       0 (grados; gira las 4 direcciones del oleaje)
 //  28  MorphAmt        float   ScalarParameter MorphAmt        0.15 (respiracion de la amplitud de cada duna media, en su lugar)
 //  29  MorphSpeed      float   ScalarParameter MorphSpeed      1 (periodos 41-83 s); fijar y dejar
-//  30  SwellShade      float   ScalarParameter SwellShade      1000 cm (oleaje SOLO en el sombreado: amplitud equivalente en la normal)
-//  31  SwellShadeFull  float   ScalarParameter SwellShadeFull  5000 cm (el sombreado del oleaje entra de SwellNear a aqui)
+//  30  SwellTimeOfs    float   ScalarParameter SwellTimeOfs    0 s (lo escribe el BP: tiempo extra del oleaje y de la respiracion, crece al exhalar)
+//  31  SwellShade      float   ScalarParameter SwellShade      1000 cm (oleaje SOLO en el sombreado: amplitud equivalente en la normal)
+//  32  SwellShadeFull  float   ScalarParameter SwellShadeFull  5000 cm (el sombreado del oleaje entra de SwellNear a aqui)
 // TIEMPO: se lee View.GameTime adentro (uniforme fp32, sin periodo; gotchas 185 y 382). No hay nodo Time.
+//         + SwellTimeOfs (2026-09-30): segundos EXTRA que integra el BP (StepSwell) solo al exhalar -> la ondulacion
+//         se acelera sin saltar (la velocidad no se cambia en vivo; se integra la fase). 0 = la v2 exacta.
 //         Las fases del oleaje y de la respiracion se reducen con frac (en vueltas) ANTES del sin:
 //         argumento acotado en Adreno aunque la sesion dure horas.
 // RAMAS: if [branch] por radio, como en ValleyHeightVS. La rama del oleaje empieza en SwellNear (el sombreado);
@@ -53,7 +56,7 @@
 // --------------------------------------------------------------------------------------------------------
 float pm = floor(PerfMode + 0.5);
 if (Part > 0.5 || pm == 1.0 || pm == 3.0) { return float4(0.0, 0.0, 0.0, 0.0); }
-float Tt = View.GameTime;
+float Tt = View.GameTime + SwellTimeOfs;
 float x = LP.x;
 float y = LP.y;
 float r = sqrt(x * x + y * y);

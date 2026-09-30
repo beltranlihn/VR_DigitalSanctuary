@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "prototipo-narrativo",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        ".claude/serve_nocache.py",
+        "8766",
+        "web/prototipo-narrativo"
+      ],
+      "port": 8766
+    },
+    {
+      "name": "hall-bake",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "C:/Users/beltr/AppData/Local/Temp/claude/C--Users-beltr-Desktop-Alma-Digital-Studio-Projects-VR-Unreal/38f16213-db1c-4774-ae3a-52e766f53867/scratchpad/bake/serve_save.py",
+        "8768",
+        "C:/Users/beltr/AppData/Local/Temp/claude/C--Users-beltr-Desktop-Alma-Digital-Studio-Projects-VR-Unreal/38f16213-db1c-4774-ae3a-52e766f53867/scratchpad/bake"
+      ],
+      "port": 8768
+    }
+  ]
+}

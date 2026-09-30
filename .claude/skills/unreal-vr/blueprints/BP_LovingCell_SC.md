@@ -16,6 +16,86 @@
 > ⬜ Barrido de estados sin verificar (el preview no se refresca por MCP — ver trampas) ·
 > ⬜ sin PIE · ⬜ sin visor · ⬜ sin medir · ⬜ sin commitear.
 
+## 🎭 ETAPA MIND para la Obra (2026-09-30, noche) — contrato, paleta morada, centrado, actividad, partículas, manos, sonido
+Pedido de Beltrán (audio 04:30), dirigido por Narrativa (`docs/PLAN-NOCHE-2026-09-30.md`; estándar "estudio grande": toda
+entrada/salida con curva y sonido, sin saltos de un cuadro, paso ≤ 1/30, nada anima en BeginPlay). Fuentes versionadas:
+`scripts/loving_stage_contract.dsl` · `scripts/fluid_hands.dsl` · `scripts/make_mind_sounds.py` · `LovingDustVS.hlsl`.
+**Contrato** (lo llama `BP_Obra_SC`): `TourWake()` al encender la celda → escondida (escala 0,001 + `SetActorHiddenInGame`),
+manos del fluido apagadas · `StageIntro()` → nace CONTRAÍDA (Simulate fuerza S → 1 en la fase 2) y crece en `IntroTime` 3 s
+con ease-out-back (sobrepasa 2,3 % a los 2,1 s, velocidad 0 al final), sube 10 cm (smootherstep), `SND_MindAppear` ·
+`StageBegin()` → la señal de actividad arranca "activa" (`FakeStart` = Clock), el fluido sigue el MISMO estado (EEG = S, sin su
+falso) y las manos revuelven · `bStageDone` a los `StageDuration` 80 s · `StageOutro()` → 3 s: 0-30 % anticipación (se hincha
+5 % mientras se contrae, S → 1), 30-100 % se funde a 0 con smootherstep y sube 15 cm, `SND_MindVanish` (inhalación sincronizada)
+→ escondida (fase 5), manos apagadas · `TourSleep()`. `bContractTest` corre TourWake → (1,5 s) Intro → (IntroTime + TestGap) Begin
+→ (bStageDone) Outro. **Fase 0 (sin contrato) = la célula de siempre** (el tour `Test_Recorrido` y el test sueltos no cambian).
+Mientras está escondida (fases 1 y 5) NO simula ni empuja (costo ≈ 0). `StageStep` corre al principio de `Simulate` (nada en Snap).
+Variables: `9-Etapa` bContractTest · StageDuration 80 · IntroTime 3 · OutroTime 3 · TestGap 3 · SndIntro/SndOutro (SoundBase) ·
+SndVolume 0,8 · `Fluid` (ref al BP_FluidMedium_SC del nivel) · `bStageDone` (Default, de Narrativa) · `1-Estado` **ActivityDrive** ·
+`Z-Interno` StagePhase (0 libre · 1 esperando · 2 entrada · 3 mecánica · 4 salida · 5 se fue) StageT TestT StageInit BaseScale BaseLoc
+FakeStart AgTarget. `Simulate` paso = min(DT, 1/30) (antes 0,05).
+**Actividad** ("alta = súper viva; baja = se contrae y se suaviza, más intenso"): `AgTarget = Agitation + ActivityDrive × (1 − SS(0,2; 0,9; S))`
+reemplaza a `Agitation` en TODOS sus lectores (Simulate, LifeStep ×3, CalmStep, GroupTarget: getters cambiados por cirugía). Con 1: a S = 0
+tempo ×1,4, amplitud ×1,35, ruido del objetivo ×2,3, ameba +40 % (tope 0,85), curl +40 %, bolas +50 %, respiración +40 %. Calma más
+quieta: LifeStep `Lerp(1,4 → 0,45)` (antes 0,7) y `Lerp(1,5 → 0,35)` (antes 0,55). CDO ActivityDrive 0 = idéntico a antes.
+**Partículas de las hebras** (`LovingDustVS`, "cúmulos que suben y bajan en vez de envolver la tira"): (1) la dirección alrededor de la hebra
+salía de `d`, cuya z es `2·UVa.x − 1`, y `UVa.x` es también la posición a lo largo: en una hebra horizontal el primer 40 % de sus partículas
+quedaba TODO debajo y el último 40 % TODO arriba (4× lo parejo en un sector; medido en Python). Ahora `qd = U cos(phd) + Vb sin(phd)`
+(1,0× en todo el tramo). (2) Con tramo libre de 4-12 cm las partículas quedaban INTERPOLADAS entre hebra y bolsa (en el aire): ahora umbral
+propio por partícula, cambian de lugar achicándose a 0 en ±1,5 cm de tramo. `verify_outer.py` con el port al día: todo adentro (polvo 0,81 cm).
+**Instancia de `Test_Fluid` (antes → después)**: posición (170, −67,48, 115) → **(200, 0, 115)**, yaw 180 (frente al PlayerStart a 2 m) ·
+DistSeparated 72 → 82 · DistConnected 48 → 38 · ActivityDrive 1 · paleta morada (misma luminancia, tono/saturación por rol; valores en
+`Saved/ClaudeScripts/Loving/turno_0930/instancias_despues.json`, el antes en `antes.json`): AmoebaColor1 #F2EFEA → #F7ECFB · AmoebaColor2
+#8EA2C2 → #B095D5 · ShadowColor #34435A → #4B3C5D · MembraneColor #D5DEEA → #E8D8F0 · MembraneRim #9FAEC4 → #BFA2D5 · DustColor
+#D6D1C7 → #DECBE7 · OuterColor #AFB9C8 → #C6B0D7. `BP_Ganzfeld_SC` oculto del nivel: tag **TestOnly**.
+**Verificado (PIE de Test_Fluid, bContractTest, StageDuration 6)**: fases 1→2→3→4→5; escala 0,02 → 1,023 → 1,0 (3 s) y z 105 → 115;
+S 1 (contraída) → 0,06 (se despliega) con AgTarget → 1; EEG del fluido = S; bHandStir/bFakeEEG como se diseñó; HandsReady; salida 1 → 1,05
+→ 0,006, z +15; 0 Accessed None / Script Msg. Compila con warnings_as_errors. Capturas: `turno_0930/cap_vista_usuario.png`, `cap_hebra.png`.
+⚠ `read_graph_dsl` muestra las llamadas de StageStep como `Class|BPSequencerSC|TourWake/StageIntro/…` (choque de nombres con el Secuenciador):
+es solo el rótulo; el PIE prueba que llama a las propias.
+**2026-09-30 (mediodía, pedido de Beltrán: "que todo el world se active con la ameba")**: `StageCouple` acopla SIEMPRE que la célula vive
+(fases 0/2/3/4, no solo en la mecánica): EEG del fluido = SS(0,2; 0,9; S), la misma actividad de `AgTarget`, y apaga el falso del fluido;
+el fluido acelera corriente y remolinos con `ActiveBoost` (ver `BP_FluidMedium_SC.md` "EL MUNDO SE ACTIVA"). PIE: medido y en sincronía.
+⬜ Visor: sonidos a oído, manos con mandos, sensación de la actividad · ⬜ commit (Beltrán).
+
+
+### 🚀 El viaje (2026-09-30)
+Función nueva **`FluidTravel(On)`** (IsValid(Fluid) → `SetTravel` del fluido), agregada al final de TourWake (off), TourSleep (off),
+**StageBegin (on)** y **StageOutro (off)**. El fluido avanza hacia el usuario durante la mecánica y frena en 2 s en el outro.
+Detalle en `BP_FluidMedium_SC.md` → "EL VIAJE". Fuente: `scripts/fluid_travel.dsl`.
+
+## ⚡ TICK OPTIMIZADO (2026-09-29, tarde) — pedido de Narrativa: "todas las transiciones del recorrido a 72 fps"
+Medido en la Quest (Narrativa, `stat dumphitches` + Insights): `ReceiveTick` **6-8 ms por cuadro** en el game thread
+(Simulate 4-5,5: StepGroup×10 1,3-2,7 · LifeApply×10 1,1-1,7 · BridgeStep 1,1-1,6 · CalmStep 1,1-1,3; PushAll 2,5-3,1).
+Meta ≤ 2 ms, **sin cambiar el look V4b**. Solo BP; la matemática de `GroupTarget`/`LifeApply`/`CalmStep`/`BridgeStep` NO se tocó.
+Fuente versionada: `scripts/loving_tick_perf.dsl` (con el porqué de cada cambio).
+1. **Solo los N grupos que existen** (`GroupCount`, 5 en los niveles; antes siempre 10): bucles de `Simulate`, `LifeStep`, `CalmStep`.
+2. **Puentes apagados → no corren la rampa `BridgeP` ni `BridgeStep`** (sus únicas salidas eran los `Bridge*`, que `BridgeGate` ponía en 0); `BridgeGate` solo en Snap.
+3. **Refresco escalonado del OBJETIVO** (`SimDivider` R, 9-Rendimiento, default 3): `GroupTarget` + `LifeApply` (y el cuerpo de los
+   bucles de `CalmStep`/`LifeStep`) corren para el grupo i solo cuando `(i + SimFrame) % R == 0` (`DoRef[i]`); fuera de turno
+   `GroupPrep` repone `Tgt`/`SprW2`/`SprD` guardados (`TgtA`/`SprW2A`/`SprDA`) y aplica el arrastre `CoreD × Kappa` que hacía `LifeApply`.
+   El resorte corre TODOS los cuadros → la diferencia es un retraso medio del objetivo de (R−1)/2 cuadros (≤ 0,11 cm a 7,9 cm/s con R 3).
+   El PLL (`Psi`) integra el tiempo real desde el último turno del grupo (`GroupDT[i]`, reemplaza al `DT` del Multiply
+   `CalmStep.K2Node_PromotableOperator_46`). **R = 1 = comportamiento exacto de antes** (A/B en el device: `-ExecCmds="set BP_LovingCell_SC_C SimDivider 1"`).
+4. **Empuje: 328 → ~86 `SetColorParameterValueOnMaterials` por cuadro.** `PushGlobals` manda LV0/LV1/LV4 siempre y LV2/LV3/LV5 solo con
+   `StaticDirty`. `PushGroupLive` (nuevo) = `PushGroup` completo si `StaticDirty` o puentes; si no, solo GI/GP/GN + globales, y nada para
+   grupos ocultos. M6-M9, DustK/DustCol, OuterK/OuterCol y visibilidades solo con `StaticDirty` o N > 6. `StaticDirty` = true en Snap (CS y
+   BeginPlay) y cuando cambian LV2/LV3/LV5/N (`PushAll` compara con `LV2P`/`LV3P`/`LV5P`/`NP`). 🔴 **Si un director cambia en juego una
+   perilla de look (DustOpacity, OuterOpacity, colores, OuterK…), tiene que poner `StaticDirty` = true.**
+   `PushAll` ya no escribe LV0/LV1/LV4 (los pisaba `LifeLV`).
+- Grafos: NUEVOS `GroupPrep`, `PushGroupLive` · REESCRITOS (vaciados + `write_graph_dsl`) `Simulate`, `StepGroup`, `PushGlobals`, `PushAll`,
+  `PushMore`, `PushOuter` · CIRUGÍA `LifeStep` (ForLoop `LastIndex` ← `NLast` + Branch `DoRef[Index]`) y `CalmStep` (sus 2 bucles igual + el DT del PLL).
+- Variables: `SimDivider` (int, 3, instance editable) · Z-Interno `SimFrame` `NLast` `DoRef[]` `GroupDT[]` `TgtA[]` `SprW2A[]` `SprDA[]` `StaticDirty` (CDO true) `LV2P` `LV3P` `LV5P` `NP`.
+  ⚠ La instancia de `Test_Fluid` nació con `SimDivider` 0 (gotcha 478) → puesta en 3 y guardada. `Test_Loving` la toma del CDO.
+- **Verificado (PC, PIE de `Test_Fluid`):** compila con `warnings_as_errors`; 0 Accessed None / Script Msg / índices fuera de rango;
+  `DoRef` y `GroupDT` con el patrón esperado; visibilidades (grupos 0-4 sí, 5-9 no, puentes no, envoltura y polvo sí); en los MID, LV2/LV3/LV5,
+  OuterK/OuterCol, DustK, GP/GN (vecinos correctos), BPr 0 y M5-M9 con presencia 0; lo dinámico avanza cada cuadro. Noche perla intacta.
+- **Estimación** desde el desglose de Narrativa (NO medido): Simulate ~0,7-1,0 ms + push ~0,7-0,8 ms ≈ **1,4-1,9 ms**.
+- ✅ **Medido en la Quest (Narrativa, APK del recorrido, 2026-09-29):** LOVING 71,5 → **72,4 fps** de promedio (mínimo 62 → 65);
+  racha de cuadros perdidos en transición 2→3: 9 → 5 · 3→4: 7 → 5; 0 Accessed None. Queda con `SimDivider` 3. (El ms del Tick
+  de la célula no se reportó aparte.) ⬜ commit del `.uasset` + `Test_Fluid.umap`: lo hace Beltrán.
+- Si hiciera falta más: pasar LV0/LV1/LV4 + M0-M9 a una MPC (−~60 llamadas; requiere tocar los 7 materiales; la célula queda "única por mundo").
+- Rollback: `git checkout 76364c2 -- VR_Test/Content/SoulCharger/Mechanics/Loving/BP_LovingCell_SC.uasset` (+ `Test_Fluid.umap`).
+
 ## 🔴 BUG CONOCIDO (hallado 2026-09-29 en Test_Recorrido): divide by zero en `LifeApply`
 PIE de Narrativa: miles de `Script Msg: Divide by zero: Divide_DoubleDouble` por cuadro desde `BP_LovingCell_SC_C_0`.
 Causa (volcado `Saved/ClaudeScripts/Loving/bpdump/lifeapply.txt`): en `_thc = 2·Asin(Min(1, (24·Max(GroupSize,0,05)+2) /

@@ -56,6 +56,12 @@ Pedido de Beltrán: *"le falta algo para que se sienta un poco más vivo… part
 ### 🔴 El crash de las 00:22 (2026-09-29)
 La primera construcción (B1-B4 completos + 5 grafos escritos) **se perdió entera**: el editor cayó con un crash de GPU (`DXGI_ERROR_DEVICE_REMOVED`) mientras compilaba, y el BP **nunca se había guardado** (la receta del plan solo guardaba en B13). Lo que cambió en la reconstrucción: `save_assets` con la ruta del BP justo después de crearlo, después de componentes+variables, después de cada compile limpio y después de cada tanda de grafos (8 guardados); compilar solo cuando hace falta (3 `compile_blueprint` explícitos: tras las variables, tras las funciones y el final; los `write_graph_dsl` compilan solos). No se sabe si el compile causó el crash o solo coincidió (la GPU también dibuja el viewport); no hubo otro crash en la reconstrucción.
 
+## 🌫️ 2026-09-29 (tarde) — más polvo y más lejos (rev. 3 de la malla)
+Beltrán en visor: *"hay muy pocas partículas de ambiente, o se extienden poco; se debe sentir que llegan hasta más lejos"*.
+- **Malla nueva `SM_ValleyDust2_SC`** (24.576 v / 6144 quads): **5120 de base (1,3-110 m)** + **1024 de ráfaga (1,5-60 m)**; antes 1536 + 512 hasta 36 m (~2,5× más densa en cada octava de distancia y 3× más lejos). `vida_model.py` (`N_BASE`, `N_GUST`, `R_BASE_MAX`, `R_GUST_MAX`) → `gen_valley_dust.py` → `vida/SM_ValleyDust2_SC.fbx` (el FBX anterior: `SM_ValleyDust_SC.rev2.fbx`). Importada con nombre nuevo (mismo slot, mismos ajustes de build que la vieja); `DustMesh` de la plantilla y de `Entering_Vida` apuntan a ella. **`SM_ValleyDust_SC` (la vieja) queda sin uso: borrarla solo con permiso.**
+- **MI_ValleyDust_SC:** `FarFade0/1` 2600/3600 → **8000/11000** (defaults del modelo, cabecera de `DustVS.hlsl` y tabla 5.2 del plan actualizados). `Vida_check.py` TODO OK con la malla nueva.
+- Costo estimado del VS ×3 (~0,1-0,27 ms): sin medir en la Quest.
+- PIE: `VIDA: lista`, flujo normal, cero `Accessed None`.
 ## TODO
 - [x] Fase B (B1-B13; B14 no hizo falta).
 - [ ] Fase C (colocar `Entering_Vida`, diff instancia vs plantilla en `DustMesh`/`GustAudio`, gotcha 478; vista previa) y T (PIE), con Breath.

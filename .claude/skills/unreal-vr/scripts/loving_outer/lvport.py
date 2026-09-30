@@ -391,10 +391,11 @@ def dust_points(LV0, LV1, LV2, LV3, LV4, LV5, Ms, T, DustK, CamL, n=2400, rng=No
         U = nrm(AP['Uref'] - ax * (AP['Uref'] @ ax) + np.array([0, 0, 1e-5])); Vb = np.cross(ax, U)
         zW0, zW1 = ArmWindow(AP, B, Lx)
         zs = np.clip(lerp(zW0, max(zW1, zW0), UVa[mask, 0]) + 1.5 * DustK[2] * np.sin(T * 0.29 + TAU * e[mask]), zW0, max(zW1, zW0))
-        qd = nrm(dd - np.outer(dd @ ax, ax) + np.array([1e-4, 0, 0]))
+        qd = np.outer(np.cos(phd[mask]), U) + np.outer(np.sin(phd[mask]), Vb)   # 2026-09-30: azimut propio (LovingDustVS)
         Pstr = Pc + zs[:, None] * ax + qd * (AP['AP3'][0] + 0.35 * off[mask])[:, None]
         Pstr = Pstr + StrandCurl(Pstr, Pc, ax, U, Vb, zW0, zW1, sat(LV1[0]), sat(LV1[2]), LV5[1], float(k), T)
-        isEnv = np.maximum((e[mask] <= 0.62).astype(float), 1.0 - SS(4.0, 12.0, zW1 - zW0))
+        thr = 4.0 + 8.0 * frac(e[mask] * 13.37)   # 2026-09-30: umbral propio por particula (LovingDustVS)
+        isEnv = np.maximum((e[mask] <= 0.62).astype(float), 1.0 - (zW1 - zW0 >= thr).astype(float))
         P = lerp(Pstr, Penv, isEnv[:, None])
         out[mask] = P
         isStrA[mask] = 1.0 - isEnv
