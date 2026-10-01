@@ -6,6 +6,63 @@ Fuentes: `scripts/ghost/`. La hoja del turno es `TURNO.md`; los grafos están en
 
 **Qué es:** Beltrán graba cada gesto de instrucción con los mandos. La obra lo reproduce como un "fantasma" translúcido, dos manos que hacen el gesto, en bucle hasta que el usuario lo hace.
 
+
+## 🆕 v2 (2026-10-01): ✅ APROBADA por Beltrán en PIE, en integración (Narrativa)
+- **Estado 2026-10-01 tarde:**
+  - Las 7 tomas usadas, grabadas por Beltrán en `L_GhostRec_SC` y **suavizadas**: `ghost_smooth.py`, gaussiano σ 2,5 cuadros; posiciones promediadas; rotaciones como cuaterniones; gatillos sin tocar. La toma cruda queda en `Saved/ClaudeScripts/ghost/<DA>_crudo.json`.
+  - Las tomas usadas son Bell, Take, Pick, Breath, Heart, Attract y Draw. Loving, Save y Share están vacías.
+  - CDO: `StepHz` 30 y `EchoAlpha` [1] (sin ecos; antes 11 poses/s con 4 ecos, que se superponían y no se leían).
+  - Beltrán lo vio en PIE: "se ve bien".
+  - Integración encargada a Narrativa, con prioridad sobre los subtítulos y **con el texto oculto en la experiencia** (`bShowText` false en cada instancia). Plan: `docs/PLAN-FANTASMAS-V2-2026-10-01.md` §9.
+  - 📍 **Colocados en las celdas de la Obra (2026-10-01 tarde, sesión Animaciones)**. Todos con yaw 0, `bShowText` false, `bAutoPlay` false, `bPreview` true y carpeta `Fantasmas`. Encendido: `BP_Obra_SC.GhostTick` (Narrativa).
+
+    | Nivel | Fantasma | Posición | `FollowTag` |
+    |---|---|---|---|
+    | `Test_Hall` | `Ghost_BELL` | sobre `Timbre` | `hall_bell` |
+    | `Test_Hall` | `Ghost_TAKE` | sobre `Sensor` | `hall_sensor` |
+    | `Test_Hall` | `Ghost_PICK` | sobre `HallSoul_0` | `soul_idx_0` |
+    | `Test_Entering` | `Ghost_BREATH` | (0, 0, 120) | — (va a la cabeza) |
+    | `Test_Heart` | `Ghost_HEART` | (0, 0, 120) | — (va a la cabeza) |
+    | `Test_Sequencer` | `Ghost_ATTRACT` | PlayerStart + 120 (ojos); `OrbRest` (350, 120, 80) | — |
+    | `L_TBTest_SC` | `Ghost_DRAW` | PlayerStart + 120 | — |
+
+    - En la toma de Attract la esfera se suelta a 75-90 cm bajo los ojos: coincide con los slots reales (−76,6).
+    - ⚠ El timbre real del Hall tiene escala 0,667; el del estudio, 1.
+  - ⏩ **Segunda vuelta de Beltrán en la Obra (2026-10-01):**
+    - **Texto:** `GhText` escribe el texto **VACÍO** si `bShowText` es false. Antes solo ponía el color en 0, y `M_TextUnlit` dibuja las letras negras, que igual se veían.
+    - **Más rápido:** perilla nueva `PlayRate` (CDO **1,25**) que multiplica el avance en `GhRun`; si vale ≤ 0 cuenta como 1. `LoopGap` (la pausa entre vueltas, en segundos reales) bajó de 1 a **0,4**.
+    - Escrito y releído en las 7 instancias, con los ISM en orden y los 6 paquetes guardados.
+    - Para ajustar todo a la vez: el CDO. Las instancias tienen el mismo valor, así que no quedan como override (gotcha 580).
+  - 🔁 **Bucle de solo el acercamiento (Breath/Heart, 2026-10-01):** Beltrán quiere que se repita "llevá el sensor a la panza / al pecho", para que el usuario entienda mirando al frente.
+    - Perilla nueva `LoopEnd`: fin del bucle en segundos de la TOMA; ≤ 0 = la toma entera, que es el default.
+    - `GhRun`: duración = min(`LoopEnd`, toma).
+    - Valores medidos en la toma, donde el sensor se asienta:
+
+      | Fantasma | Se asienta | `LoopEnd` |
+      |---|---|---|
+      | `Ghost_BREATH` | 4,87 s | **4,9** |
+      | `Ghost_HEART` | 4,13 s | **4,2** |
+
+    - Escrito y releído; guardado.
+  - 🔇 **SIN SONIDO** (Beltrán, vía Narrativa): suenan junto con la voz en off que da la instrucción. `AppearSound`/`VanishSound` = None en el CDO y en las 7 instancias (leído). `GhSound` solo suena si el sonido es válido; el gatillo no tiene sonido. **No asignar** FX_GHOSTAPPEAR/OUT.
+- 🔴 **Crash al abrir el nivel (gotcha 578):**
+  - El Construction Script ya NO llama `SetNumCustomDataFloats` (`GhInstInit`).
+  - No cambiar `NumCustomDataFloats` de `BodyR/L`, `Stroke` ni `Path` con instancias colocadas y guardadas en algún nivel.
+  - `L_GhostRec_SC` se rehízo: el viejo, que crashea, está en `VR_Test/Saved/GhostBackup/`.
+- **Plan:** `docs/PLAN-FANTASMAS-V2-2026-10-01.md`. **Hoja del turno:** `scripts/ghost/TURNO-V2.md`. **Datos:** `scripts/ghost/v2_datos.md`.
+- **Diseño:**
+  - Un fantasma COLOCADO por instrucción (`Take` = su DA), en su nivel de test, que es la celda de la Obra.
+  - Ancla en el nivel (sigue a un objeto con `FollowTag`) o en la cabeza (Breath, Heart).
+  - Componentes fijos: `BodyR/L` (ISM: pose + 4 ecos con opacidad por instancia), `TrigR/L`, `HandR/L` (la mano del pawn), `PropR/L` (SAVE o paleta), `BeamR/L`, `Orb`, `Stroke`, `Path` y `Label`.
+  - Vista previa en el editor por Construction Script: la pose en `PreviewTime`, la cebolla y los puntos del recorrido.
+  - Modo EN VIVO para el grabador.
+  - Datos de 34 floats por cuadro (se agrega la posición del aim).
+- **Estado:**
+  - ✅ Armado, grafos escritos, compila.
+  - ⬜ Arreglos del revisor.
+  - ⬜ Grabador (sus grafos).
+  - ⬜ Estudio, prueba sin visor y primera grabación.
+
 ## Piezas
 | Asset | Qué es |
 |---|---|
@@ -26,7 +83,20 @@ Fuentes: `scripts/ghost/`. La hoja del turno es `TURNO.md`; los grafos están en
   - 22-27: cabeza
 - **Espejo para zurdos** (`bMirror`): intercambia R/L, y → −y, yaw → −yaw, roll → −roll (`GhPose`).
 
-## API del reproductor (para la Obra)
+## API del reproductor v2 (para la Obra) — VIGENTE
+- `Play(Mirror)`: la toma es la de la instancia (`Take`, referencia directa al DA). Mirror = `not BP_Obra_SC.UserRight`.
+- `Stop()`: sale con fundido.
+- Lectura: `bPlaying` y `LoopCount`.
+- En el juego no muestra mallas hasta `Play`.
+- Perillas de instancia:
+  - `Take` y `FollowTag` (acompaña a un objeto real y conserva la distancia del editor);
+  - `bShowText` y `TextOffset`;
+  - `bAutoPlay`/`AutoPlayDelay`/`bAutoMirror` (solo prueba);
+  - `OrbRest` (Attract);
+  - `bPreview`/`PreviewTime` (vista previa en el editor).
+- Colocación: las tomas que no van a la cabeza están en el espacio del ACTOR → mismo offset al objeto real que en `L_GhostRec_SC` (ver `ghost_studio.py`, `STATIONS`). Breath y Heart van a la cabeza (`bHeadAnchor` del DA).
+
+## API del reproductor v1 (HISTÓRICO, ya no existe)
 - `Play(DemoId, Color, bMirror)`: busca el DA por `Id` y arranca. Si la toma no existe o está vacía, no hace nada y lo avisa en el log.
 - `Stop()`: sale con fundido.
 - `LoopCount`: sirve para decidir cuándo insistir.

@@ -126,3 +126,10 @@ deformaba mal en visor ("los dedos se doblan hacia atrás"). Se revirtió.
 El camino sigue siendo el re-skin (es el único que deja el graph intacto), pero **con la torsión
 resuelta y verificado con una prueba de flexión** —los dedos doblados, la malla nueva al lado de
 la de Manny, mirando— **antes** de importar nada a Unreal.
+
+## 2026-10-01 — manos menos literales: se desvanecen hacia la muñeca (Mesh 3D, pedido de Beltrán)
+Beltrán: *"se nota mucho que es la mano de Unreal… que la textura sea más suave y se desvanezca hacia la muñeca, así no es tan literal"* (sin modelar mano nueva).
+- **`M_Hand_SC`**: opacidad final = la de antes × **`HandWristFade`** (Custom en el VERTEX: `smoothstep(WristFadeStart, WristFadeStart + WristFadeLength, PreSkinnedPosition.y)`) → `VertexInterpolator` → Multiply → Opacity. `PreSkinnedPosition` (clase `MaterialExpressionPreSkinnedPosition`) = la posición de reposo: el fundido queda pegado a la mano aunque se muevan los dedos.
+- Eje medido con `SkeletalMeshTools.get_bounds`: `SKM_MannyXR_right` y `_left` van de Y −2,7 (muñeca) a +17,5 cm (puntas), espejados solo en X → una sola regla para las dos.
+- Perillas: `WristFadeStart` −2 · `WristFadeLength` 7 (opaca desde media palma). **`MI_Hand_SC`**: `Opacity` 0,22 · `EdgeBoost` 0,5 → **0,35** · `EdgePower` 3 → **1,6** (borde más ancho y suave: desdibuja nudillos y uñas).
+- ⬜ Visor.

@@ -1,4 +1,6 @@
-# Voice overs de Soul Charger — revisión de Beltrán (2026-10-01)
+# Voice overs de Soul Charger — revisión de Beltrán (2026-10-01, v2 con recortes)
+
+**v2:** recortes aprobados por Beltrán para bajar la voz en las etapas de cuerpo: `VO_02`, `VO_15` y `VO_36b` más cortas; `VO_34c` unida a `VO_34b`; `VO_12b` y `VO_17b` eliminadas. 61 clips, ~5 min (antes 64 clips, 5:55). **v3:** `VO_01d` también eliminada (el timbre sin voz) → 60 clips; generadas a velocidad 1,0.
 
 Base: `docs/GUION-V5-2026-09-29.md` §10.4. Esta lista reemplaza esa tabla para generar las VO.
 Marcas: ✏️ texto cambiado · 🆕 nueva · ⏩ cambió cuándo suena · ❌ eliminada.
@@ -10,9 +12,9 @@ Voz: Soul Charger Woman (o su remix "Soul Charger Soul" si se guarda), Multiling
 | `VO_01a` | viaje | *What resonates inside you when you hear the word "soul"?… What does it mean to you?* | |
 | `VO_01b` | viaje | *Listen to the sounds around you.* | |
 | `VO_01c` | viaje → se enciende el portal | *As you get comfortable in your seat, take a moment to listen… What is the sound of your soul?* | |
-| `VO_01d` | **ayuda**: solo si no tocó el timbre a los 15 s (la instrucción es la animación) | *Rest your hand on the bell… and hold it until the light fills the ring.* | ⏩ |
+| ~~`VO_01d`~~ | — | ~~Rest your hand on the bell… and hold it until the light fills the ring.~~ (el timbre se explica solo con la animación) | ❌ |
 | ~~`VO_01h`~~ | — | ~~Rest your hand on it.~~ | ❌ |
-| `VO_02` | aparece Alma | *Hi… welcome to a soul charging experience. I'm Alma, and I'll be with you the whole way. Here, your body speaks… and this place listens. Your breath, your heartbeat, the quiet of your mind: each of them will charge a part of you.* | |
+| `VO_02` | aparece Alma | *Hi… I'm Alma. Here, your body speaks… and this place listens.* | ✏️ (recorte: 21 → ~10 s) |
 
 ## Acto 2 · Hall
 | VO | Cuándo | Texto | |
@@ -43,18 +45,18 @@ Voz: Soul Charger Woman (o su remix "Soul Charger Soul" si se guarda), Multiling
 | `VO_12f1` | primer ciclo, justo antes de la retención | *Hold.* | 🆕 |
 | `VO_12f2` | primer ciclo, justo antes de la exhalación | *Exhale.* | 🆕 |
 | `VO_12f3` | primer ciclo, justo antes de la segunda retención | *Hold.* (mismo clip que `VO_12f1`) | 🆕 |
-| `VO_12b` | desde el 2.º ciclo en adelante | *Inhale to hallucinate life… exhale to create destiny.* | ⏩ |
+| ~~`VO_12b`~~ | — | ~~Inhale to hallucinate life… exhale to create destiny.~~ (el pacer guía; silencio en los ciclos 2+) | ❌ |
 | `VO_13` | fin de los ciclos, **antes** de la carga | *Beautifully done… you and this place breathed as one. Now, let's charge your soul.* | ✏️ |
 | `VO_14` | termina la carga | *Now… let's listen a little deeper. Let's continue to Recognizing.* | ✏️ |
 
 ## Recognizing · latido
 | VO | Cuándo | Texto | |
 |---|---|---|---|
-| `VO_15` | entrada | *This is Recognizing. Let's redirect the focus to the heart… melting the thoughts of the mind.* | |
+| `VO_15` | entrada | *This is Recognizing. Let's bring the focus to the heart.* | ✏️ (recorte) |
 | `VO_16` | con el fantasma | *Place the sensor on your chest… and stay still for a moment.* | |
 | `VO_16h` | ayuda | *A little higher… and very still.* | |
 | `VO_17a` | a lo largo de la etapa | *Can you hear your heartbeat?… Can you feel its rhythm?* | |
-| `VO_17b` | a lo largo de la etapa | *Now… you can see it.* | |
+| ~~`VO_17b`~~ | — | ~~Now… you can see it.~~ (lo visual ya lo dice) | ❌ |
 | `VO_17c` | a lo largo de la etapa | *Does gratitude flow through your heartbeat?* | |
 | `VO_18` | fin, **antes** de la carga | *Well done… your heart has spoken. Now, let's charge your soul.* | ✏️ |
 | `VO_19` | termina la carga | *Now, let your thoughts become quiet. Let's continue to Loving.* | ✏️ |
@@ -98,17 +100,17 @@ Voz: Soul Charger Woman (o su remix "Soul Charger Soul" si se guarda), Multiling
 |---|---|---|---|
 | `VO_33` | última carga | *Your soul is fully charged.* | |
 | `VO_34a` | regreso | *As you gently return… notice what has changed.* | |
-| `VO_34c` | resultados: Alma junto al anillo, el cuadro recién aparecido | *Your journey is complete. Welcome back… Let me show you what I could perceive of you.* | (de la Obra) |
-| `VO_34b` | la carta | *This is what I could perceive of you: your breath… your heartbeat… your calm… your melody… and what you carry inside.* | |
+| ~~`VO_34c`~~ | — | (unida a `VO_34b`) | ❌ |
+| `VO_34b` | resultados: Alma junto al anillo, el cuadro recién aparecido | *Welcome back. This is what I could perceive of you: your breath… your heartbeat… your calm… your melody… and what you carry inside.* | ✏️ (une 34c + 34b) |
 | ~~`VO_36`~~ | — | ~~Is this you? Or only what I could measure of you?~~ | ❌ |
-| `VO_36b` | tras explorar el cuadro (25 s): invitación a compartir | *Would you like to share your journey with others? If you do, your soul will join the constellation of every soul that passed through here.* | (de la Obra) |
+| `VO_36b` | tras explorar el cuadro (25 s): invitación a compartir | *Would you like to share your journey? Your soul would join the constellation.* | ✏️ (recorte) |
 | `VO_36p` | aparecen los botones SHARE / DON'T SHARE | *Point at your answer… and pull the trigger.* | (de la Obra) |
 | ~~`VO_36c`~~ · ~~`VO_36d`~~ · ~~`VO_35c`~~ | respuestas a SHARE / DON'T y constelación sin compartir | — | ❌ (regla de Beltrán: si comparte suena `VO_35b`; si no, nada) |
 | `VO_35b` | **solo si elige SHARE**, en la constelación | *Every soul that passed through here left a light. Now, yours is among them.* | ⏩ |
 | `VO_35a` | siempre (es la salida) | *Your soul will lead the way.* | ⏩ |
 | `VO_37` | constelación → créditos | *If your soul left you a gift today… what would it be? Hold it softly throughout your day. Thank you for showing up.* | |
 
-Orden del final en la Obra (`BP_Obra_SC.FlowShare`): `VO_34c` → +8 s `VO_34b` → 25 s para explorar → `VO_36b` → botones + `VO_36p` → elección (cortafuegos 30 s = no compartir) → SHARE: `VO_35b` · siempre: `VO_35a` → `VO_37`.
+Orden del final en la Obra (`BP_Obra_SC.FlowShare`): `VO_34b` (bienvenida + carta, al aparecer el cuadro) → 25 s para explorar → `VO_36b` → botones + `VO_36p` → elección (cortafuegos 30 s = no compartir) → SHARE: `VO_35b` · siempre: `VO_35a` → `VO_37`.
 
 ## Notas de construcción
 - **Patrón de cierre de etapa** (Entering, Recognizing, Loving, Attracting): felicita o invita a cargar → la carga → invita a la siguiente etapa.

@@ -36,3 +36,14 @@ Es un teletransporte, así que **no se mueve el mismo objeto**: el anillo del HU
 ## Estado
 - 2026-09-30 (2ª vuelta, pedidos de Beltrán en visor): quietud de 2 s antes de volver, luz cargada encendida en los dos anillos (resto apagado), el TargetPoint manda posición Y tamaño, sin el destello de un cuadro al arrancar. Probado en PIE: actor en el objetivo con escala 2,115 mirando al ojo; el anillo del HUD vuelve con solo Entering encendido. ⬜ Visor.
 🟡 Probado en PIE: el actor se ubica en el objetivo mirando al ojo, el anillo del HUD desaparece durante la carga y vuelve a su pose exacta; captura con carga larga: anillo grande + alma al frente. ⬜ Visor. ⚠ El halo casi no se ve sobre el fondo claro del Hall (aditivo sobre casi blanco); en las etapas oscuras sí. ⚠ El brillo del borde es un destello de todo el borde (la luz que da la vuelta necesita un parámetro nuevo en el material del HUD).
+
+## 2026-10-01 — el halo de las cargas de la Obra, en ALPHA BLEND (Mesh 3D, pedido de Beltrán vía Narrativa)
+- *"El halo de color de la carga casi no se notaba; que se note sin ensuciar"*: el aditivo no suma nada sobre fondos claros (Hall, Uyuni, Entering).
+- **`M_ChargeHaloTint_SC`** (`Mechanics/HUD/`) = copia de `M_ChargeHalo_SC` en **Translucent**: el Custom original sigue igual y su salida entra a un Custom nuevo `ChargeHaloTintPS` (`scripts/hlsl/ChargeHaloTintPS.hlsl`): satura el color (`HaloSat` 1,6), alfa = intensidad × `HaloOpGain` 2 con smoothstep (sin borde duro), tope `HaloMaxOpacity` 0,6, `HaloGlow` 1,1.
+- Solo el componente `Halo` de **`BP_ChargeFx_SC`** (Obra) lo usa; núcleo, onda y este BP de prueba siguen con el aditivo. La instancia de la Obra lo toma sola (verificado al recargar).
+- Costo: el mismo plano; translúcido ≈ aditivo en fill-rate. ⬜ Visor.
+
+## 2026-10-01 (11:00, Narrativa) — `BP_ChargeFx_SC` (la copia de la Obra): `FinalLook` arreglado + `TopSorts(On)`
+- `FinalLook`: ahora sí pone `MI_ChargeRing_FrameHUD_SC` / `MI_ChargeRing_LightHUD_SC`, que antes estaban vacíos (§561). El sort del anillo pasa a 32610 y al final llama a `TopSorts(true)`.
+- `TopSorts(On)` (función nueva): sorts sobre el velo de la Obra (halo 32606, alma 32608, destellos 32612/13, anillos de etapa 32614-18) y el alma con `MI_ChargeSoulTop_SC` (DDT). Con `false` vuelve a 0 / 210-216 y a `MI_ChargeSoul_SC`. `NormalLook` llama a `TopSorts(false)`.
+- La Obra también maneja este actor en el Hall (`HallRing`, ver BP_Obra_SC.md): escribe `StartTime` desde afuera para acelerar o congelar la coreografía.

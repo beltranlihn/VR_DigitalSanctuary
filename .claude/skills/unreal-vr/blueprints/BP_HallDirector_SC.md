@@ -16,7 +16,7 @@ Fuentes (reconstruibles): `VR_Test/Saved/ClaudeScripts/Hall/` → `hall_director
 | Llamada | Qué hace | Termina con |
 |---|---|---|
 | `HallIntro()` | Desde el vacío hasta cruzar la puerta Este, con el HUD nacido (guion V5 §1.4-2.9) | `bHallDone = true` |
-| `HallReturn()` | Teleport a 4 m de la puerta Este, la puerta se ilumina y se abre sola (sin timbre), caminar hasta adentro; baldosas encendidas | `bReturnDone = true` |
+| `HallReturn()` | Teleport a 4 m de la puerta Este, la puerta se ilumina y se abre sola (sin timbre), caminar hasta adentro; **baldosas abajo y apagadas** (pedido de Beltrán 2026-10-01: en los resultados no van elevadas ni iluminadas → `HallTiles 5 0.0` en el paso 1 de `HallEnterReturn`) | `bReturnDone = true` |
 | `HallExit()` | Se abre la puerta Oeste y se sale al espacio etéreo; el hall se apaga detrás; niebla azul | `bExitDone = true` |
 | `bHudBorn` (bool) | Se pone true en el paso 24 de HallIntro: **el momento en que nace el HUD**. El Hall NO toca el HUD; la Obra lo conecta a `BP_SoulHUD3D_SC` | — |
 | `StopExit` (componente) | Dónde queda el pawn al terminar HallExit (créditos/constelación de la Obra): `GetStopExit` → `GetWorldLocation/Rotation` | — |
@@ -168,3 +168,28 @@ Esfera del motor ×12 (r 6 m) pegada a la cámara en el Tick; `M_HallFog_SC` = d
 - `HallEnterIntro` paso 7: `SndBell` → `PlaySoundAtLocation` en el timbre (`GetActorLocation(Bell)`), por cirugía.
 - `HallDoor(East, Open)` reescrita: `SndDoor` (0,8) en la puerta. La Oeste está en el punto medio de `StopDoor` y `StopInside`; la Este a 55 % de `StopReturn` hacia `StopCard`. `SndSteps` (tus pasos) sigue en 2D.
 - `Bell` y `DoorOpen` llevan `ATT_Objeto_SC`. ✅ PIE (Obra 63): puerta del SHARE, 0 errores.
+
+## 2026-10-01 (Narrativa) — sensor en la mano con la pose buena
+- `HallGrab(Right)` reescrita: `AttachActorToComponent(Sensor, grip, Snap, Snap, KeepWorld)` + `SetActorRelativeTransform` con la pose de `BP_UserTool_SC.SensorXfR/L` (derecha (4,325; −1,685; −2,335185) roll 90; izquierda y +1,685, roll −90). Antes la rotación era `KeepWorld` y quedaba la del giro del orbe. ✅ PIE (ensayo 6): relativo al `MotionControllerRightGrip` exacto, 0 errores. ⬜ visor.
+- 🔴 Trampa: los setters de bools propios se escriben `Variables|Default|SetRightHanded` (sin la b); el read los muestra como `(|SetbRightHanded ...)`, que NO se puede escribir. Un clear+write con el read como respaldo deja la función vacía.
+
+## 2026-10-01 — `RestDim` en `M_Hall_Tile_SC` (Mesh 3D; el director NO se tocó)
+Beltrán: *"las baldosas menos brillantes se brillaron demasiado"* (el reposo y el anillo atenuado). Escalar nuevo **`RestDim`** (default **0,7**) entre `Multiply_0` (la base × `HallLight`) y la entrada A del `Add_0` del emisivo: atenúa SOLO la base; el `TileGlow` de la subida se suma después igual. Los MI por etapa lo heredan. Para volver al brillo de antes: `RestDim` 1.
+
+## 2026-10-01 (mañana, Narrativa) — correcciones de la prueba completa
+- `HallWalk`: sin pasos también en el modo 3 (la salida final, pedido de Beltrán).
+- Paso 10: `SetStepDur 1.6` → Alma aparece y recién habla (VO_02) 1,6 s después.
+- Paso 30: ya no destruye el sensor (`SetLifeSpan` quitado). El sensor sigue en la mano hasta que la herramienta de Entering toma el relevo: la Obra lo oculta en `HandsTick`. También se quitó el `SetLifeSpan` del timbre del paso 7 (el timbre ya se va con `Vanish`).
+- `HallTickTouch`: al completarse la carga, `SetVisibility(Slider, false)`: el anillo radial desaparece en el acto.
+- Instancia en Test_Hall: `OutTime` 11 → 8, `ExitTime` 12 → 7.
+- **Timbre con sonido al tocar (D4):** `HallBellSnd`, llamado al comienzo de `HallTickTouch` mientras `BellLive`. Al entrar la mano (grip, a menos de `TouchRadius` del timbre) hace `SpawnSoundAtLocation(SndBell)` → `BellSnd`; al salir, `AudioComponent.FadeOut(0.5)`; al volver a tocar, parte de nuevo. Variables `BellTouch` y `BellSnd`. El paso 7 ya no dispara `SndBell`.
+- **Sensor que gira (D5):** `HallSensorSpin(DT)`, llamado al comienzo de `HallTickTouch`: `AddActorWorldRotation` en yaw a 40°/s mientras `SensorLive`. `HallGrab` fija la pose al tomarlo.
+
+## 2026-10-01 (10:00, Narrativa) — rendimiento de los materiales del Hall (el director NO se tocó)
+- Medido en el Quest (APK de la Obra): adentro del Hall había **42 fps** (App 21,8 ms). Quedó en **62,5**.
+- `M_Hall_Interior_SC`:
+  - `HallGroovesPS` **v7**: la junta de las baldosas solo con `z < 34 && r < 290`; los meridianos con un cos/sin y una rotación fija de 72°.
+  - `HallInteriorPS` **v4**: el ruido de valor 3D se lee de **`T_HallNoiseRG_SC`** (nueva entrada `NT` del Custom, conectada a un `TextureObject`).
+- `M_Hall_Tile_SC`: `HallTilePS` **v2**, con el mismo ruido por textura.
+- Mismo look. El código anterior está en `VR_Test/Saved/ClaudeScripts/Obra/dump/code_*_respaldo.hlsl`.
+- Falta ~1 ms para 72: el haz `BP_LightShaft_SC` (`M_LightShaft`, aditivo de dos caras, 176 nodos). Receta completa en `references/materials-vr.md`.

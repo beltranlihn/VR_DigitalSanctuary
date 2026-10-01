@@ -25,16 +25,23 @@
 ;; la carga), asi Play no tiene tirones.
 (event EventBeginPlay
   (bind _self self)
-  (CallFunction|GhReset _self)
-  (Rendering|SetActorHiddenInGame true)
   (CallFunction|GhFollowInit _self)
-  (CallFunction|GhLoad _self)
-  (CallFunction|GhBakeIf _self)
+  (CallFunction|GhBoot _self)
   (if (Variables|Ghost|GetAutoPlay)
     (Utilities|Time|SetTimerbyFunctionName _self "GhAutoPlay" (Variables|Ghost|GetAutoPlayDelay) false)))
 
 (event EventTick (DeltaSeconds)
   (CallFunction|GhTick self (Math|Float|Min(Float) DeltaSeconds 0.0333)))
+
+;; ===== GRAFO: GhBoot
+;; Si el director ya llamo Play en este mismo cuadro (antes del BeginPlay del fantasma), no se lo mata (revisor, #2).
+(fn GhBoot ()
+  (bind _self self)
+  (if (not (Variables|Z-Ghost|GetPlaying))
+    (CallFunction|GhReset _self)
+    (Rendering|SetActorHiddenInGame true)
+    (CallFunction|GhLoad _self)
+    (CallFunction|GhBakeIf _self)))
 
 ;; ===== GRAFO: ConstructionScript
 ;; Vista previa en el editor: el recorrido (puntos), la cebolla y la pose en PreviewTime. Sin toma: un rotulo.
@@ -44,7 +51,8 @@
   (CallFunction|GhLoad _self)
   (if (and (Variables|Z-Ghost|GetFound) (Variables|Ghost|GetPreview))
     (CallFunction|GhPreview _self)
-    (else (CallFunction|GhNoTake _self))))
+    (elif (not (Variables|Z-Ghost|GetFound))
+      (CallFunction|GhNoTake _self))))
 
 ;; ===== GRAFO: Play
 ;; Play(Mirror): Mirror = usuario zurdo. Sin toma no hace nada y lo avisa en el log.
@@ -79,6 +87,8 @@
 (fn GhPreviewGo (D N)
   (bind _self self)
   (CallFunction|GhLoadMeta _self)
+  (Variables|Z-Ghost|SetStride 34)
+  (Variables|Z-Ghost|SetHz 30.0)
   (Variables|Z-Ghost|SetData D)
   (Variables|Z-Ghost|SetFrames N)
   (Variables|Z-Ghost|SetFound (>= N 2))
@@ -102,6 +112,10 @@
   (Variables|Z-Ghost|SetInstN 1)
   (Variables|Z-Ghost|SetInstPreview false)
   (CallFunction|GhSetup _self)
+  (CallFunction|GhAnchor _self (Variables|Z-Ghost|GetMirrorOn))
+  (Variables|Z-Ghost|SetBkPos (Math|Transform|TransformLocation (Variables|Z-Ghost|GetAnchor) (Variables|Ghost|GetOrbRest)))
+  (Variables|Z-Ghost|SetBkHeld false)
+  (Variables|Z-Ghost|SetBkPrevT 0.0)
   (Variables|Z-Ghost|SetLive true)
   (CallFunction|GhLiveAlpha _self)
   (Rendering|SetActorHiddenInGame false))
@@ -120,8 +134,33 @@
 
 ;; ===== GRAFO: GhLiveHands
 (fn GhLiveHands ()
+  (bind _self self)
+  (CallFunction|GhLiveExtra _self)
   (for _h (range 2)
-    (CallFunction|GhLivePlace self _h)))
+    (CallFunction|GhLivePlace _self _h)))
+
+;; ===== GRAFO: GhLiveExtra
+(fn GhLiveExtra ()
+  (if (== (Variables|Z-Ghost|GetExtra) 1)
+    (CallFunction|GhLiveOrb self)))
+
+;; ===== GRAFO: GhLiveOrb
+;; La esfera EN VIVO mientras se graba Attracting (pedido de Beltran: sin verla no le puede apuntar): la misma logica
+;; que GhBakeOrb, en MUNDO, con el aim derecho en vivo. Espera en el ancla + OrbRest; si el gatillo BAJA con el haz a
+;; menos de OrbGrab, viaja a OrbHoldDist sobre el haz y se arrastra; al soltar queda donde esta.
+(fn GhLiveOrb ()
+  (bind _o (.location (Variables|Z-Ghost|GetLiveAR)))
+  (bind _dir (Math|Vector|GetForwardVector (.rotation (Variables|Z-Ghost|GetLiveAR))))
+  (bind _t (Variables|Z-Ghost|GetLiveTR))
+  (bind _v (- (Variables|Z-Ghost|GetBkPos) _o))
+  (bind _along (Math|Vector|DotProduct _v _dir))
+  (bind _dist (Math|Vector|VectorLength (- _v (* _dir _along))))
+  (bind _press (and (>= _t 0.5) (< (Variables|Z-Ghost|GetBkPrevT) 0.5)))
+  (Variables|Z-Ghost|SetBkHeld (and (>= _t 0.5) (or (Variables|Z-Ghost|GetBkHeld) (and _press (and (> _along 0.0) (< _dist (Variables|Ghost|GetOrbGrab)))))))
+  (Variables|Z-Ghost|SetBkPos (select (Variables|Z-Ghost|GetBkHeld) (Math|Interpolation|VInterpTo (Variables|Z-Ghost|GetBkPos) (+ _o (* _dir (Variables|Ghost|GetOrbHoldDist))) (Utilities|Time|GetWorldDeltaSeconds) (Variables|Ghost|GetOrbSpeed)) (Variables|Z-Ghost|GetBkPos)))
+  (Variables|Z-Ghost|SetBkPrevT _t)
+  (bind _s (/ (Variables|Ghost|GetOrbSize) 100.0))
+  (Transformation|SetWorldTransform (Variables|Default|GetOrb) (Math|Transform|MakeTransform :Location (Variables|Z-Ghost|GetBkPos) :Scale (Math|Vector|MakeVector _s _s _s))))
 
 ;; ===== GRAFO: GhLivePlace
 (fn GhLivePlace (H)
@@ -139,9 +178,10 @@
   (Rendering|SetActorHiddenInGame true))
 
 ;; ===== GRAFO: GhLiveAlpha
-;; En vivo se ve lo que la mano SOSTIENE (sensor, SAVE, paleta) y el haz; el cuerpo del mando o de la mano no, porque
-;; ya esta la mano real del que graba.
+;; En vivo (pedido de Beltran 2026-10-01: sin ver los mandos no puede hacer bien el gesto) se ve el mando o el sensor,
+;; el gatillo, lo que sostiene (SAVE, paleta) y el haz; la mano fantasma no (ya esta la mano real). La esfera tambien.
 (fn GhLiveAlpha ()
+  (CallFunction|GhOp self (Variables|Default|GetOrb) (Variables|Ghost|GetLiveOpacity))
   (for _h (range 2)
     (CallFunction|GhLiveHandAlpha self _h)))
 
@@ -150,10 +190,10 @@
   (bind _self self)
   (bind _left (== H 1))
   (bind _k (Variables|Ghost|GetLiveOpacity))
-  (bind _kind (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetKind) H))
-  (CallFunction|GhOp _self (select _left (Variables|Default|GetBodyL) (Variables|Default|GetBodyR)) (select (== _kind 3) _k 0.0))
+  (CallFunction|GhOp _self (select _left (Variables|Default|GetCurL) (Variables|Default|GetCurR)) _k)
+  (CallFunction|GhOp _self (select _left (Variables|Default|GetBodyL) (Variables|Default|GetBodyR)) (* _k 0.0))
   (CallFunction|GhOp _self (select _left (Variables|Default|GetHandL) (Variables|Default|GetHandR)) (* _k 0.0))
-  (CallFunction|GhOp _self (select _left (Variables|Default|GetTrigL) (Variables|Default|GetTrigR)) (* _k 0.0))
+  (CallFunction|GhOp _self (select _left (Variables|Default|GetTrigL) (Variables|Default|GetTrigR)) _k)
   (CallFunction|GhOp _self (select _left (Variables|Default|GetPropL) (Variables|Default|GetPropR)) _k)
   (CallFunction|GhOp _self (select _left (Variables|Default|GetBeamL) (Variables|Default|GetBeamR)) (* _k 0.6)))
 
@@ -228,6 +268,8 @@
 (fn GhCollect ()
   (bind _a (Variables|Z-Ghost|GetSingles))
   (Utilities|Array|Clear _a)
+  (Utilities|Array|Add _a (Variables|Default|GetCurR))
+  (Utilities|Array|Add _a (Variables|Default|GetCurL))
   (Utilities|Array|Add _a (Variables|Default|GetTrigR))
   (Utilities|Array|Add _a (Variables|Default|GetTrigL))
   (Utilities|Array|Add _a (Variables|Default|GetHandR))
@@ -309,22 +351,28 @@
 
 ;; ===== GRAFO: GhSetupHand
 ;; Sin ramas: todo se configura; lo que la mano no usa nunca se coloca (queda a escala 0 o sin instancias).
+;; Cur = la pose ACTUAL (componente simple: el renderer del proyecto no dibuja la opacidad por instancia, 2026-10-01);
+;; Body = los ECOS (o la cebolla del editor), instancias con una sola opacidad. Kind 5 = solo la paleta (sin mando).
 (fn GhSetupHand (H)
   (bind _self self)
   (bind _left (== H 1))
   (bind _k (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetKind) H))
+  (bind _cur (select _left (Variables|Default|GetCurL) (Variables|Default|GetCurR)))
   (bind _body (select _left (Variables|Default|GetBodyL) (Variables|Default|GetBodyR)))
   (bind _trig (select _left (Variables|Default|GetTrigL) (Variables|Default|GetTrigR)))
   (bind _prop (select _left (Variables|Default|GetPropL) (Variables|Default|GetPropR)))
-  (Components|StaticMesh|SetStaticMesh _body (select (== _k 3) (Variables|GhostMesh|GetSensorMesh) (select _left (Variables|GhostMesh|GetBodyMeshL) (Variables|GhostMesh|GetBodyMeshR))))
+  (bind _mesh (select (== _k 3) (Variables|GhostMesh|GetSensorMesh) (select _left (Variables|GhostMesh|GetBodyMeshL) (Variables|GhostMesh|GetBodyMeshR))))
+  (Components|StaticMesh|SetStaticMesh _cur _mesh)
+  (Components|StaticMesh|SetStaticMesh _body _mesh)
   (Components|StaticMesh|SetStaticMesh _trig (select _left (Variables|GhostMesh|GetTrigMeshL) (Variables|GhostMesh|GetTrigMeshR)))
   (Components|StaticMesh|SetStaticMesh _prop (select (== _k 4) (Variables|GhostMesh|GetSaveMesh) (Variables|GhostMesh|GetPaletteMesh)))
+  (CallFunction|GhPrep _self _cur (Variables|Ghost|GetGhostColor))
   (CallFunction|GhPrep _self _body (Variables|Ghost|GetGhostColor))
   (CallFunction|GhPrep _self _prop (Variables|Ghost|GetGhostColor))
   (CallFunction|GhPrep _self _trig (Variables|Ghost|GetTriggerColor))
   (Rendering|Material|SetScalarParameterValueonMaterials _trig "PressGain" (Variables|Ghost|GetTriggerGlow))
   (CallFunction|GhRels _self H)
-  (CallFunction|GhInstInit _self _body (select (>= _k 2) (Variables|Z-Ghost|GetInstN) 0)))
+  (CallFunction|GhInstInit _self _body (select (and (>= _k 2) (<= _k 4)) (- (Variables|Z-Ghost|GetInstN) 1) 0)))
 
 ;; ===== GRAFO: GhRels
 ;; grip -> malla de la mano fisica H. El sensor esta pensado para la DERECHA y el SAVE y la paleta para la IZQUIERDA:
@@ -362,16 +410,18 @@
     (Rendering|Material|SetMaterial C _i (Variables|GhostMesh|GetGhostMat))))
 
 ;; ===== GRAFO: GhInstInit
-;; N instancias a escala 0, cada una con su opacidad propia (custom data 0): juego = EchoAlpha por edad; vista
-;; previa = 1 la actual y PreviewOnion la cebolla.
+;; N instancias a escala 0 (los ecos o la cebolla), SIN opacidad por instancia: PerInstanceCustomData no se dibuja en
+;; el renderer del proyecto (2026-10-01: el cuerpo salia invisible en PIE por Link y en el editor). Con 0 floats el
+;; material usa su valor por defecto (1); todas las instancias comparten la opacidad del componente (GhAlphaHand).
+;; NO llamar SetNumCustomDataFloats aca: cambiar el stride de los datos por instancia mientras el Construction Script de
+;; varias instancias corre en el mismo cuadro CRASHEO el editor (2026-10-01 15:44, assertion InstanceDataUpdateUtils.h:25).
+;; El 0 va en la plantilla de BodyR/BodyL.
 (fn GhInstInit (Ism N)
   (bind _self self)
   (Components|InstancedStaticMesh|ClearInstances Ism)
-  (Components|InstancedStaticMesh|SetNumCustomDataFloats Ism 1)   ;;?
   (Utilities|Array|Clear (Variables|Z-Ghost|GetTmpXf))
   (CallFunction|GhInstFill _self N)
-  (Components|InstancedStaticMesh|AddInstances Ism (Variables|Z-Ghost|GetTmpXf) false true)   ;; InstanceTransforms bShouldReturnIndices bWorldSpace
-  (CallFunction|GhInstData _self Ism N))
+  (Components|InstancedStaticMesh|AddInstances Ism (Variables|Z-Ghost|GetTmpXf) false true))
 
 ;; ===== GRAFO: GhInstFill
 (fn GhInstFill (N)
@@ -416,7 +466,7 @@
 
 ;; ===== GRAFO: GhFollowFind
 (fn GhFollowFind ()
-  (bind _arr (Utilities|GetAllActorswithTag (Variables|Ghost|GetFollowTag)))   ;;?
+  (bind _arr (Actor|GetAllActorswithTag (Variables|Ghost|GetFollowTag)))   ;;?
   (if (> (Utilities|Array|Length _arr) 0)
     (Variables|Z-Ghost|SetFollowActor (Utilities|Array|Get(acopy) _arr 0))
     (Variables|Z-Ghost|SetFollowOff (- (Transformation|GetActorLocation) (Transformation|GetActorLocation (Utilities|Array|Get(acopy) _arr 0))))))
@@ -425,7 +475,7 @@
 (fn GhFollowApply ()
   (bind _a (Variables|Z-Ghost|GetFollowActor))
   (Utilities|IsValid _a
-    (:"Is Valid" (Transformation|SetActorLocation (+ (Transformation|GetActorLocation _a) (Variables|Z-Ghost|GetFollowOff))))   ;;?
+    (:"Is Valid" (Transformation|SetActorLocation :NewLocation (+ (Transformation|GetActorLocation _a) (Variables|Z-Ghost|GetFollowOff))))
     (:"Is Not Valid")))
 
 ;; ===== GRAFO: GhBake
@@ -484,7 +534,7 @@
   (bind _dist (Math|Vector|VectorLength (- _v (* _dir _along))))   ;;?
   (bind _press (and (>= _t 0.5) (< (Variables|Z-Ghost|GetBkPrevT) 0.5)))
   (Variables|Z-Ghost|SetBkHeld (and (>= _t 0.5) (or (Variables|Z-Ghost|GetBkHeld) (and _press (and (> _along 0.0) (< _dist (Variables|Ghost|GetOrbGrab)))))))
-  (Variables|Z-Ghost|SetBkPos (select (Variables|Z-Ghost|GetBkHeld) (Math|Vector|VInterpTo (Variables|Z-Ghost|GetBkPos) (+ _o (* _dir (Variables|Ghost|GetOrbHoldDist))) (/ 1.0 (Variables|Z-Ghost|GetHz)) (Variables|Ghost|GetOrbSpeed)) (Variables|Z-Ghost|GetBkPos)))   ;;?
+  (Variables|Z-Ghost|SetBkPos (select (Variables|Z-Ghost|GetBkHeld) (Math|Interpolation|VInterpTo (Variables|Z-Ghost|GetBkPos) (+ _o (* _dir (Variables|Ghost|GetOrbHoldDist))) (/ 1.0 (Variables|Z-Ghost|GetHz)) (Variables|Ghost|GetOrbSpeed)) (Variables|Z-Ghost|GetBkPos)))   ;;?
   (Variables|Z-Ghost|SetBkPrevT _t)
   (Utilities|Array|Add (Variables|Z-Ghost|GetOrbPath) (Variables|Z-Ghost|GetBkPos)))
 
@@ -567,14 +617,22 @@
     (Variables|Z-Ghost|SetState 2)))
 
 ;; ===== GRAFO: GhRun
+;; PlayRate (2026-10-01, Beltran: "un poco mas rapido") multiplica el avance de la toma; la pausa (GhGap) sigue en
+;; segundos reales (LoopGap). PlayRate <= 0 (variable nueva nacida en 0 en una instancia) = 1: nunca congela.
+;; LoopEnd (2026-10-01, Beltran: "que el bucle sea solo el acercamiento"): fin del bucle en segundos de la TOMA;
+;; <= 0 = la toma entera. Breath 4,9 y Heart 4,2 (el sensor llega a la panza / al pecho).
 (fn GhRun (Dt)
   (bind _self self)
   (bind _s (Variables|Z-Ghost|GetState))
-  (bind _dur (/ (Math|Conversions|ToFloat(Integer) (- (Variables|Z-Ghost|GetFrames) 1)) (Math|Float|Max(Float) 1.0 (Variables|Z-Ghost|GetHz))))
+  (bind _full (/ (Math|Conversions|ToFloat(Integer) (- (Variables|Z-Ghost|GetFrames) 1)) (Math|Float|Max(Float) 1.0 (Variables|Z-Ghost|GetHz))))
+  (bind _le (Variables|Ghost|GetLoopEnd))
+  (bind _dur (select (> _le 0.0) (Math|Float|Min(Float) _le _full) _full))
+  (bind _pr (Variables|Ghost|GetPlayRate))
+  (bind _dt (* Dt (select (> _pr 0.0) _pr 1.0)))
   (if (== _s 3)
     (CallFunction|GhGap _self Dt)
     (elif (> _s 0)
-      (CallFunction|GhAdvance _self Dt _dur))))
+      (CallFunction|GhAdvance _self _dt _dur))))
 
 ;; ===== GRAFO: GhAdvance
 ;; LoopK: en el primer bucle vale 1 (la entrada la hace Fade); desde el segundo sube en LoopFade. En el estado 4 no se
@@ -684,15 +742,16 @@
 
 ;; ===== GRAFO: GhPlaceBody
 (fn GhPlaceBody (H Mx)
-  (if (== (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetKind) H) 1)
+  (bind _k (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetKind) H))
+  (if (== _k 1)
     (Transformation|SetWorldTransform (select (== H 1) (Variables|Default|GetHandL) (Variables|Default|GetHandR)) Mx)
-    (else (CallFunction|GhPlaceIsm self H Mx))))
+    (elif (!= _k 5)
+      (CallFunction|GhPlaceIsm self H Mx))))
 
 ;; ===== GRAFO: GhPlaceIsm
 (fn GhPlaceIsm (H Mx)
-  (bind _ism (select (== H 1) (Variables|Default|GetBodyL) (Variables|Default|GetBodyR)))
-  (Components|InstancedStaticMesh|UpdateInstanceTransform _ism 0 Mx true true true)   ;;? InstanceIndex NewInstanceTransform bWorldSpace bMarkRenderStateDirty bTeleport
-  (if (not (Variables|Z-Ghost|GetInstPreview))
+  (Transformation|SetWorldTransform (select (== H 1) (Variables|Default|GetCurL) (Variables|Default|GetCurR)) Mx)
+  (if (and (not (Variables|Z-Ghost|GetInstPreview)) (not (Variables|Z-Ghost|GetLive)))
     (CallFunction|GhEchoes self H)))
 
 ;; ===== GRAFO: GhEchoes
@@ -701,16 +760,16 @@
     (CallFunction|GhEchoInst self H _k)))
 
 ;; ===== GRAFO: GhEchoInst
-;; Eco K (edad K+1) = instancia K+1. Los que todavia no tienen pose quedan a escala 0.
+;; Eco K (edad K+1) = instancia K. Los que todavia no tienen pose quedan a escala 0.
 (fn GhEchoInst (H K)
   (bind _ism (select (== H 1) (Variables|Default|GetBodyL) (Variables|Default|GetBodyR)))
   (bind _on (< K (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetHistN) H)))
-  (Components|InstancedStaticMesh|UpdateInstanceTransform _ism (+ K 1) (select _on (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetHist) (+ (* H 4) K)) (Math|Transform|MakeTransform :Scale (Math|Vector|MakeVector 0.0 0.0 0.0))) true true true))
+  (Components|InstancedStaticMesh|UpdateInstanceTransform _ism K (select _on (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetHist) (+ (* H 4) K)) (Math|Transform|MakeTransform :Scale (Math|Vector|MakeVector 0.0 0.0 0.0))) true true true))
 
 ;; ===== GRAFO: GhPlaceTrig
 (fn GhPlaceTrig (H Mx)
   (bind _k (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetKind) H))
-  (if (or (== _k 2) (>= _k 4))
+  (if (or (== _k 2) (== _k 4))
     (CallFunction|GhTrigSet self H (Variables|Z-Ghost|GetPoseTrig) Mx)))
 
 ;; ===== GRAFO: GhTrigSet
@@ -762,13 +821,15 @@
 
 ;; ===== GRAFO: GhStrokeTo
 (fn GhStrokeTo ()
-  (if (== (Variables|Z-Ghost|GetExtra) 2)
+  (if (and (== (Variables|Z-Ghost|GetExtra) 2) (> (Utilities|Array|Length (Variables|Z-Ghost|GetStrokeF)) 0))
     (CallFunction|GhStrokeGrow self)))
 
 ;; ===== GRAFO: GhStrokeGrow
 ;; Agrega los tramos hasta el cuadro actual (pocos por salto). El componente esta en el ancla: instancias LOCALES.
+;; El AND de Blueprint no corta: el indice se acota con Min para no leer fuera del arreglo (revisor, #1).
 (fn GhStrokeGrow ()
-  (while (and (< (Variables|Z-Ghost|GetStrokeShown) (Utilities|Array|Length (Variables|Z-Ghost|GetStrokeF))) (<= (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetStrokeF) (Variables|Z-Ghost|GetStrokeShown)) (Variables|Z-Ghost|GetCurF)))
+  (bind _n (Utilities|Array|Length (Variables|Z-Ghost|GetStrokeF)))
+  (while (and (< (Variables|Z-Ghost|GetStrokeShown) _n) (<= (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetStrokeF) (Math|Integer|Min(Integer) (Variables|Z-Ghost|GetStrokeShown) (- _n 1))) (Variables|Z-Ghost|GetCurF)))
     (Components|InstancedStaticMesh|AddInstance (Variables|Default|GetStroke) (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetStrokeXf) (Variables|Z-Ghost|GetStrokeShown)) false)   ;;? InstanceTransform bWorldSpace
     (Variables|Z-Ghost|SetStrokeShown (+ (Variables|Z-Ghost|GetStrokeShown) 1))))
 
@@ -787,11 +848,16 @@
     (CallFunction|GhAlphaHand _self _h)))
 
 ;; ===== GRAFO: GhAlphaHand
+;; Ecos (o cebolla) con UNA opacidad: EchoAlpha[1] (EchoAlpha de un solo valor = gif puro) o PreviewOnion.
 (fn GhAlphaHand (H)
   (bind _self self)
   (bind _left (== H 1))
   (bind _k (Variables|Z-Ghost|GetAlphaK))
-  (CallFunction|GhOp _self (select _left (Variables|Default|GetBodyL) (Variables|Default|GetBodyR)) _k)
+  (bind _ea (Variables|Ghost|GetEchoAlpha))
+  (bind _n (Utilities|Array|Length _ea))
+  (bind _eo (select (Variables|Z-Ghost|GetInstPreview) (Variables|Ghost|GetPreviewOnion) (select (> _n 1) (Utilities|Array|Get(acopy) _ea (Math|Integer|Min(Integer) 1 (- _n 1))) 0.0)))
+  (CallFunction|GhOp _self (select _left (Variables|Default|GetCurL) (Variables|Default|GetCurR)) _k)
+  (CallFunction|GhOp _self (select _left (Variables|Default|GetBodyL) (Variables|Default|GetBodyR)) (* _k _eo))
   (CallFunction|GhOp _self (select _left (Variables|Default|GetHandL) (Variables|Default|GetHandR)) _k)
   (CallFunction|GhOp _self (select _left (Variables|Default|GetTrigL) (Variables|Default|GetTrigR)) _k)
   (CallFunction|GhOp _self (select _left (Variables|Default|GetPropL) (Variables|Default|GetPropR)) _k)
@@ -803,11 +869,15 @@
 
 ;; ===== GRAFO: GhText
 ;; La linea de texto en TextOffset (espacio del ancla), mirando al usuario (yaw del ancla + 180).
+;; bShowText false = texto VACIO (2026-10-01): el color a 0 de GhTextAlpha deja las letras NEGRAS, que se ven igual
+;; sobre fondo claro (Beltran las vio en la Obra con bShowText false).
 (fn GhText ()
   (bind _tc (Variables|Default|GetLabel))
   (bind _an (Variables|Z-Ghost|GetAnchor))
   (Transformation|SetWorldTransform _tc (Math|Transform|MakeTransform :Location (Math|Transform|TransformLocation _an (Variables|Ghost|GetTextOffset)) :Rotation (Math|Rotator|MakeRotator :Yaw (+ (.yaw (.rotation _an)) 180.0))))
-  (Rendering|Components|TextRender|SetText _tc (Utilities|Text|ToText(String) (Variables|Z-Ghost|GetLineText))))
+  (if (Variables|Ghost|GetShowText)
+    (Rendering|Components|TextRender|SetText _tc (Utilities|Text|ToText(String) (Variables|Z-Ghost|GetLineText)))
+    (else (Rendering|Components|TextRender|SetText _tc (Utilities|Text|ToText(String) "")))))
 
 ;; ===== GRAFO: GhTextAlpha
 ;; M_TextUnlit (Core/UI): emisivo = color de vertice -> el fundido es el brillo del TextRenderColor (a negro).
@@ -817,9 +887,10 @@
   (Rendering|Components|TextRender|SetTextRenderColor (Variables|Default|GetLabel) (Math|Conversions|ToColor(LinearColor) (* (Variables|Ghost|GetTextColor) _k))))
 
 ;; ===== GRAFO: GhAutoPlay
-;; Gancho de PRUEBA (bAutoPlay): reproduce en bucle, sin espejo (para Simulate en el editor o un PIE sin director).
+;; Gancho de PRUEBA (bAutoPlay): reproduce en bucle (para Simulate en el editor o un PIE sin director). bAutoMirror =
+;; reproducir como zurdo (la Obra llama Play(not UserRight)).
 (fn GhAutoPlay ()
-  (CallFunction|Play self (Variables|Z-Ghost|GetMirrorOn)))
+  (CallFunction|Play self (Variables|Ghost|GetAutoMirror)))
 
 ;; ===== GRAFO: GhPreview
 ;; Vista previa del editor: la pose en PreviewTime, la cebolla (PreviewPoses poses repartidas), el recorrido en puntos,
@@ -868,13 +939,13 @@
     (CallFunction|GhOnionOne self H _k)))
 
 ;; ===== GRAFO: GhOnionOne
-;; Pose K de la cebolla = cuadro repartido en toda la toma; instancia K+1 del cuerpo de la mano H.
+;; Pose K de la cebolla = cuadro repartido en toda la toma; instancia K de los ecos de la mano H.
 (fn GhOnionOne (H K)
   (bind _self self)
   (bind _pp (Math|Integer|Max(Integer) 2 (Variables|Ghost|GetPreviewPoses)))
   (bind _f (Math|Float|Round (* (/ (Math|Conversions|ToFloat(Integer) K) (Math|Conversions|ToFloat(Integer) (- _pp 1))) (Math|Conversions|ToFloat(Integer) (- (Variables|Z-Ghost|GetFrames) 1)))))
   (CallFunction|GhPose _self _f H)
-  (Components|InstancedStaticMesh|UpdateInstanceTransform (select (== H 1) (Variables|Default|GetBodyL) (Variables|Default|GetBodyR)) (+ K 1) (Math|Transform|ComposeTransforms (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetBodyRel) H) (Variables|Z-Ghost|GetPoseXf)) true true true))
+  (Components|InstancedStaticMesh|UpdateInstanceTransform (select (== H 1) (Variables|Default|GetBodyL) (Variables|Default|GetBodyR)) K (Math|Transform|ComposeTransforms (Utilities|Array|Get(acopy) (Variables|Z-Ghost|GetBodyRel) H) (Variables|Z-Ghost|GetPoseXf)) true true true))
 
 ;; ===== GRAFO: GhNoTake
 ;; Sin toma (o sin Take): un rotulo en el editor para ubicar el fantasma.

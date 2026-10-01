@@ -242,3 +242,11 @@ Con esto, si vuelve a fallar en gafas, el log dice **cuánto** se falló — en 
 
 ⚠ Y otra vez la trampa de siempre: **`AimRadius` nació en 0 en la instancia colocada**. Hay que escribir
 toda variable de autor nueva **también en el actor del nivel**, no sólo en el CDO.
+
+### 2026-10-01 — `Choose` elige la ameba MÁS CERCANA a una mano
+- Antes, `Choose` recorría `Souls` y `Judge` se quedaba con la **primera** con `Hovering`. El radio de hover (14,56 cm, salida a 18,2 cm) es mayor que la mitad de la separación del arco del Hall (19 cm), así que podía haber dos encendidas, y ganaba la primera en orden de nivel, no la que se señalaba. En la visita, el color del HUD no fue el elegido.
+- Ahora: `Choose` (sin cambio en `ShareMode`) → `PickNearest`:
+  - `PickHands` lee las posiciones de `HandRight` y `HandLeft` del pawn en `PickR` y `PickL`.
+  - Busca la mínima distancia² entre las encendidas y llama `Judge` solo con esa.
+  - Variables nuevas: `PickR`, `PickL`, `PickBestD`.
+- `ForceChoose` (vencimiento de plazo) sin cambios. ⬜ Sin probar en visor.

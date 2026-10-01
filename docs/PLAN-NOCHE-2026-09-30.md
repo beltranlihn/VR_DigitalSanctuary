@@ -303,3 +303,12 @@ La espera de 3 s de la paleta tapaba un problema real: **una animación que arra
   · PIE Obra 63 (SHARE → puerta → constelación) y 1 (ambiente): 0 errores. Hallazgo previo, no tocado: `ProtoHover` (WarnSound del anillo) es un loop y se toca sin componente, así que queda sonando sin fin (aviso "orphaned sound" desde el 09-30).
   · Editor cedido a la sesión de fantasmas (~90-120 min).
 - ~04:00 (01-10) · `ProtoHover` (WarnSound del anillo de carga y sonido de las esferas al nacer en Attracting) → **sin loop** (pedido de Beltrán). Antes quedaba sonando sin fin en cada carga. Ojo: dura 10,5 s y ahora suena entero una vez.
+- ~04:15 (01-10) · **Correcciones de Beltrán (pendientes, en investigación sin editor):**
+  1. Transiciones entre etapas más ágiles: el título de la etapa NUNCA mientras Alma está. Orden: Alma se va → transición → aparece el título → se va el título → aparece Alma.
+  2. Sensor del Hall: que gire suave para invitar a tomarlo. El orbe que lo envuelve: casi sin wobble, escala alta, muy suave y muy transparente.
+  3. Sensor tomado: hoy queda en cualquier posición. Usar la pose buena de un nivel de prueba anterior (apuntando al estómago).
+  4. Partículas de Alma (aura): ubicar las perillas.
+  5. Logos de Alma Digital y Johns Hopkins bajo el título y la bajada, en el título del inicio y en el del final, dentro de su animación.
+  6. Lista nueva de VO (`docs/VO-SOUL-CHARGER-2026-10-01.md`): cambios de cuándo suenan las cosas.
+  · Además, pendiente de turno: correr la Obra entera en PIE de principio a fin.
+- ~04:45-05:20 (01-10) · **Correcciones de Beltrán aplicadas:** transiciones (título nunca con Alma; 6,3 s de Alma a Alma), sensor que gira sobre su eje con orbe grande/suave/transparente, sensor en la mano con la pose de UserTool, logos (Alma Digital, Johns Hopkins, Ideas Lab) en el título del inicio y en los créditos, perillas del aura documentadas. Pasada completa previa: 18 min, 0 errores. Pendiente: flujo nuevo de VO (v3 de Breath) + reloj de `FlowBye`; web sigue a Unreal.

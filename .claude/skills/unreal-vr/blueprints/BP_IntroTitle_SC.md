@@ -24,3 +24,11 @@ Los valores de los planos son los que Beltrán dejó en la marca.
 ## Colocado
 - Test_Hall: `TituloInicio`, carpeta `Ajustes`, en (−3600, 0, 151,97) = 45 cm bajo los ojos de autor (196,97) sobre `StopStart`.
 - ✅ PIE 2026-10-01: visible a los 2,5 s en (−3600, 0, 31,97) (escritorio: cámara en el piso del pawn → −120).
+
+## 2026-10-01 (Narrativa) — logos
+- Componentes `LogoADS` (350, −83,55, −32) escala (1,17; 0,2925) · `LogoJHU` (350, 13,3, −32) (1,17; 0,2925) · `LogoIDEAS` (350, 96,85, −32) (0,4734; 0,4734); rot (0, 90, 90), sort 110, sin sombra ni colisión. MI `Obra/Titles/MI_Logo_ADS/JHU/IDEAS`, padre `M_TourLogo_SC` (copia de `M_TourTitle_SC` que toma color y alfa de la textura; `C0` = tinte). Texturas `T_Logo_*` horneadas desde los PNG de Beltrán (`Saved/ClaudeScripts/Obra/logos/`).
+- Construction y BeginPlay incluyen los logos. `IntroTitle`/`HRTitle`: componentes con "Logo" en el nombre aparecen de 6 a 8 s (+0,3 JHU, +0,6 IDEAS) y salen con `Out` 10 a 12,5 s. Fuente `logos/logos.json` (generador `scratchpad/obra/gen_logos.py`).
+- ⚠ Shaders del material nuevo: la primera captura salió sin logos porque aún compilaban; esperar antes de juzgar.
+
+## 2026-10-01 noche — +5 s
+`IntroHold` del Hall pasó a 17 s. En `BP_Obra_SC.IntroTitle`, `Out` va de 17 a 19,5 s y el título se oculta a los 20 s. 🔴 Estos tiempos están fijos en segundos: si se cambia `IntroHold`, hay que correrlos también, y lo mismo en `BP_HallRunner_SC.HRTitle` si se usa para ensayar.

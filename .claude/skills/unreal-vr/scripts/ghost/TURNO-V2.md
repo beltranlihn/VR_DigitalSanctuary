@@ -1,5 +1,35 @@
 # Turno de los FANTASMAS v2: pasos en orden (2026-10-01)
 
+## ⏸ PAUSA 2026-10-01 ~03:45 (pedido de Beltrán: primero la narrativa completa, los fantasmas al final)
+**Hecho y GUARDADO:**
+- `M_Ghost_SC` v2: translúcido, compila.
+- `BP_GhostTake_SC` y los 10 DA, con los campos v2.
+- `BP_GhostPlayer_SC`:
+  - armado (14 componentes, 123 variables, 88 funciones);
+  - los 90 grafos ESCRITOS (corrida de 01:48 a 01:56, sin errores);
+  - compila.
+- `BP_GhostRecorder_SC`: armado (51 variables, 44 funciones), con las funciones **vacías**.
+- `L_GhostRec_SC`: guardado con 14 actores. **Falta `GhostPreview`**: se lo llevó el Deshacer de un script fallido (01:47). Era el reproductor de vista previa de v1; `ghost_studio.py` crea `Ghost_BELL` si no existe.
+
+**Para retomar (en orden):**
+1. Aplicar al DSL los arreglos del revisor y reescribir SOLO esos grafos del reproductor (`ghost_write.py` con `REHACER = [...]`):
+   - (ALTA) `GhStrokeGrow`: el `while` lee `StrokeF[Shown]` sin cortocircuito. Llamarlo solo con `Length > 0` y acotar el índice con `Min(Shown, n-1)`.
+   - `BeginPlay`: no llamar `GhReset` si `bPlaying` ya es true (el director puede llamar `Play` en el mismo cuadro).
+   - Construction Script: `GhNoTake` solo si `not Found`, para que no diga "sin toma" con la vista previa apagada.
+   - `GhPlaceIsm`: sin ecos también en modo en vivo (`Live`).
+   - `GhPreviewGo`: `Stride` 34 y `Hz` 30 fijos (los de la grabación).
+   - (Opcional) Avisar en el log si `Extra` = 1 y la esfera nunca se agarró.
+   - Grafos a REHACER: `GhStrokeTo`, `GhStrokeGrow`, `EventGraph`, `ConstructionScript`, `GhPlaceIsm` y `GhPreviewGo`. Si `EventGraph` tiene más de 3 nodos, el escritor lo SALTA: incluirlo en `REHACER` (lo vacía antes).
+2. `ghost_write.py` con `CUAL='ghost_recorder'` → compilar.
+3. Seguir desde el paso 5 de esta hoja: `ghost_merge.py` (opcional para el timbre), `ghost_studio.py`, la prueba sin visor del timbre y la primera grabación con Beltrán.
+
+**Lecciones del turno** (pasarlas a gotchas):
+- Una llamada MCP **rechazada por el usuario igual puede correr** en el editor. Pasó a las 01:48 con la escritura de 90 grafos. Después de un rechazo, mirar el log antes de suponer que no pasó nada.
+- `SetActorLocation` sobre el propio actor con un argumento posicional mandó el valor al pin `self`: usar `:NewLocation`.
+- `get_node_type_pins` devuelve `{input_pins, output_pins}`.
+- `remove_function_graph` + `add_function_graph` con el MISMO nombre en la misma sesión falla: usar otro nombre.
+- Un `_StrictDict.get(k, default)` en el sandbox revienta el script y dispara un Deshacer.
+
 Plan: `docs/PLAN-FANTASMAS-V2-2026-10-01.md`. Datos: `v2_datos.md`. La v1 queda en git (`80a03c9`), que hace de respaldo de los assets de `Mechanics/Ghost/`.
 
 ## Preparado fuera del editor
@@ -123,3 +153,14 @@ Plan: `docs/PLAN-FANTASMAS-V2-2026-10-01.md`. Datos: `v2_datos.md`. La v1 queda 
 - Avisar a Narrativa: nivel abierto, guardado y sin PIE.
 - Actualizar `blueprints/BP_GhostPlayer_SC.md` + `_INDEX.md` y la memoria.
 - Copiar los `*_take.json` a `scripts/ghost/takes/`.
+
+## 9. DESPUÉS de cerrar los fantasmas: glitch de la paleta (reportado por Beltrán en el APK, 2026-10-01)
+**Síntoma:** si selecciona algo en la paleta y aprieta el gatillo AL MISMO TIEMPO, se reinician las animaciones y los pinceles. "Queda raro."
+**Orden:** se hace recién cuando Beltrán dé por buenas las animaciones de instrucción. Pedir turno a Narrativa.
+**Cómo encararlo (sin adivinar):**
+1. Reproducir en `L_TBTest_SC` (base 20 actores). Mirar qué cambia en ese cuadro: selección por puntero y gatillo en el mismo instante.
+   - Herramienta: `bCanDraw`, `SketchPhase`, `StrokeHistory`.
+   - Paleta: `SelectedBrush/SelectedColor` y animación de las teclas (`BP_DrawPalette_SC`, `AnimRate`/`KeyLift`).
+2. Leer los grafos que ya andan antes de tocar nada: dónde decide la herramienta "esto es un clic de paleta" contra "esto empieza un trazo" (`NoDrawRadius`, `07 PALETA`), y qué reinicia la selección (¿se reaplica el pincel, se rearma la paleta, vuelve a correr la aparición?).
+3. El arreglo esperado: un gatillo que cae sobre la paleta es SOLO un clic. No empieza trazo y no reinicia nada que ya esté en su estado. Seleccionar el mismo pincel o color que ya está elegido no hace nada.
+4. Probar en PIE y después en el APK. Cumplir la regla de tiempos ([[tiempos-por-timeline-no-por-sonido]]) y la de botones con animación.

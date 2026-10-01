@@ -79,8 +79,8 @@ spec['BP_GhostTake_SC'] = {
 
 # id: (texto en ingles, HoldR, HoldL, haz der, cabeza, extra, segundos)
 TAKES = {
-    'GHOST_BELL': ('Rest your hand and hold', 1, 0, False, False, 0, 5.0),
-    'GHOST_TAKE': ('Take it with your favorite hand', 1, 0, False, False, 0, 5.0),
+    'GHOST_BELL': ('Rest your hand and hold', 1, 0, False, False, 0, 3.0),
+    'GHOST_TAKE': ('Take it with your favorite hand', 1, 0, False, False, 0, 3.0),
     'GHOST_PICK': ('Reach a soul and pull the trigger', 2, 0, False, False, 0, 6.0),
     'GHOST_BREATH': ('Rest the sensor on your belly and breathe', 3, 0, False, True, 0, 16.0),
     'GHOST_HEART': ('Hold the sensor on your heart', 3, 0, False, True, 0, 12.0),
@@ -108,8 +108,9 @@ spec['BP_GhostPlayer_SC'] = {
                'Echoes', 'Ensured', 'HasPrev', 'NewComp', 'OldAge', 'OldI', 'Takes', 'TestColor', 'TextC', 'Trigs',
                'UseL', 'UseR', 'WantCol'],
     'components': [
-        {'name': 'BodyR', 'class': ISM, 'props': {'NumCustomDataFloats': 1}},
-        {'name': 'BodyL', 'class': ISM, 'props': {'NumCustomDataFloats': 1}},
+        {'name': 'BodyR', 'class': ISM, 'props': {'NumCustomDataFloats': 0}},
+        {'name': 'BodyL', 'class': ISM, 'props': {'NumCustomDataFloats': 0}},
+        {'name': 'CurR', 'class': SMC}, {'name': 'CurL', 'class': SMC},
         {'name': 'TrigR', 'class': SMC}, {'name': 'TrigL', 'class': SMC},
         {'name': 'HandR', 'class': SKC, 'copy_from_pawn': 'HandRight'},
         {'name': 'HandL', 'class': SKC, 'copy_from_pawn': 'HandLeft'},
@@ -132,10 +133,12 @@ spec['BP_GhostPlayer_SC'] = {
         v('GhostOpacity', 'Ghost', 'float', 0.85, True),
         v('TriggerColor', 'Ghost', 'linearcolor', [1.0, 0.62, 0.25, 1.0], True),
         v('TriggerGlow', 'Ghost', 'float', 3.0, True),
-        v('StepHz', 'Ghost', 'float', 11.0, True),
-        v('EchoAlpha', 'Ghost', 'float', [1.0, 0.55, 0.3, 0.15, 0.06], True, cont='array'),
+        v('StepHz', 'Ghost', 'float', 30.0, True),   # 2026-10-01: 30 poses/s sin ecos (antes 11 con 4 ecos)
+        v('PlayRate', 'Ghost', 'float', 1.25, True),   # 2026-10-01: velocidad de la toma (Beltran: 'un poco mas rapido')
+        v('LoopEnd', 'Ghost', 'float', 0.0, True),   # 2026-10-01: fin del bucle en s de la toma (<= 0 = entera); Breath 4,9 / Heart 4,2
+        v('EchoAlpha', 'Ghost', 'float', [1.0], True, cont='array'),
         v('FadeIn', 'Ghost', 'float', 0.4, True), v('FadeOut', 'Ghost', 'float', 0.6, True),
-        v('LoopGap', 'Ghost', 'float', 1.0, True), v('LoopFade', 'Ghost', 'float', 0.3, True),
+        v('LoopGap', 'Ghost', 'float', 0.4, True), v('LoopFade', 'Ghost', 'float', 0.3, True),   # LoopGap 1 -> 0,4 (2026-10-01)
         v('AppearSound', 'Ghost', 'object', None, True, cls=SND),   # Narrativa asigna FX_GHOSTAPPEAR (gotcha 563)
         v('VanishSound', 'Ghost', 'object', None, True, cls=SND),   # Narrativa asigna FX_GHOSTOUT
         v('SfxVol', 'Ghost', 'float', 0.8, True),
@@ -145,7 +148,8 @@ spec['BP_GhostPlayer_SC'] = {
         v('OrbGrab', 'Ghost', 'float', 30.0, True),
         v('StrokeWidth', 'Ghost', 'float', 0.8, True),
         v('bAutoPlay', 'Ghost', 'bool', False, True), v('AutoPlayDelay', 'Ghost', 'float', 2.0, True),
-        v('LiveOpacity', 'Ghost', 'float', 0.45, True),
+        v('bAutoMirror', 'Ghost', 'bool', False, True),
+        v('LiveOpacity', 'Ghost', 'float', 0.7, True),
         # --- mallas y montajes (en el Blueprint)
         v('BodyMeshR', 'GhostMesh', 'object', QC + 'SM_QuestCtrl_Body_R_SC.SM_QuestCtrl_Body_R_SC', cls=SM),
         v('BodyMeshL', 'GhostMesh', 'object', QC + 'SM_QuestCtrl_Body_L_SC.SM_QuestCtrl_Body_L_SC', cls=SM),
@@ -208,9 +212,9 @@ spec['BP_GhostPlayer_SC'] = {
         'LiveStart': [], 'GhLiveGo': [],
         'LiveSet': [p('Gr', 'transform'), p('Gl', 'transform'), p('Ar', 'transform'), p('Al', 'transform'),
                     p('Tr', 'float'), p('Tl', 'float')],
-        'GhLiveHands': [], 'GhLivePlace': [p('H', 'int')], 'LiveStop': [], 'GhLiveAlpha': [],
+        'GhLiveHands': [], 'GhLiveExtra': [], 'GhLiveOrb': [], 'GhLivePlace': [p('H', 'int')], 'LiveStop': [], 'GhLiveAlpha': [],
         'GhLiveHandAlpha': [p('H', 'int')],
-        'GhLoad': [], 'GhLoadTk': [], 'GhLoadMeta': [], 'GhLoadIfNeeded': [], 'GhBakeIf': [], 'GhPlayNow': [],
+        'GhBoot': [], 'GhLoad': [], 'GhLoadTk': [], 'GhLoadMeta': [], 'GhLoadIfNeeded': [], 'GhBakeIf': [], 'GhPlayNow': [],
         'GhReset': [], 'GhCollect': [], 'GhSetup': [], 'GhArrInit': [], 'GhArrAdd': [p('I', 'int')], 'GhFixed': [],
         'GhSetupHand': [p('H', 'int')], 'GhRels': [p('H', 'int')], 'GhMirXf': [p('Xf', 'transform')],
         'GhPrep': [p('C', 'object', MC), p('Col', 'linearcolor')], 'GhMats': [p('C', 'object', MC)],

@@ -58,6 +58,23 @@ el fluido acelera corriente y remolinos con `ActiveBoost` (ver `BP_FluidMedium_S
 ⬜ Visor: sonidos a oído, manos con mandos, sensación de la actividad · ⬜ commit (Beltrán).
 
 
+### 👁️ La neurona espera a Alma + VO_22/VO_23 (2026-10-01, prueba de la Obra de Beltrán; correcciones C2 y A2)
+Fuente: `scripts/loving_intro_vo.dsl`. Respaldo de los grafos previos: `Saved/ClaudeScripts/Loving/turno_1001/respaldo_grafos.json`.
+- **Causa:** Alma da la bienvenida en `sc2_alma_in` (220, 0, +5) = donde nace la neurona, y la Obra/el runner llaman `StageIntro` en el
+  mismo cuadro en que Alma empieza a irse (MoveTo, TravelTime 3 s). La neurona crecía con Alma encima.
+- **Arreglo:** reloj propio `IntroClk` (fases 2 y 3); la neurona sigue OCULTA `IntroDelay` (2 s) y recién entonces crece en `IntroTime`.
+  El sonido de aparición se dispara en ese instante (`LovCueSound`). Si `StageBegin` llega antes, la fase 3 sigue la curva (sin salto).
+- **VO de la mecánica** (existían como asset, nadie las disparaba): `LovCueVO22`/`LovCueVO23` → `Alma.SayClip` a `VO22At` 15 s y `VO23At`
+  42 s de mecánica, **solo si Alma está visible y callada** (`LovAlmaFree`: no `bLeaving`, `AppearT` ≥ 0,95, su `VOComp` no suena);
+  si no, esperan hasta `VOWait` 8 s y se saltan. Sin Alma no suena nada (regla A3).
+- Grafos: `StageIntro`/`StageVisual` reescritos; nuevos `LovCues(DT)` (empalmado en `StageStep` tras `StageCouple`), `LovCueSound`,
+  `LovAlmaFree`, `LovCueVO22`, `LovCueVO23`. Variables `9-Etapa` IntroDelay · VO22 · VO23 · VO22At · VO23At · VOWait; `Z-Interno` IntroClk ·
+  IntroSndDone · VO22Done · VO23Done · AlmaReady.
+- Instancia de `Test_Fluid`: las nuevas (nacían en 0) → 2 / 15 / 42 / 8 / VO_22 / VO_23 · **StageDuration 80 → 60** (Narrativa, criterio
+  "nada demasiado largo"; **valor anterior 80** por si hay que volver).
+- ✅ PIE con el runner: se muestra con Alma a 2,39 m (antes 0,20 m), a media escala Alma a 2,92 m, entrada completa a 5,0 s (< InstrTime 6);
+  VO_23 esperó a que Alma terminara VO_22 y salió sola; 0 Accessed None. ⬜ visor.
+
 ### 🚀 El viaje (2026-09-30)
 Función nueva **`FluidTravel(On)`** (IsValid(Fluid) → `SetTravel` del fluido), agregada al final de TourWake (off), TourSleep (off),
 **StageBegin (on)** y **StageOutro (off)**. El fluido avanza hacia el usuario durante la mecánica y frena en 2 s en el outro.

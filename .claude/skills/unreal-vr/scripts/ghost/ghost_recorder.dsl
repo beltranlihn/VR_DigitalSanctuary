@@ -431,7 +431,7 @@
 ;; ===== GRAFO: RcStationOne
 (fn RcStationOne (I)
   (bind _da (Class|BPGhostPlayerSC|GetTake (Utilities|Array|Get(acopy) (Variables|Rec|GetGhosts) I)))
-  (bind _arr (Utilities|GetAllActorswithTag (Class|BPGhostTakeSC|GetId _da)))   ;;?
+  (bind _arr (Actor|GetAllActorswithTag (Class|BPGhostTakeSC|GetId _da)))   ;;?
   (bind _hide (!= I (Variables|Z-Rec|GetIdx)))
   (for _a _arr
     (Rendering|SetActorHiddenInGame :self _a :bNewHidden _hide)))

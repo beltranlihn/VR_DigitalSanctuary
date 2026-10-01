@@ -54,3 +54,9 @@ Pedido de Beltrán: *"un gráfico EEG siempre nace desde la derecha y hacia la i
 - 🔴 **El template del ChildActor `Sister` en el BP tenía `SizeCm` 0, `BPM` 0, `Amp` 0** (el CDO de `BP_HUDSister_SC` dice 3 / 72 / 0,2) → escala 0 = hermana invisible en TODOS los niveles con este HUD. Es la trampa 2 de arriba, que volvió. Medido en PIE de la Obra: `Sister.Body` escala (0,0,0) con `AppearT` 1.
 - ✅ Template corregido a 3 / 72 / 0,2 (la instancia de la Obra usa el template del BP). Obra re-construida y guardada: en PIE la hermana late a 3 cm. ⚠ **El BP quedó SIN GUARDAR**: ya estaba dirty con cambios de otra sesión antes del arreglo.
 - EEG en la Obra (PIE, 8 s después del nacimiento): `Hud` visible, `Birth01` 1, `bBioFound` true, 48 puntos dentro del marco, `LineColor` α 0,64 → los datos están vivos; no se pudo ver la línea en captura (la del editor sale a 1280 px para dos monitores). `GraphArea` en Hidden es de `HideOldHud` (a propósito). Nada en la Obra esconde el HUD al arrancar (solo `FinalStart`).
+
+## 2026-10-01 — el EEG fluido, nítido y más visible (Mesh 3D, pedido de Beltrán: "se ve gris, pixelado y más lento")
+- Lento: el widget se repintaba a 20 Hz (`Hud.RedrawTime` 0,05) y los datos avanzaban a saltos de 8/s. ✅ `GraphRate` 8 → **30** (CDO; la instancia de la Obra lo tomó) · `MaxSamples` 48 → **180** (misma ventana de 6 s, 4× más fina) · `RedrawTime` → **0** (plantilla del componente + la instancia de la Obra, que tenía el suyo).
+- Pixelado / gris: `LineWidth` 2,4 → **3,2** (AA ya activo) · `LineColor` blanco cálido (1, 0,93, 0,82, α 1).
+- **Halo**: `OnPaint` dibuja primero un `DrawLines` ancho y tenue (`GlowColor` (1, 0,62, 0,32, 0,22) · `GlowWidth` 11, A-GraficoEEG, instance-editable) y encima el trazo.
+- ⬜ Visor: fluidez y costo del repintado por cuadro (RT 1920×1080). Si baja de 72 fps: `RedrawTime` 0,0278 (36 Hz) en el `Hud` de la Obra.

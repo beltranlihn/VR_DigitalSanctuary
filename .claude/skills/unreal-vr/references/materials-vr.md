@@ -251,6 +251,29 @@ Esa fecha **ya pasó hace 4 meses**. El "target 32" viene del mandato Android 12
 
 ---
 
+## 🔴🔴 Ruido procedural en un Custom que cubre la pantalla = el Hall a 42 fps (2026-10-01, medido en el Quest)
+**Síntoma:** en el APK de la Obra, adentro del Hall el visor bajaba a **42 fps** (App GPU 21,8 ms, GPU% 0,98). Afuera, todo a 72.
+**Cómo se encontró, en el visor y sin tocar nada:** los comandos de consola llegan al APK Development por broadcast:
+`adb shell "am broadcast -a android.intent.action.RUN -p com.almadigital.soulcharger -e cmd 'ShowFlag.StaticMeshes 0'"` (con `2` se restaura).
+Primero se valida el canal con `t.MaxFPS 30` (el FPS de VrApi baja a 30), después se bisecciona mirando `FPS=` de `logcat -s VrApi`.
+Resultado: con StaticMeshes apagado → 72; con Translucency apagado → 47; Particles, ISM y DynamicShadows → sin cambio. `r.ScreenPercentage` NO afecta al visor: en XR es `xr.SecondaryScreenPercentage.HMDRenderTarget`.
+**Causa:** `M_Hall_Interior_SC` (la piel del Hall, que llena la vista) tenía tres Custom en fp32 (`MFPM_Full`):
+- 4 octavas de **ruido de valor 3D por hash**, 8 hashes por octava, unas 480 operaciones por píxel;
+- `HallGroovesPS`, con un lazo de 5 (`atan2`, `cos`, `sin`) para la junta de las baldosas que corría en TODO el interior;
+- 5 `cos`/`sin` para los meridianos.
+**Arreglo, con la misma imagen** (42 → 51 → 61 → ver abajo):
+1. Ramas por zona y algebra: la junta solo con `z < 34 && r < 290` (dinámico, coherente por zona) y los meridianos con un cos/sin + rotación fija de 72°. 42 → 51.
+2. **Ruido de valor por textura (truco de iq):** `T_HallNoiseRG_SC` es 256×256 RGBA8 SIN compresión (`TC_VectorDisplacementmap`, sRGB off, sin mips, bilineal, wrap), con R al azar y G = R corrido (−37, −17). Una octava = **un** `Texture2DSampleLevel(T, S, (floor(x).xy + (37,17)·floor(x).z + smooth(frac(x)).xy + 0,5)/256, 0).yx` y un `lerp` en z. El suavizado (smoothstep) se mete en la UV, así que el filtro bilineal lo respeta. Generador: `VR_Test/Saved/ClaudeScripts/Obra/noise/`. 51 → 61.
+3. Lo mismo en `M_Hall_Tile_SC`.
+**Cómo se agrega la textura a un Custom por MCP sin romper nada:** leer `inputs` (cada entrada trae su conexión), escribir `inputs` + el `{inputName: 'NT'}` nuevo junto con el `code`, y verificar que las conexiones anteriores sigan iguales. Después `add_expression(MaterialExpressionTextureObject)`, setear `texture` y `connect_expressions(..., to_input_name='NT')`. En el HLSL llegan `NT` y `NTSampler`, y se pasan a la función del struct como `Texture2D` / `SamplerState`. Durante el paso intermedio el log muestra "missing input (NT)": es normal. La prueba de que compila es un `recompile` final **sin** líneas nuevas de error.
+**Regla:** todo ruido procedural en un material que ocupa mucha pantalla se hace con textura en Quest, y cada etapa se mide en el visor (`VrApi FPS=`) antes de darla por terminada.
+
+## 🔴🔴 Hash de ruido en fp16 = NEGRO en el Quest (timbre y sensor, 2026-10-01)
+- El hash `frac(p*0.3183099+0.1)*17` y después `p.x*p.y*p.z*(p.x+p.y+p.z)` llega a ~250 000.
+- En media precisión (fp16, máx 65 504) desborda: inf → `frac(inf)` = NaN → **negro**. En PIE (fp32) se ve bien.
+- Afectaba a `M_SCObject_SC`, `M_SCObjectTrans_SC` y `M_SCPanel_SC` (timbre, sensor, SAVE, HUD, panel), que estaban en `MFPM_Default`. Pasaron a **`MFPM_Full_MaterialExpressionOnly`**; los del Hall y la paleta ya lo estaban.
+- **Regla:** todo material con ese hash (buscar `0.3183099` con `grep -a` en los `.uasset`) va en Full, o usa el ruido por textura de la sección de arriba.
+
 ## 🔴🔴 Texto 3D: el material de fábrica es LIT → en esta obra el texto es INVISIBLE
 Diagnosticado el 2026-08-12 con el texto de la intro, y afectaba **a todos** los `TextRenderComponent` del proyecto (el cartel de `BP_Door` incluido, que nunca se había visto).
 

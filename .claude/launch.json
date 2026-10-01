@@ -12,6 +12,16 @@
       "port": 8766
     },
     {
+      "name": "editor-obra",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        ".claude/serve_nocache.py",
+        "8767",
+        "web/editor-obra"
+      ],
+      "port": 8767
+    },
+    {
       "name": "hall-bake",
       "runtimeExecutable": "python",
       "runtimeArgs": [

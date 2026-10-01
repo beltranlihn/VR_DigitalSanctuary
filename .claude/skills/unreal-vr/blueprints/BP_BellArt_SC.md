@@ -57,3 +57,8 @@ Más `Appear` (`BPC_AppearLuz_SC`):
 - `BP_SaveMelody_SC` (la lógica que el rig monta en la mano no dominante) **spawnea en runtime** un `BP_SaveMelodyArt_SC` y se lo cuelga (`ArtEnsure`, sin agregar componentes al BP colocado — gotchas 164/320), le llama `Appear.Prepare()` y esconde el disco y el texto viejos (el disco queda como colisión invisible para el láser, 16 cm a escala 1).
 - `ArtTick` (desde `ScaleLabel`, al final de `UpdateVisual`): `ArtFace` (el botón mira siempre a la cámara, escala `ArtScale` 1, giro extra `ArtRot`) · `ArtSmooth` (PressT/ProgT suavizados, Dt ≤ 1/30: sin saltos de un cuadro) · aparece/desaparece con `Appear()`/`Vanish()` · sonidos: aparición y hover `SBubbleHoverOn`, carga `Charge1` (se apaga en fundido con `ChargeVolume`), completo `ChargeFinal`, salida `SBubbleHoverOut` · `ArtPush`: `Base.Glow` 0,25-0,7 disponible / 1,0 hover / 1,7 apretado · `Plate.Ink` hueso→cálido e `InkGlow` 0,35→1 · `Slider.Progress` = la carga · `Plate` +1 mm hover / −4 mm apretado (solo con `AppearT` = 1, para no pelear con la aparición).
 - ⬜ Visor: tamaño y orientación en la mano (perillas `ArtScale` / `ArtRot` en la instancia de `BP_SaveMelody_SC`).
+
+## 2026-10-01: el rótulo viejo "SAVE MELODY" ya no aparece
+- Beltrán veía un texto negro enorme en el SAVE de la mano. Era el `Label` (TextRender) de `BP_SaveMelody_SC`: `ArtEnsure` lo escondía con `SetVisibility(false)`, pero `Show` lo volvía a mostrar con `SetVisibility(Label, true)`.
+- Arreglo sin tocar grafos: en el componente del BP, `Text` vacío y `bHiddenInGame` true. `SetVisibility` no cambia `bHiddenInGame`.
+- No hay botones colocados en los niveles (el rig los crea en runtime con el BP), así que aplica en todos lados.

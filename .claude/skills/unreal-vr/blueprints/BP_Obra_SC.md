@@ -133,6 +133,7 @@ Dos variables en la instancia, categoría **Debug**: **`DebugStart`** (−1 = no
 |---|---|
 | −1 / 0 | normal (aviso si `bDisclaimer`) |
 | 1 | Hall, inicio (sin aviso) |
+| 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 | Hall por pasos (2026-10-01): portal (paso 4) · **timbre** (6) · **justo dentro**, Alma aparece (10) · sensor (12) · elección (14) · baldosas (16) · nace el HUD (24) · Alma a la puerta (26) |
 | 10 · 11 · 12 · 13 · 14 | Entering: apertura · Alma recibe · instrucciones · mecánica · salida y carga |
 | 20-24 | Recognizing (mismo orden) |
 | 30-34 | Loving |
@@ -200,3 +201,187 @@ Fuente `Saved/ClaudeScripts/Obra/step5.json` (generador `scratchpad/obra/gen_ste
 - **FX del final en su lugar** (cirugía `PlaySound2D` → `PlaySoundAtLocation`): `FX_SHAREAPPEAR` (FlowShare) y `FX_SHARESELECT` (ShareChoose) en el cuadro (`GetActorOfClass` ResultsArt); `FX_SOULVANISH` (ShareAnswer) y `FX_RINGVANISH` (ShareResOut) en `RingSpot`. Las VO siguen en 2D.
 - Variables `RingHomeLoc/Scl`, `FishHomeLoc/Scl` y `HomeOK` en la categoría `Interno`.
 - Atenuación compartida `ATT_Objeto_SC` (ver MAPA-DE-AJUSTES, Sonido). Script genérico de la cirugía: `scratchpad/obra/sfx_swap.py` (conserva exec, sonido, volumen y tono; ubicación = self / actor de una variable / vector / actor de una clase).
+
+## 2026-10-01 (Narrativa) — transiciones ágiles (pedido de Beltrán: el título nunca con Alma)
+- Literales en `RunObra`: título `Reveal` T 0,5→2,3 · `Out` 3,3→4,5 · visible si T < 4,6 · salida de fase 0 (AlmaIn) T ≥ 4,7 · velo de cierre 69→71,5 y `AdvanceStage` a T ≥ 71,5 · apertura del velo 1→4 (en `RunObra` y en `FlowVeil`). Los tres umbrales `<`/`>=` son nodos `MakeLiteralFloat` aparte (no pines).
+- ✅ PIE (DebugStart 14): de `AlmaOut` a la siguiente Alma 6,3 s (antes ~11,5). Pendiente: `FlowBye` acumula `GetWorldDeltaSeconds` por llamada y `FinalFlow` corre ~1,5 veces por cuadro → el reloj de la despedida va 1,5× (la 2.ª VO pisa a la 1.ª). Se arregla con el flujo nuevo de VO.
+- `IntroTitle` con rama de logos (ver BP_IntroTitle_SC).
+
+## 2026-10-01 (Narrativa) — VO v3: la mezcla final de Beltrán manda los tiempos
+- Duraciones (con cola de reverb) en `VR_Test/Saved/ClaudeScripts/vo_final/duraciones_mezcla.txt`. **Ningún tiempo de VO está escrito a mano**: cada llamada pasa por `ObraSay(Clip)` (Alma habla con `SayClip`) u `ObraVO2D(Clip)` (2D), y las dos dejan el largo del clip en `VODur` (`SoundBase.GetDuration`). Cambiar un wav reacomoda el flujo solo.
+- **Por etapa (K 0-4):** `AlmaSpeak` VO_10/15/20/26/31 → `AlmaTime = VODur + 2` · `StageTimes` asegura `AlmaTime ≥ VODur + 1` · fase 6 `AlmaCharge(K)` VO_13/18/23b/29 (K<4) **antes** de la carga → `OutroTime ≥ VODur + 0,6` · fase 7 `AlmaOut` + `ChargeStart` · `FlowBye` (reloj = `PT`): a 0,9 s VO_14/19/25/30, `ByeEnd = 1,3 + VODur`, después `AlmaOut`.
+- **Final:** `FinalStart` VO_33 (2D) · `FlowShare` st0 `AlmaResults` + VO_34b, espera `VODur + ExploreT` · st2 VO_36b, espera `max(0,5; VODur − 1,2)` · st4 cuadro + botones + `FX_SHAREAPPEAR` · st5 (+1,8) VO_36p · `ShareAnswer` ya sin VO_36c/36d · `ShareExit` VO_35a (2D) · `FlowConst`: SHARE → VO_35b a PT 8 y VO_37 a 8 + VODur + 0,6; sin compartir → VO_37 a PT 8.
+- Hall (`BP_HallDirector_SC.HallEnterIntro`): fuera VO_01d (el timbre va sin voz) y VO_06a.
+- 🔴 Trampa del DSL: `(CallFunction|ObraSay "/Game/...")` con el literal **posicional** lo pone en el pin **self** y deja `Clip` vacío → "Accessed None ... Clip" en runtime. Arreglado con `set_pin_value` sobre `Clip` (y self en ''). Para funciones propias con parámetros: keyword `:Clip` o `set_pin_value`, nunca posicional.
+- VO viejas que quedan sin uso (no borradas): 01d, 01h, 04b, 06a, 24, 34c, 35c, 36, 36c, 36d.
+- **Sonido de carga (2026-10-01, pedido de Beltrán vía Breath):** función `ChargeSnd(K)`, llamada en `ChargeStart` justo antes de `RunCharge`. K < 4 → `ChargeFx.ChargeSound = Charge1` (11,4 s, golpe a 6,9 s; el ChargeFx lo dispara a 2,47 s → golpe a 9,37 s, cuando se va el anillo). K = 4 → `ChargeSound` vacío (el ChargeFx no toca nada a 2,47) y `ChargeFinal` (15 s, golpe a 10,5 s) con `PlaySoundAtLocation` **en t = 0 de la carga**, en el `ObraChargeTarget` (ya colocado frente al usuario; el ChargeFx en t = 0 puede seguir en su lugar viejo). Así lo armó Beltrán con la tabla de Breath (t = 0 en RunCharge: llenado 2,47→8,47, quieto hasta 10,97, fundido a negro 10,97→~13,97): el golpe marca el paso a negro. Los tiempos de la carga no cambian (manda el timeline).
+- **Aviso inicial a 5 s (2026-10-01, Beltrán):** `DiscTime` 20 → 5 (CDO; la instancia no lo pisaba). `BP_Disclaimer_SC.DiscStep`: `Reveal` 0,5→2,0 (antes 3,5) · `Out` 3,5→4,8 (antes 17→19,5). Es el vacío negro donde irá el texto.
+- **Puntos del Hall en la Obra (2026-10-01, pedido de Beltrán):** `DebugStart` 2-9 con el mismo mapa que `HallRunner`. `ObraDbgBoot` llama `ObraDbgHall(P)` antes de `HallStart`: fija `DbgHallStep`, pone `bTestIntro` y `TestFromStep` en el director y `TitleSt` 2 (sin título). `ObraDbgHallPost` (al inicio de `HallCheck`, cada cuadro) prepara lo previo (pawn a `StopInside` si ≥ 10; Alma al centro si ≥ 11; Alma al costado + sensor tomado si ≥ 13; almas y `ChosenSoul` = `DebugSoul` si ≥ 15; `bHudBorn` si ≥ 25) **solo cuando el director ya hizo su paso 0 y todavía no entró al pedido** (`Step == DbgHallStep − 1`). Hacerlo justo después de `HallIntro` no sirve: el paso 0 del director corre en su tick siguiente, te devuelve a la puerta (`hall_pawn`) y esconde a Alma. La misma trampa debe tener `HRPrep` en `HallRunner`. ✅ PIE: 3 → paso 6, timbre en su marca · 4 → paso 10, pawn en StopInside (−450,5; 0). 0 errores. Los puntos 2 y 5-9 no se probaron.
+
+## 2026-10-01 (mañana) — correcciones de la prueba completa de Beltrán (plan: docs/PLAN-CORRECCIONES-2026-10-01.md)
+- **Ambientes (A1):** `AmbTick(Dt)` (al comienzo de `TickAll`) suma `AmbAge`; cuando `AmbAge ≥ AmbLen − AmbFadeOut` llama `AmbTo(AmbNow)`: el mismo clip vuelve a entrar con FadeIn mientras el viejo sale con FadeOut (crossfade, nunca silencio). `AmbTo` guarda `AmbAge` 0 y `AmbLen` = `SoundBase.GetDuration`. `AmbVolumes` 0,6 → 0,38 (instancia).
+- **Voz después de aparecer (A3):** `ObraSayLater(Clip, Delay)` + `SayPendingNow` (timer). `AlmaSpeak` usa Delay 1,5 y `AlmaTime = VODur + 3,5`; `StageTimes` asegura `AlmaTime ≥ VODur + 2,5`.
+- **Voces de Attracting y Drawing (A2):** `StageCues` (TickAll) reinicia en la fase 4; en la fase 5, VO_27/VO_32 a 0,8 s y después VO_27d/VO_32d; en la fase 6, `CueAttract` (VO_28 al pasar el secuenciador a Phase ≥ 3, VO_27b con 3 esferas colocadas, VO_27h a 20 s sin ninguna, VO_27c a 75 s) y `CueDraw` (VO_32h a 15 s sin tinta, VO_32b a 40 s con tinta > 0,3, VO_32c a 60 s con tinta > 0,6). Nunca se pisan: `CueAt` = fin de la voz anterior + 0,6.
+- **La fase 5 espera las instrucciones:** condición `(and (>= PT InstrTime) bInstrReady)`; `bInstrReady` = etapa < 3, o instrucciones dichas, o PT ≥ InstrTime + 20.
+- **Tiempos:** título de etapa Reveal 0,5→1,8 · Out 4,6→5,6 · visible < 5,7 · Alma a 5,8 · Recognizing 180 s · velo de la última carga 8,6→10,9 (antes 2,47→9,97: oscurecía durante la carga) · `HallIntro` a PT 3 (antes 1) · título del inicio Out 12→14,5 y oculto a 15.
+- **Aviso (A7):** `T_Disclaimer_SC` (Avenir Book, 2048×768) en `MI_Disclaimer_SC` (U0 0,08 / U1 0,92) · `DiscText` sort **32650** (estaba en 110, debajo del velo negro 32600: nunca se veía) · escala 2,13 × 0,8 · `DiscTime` 9 · `FlowDisc` lo pone frente a la cámara en sus primeros 0,3 s.
+- **Manos (B1/B2) y háptico (B4):** `HandsTick(Dt)` en cada cuadro. Manos del pawn ocultas (`SetHiddenInGame`) según la línea de tiempo de Beltrán: en el Hall, desde el paso 13 (sensor tomado); en Entering, ocultas; en Heart, ocultas hasta la fase 7; en Loving, visibles hasta la fase 7; después, ocultas. `ChargeFx.MuteFeel` y háptico 0 en las fases 10-15 (salvo la 12). Paso del sensor del Hall a la herramienta: el `hall_sensor` se oculta 1,6 s después de que `UserTool.Mode` = 2.
+- **Compartir (E2):** `ShareResOut` marca `ResOutT`; `ResultsOutK` (al final de `ResultsFade`) baja las K del cuadro a 0 en 0,8 s: se van los gráficos, no solo el marco.
+- **Salida del Hall (A5):** `HallExitEarly` (al final de `HallCheck`): con el director en el paso ≥ 28 y el pawn en X ≥ 760 (pasó la puerta Este, en ~726), `DoneNow` → título de ENTERING al cruzar la puerta.
+- **Manos, arreglo (09:00):** `HallGrabTick` lee el director del Hall con `IsValid` y escribe `HallGrabbed` (modo 1 y paso ≥ 13); `HandsTick` usa `HallGrabbed` en la fase 9. Antes el `GetActorOfClass` vacío daba "Accessed None" en cada cuadro fuera del Hall (lo vio Fantasmas a las 06:51).
+- **Escala de Alma desde la Obra (C6), sin tocar BP_Alma_SC:** `TPOverA/B` copian también la escala del TP de la etapa a `ObraAlmaA/B`. `AlmaSclIn` (al final de `AlmaIn`) aplica la escala de `ObraAlmaA` de golpe. `AlmaSclAside` (al final de `AlmaAside`) fija `AlmaSclTgt` = escala de `ObraAlmaB`. `AlmaSclTick` (en `TickAll`) la lleva suave (Dt × 1,5). En el Hall (fase 9) y el final (≥ 10) el objetivo es 1. Los TP laterales están en 0,6 en las 5 etapas.
+- **Vuelta al Hall (E1):** fase 11: el velo abre de 0,2 a 1,4 s (antes 0,8→3,8) y `ReturnCheck` espera PT ≥ 1,6 (antes 0,5) para soltar el pez y apagar el anillo. Así el desprendimiento se ve con el velo ya abierto. Antes saltaba al Hall con el velo todavía cerrado.
+- ⚠ **E1, límite:** `M_ChargeRing_Frame_SC` y `M_ChargeRing_Light_SC` son **opacos**, y el velo (`M_TourVeil_SC`) es translúcido con `bDisableDepthTest`. El negro siempre tapa el anillo, sin importar el sort. Para que "el entorno se vaya a negro y el anillo no", el anillo necesita un material translúcido.
+
+## 2026-10-01 (sesión Fantasmas, pedido de Beltrán vía Narrativa): las estrellas CRECEN
+- `BP_Credits_SC`: `EventTick` → `CreditsStep` (sin cambios: sigue des-ocultando la estrella i a los i × 0,18 s) → **`StarsGrow`** (nueva).
+  - `StarsGrow` guarda una vez (`StarsCacheGo`) las estrellas `CreditStar` y su escala del nivel.
+  - Cada estrella va de 0 a SU escala en `GrowTime` 1,2 s, con 1 − (1 − t)³, empezando en i × `StarStep` (0,18; tiene que coincidir con `CreditsStep`).
+  - Se apaga sola al terminar (`StarsDone`).
+  - Si una perilla vale 0 (variables nuevas en una instancia ya colocada), usa 1,2 / 0,18.
+  - Fuente: `scripts/credits/credits_stars.dsl`.
+- ⬜ Verlo crecer en PIE o en el visor. No se pudo encender desde el MCP: `Run`/`CT` no son instance-editable y no hay comando de consola.
+- ⚠ Visto en el PIE de 06:51: `HandsTick` → `Set HandsHid` lee un `GetActorOfClass` vacío en cada cuadro (cientos de "Accessed None").
+
+## 2026-10-01 (10:40, Narrativa) — el anillo de la protoameba en el Hall y su vuelta al HUD (D7/D8)
+Pedido de Beltrán: *"ya tienes la animación y el mesh; es hacer más rápida esa animación"*. Se reusa `BP_ChargeFx_SC` tal cual, sin tocarlo; su reloj se maneja desde la Obra.
+- **`HallRing(Dt)`** está en `TickAll`, justo después de `HandsTick`, así su `MuteFeel` gana. Hace `IsValid` del director del Hall y llama a **`HallRingStep(Dt)`**, una máquina de estados en `HRState`:
+  - **0 → 1.** En el Hall (fase 9, modo 1, pasos 15-23), cuando el alma elegida (`Souls[ChosenSoul]`) deja de viajar (o desde el paso 17):
+    - el TargetPoint `ObraChargeTarget` va a la pose del alma, con escala `HallRingFit × Size × escala / (0,15 × BigScale)`: la misma proporción que en las cargas, con el hueco de 41 cm para un alma de 30 cm;
+    - en el ChargeFx: `CavParam` "HallRingNone" (no carga ninguna cavidad), `HoldTime` 0 y `MuteFeel`;
+    - `ApplySoulLook` y `BeginCharge`; el alma propia del anillo queda oculta (se ve la protoameba real);
+    - suena `PopinSound`.
+  - **1.** El "pum" de llegada (T 1,37 → 2,46) × `HallRingSpeedIn` 1,5.
+  - **2.** Anillo quieto en T = 2,46: sin halo ni destellos. Sus 5 luces `Charge_<Etapa>` = `TileCur` del director, así encienden con las baldosas.
+  - **3.** Arranca con `bHudBorn` (paso 24). Espera `HallHomeDelay` 0,3 s, porque el anillo del HUD se ve recién al 62 % de su entrada. Después corre la vuelta al nido de la carga (T = E → E + 2) × `HallHomeSpeed` 2, con los sonidos Warn, PopOut (y oculta la protoameba), PopIn en el nido y Settle. Al terminar: `EndCharge`, luces del anillo a 0 y `HoldTime` de vuelta a 2.
+  - **4.** Terminado. Si se sale de la fase 9 con el anillo vivo, `EndCharge`.
+- **Reloj:** `StepAll` del ChargeFx calcula T = ahora − `StartTime`. La Obra escribe `StartTime = ahora − T deseado` en cada cuadro, así que acelerar o congelar es solo aritmética.
+- **Perillas (instancia, categoría "Hall - Anillo"):** `HallRingFit` 1 · `HallRingSpeedIn` 1,5 · `HallHomeSpeed` 2 · `HallHomeDelay` 0,3.
+- ✅ **PIE (DebugStart 6, 0 errores):**
+  - alma elegida a 58,4 s → anillo a su alrededor 4 s después (escala 2,0; Size 0,3);
+  - paso 24 → vuelve al HUD en 1,3 s;
+  - después: anillo del HUD en su pose de reposo (escala 0,098, misma posición que en el editor), ChargeFx con `Running` false, `HoldTime` 2 y `MuteFeel` false.
+- ⬜ Falta verlo en el visor.
+
+## 2026-10-01 (11:00, Narrativa) — la última carga termina y RECIÉN ahí el entorno se va a negro (E1, pedido de Beltrán)
+- **Tiempos (con `ChargeTimes[4]` = 6):**
+  - la carga llena la cavidad de 2,47 a 8,47 s;
+  - `FlowVeil` fase 8, etapa 4: velo de **9,5 → 11,5 s** (antes 8,6 → 10,9; 0,13 s después de llenar se leía como "se va a negro mientras carga"). Literales 8,6 → 9,5 y 4,9 → 5,5 (en un `MakeLiteralFloat`);
+  - `ReadCharge`: la etapa 4 sigue ocupada mientras PT < 5,6 + C = **11,6** (antes 4,97 + C), así `FinalStart` llega con el negro completo.
+- **Negro del ENTORNO, no de todo:** `FinalLook` (ChargeFx) pone al anillo los materiales del HUD (DDT translúcidos) con sort **32610**, y llama a `TopSorts(true)`. Todo queda sobre el velo (32600) y bajo el aviso (32650) y los títulos (32700):
+  - destellos 32612/32613;
+  - anillos de etapa 32614-32618;
+  - halo 32606;
+  - el alma con **`MI_ChargeSoulTop_SC`** (`MI_ChargeSoul_SC` sobre `M_ProtoSoul_HUD`, DDT) a 32608, para que los trazos del dibujo no la corten en el negro.
+- `NormalLook` → `TopSorts(false)` devuelve sorts (0 / 210-216) y `MI_ChargeSoul_SC`.
+- Como cambia el material del alma, **`ApplySoulLook`** se llama ahora también después de `FinalLook` en `FlowFinal` y después de `NormalLook` en `ResultsShow`. `FinalStart` ya lo hacía.
+- **Bug de fondo:** los dos `SetMaterial` del anillo en `FinalLook` tenían el material vacío (gotchas §561), así que el look del final nunca se había aplicado.
+- ✅ **PIE (DebugStart 60, 0 errores):**
+  - "final, a negro" 11,59 s después de arrancar la carga;
+  - en el regreso, el anillo tiene sus MID de los materiales HUD y sort 32610, y el alma `MI_ChargeSoulTop_SC` a 32608;
+  - en los resultados todo vuelve: materiales normales, sorts 0/210/216 y el alma con sus colores.
+- ⬜ Falta verlo en el visor.
+
+## 2026-10-01 (12:50, Narrativa) — 4 arreglos de la prueba de Beltrán en el visor
+- **Breath corrido (grave):** la salida temprana del Hall (`HallExitEarly`, pawn x ≥ 760 en el paso ≥ 28) mandaba a Entering, pero el director del Hall seguía en el paso 28 con `HallTickWalk` moviendo al pawn por la caminata de salida (`OutTime` 8 s). El usuario quedaba lejos del título, del metaball y de Alma.
+  - Arreglo: **`HallCutWalk`**, llamada una vez al cruzar. Pone `WalkT = WalkDur` en el director, `bWaitWalk` false y `bGate` true, y hace `Stop` de `StepsAudio`.
+  - PIE (DebugStart 9): 4 s después del cruce el pawn sigue en `StartLoc[0]`, y el director cierra solo (paso 30, `bHallDone`); 0 errores.
+- **Aviso al costado:** `FlowDisc` pegaba el aviso a la cámara solo con PT < 0,3; en el Quest la orientación del casco al arrancar todavía no es la final. Ahora se pega a la cámara con PT < 0,8 (aún invisible) y después la sigue suave (`RInterpTo` 1,5), siempre a la altura y posición del ojo.
+- **Drawing tarda en dejar dibujar:** `bInstrReady` ahora se cumple al EMPEZAR la segunda instrucción (VO_27d / VO_32d), no al terminarla (literal `CueAt − 0.6` → `CueAt − 60`). Unos 7 s menos en Drawing y 5 en Attracting.
+- **Timbre y sensor negros:** materiales (ver `references/materials-vr.md`).
+### 2026-10-01 tarde — perillas y funciones nuevas
+- Perillas: `Final` → `ResAlmaLeft` 45, `ResAlmaScale` 0,7, `SketchSpeed` 20 °/s; `Hall - Anillo` → `HallSoulScale` 2. Internas: `SketchYaw`, `SketchOff`, `SketchOn`, `HallBigDone`.
+- `SketchSpin(Dt)` (fase 12: re-`PlaceSketch` con yaw creciente) y `HallSoulBig()` (fase 9, una vez: escala el punto `hall_soul_present`) se llaman al final de **`AlmaSclTick`** (que corre en cada `TickAll`).
+- `AlmaSclTick`: objetivo 1 en fase 9 y ≥ 10, **salvo la 12** (resultados usa `AlmaSclTgt`, que fija `AlmaResults`).
+- `StageTimes`: sin `StAlma`; `AlmaTime = VODur + 3`; K = 4 → `InstrTime 0,6`. `StageCues`: aviso 1 en fase 5 o 6; `bInstrReady` verdadero en la etapa 4. `ResultsOutK`: fase ≥ 12.
+
+### 2026-10-01 (después de la visita) — zurdos, ameba del Hall y perillas en 0
+- 🔴 **Perillas nuevas instance-editable nacieron en 0 en la instancia del nivel** (`HallSoulScale`, `ResAlmaLeft`, `ResAlmaScale`, `SketchSpeed`): la ameba del Hall se escalaba a 0 (desaparecía) y Alma quedaba en tamaño 0 en resultados. Arreglado: valores escritos en la instancia y nivel guardado. **Quitados** `HallSoulBig`, `HallSoulScale` y `HallBigDone`: Beltrán ya había agrandado `TP_hall_soul_present` a mano; esa escala manda.
+- **Zurdos** (`HandTick`, llamada desde `AlmaSclTick` en cada tick):
+  - `HandRead` copia `Hall.bRightHanded` (lo fija `HallGrab` con la mano que toma el sensor) a `UserRight` mientras el Hall está cargado.
+  - Si `UserRight` es falso, una vez por etapa (`HandK`, reset en fase 0 y 9):
+    - Entering, fase 4 (antes del Intro): `HandBreath` → `UserTool.bRight` y `bMounted` en falso, y `BreathRig.SetHandedness(false)`. Va antes porque duerme el rig.
+    - Attracting, fase ≥ 5 (después del Intro): `HandSeq` → `SeqRig.SetHandedness(false)`.
+    - Surrounding, fase ≥ 5 (después de `TourWake`): `HandDraw` → `TBDirector.SetHandedness(true)`.
+  - Heart ya era ambidiestro (`bAutoHand`). Los diestros no cambian nada.
+  - ⬜ Sin probar en visor.
+
+### 2026-10-01 noche — fantasmas de instrucciones conectados (`GhostTick`)
+- **`GhostTick`** (llamada al final de `AlmaSclTick`, cada cuadro): recorre los `BP_GhostPlayer_SC` cargados y, por el nombre de su `Take` (`DA_Ghost_*`), decide si debe estar en marcha.
+  - Si debe y no lo está: `Play(Mirror = not UserRight)`.
+  - Si no debe y lo está: `Stop()`.
+- **Hall** (`GhostHall`, fase 9), con las banderas del director:
+
+  | Fantasma | Bandera |
+  |---|---|
+  | `DA_Ghost_Bell` | `bBellLive` |
+  | `DA_Ghost_Take` | `bSensorLive` |
+  | `DA_Ghost_Pick` | `bPickLive` |
+
+- **Etapas**: en fase 6 (después de `StageBegin`) y hasta la primera acción (`GhostFirst` → `GDoneK`):
+
+  | Etapa | Primera acción |
+  |---|---|
+  | Breath | `BreathRig.bZone` |
+  | Heart | `HeartManager.bHeartZone` |
+  | Attract | `Sequencer.Phase ≥ 2` |
+  | Draw | `TBDirector.InkUsed > 0` |
+
+  Fuera de la fase 6 se apagan solos. `GDoneK` se resetea en las fases 0 y 9.
+- **Perilla** `bGhostsOn` (categoría *Instrucciones*, instance-editable, true): apaga todos los fantasmas.
+- Variables internas: `GBell`, `GTake`, `GPick`, `GDoneK`.
+- ⬜ Faltan los fantasmas COLOCADOS en sus celdas (Animaciones), el PIE y el visor. Los fantasmas van mudos (pedido de Beltrán: suenan junto con el VO).
+- ✅ **2026-10-01 noche:** Animaciones colocó los 7 fantasmas (`Ghost_<ID>`, carpeta *Fantasmas*):
+
+  | Nivel | Fantasmas |
+  |---|---|
+  | Test_Hall | BELL, TAKE, PICK |
+  | Test_Entering | BREATH |
+  | Test_Heart | HEART |
+  | Test_Sequencer | ATTRACT |
+  | L_TBTest_SC | DRAW |
+
+  Todos con `bShowText` false, `bAutoPlay` false y sin sonido.
+- PIE con `DebugStart` 3, 0 errores: el Hall llega al paso 6, coloca el timbre y en ese cuadro arranca `DA_Ghost_Bell`, que sigue al timbre real (`FollowTag`), en bucle. TAKE y PICK quedan quietos.
+- PIE con `DebugStart` 12, 0 errores: con `StageBegin` (fase 6) arranca `DA_Ghost_Breath` (State 2, en bucle). El resto, quietos. Las 7 celdas cargan juntas sin choques de tags.
+- La Obra quedó guardada con **`DebugStart` 3** (el timbre), por pedido de Beltrán, para verla. 🔴 **Antes de empaquetar: `DebugStart` −1.**
+
+### 2026-10-01 noche — correcciones de Beltrán tras probar los fantasmas
+- **Ambientes sin silencios.**
+  - Causa: `AmbPick` devuelve −1 en varios momentos (arranque, puerta Este, fases finales) y `AmbTo(-1)` hacía `AmbFade` sin arrancar otro, así que el ambiente se apagaba hasta el siguiente.
+  - Ahora `AmbTo` trata `K < 0`, y también `K ≥ 1` en fase ≥ 15, como "seguir con el actual": restituye `AmbNow = AmbLast`.
+  - El bucle consigo mismo (`AmbTick`) se mantiene, con 3 s de fundido de entrada y 3 s de salida.
+  - Variable nueva: `AmbLast`.
+- **Final:** en fase ≥ 15, `AmbTick` funde la música (`AmbTo(0)`), y el velo ya iba a negro. A los 3,5 s, `OpenLevel`.
+- **Recentrado:** al final de `HallStart`, `BP_VRPawn_SC.RecenterSeated`. Así, después de un reinicio el visor cae en el pawn aunque el usuario se haya movido. El pawn ya lo hacía en su `BeginPlay` (0,5 s), pero al recargar en el Quest no alcanzaba.
+- **Alma en el Hall con la escala del TargetPoint:**
+  - `AlmaHallScl` lee una vez los 3 puntos (`hall_alma_center` / `hall_alma_side` / `hall_alma_exit`: posición y escala X, en `HCL`/`HSL`/`HEL`, `HCS`/`HSS`/`HES`).
+  - En cada cuadro de la fase 9, toma la escala del más cercano a Alma (`AlmaHallTgt`).
+  - `AlmaSclTick` ya no fuerza 1 en el Hall. En `hall_alma_side` está 0,5 (Beltrán).
+- **Dibujo de resultados:**
+  - Causa del giro desbocado: `PlaceSketch` asume que el dibujo está en su origen; llamado en cada cuadro, componía la rotación y se acumulaba.
+  - Ahora `SketchSpin` aplica cada cuadro un delta: `MakeTransform(p − R·p, R)` con `R = yaw(SketchSpeed·Dt)` y `p` = el centro donde lo dejó `PlaceSketch`. Va por `TBTool.SketchApplyXf`, como el giro del final de Drawing, a 20 °/s.
+- **Test_Hall:**
+  - las amebas pasan a 27 cm entre sí (antes 19), con Y = ±27 y ±54;
+  - `TargetPoint_4` (`hall_soul_present`) a escala 0,7 (era 0,3; la ameba copia la escala X del punto como `Size`).
+- **Ambientes por etapa (Beltrán, 10-01 noche).** `AmbPick` reescrito limpio, sin `bind` de literales:
+
+  | Momento | K |
+  |---|---|
+  | Hall | 1 → 2 → 3 (−1 al abrir la puerta Este) |
+  | Breath | 4 |
+  | Heart | 5 |
+  | Mind | 6 |
+  | **Attracting** | **8 (Salida)** |
+  | **Drawing** | **7 (Surrounding)** |
+  | Fase 10 | −1 (sigue el de Drawing) |
+  | **Fases 11-14** (Hall de salida, resultados, créditos) | **9 (Credits)** |
+  | Fase 15 | funde a 0 |
+
+  El `AmbientSound_0` (*Ambient_Surrounding*, Clip 7) de `L_TBTest_SC` pasó a `TestOnly`: en la Obra se descarta (`TestOnly descartados` 19 → 20) y en su nivel de test sigue sonando. Antes se sumaba al de la Obra. PIE con `DebugStart` 50: "ambiente 7", 0 errores.
+- **Tiempos del arranque (Beltrán, 10-01 noche):**
+  - `DiscTime` 9 → **19** s (CDO; no es instance-editable).
+  - En `BP_Disclaimer_SC.DiscStep`, la salida del texto (`Out`) pasó de 7,6-8,7 a **17,6-18,7** s. Estaba fija en segundos: si se cambia `DiscTime`, hay que correrla también.
+  - En Test_Hall, `BP_HallDirector_SC.IntroHold` 12 → **17** s (título y logos antes de caminar).
+  - **`DebugStart` −1**: la Obra arranca desde el negro, igual que en el APK.
+  - En `IntroTitle` (título y logos del inicio), corridos +5 s junto con `IntroHold` 17: `Out` 12-14,5 → **17-19,5** s (los 3 `MapRangeClamped`) y se ocultan a los **20** s (2 `MakeLiteralFloat`; antes 15). También estaban fijos en segundos.

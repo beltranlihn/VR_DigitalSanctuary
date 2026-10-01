@@ -171,3 +171,9 @@ Pedido de Beltrán. El **envelope follower nativo del `AudioComponent`** (attack
 - **`FadeVoice(Time)`** (pública): los mismos 3 `ClearTimer` → log `ALMA: la voz se va en fade` → `FadeOut(Time)`. **No dispara `OnVOFinished`**: quien la llama (el Hall, al resolverse una interacción) avanza por su cuenta.
 - 🔴 El `FadeOut` es el de **`AudioComponent`**: el DSL elige el de `SynthComponent` (gotcha 40) → se creó con `create_node(type_id "Audio|Components|Audio|FadeOut", declaring_class /Script/Engine.AudioComponent)` y se cableó a mano (pines: exec 0, self 1, `FadeOutDuration` 2, `FadeVolumeLevel` 3, `FadeCurve` 4).
 - ✅ PIE (ensayo de Test_Heart): VO2 arrancó a 19,04 s y el `SayClip` del runner la cortó a 22,53 s (a mitad del clip de 4,5 s) por el camino del fundido; 0 Accessed None. ⬜ El fundido no se oye por MCP (gotcha 568) → visor.
+
+## 🌌 2026-10-01 (Narrativa) — perillas del aura en el BP (pedido de Beltrán, D11)
+- Categoría **`J - Aura`**, instance-editable: `AuraAlpha`, `AuraSize`, `AuraTwinkle`, `AuraCurl`, `AuraFlow`, `AuraGlow`. Defaults = valores de `MI_AlmaAura_SC`.
+- `BootAura` → `SetAuraRef(spawn)` → **`AuraApply`**: recorre los `StaticMeshComponent` del aura y escribe `AuraAlpha`, `SizeDeg`, `Twinkle`, `CurlAmp`, `FlowSpeed` y `AuraGlow` (`SetScalarParameterValueOnMaterials`, sin cast).
+- Se aplican al nacer el aura. Cambiar una perilla con el juego corriendo no hace nada hasta el próximo `BootAura`.
+- La escala de Alma por TargetPoint NO vive acá: la maneja `BP_Obra_SC` (`AlmaSclIn`/`AlmaSclAside`/`AlmaSclTick`). Reescribir `FindPoint`/`AppearAt`/`MoveTo` de Alma falló varias veces (choque con la variable `Found` de PCG), así que se dejaron intactos.

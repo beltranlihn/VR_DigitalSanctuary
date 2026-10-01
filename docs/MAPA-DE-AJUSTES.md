@@ -16,7 +16,7 @@
 |---|---|---|
 | Jugar una etapa sola, completa | su nivel de test (Test_Entering, Test_Heart, Test_Fluid, Test_Sequencer, L_TBTest_SC) | Play. Corre el ensayo `StageRunner`. |
 | Jugar el Hall solo | Test_Hall | Play. `HallRunner` → `DebugStart` (−1 = desde el título; 2 portal · 3 timbre · 4 Alma · 5 sensor · 6 elección · 7 baldosas · 8 HUD · 9 salida) · `DebugSoul` = qué alma se asume |
-| Jugar la Obra desde un punto | L_SoulCharger_Obra → `BP_Obra_SC` | `DebugStart`: 1 Hall · 10-14 Entering (apertura · Alma · instrucciones · mecánica · salida y carga) · 20-24 Recognizing · 30-34 Loving · 40-44 Attracting · 50-54 Surrounding · 60 última carga · 61 regreso · 62 resultados · 63 SHARE · 64 constelación. `DebugSoul` = alma por defecto. **Dejar en −1 para el APK.** |
+| Jugar la Obra desde un punto | L_SoulCharger_Obra → `BP_Obra_SC` | `DebugStart`: 1 Hall desde el inicio (solo salta el aviso) · 2 portal · **3 timbre** · **4 justo dentro del Hall** (Alma aparece) · 5 sensor · 6 elección del alma · 7 baldosas · 8 nace el HUD · 9 Alma a la puerta de salida · 10-14 Entering (apertura · Alma · instrucciones · mecánica · salida y carga) · 20-24 Recognizing · 30-34 Loving · 40-44 Attracting · 50-54 Surrounding · 60 última carga · 61 regreso · 62 resultados · 63 SHARE · 64 constelación. `DebugSoul` = alma por defecto. **Dejar en −1 para el APK.** |
 | Acelerar la Obra | `BP_Obra_SC` | `Speed` (1 = real; solo para probar) |
 
 ## Ver todo junto: la Obra con sus subniveles
@@ -25,6 +25,8 @@
 - Lo que mueves en un subnivel se guarda en ese nivel de test, y la Obra lo carga igual. Al guardar, Unreal pregunta qué niveles guardar: guarda los que tocaste.
 - **Nivel actual:** el que está en negrita en Levels recibe lo que colocas nuevo. Déjalo en *Persistent Level* salvo que quieras agregar algo a una etapa (doble clic en su fila).
 - En el juego nada de esto cambia: los subniveles son *Blueprint* y no se cargan solos; la Obra sigue cargando las etapas como siempre.
+- **Por qué en el Outliner hay varios HUD, Almas, PlayerStart…** (revisado el 2026-10-01 con un censo del mundo de juego): cada nivel de test trae sus propias piezas para poder probarse solo. Las que solo sirven para eso están en la carpeta **`SoloPrueba`** (tag `TestOnly`; 19 en total: 7 en Test_Hall, 3 en Entering, 3 en Fluid y 2 en cada uno de Heart, Sequencer y TBTest). Al arrancar, la Obra las descarta y deja **una sola** de cada pieza que manda (Alma, HUD, FaceAnchor, BioHub, mando, pawn). Lo único que se repite en el juego son el PlayerStart y el Brush de cada nivel, que no pelean: el pawn nace en el PlayerStart de la Obra antes de que carguen las etapas. **No borres lo de `SoloPrueba`**: sin eso, los niveles de test dejan de andar solos.
+- Carpetas de la Obra: `Obra` (director, HUD, Alma, FaceAnchor, mando, aviso, contenido del viaje) · `Obra/Puntos` (PlayerStart y puntos de Alma y de carga) · `Final` · `Credits`. Test_Hall: `Hall/Sistemas` · `Hall/Arquitectura` · `Hall/Almas` · `Hall/Puntos` · `Hall/Polvo` · `Ajustes`.
 
 ## La Obra (L_SoulCharger_Obra → `BP_Obra_SC`)
 Lo que ajustas en un nivel de test llega solo a la Obra: la Obra carga esos mismos niveles.
@@ -39,10 +41,11 @@ Lo que ajustas en un nivel de test llega solo a la Obra: la Obra carga esos mism
 | Color del velo de cada etapa (apertura y cierre) | `BP_Obra_SC` | `CTops` / `CHors` (arrays, uno por etapa) | lineales |
 | Color de la carga de cada etapa | `BP_Obra_SC` | `StageCols` | |
 | Duración de cada carga | `BP_Obra_SC` | `ChargeTimes` (4 / 4 / 4 / 4 / 6 s) | |
-| Duración del aviso inicial | `BP_Obra_SC` | `DiscTime` · `bDisclaimer` (apagarlo lo salta) | |
+| Duración del aviso inicial | `BP_Obra_SC` | `DiscTime` (5 s) · `bDisclaimer` (apagarlo lo salta) | el texto entra 0,5→2 s y sale 3,5→4,8 s (`BP_Disclaimer_SC.DiscStep`); si cambias `DiscTime`, mueve esos dos tramos |
 | Tiempos del final | `BP_Obra_SC` | `ReturnWait` · `ResultsTime` (cortafuegos, 150) · `ExploreT` 25 · `ShareFW` 30 · `SwimTime` 4 · `AwayTime` 3 · `CreditsTime` 60 | |
 | Estrellas de la constelación | L_SoulCharger_Obra, carpeta Credits | 30 `StaticMeshActor` con tag `CreditStar` | se mueven a mano |
 | Datos simulados (APK) | `BP_Obra_SC` | `bSimulated` · `SimStageMax` 90 | |
+| Transición entre etapas | `BP_Obra_SC` (literales en `RunObra`/`FlowVeil`) | velo cierra 2,5 s · título aparece T 0,5→2,3 · se va 3,3→4,5 · oculto a T 4,6 · Alma entra T 4,7 · velo abre T 1→4 | el título nunca coincide con Alma |
 | Música ambiente de cada escena | `BP_Obra_SC`, categoría **Ambientes** | `AmbClips` (9 clips, en orden: 1 Intro · 2 Start · 3 Hall · 4 Breath · 5 Heart · 6 Mind · 7 Surrounding · 8 Salida · 9 Credits) · `AmbVolumes` (uno por clip, 0,8) · `AmbFadeIn` / `AmbFadeOut` (3 s) | siempre en estéreo (2D). Qué clip suena en cada momento lo decide la obra por fase |
 
 ## El Hall (Test_Hall; la Obra lo carga igual)
@@ -57,6 +60,9 @@ Lo que ajustas en un nivel de test llega solo a la Obra: la Obra carga esos mism
 | Nombres de etapa sobre las baldosas | `HallDirector` | componentes `Title0…Title4` (seleccionar en el panel de componentes y mover/escalar) | se ven en el editor |
 | SOUL CHARGER / CENTER de las puertas | `HallTitle` (dos actores) | transform del actor · `RevealTime` · `OutTime` | se ven en el editor |
 | Título SOUL CHARGER del inicio | `TituloInicio` (`BP_IntroTitle_SC`) | transform del actor · componentes `TitleP` (título) y `SubP` (bajada): mover, girar, escalar | es el título real; aparece a los 2,5 s y se va a los 13 s |
+| Logos del título del inicio | `TituloInicio` → componentes `LogoADS` (Alma Digital) · `LogoJHU` (Johns Hopkins) · `LogoIDEAS` (Ideas Lab) | mover, escalar cada uno | aparecen de 6 a 8,6 s, escalonados, y se van con el título (10 a 12,5 s). Material `Obra/Titles/MI_Logo_*` (padre `M_TourLogo_SC`): `C0` = tinte, `U0`/`U1` = ancho del barrido |
+| Sensor que invita a tomarlo: giro y orbe | `HallSensorOrb` (`BP_SensorOrb_SC`) | `SpinDeg` 15 (giro sobre su propio eje) · `OrbSize` 0,5 · `OrbOpacityCore` 0,02 · `OrbOpacityRim` 0,18 · `AppearTime` 1,6 · `BurstGrow` 0,3 · `BurstTime` 0,7 | el temblor del orbe: `MI_SensorOrb_SC` → `WobbleAmount` 0,01 · `WobbleSpeed` 0,3 · `RotAmount` 0 |
+| Sensor en la mano (pose) | `HallDirector` → función `HallGrab` | derecha (4,325; −1,685; −2,335) roll 90 · izquierda (4,325; 1,685; −2,335) roll −90, relativo al grip | la misma pose que `UserTool` (`SensorXfR/L`) |
 | Timbre: dónde, giro y tamaño | `Timbre` (`BP_BellArt_SC`) | transform del actor | el timbre real; oculto en el juego hasta el paso 6 |
 | Sensor: dónde, giro y tamaño | `Sensor` (`BP_BioSensorArt_SC`) | transform del actor | el sensor real; oculto hasta el paso 12 |
 | Almas candidatas: dónde | `HallSoul_0…4` | transform del actor | se quedan donde las dejes |
@@ -78,6 +84,7 @@ Todo está colocado donde aparece. Se prueba con `DebugStart` 62 (resultados), 6
 | Dónde se pone Alma en los resultados y su tamaño | TargetPoint `final_alma` | transform (la escala = el tamaño de Alma) | |
 | Por dónde nada el alma-pez al compartir | TargetPoints `final_fish_door` (la puerta) → `final_fish_away` (se aleja) | transform | sale del anillo, pasa por la puerta y se va. Tiempos: `SwimTime` 4 · `AwayTime` 3 en `BP_Obra_SC` |
 | Dónde queda tu alma en la constelación y su tamaño | `Final_AlmaPez` | transform del actor (la escala = el tamaño) | solo si compartiste. Nunca va con el anillo: el anillo se apaga cuando nace el pez |
+| Logos de los créditos | `Final_Creditos` → `LogoADS` · `LogoJHU` · `LogoIDEAS` | mover, escalar | pie bajo las tarjetas; aparecen de 15 a 17,6 s y se van con el título |
 | Créditos: dónde y tamaño | `Final_Creditos` (carpeta Credits) | transform del actor · componentes `TitleP`, `SubP`, `Card0…5` | el actor está en los ojos de `StopExit` y los planos 4,5 m al frente. En el editor se ven el título, la bajada y la primera tarjeta (las 6 tarjetas van en el mismo lugar) |
 | Estrellas | `CreditStar_00…29` (carpeta Credits) | transform | aparecen de a una en los primeros 5 s de la constelación |
 
@@ -89,6 +96,14 @@ Todo está colocado donde aparece. Se prueba con `DebugStart` 62 (resultados), 6
 - **Sonidos de objetos:** suenan en el lugar del objeto con la atenuación compartida `/Game/SoulCharger/Core/Audio/ATT_Objeto_SC`. Por defecto suena pleno hasta 4 m y se apaga hacia los 36 m; si cambias ese asset, cambian todos. Tienen esa atenuación: timbre (`Bell`), puertas (`DoorOpen`), aparición y desaparición de luz (`SBubbleHoverOn`/`Out`), clic y apretar botón (`VR_click1`, `ChargeFinal`), cargas (`Charge1`, `ProtoHover`, `ProtoSelect`), mando (`Tomado`, `VR_shep_scale_down_02`) y los efectos del final (`FX_SOULSWIM`, `FX_SOULVANISH`, `FX_RINGVANISH`, `FX_SHAREAPPEAR`, `FX_SHARESELECT`).
 - **Siguen en 2D a propósito:** las voces de Alma (VO), tus pasos (`Pasos`), los ambientes y el aviso inicial.
 - Para que un sonido nuevo de objeto suene en el mundo: asígnale `ATT_Objeto_SC` en *Attenuation Settings* y tócalo con *Play Sound at Location* (o desde un componente del objeto).
+
+## Aura de Alma (partículas)
+Es un actor aparte (`BP_AlmaAura_SC`) que Alma crea al arrancar y lleva pegado. No hay actor en el nivel: se ajusta en el material **`Core/Alma/MI_AlmaAura_SC`** (marcar el casillero de cada parámetro):
+- **1 - Nube:** `AuraAlpha` 0,35 (opacidad) · `SizeDeg` 0,16 · `SizeMinDeg` 0,10 · `SizeVar` 0,35 · `Twinkle` 0,45 · `ShellScale` 1 (radio del cascarón) · `Breath` 0,03 · `ColA`/`ColB` · `AuraGlow` 1.
+- **2 - Curl:** `CurlAmp` 5,5 · `CurlFreq` 1,6 · `FlowSpeed` 0,35 · `SwirlSpeed` 0,08.
+- **3 - Voz:** `SpeakCurl` 0,6 · `SpeakExpand` 0,05 · `SpeakGlow` 0,6.
+- En `BP_AlmaAura_SC` (Class Defaults): `AuraSpeakRate` 1,2 · `bPreviewOnly` (true apaga todas las auras). En `BP_Alma_SC`, categoría I - Voz: `VOReact`, `VOAttack`, `VORelease`, `VOGain`. Apagar el aura sin tocar grafos: `AuraAlpha` 0.
+- Para verla sin Play: arrastrar un `BP_AlmaAura_SC` al nivel con `bPreviewOnly` true (se destruye al dar Play) y sacarlo después.
 
 ## No ajustable hoy
 - La pose del HUD (va pegado al pawn; es de Mesh 3D).

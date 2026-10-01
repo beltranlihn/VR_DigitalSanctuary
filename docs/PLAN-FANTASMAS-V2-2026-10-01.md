@@ -110,3 +110,29 @@
   - el Hall director prende y apaga Bell, Take y Pick;
   - cada etapa prende y apaga el suyo con su propia detección.
 - Sonidos `AppearSound`/`VanishSound`: Narrativa.
+
+## 9. Integración en la Obra (Narrativa, 2026-10-01 tarde) — plan listo, falta conectar las tomas
+- **Espejo:** todos los `Play` con `bMirror = not BP_Obra_SC.UserRight`. `UserRight` es la mano con que el usuario toma el sensor en el Hall (`HallGrab`).
+- **Hall** (`BP_HallDirector_SC`, por paso):
+
+  | Fantasma | Se prende | Se apaga |
+  |---|---|---|
+  | `GHOST_BELL` | aparece el timbre | el usuario apoya la mano |
+  | `GHOST_TAKE` | aparece el sensor | `HallGrab` |
+  | `GHOST_PICK` | las almas despiertan (`Picker.Awake`) | `HALL: alma elegida` |
+
+- **Etapas** (`BP_Obra_SC.GhostTick`):
+  - Se prende en `StageBegin` (fase 6).
+  - Se apaga con la primera acción de la etapa:
+
+    | Etapa | Primera acción |
+    |---|---|
+    | Breath | primera entrada al umbral del `BreathRig` |
+    | Heart | `bHeartZone` / `BeatCount > 0` |
+    | Attract | primer slot ocupado |
+    | Draw | `InkUsed > 0` |
+
+  - Respaldo:
+    - se apaga en `StageOutro`, siempre;
+    - también se apaga después de 2 bucles (`LoopCount`) si el usuario ya hizo la acción una vez.
+- Se buscan por su `Take` (DemoId) entre los `BP_GhostPlayer_SC` cargados: cada celda tiene el suyo.

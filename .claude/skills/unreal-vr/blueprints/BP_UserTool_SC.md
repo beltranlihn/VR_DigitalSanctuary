@@ -63,3 +63,18 @@ Regla de Beltrán: *"cada vez que se interactúe con botones, que sea con animac
 
 ## 2026-10-01 (Narrativa) — sonido en su lugar
 - `ToolApply` modo 1: `MandoSound` (`Tomado`, con `ATT_Objeto_SC`) suena en el mando (posición del actor), no en 2D. La aparición y desaparición (`ProtoSelect`, `VR_shep_scale_down_02`) ya se tocaban en la posición; ahora se espacializan porque tienen la atenuación.
+
+## 2026-10-01 (11:30, Narrativa) — `HandGhost` se veía en juego = la "mano duplicada" de toda la obra
+- **Síntoma** (Beltrán, notas 3 y 5): mallas de mano superpuestas en varias etapas.
+- **Medido en PIE de la Obra:** `HandGhost` (SKM_MannyXR_right, la mano de referencia para ajustar `SensorXfR` en el viewport) estaba con `bVisible` true y `bHiddenInGame` **false** en Drawing. El template y la instancia tienen `bHiddenInGame` true, así que algo la enciende en runtime (no se aisló qué). Se veía en todas las etapas:
+  - en el Hall y en Loving, encima de la mano del pawn (dos manos derechas);
+  - en Entering y Heart, con el sensor ("el sensor con la mano");
+  - en Attracting y Drawing, con el mando.
+- **Arreglo:** función **`GhostOff`** (oculta en juego + invisible) al comienzo de `ToolTick`, en cada cuadro. En el editor se sigue viendo (el CS no corre en juego).
+- ✅ **PIE por etapas** (probe `scratchpad/obra/hands_probe3.py`, que lee visibilidad efectiva = visible, no oculto en juego, actor no oculto, escala > 0,01):
+  - **Entering:** solo el sensor (`Body`).
+  - **Loving:** las 2 manos del pawn.
+  - **Attracting:** solo `BP_QuestCtrl_SC`.
+  - **Drawing:** solo `SM_RHand` del `BP_TBDirector_NC`, que es el mando.
+  - `HandGhost` oculto en todas.
+- Falsos positivos descartados: `Waves` figura visible con el sensor apagado, pero su material multiplica por `AppearGlow` (0) y es aditivo, así que no dibuja nada. Los `CtrlR/L` de `BP_SeqRig_SC` antes de Attracting están en su celda (x 362 700) y no instalados.

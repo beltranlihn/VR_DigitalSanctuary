@@ -123,7 +123,7 @@
     "BL": false,
     "Head": false,
     "Extra": 0,
-    "DemoTime": 5.0,
+    "DemoTime": 3.0,
     "used": true
    },
    {
@@ -136,7 +136,7 @@
     "BL": false,
     "Head": false,
     "Extra": 0,
-    "DemoTime": 5.0,
+    "DemoTime": 3.0,
     "used": true
    },
    {
@@ -278,15 +278,23 @@
     "name": "BodyR",
     "class": "/Script/Engine.InstancedStaticMeshComponent",
     "props": {
-     "NumCustomDataFloats": 1
+     "NumCustomDataFloats": 0
     }
    },
    {
     "name": "BodyL",
     "class": "/Script/Engine.InstancedStaticMeshComponent",
     "props": {
-     "NumCustomDataFloats": 1
+     "NumCustomDataFloats": 0
     }
+   },
+   {
+    "name": "CurR",
+    "class": "/Script/Engine.StaticMeshComponent"
+   },
+   {
+    "name": "CurL",
+    "class": "/Script/Engine.StaticMeshComponent"
    },
    {
     "name": "TrigR",
@@ -469,7 +477,21 @@
     "cat": "Ghost",
     "type": "float",
     "edit": true,
-    "default": 11.0
+    "default": 30.0
+   },
+   {
+    "name": "PlayRate",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 1.25
+   },
+   {
+    "name": "LoopEnd",
+    "cat": "Ghost",
+    "type": "float",
+    "edit": true,
+    "default": 0.0
    },
    {
     "name": "EchoAlpha",
@@ -477,11 +499,7 @@
     "type": "float",
     "edit": true,
     "default": [
-     1.0,
-     0.55,
-     0.3,
-     0.15,
-     0.06
+     1.0
     ],
     "container": "array"
    },
@@ -504,7 +522,7 @@
     "cat": "Ghost",
     "type": "float",
     "edit": true,
-    "default": 1.0
+    "default": 0.4
    },
    {
     "name": "LoopFade",
@@ -609,11 +627,18 @@
     "default": 2.0
    },
    {
+    "name": "bAutoMirror",
+    "cat": "Ghost",
+    "type": "bool",
+    "edit": true,
+    "default": false
+   },
+   {
     "name": "LiveOpacity",
     "cat": "Ghost",
     "type": "float",
     "edit": true,
-    "default": 0.45
+    "default": 0.7
    },
    {
     "name": "BodyMeshR",
@@ -1383,6 +1408,8 @@
     }
    ],
    "GhLiveHands": [],
+   "GhLiveExtra": [],
+   "GhLiveOrb": [],
    "GhLivePlace": [
     {
      "name": "H",
@@ -1397,6 +1424,7 @@
      "type": "int"
     }
    ],
+   "GhBoot": [],
    "GhLoad": [],
    "GhLoadTk": [],
    "GhLoadMeta": [],
