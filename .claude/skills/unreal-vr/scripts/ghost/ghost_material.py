@@ -1,10 +1,15 @@
 import json
-# ghost_material.py - arma M_Ghost_SC (el fantasma de las instrucciones y los botones del grabador).
+# ghost_material.py (v2, 2026-10-01) - arma M_Ghost_SC (el fantasma de las instrucciones y los botones del grabador).
 # Se pega ENTERO como `script` de ProgrammaticToolset.execute_tool_script. Idempotente (parametros por nombre, Custom por
 # Description). Nunca levanta excepcion (try/except BaseException, gotcha 231). NO recompila (gotcha 479: aparte).
-# Patron de apply_alma_aura_material.py, sin plan externo. SIN `result = run()` al final (gotcha 493).
-# Salida del Custom SIN AdditionalOutputs = '' (con 'return' falla y el error escapa del try; 2026-09-30).
-# Unlit + ADITIVO (sin problemas de orden entre ecos) + borde fresnel: Emissive = Color * (Core + f*RimGain + Pressed*PressGain) * Opacity
+# SIN `result = run()` al final (gotcha 493). Salida de un Custom SIN AdditionalOutputs = '' (gotcha 560).
+# v2 (pedido de Beltran: "material translucido suave, blanco azulado; color y brillo solo en el gatillo"):
+# Unlit + TRANSLUCIDO, borde fresnel en la OPACIDAD (como MI_Hand_SC) y opacidad por instancia (PerInstanceCustomData[0],
+# 1 por defecto fuera de un ISM) para los ecos:
+#   Emissive = Color * (1 + Pressed*PressGain)                                  (Custom 'GhostPS')
+#   Opacity  = saturate(Opacity * Inst * (Core + f*RimGain + Pressed*0.5))      (Custom 'GhostOP')
+# Usos: mallas instanciadas (ecos) y con esqueleto (la mano). Recompilar APARTE y SIN MIDs vivas (gotcha 479 y el cuelgue
+# del 09-29): correrlo ANTES de colocar fantasmas con vista previa.
 MT = 'editor_toolset.toolsets.material.MaterialTools.'
 OT = 'editor_toolset.toolsets.object.ObjectTools.'
 AS = 'editor_toolset.toolsets.asset.AssetTools.'
@@ -12,15 +17,18 @@ FOLDER = '/Game/SoulCharger/Mechanics/Ghost'
 NAME = 'M_Ghost_SC'
 MATR = FOLDER + '/' + NAME + '.' + NAME
 MAT = {'refPath': MATR}
-FLAGS = {'shadingModel': 'MSM_Unlit', 'blendMode': 'BLEND_Additive', 'twoSided': False, 'bUseTranslucencyVertexFog': False}
-PARAMS = [('Color', 'vector', [0.75, 0.85, 1.0, 1.0]), ('Opacity', 'scalar', 1.0), ('Pressed', 'scalar', 0.0),
-          ('RimPow', 'scalar', 2.2), ('RimGain', 'scalar', 1.6), ('Core', 'scalar', 0.12), ('PressGain', 'scalar', 0.9)]
-CODE = ('float3 n = normalize(N);\n'
-        'float3 v = normalize(V);\n'
-        'float f = pow(1.0 - saturate(abs(dot(n, v))), RimPow);\n'
-        'float k = (Core + f * RimGain + Pressed * PressGain) * Opacity;\n'
-        'return Color.rgb * k;')
-INPUTS = ['N', 'V', 'Color', 'Opacity', 'Pressed', 'RimPow', 'RimGain', 'Core', 'PressGain']
+FLAGS = {'shadingModel': 'MSM_Unlit', 'blendMode': 'BLEND_Translucent', 'twoSided': False, 'bUseTranslucencyVertexFog': False,
+         'bUsedWithInstancedStaticMeshes': True, 'bUsedWithSkeletalMesh': True}
+PARAMS = [('Color', 'vector', [0.78, 0.88, 1.0, 1.0]), ('Opacity', 'scalar', 1.0), ('Pressed', 'scalar', 0.0),
+          ('RimPow', 'scalar', 2.0), ('RimGain', 'scalar', 0.9), ('Core', 'scalar', 0.35), ('PressGain', 'scalar', 2.0)]
+NL = chr(10)
+CODE_E = 'return Color.rgb * (1.0 + Pressed * PressGain);'
+INPUTS_E = ['Color', 'Pressed', 'PressGain']
+CODE_A = NL.join(['float3 n = normalize(N);',
+                  'float3 v = normalize(V);',
+                  'float f = pow(1.0 - saturate(abs(dot(n, v))), RimPow);',
+                  'return saturate(Opacity * Inst * (Core + f * RimGain + Pressed * 0.5));'])
+INPUTS_A = ['N', 'V', 'Opacity', 'Inst', 'Pressed', 'RimPow', 'RimGain', 'Core']
 LOG = []
 
 
@@ -59,13 +67,31 @@ def run():
         return {'err': 'run :: ' + str(e)[:300], 'log': LOG}
 
 
+def custom(cust, desc, code, inputs, otype, x, y, out):
+    if desc not in cust:
+        ok, r = T(MT + 'add_expression', {'material_or_function': MAT, 'expression_class': {'refPath': '/Script/Engine.MaterialExpressionCustom'}, 'x': x, 'y': y})
+        if ok:
+            cust[desc] = r['refPath']
+    ref = cust[desc] if desc in cust else None
+    if not ref:
+        out['err_' + desc] = 'no pude crear el Custom'
+        return None
+    S(ref, {'Description': desc, 'OutputType': otype, 'Code': code})
+    S(ref, {'AdditionalOutputs': []})
+    S(ref, {'Inputs': []})
+    S(ref, {'Inputs': [{'inputName': n} for n in inputs]})
+    return ref
+
+
 def run2():
     out = {}
     ok, ex = T(AS + 'exists', {'path': FOLDER + '/' + NAME})
     if not ex:
         ok, r = T(MT + 'create_material', {'folder_path': FOLDER, 'asset_name': NAME})
         out['creado'] = ok
-    S(MATR, FLAGS)
+    for k, val in FLAGS.items():
+        if not S(MATR, {k: val}):
+            out['flag_no_' + k] = val
     out['flags'] = G(MATR, list(FLAGS.keys()))
     ok, exprs = T(MT + 'get_expressions', {'material_or_function': MAT})
     byParam, byDesc, cust = {}, {}, {}
@@ -109,25 +135,31 @@ def run2():
         return r['refPath']
     hn = helper('GH_N', 'MaterialExpressionVertexNormalWS', -900, -800)
     hv = helper('GH_V', 'MaterialExpressionCameraVectorWS', -900, -700)
-    if 'GhostPS' not in cust:
-        ok, r = T(MT + 'add_expression', {'material_or_function': MAT, 'expression_class': {'refPath': '/Script/Engine.MaterialExpressionCustom'}, 'x': -400, 'y': -400})
-        if ok:
-            cust['GhostPS'] = r['refPath']
-    ps = cust['GhostPS'] if 'GhostPS' in cust else None
+    hi = helper('GH_Inst', 'MaterialExpressionPerInstanceCustomData', -900, -900)
+    if hi:
+        S(hi, {'DataIndex': 0, 'ConstDefaultValue': 1.0})
+        out['inst'] = G(hi, ['DataIndex', 'ConstDefaultValue'])
+    # emisivo (reusa el Custom 'GhostPS' de v1, ya conectado al emisivo)
+    ps = custom(cust, 'GhostPS', CODE_E, INPUTS_E, 'CMOT_Float3', -400, -400, out)
     if not ps:
-        return {'err': 'no pude crear el Custom', 'log': LOG}
-    S(ps, {'Description': 'GhostPS', 'OutputType': 'CMOT_Float3', 'Code': CODE})
-    S(ps, {'AdditionalOutputs': []})
-    S(ps, {'Inputs': []})
-    S(ps, {'Inputs': [{'inputName': n} for n in INPUTS]})
+        return {'err': 'no pude crear el Custom del emisivo', 'out': out, 'log': LOG}
     con = 0
-    con += C(hn, '', ps, 'N')
-    con += C(hv, '', ps, 'V')
-    for name, kind, dflt in PARAMS:
+    for name in INPUTS_E:
         con += C(byParam[name], '', ps, name)
-    out['entradas_conectadas'] = '%d de %d' % (con, len(INPUTS))
-    ok, r = T(MT + 'connect_to_output', {'expression': {'refPath': ps}, 'output_name': '', 'material_property': 'MP_EmissiveColor'})
-    out['emisivo'] = ok
+    out['emisivo_entradas'] = '%d de %d' % (con, len(INPUTS_E))
+    out['emisivo'] = T(MT + 'connect_to_output', {'expression': {'refPath': ps}, 'output_name': '', 'material_property': 'MP_EmissiveColor'})[0]
+    # opacidad
+    op = custom(cust, 'GhostOP', CODE_A, INPUTS_A, 'CMOT_Float1', -400, -100, out)
+    if not op:
+        return {'err': 'no pude crear el Custom de opacidad', 'out': out, 'log': LOG}
+    ca = 0
+    ca += C(hn, '', op, 'N')
+    ca += C(hv, '', op, 'V')
+    ca += C(hi, '', op, 'Inst') if hi else 0
+    for name in ('Opacity', 'Pressed', 'RimPow', 'RimGain', 'Core'):
+        ca += C(byParam[name], '', op, name)
+    out['opacidad_entradas'] = '%d de %d' % (ca, len(INPUTS_A))
+    out['opacidad'] = T(MT + 'connect_to_output', {'expression': {'refPath': op}, 'output_name': '', 'material_property': 'MP_Opacity'})[0]
     out['params'] = sorted(byParam.keys())
     out['log'] = LOG[:20]
     return out

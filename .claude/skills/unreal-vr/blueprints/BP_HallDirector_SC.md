@@ -154,3 +154,17 @@ Esfera del motor ×12 (r 6 m) pegada a la cámara en el Tick; `M_HallFog_SC` = d
 - **Construction script** (antes vacío): `Title0..4` con `Reveal` 1 → los nombres de etapa sobre las baldosas se ven en el editor; `HallBoot` los apaga al dar Play. Lo mismo en `BP_HallTitle_SC` (SOUL CHARGER / CENTER): `Reveal` 1 en el editor, su BeginPlay lo vuelve a 0.
 - **El ensayo del Hall en Test_Hall es `BP_HallRunner_SC`** (título, música, HUD, velo, bucle y `DebugStart` 2-9 por pasos). Dejar `bTestIntro` en false en la instancia: si queda en true, el ensayo no llama `HallIntro` para no arrancarlo dos veces.
 - El salto `TestFromStep` no deja hecho lo de los pasos saltados (Alma, sensor, almas, HUD) ni mueve al pawn adentro si existe `TP_hall_pawn`: lo completa `BP_HallRunner_SC.HRPrep` desde afuera, con llamadas públicas (`HallAlmaAppear`, `HallSpawnSensor`, `HallGrab`, `SetSouls`, `SetChosenSoul`, `SetHudBorn`, `HallTeleport`).
+
+## T6 (2026-10-01, Narrativa) — timbre y sensor = objetos REALES colocados
+- `HallSpawnBell` / `HallSpawnSensor` reescritos (fuente `Saved/ClaudeScripts/Obra/step2.json`; respaldo de la versión con marcas en `spawn/step2_backup.json` y `hallmarks.json`):
+  - si hay un actor con tag `hall_bell` / `hall_sensor` (en Test_Hall: `Timbre` = `BP_BellArt_SC`, `Sensor` = `BP_BioSensorArt_SC`, carpeta `Ajustes`, **Actor Hidden In Game**), lo usan tal cual: `SetBell`/`SetSensor`, `HallReach 0 0 0` (para `EyeLoc`), altura `+ (EyeLoc.z − (pawn.z + 120))`, lo muestran. Log `HALL: timbre/sensor colocado en el nivel`.
+  - si no hay, spawnean como antes con `HallReach(ReachFwd, ReachDown)`.
+  - después, igual que siempre: `BellRest`, `Appear.Prepare` + `Appear`, `BellLive`/`SensorLive`, `Gate`.
+- Se destruyen como antes: el timbre con `SetLifeSpan 2` en el paso 7, el sensor con `SetLifeSpan 0,1` en el paso 30. Por eso no reaparecen al volver al Hall.
+- ✅ PIE (ensayo de Test_Hall): `DebugStart` 3 → timbre visible en (−932, 0, 48,97) · 5 → sensor visible en (−252, 0, 48,97), girando como siempre · 6 → sensor en la mano. 0 errores.
+- Las marcas `BP_AuthorMark_SC` ya no existen en Test_Hall.
+
+## 2026-10-01 (Narrativa) — paso 6: timbre y puertas suenan en su lugar
+- `HallEnterIntro` paso 7: `SndBell` → `PlaySoundAtLocation` en el timbre (`GetActorLocation(Bell)`), por cirugía.
+- `HallDoor(East, Open)` reescrita: `SndDoor` (0,8) en la puerta. La Oeste está en el punto medio de `StopDoor` y `StopInside`; la Este a 55 % de `StopReturn` hacia `StopCard`. `SndSteps` (tus pasos) sigue en 2D.
+- `Bell` y `DoorOpen` llevan `ATT_Objeto_SC`. ✅ PIE (Obra 63): puerta del SHARE, 0 errores.

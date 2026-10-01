@@ -1,5 +1,7 @@
 # Plan: sistema de grabación y reproducción de los FANTASMAS (instrucciones demostrativas)
 
+> ⚠ **Superado por [`PLAN-FANTASMAS-V2-2026-10-01.md`](PLAN-FANTASMAS-V2-2026-10-01.md)** (ancla por objeto, lo que sostiene cada mano, un fantasma colocado por nivel, previsualización en el editor). Este queda como registro de v1.
+
 > 2026-09-30, noche. Encargo de Beltrán vía Narrativa: *"quiere terminar esta noche una primera versión completa"*. Lo arma la sesión **Drawing**.
 >
 > Base de diseño: `docs/GUION-V5-2026-09-29.md` §7.0b.

@@ -161,3 +161,7 @@ Actor con label `HeartManager` (`BeatDiv` 1) + `BioHub`. Su consumidor es [[BP_H
 - `StageCheck` reescrito (gotcha 99): `BeatBackup` → **`OrbitAsk`** (a `BeatCount ≥ OrbitAtBeat`, una vez: `ScapeRef = GetActorOfClass(scape)` → `OrbitGo`, log `HEART: empieza la vuelta`) → **`OrbitDoneCalc`** (`bOrbitDone` = sin pedir: `OrbitAtBeat ≤ 0`; pedida: `ScapeRef.OrbitT ≥ 1`, o true si no hay scape) → `bStageDone` solo si `BeatCount ≥ StageBeats` **y** `bOrbitDone`.
 - `StageBegin` → al final **`OrbitRestart`** (flags en false + `OrbitReset` del scape).
 - Tiempos: a 50 lpm la vuelta arranca a ~23 s y la etapa cierra a ~83 s (antes ~46 s); a 30 lpm (respaldo) ~38 s → ~98 s. ⬜ PIE y visor.
+
+## 🌀 2026-10-01 (2) — la etapa espera también el regreso
+- `OrbitDoneCalc` ahora compara `OrbitT ≥ 2.0` (antes `1.0`): la etapa cierra cuando terminó la vuelta **y** el regreso del mar (ver [BP_HeartScape_SC](BP_HeartScape_SC.md), "vuelta que se aleja y regresa").
+- Tiempos: a 50 lpm la vuelta arranca en el latido 19 (~23 s); 60 s de vuelta + 20 s de regreso → la etapa cierra a **~103 s** (antes ~83 s). A 30 lpm (respaldo sin señal) la vuelta arranca a ~38 s → cierra a **~118 s**. ⬜ PIE y visor.

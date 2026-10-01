@@ -224,3 +224,60 @@ Pedido de Beltrán (audio de las 04:30, vía Narrativa):
 - **`OrbitStep(DT)`** (Tick, después de `EntryStep`, DT del `Min` 1/30): `OrbitT += dt/OrbitTime` → **smootherstep** `e = u³(10 − 15u + 6u²)` (velocidad Y aceleración 0 en los extremos) → `SetActorLocationAndRotation(base − (0,0,OrbitRise·e), yaw base + 360·OrbitSpin·e)` → `FindViewer()` (la regla del espectador de las lunas usa el viewer en LOCAL: al rotar el actor hay que recalcularlo) → a `u = 1` apaga y loguea `HEART: termino la vuelta`.
 - **`OrbitReset()`**: vuelve a la base (teleport) y `OrbitT` 0.
 - Velocidades con 60 s: giro medio 6°/s, pico 11,2°/s; subida pico 12,5 cm/s. ⬜ PIE y visor.
+
+## 🌀 2026-10-01 (2) — vuelta que se aleja y regresa + lunas que llenan el cielo + polvo
+Pedido de Beltrán tras probar la vuelta (*"va bien, me gusta"*): que la vuelta se aleje del centro; que tras los 360° vuelva suave a su lugar; muchas más lunas, una por pulso, que se llene, a todas las distancias (cerca, lejos, horizonte) para sentir espacialidad; lunas low poly con menos warp; partículas y polvo que ayuden a entender el giro. Condición: **72 fps en Quest**.
+
+### Vuelta en DOS fases con una sola variable
+- `OrbitT` va de 0 a 2. Fase 1 (0..1) dura `OrbitTime` (60 s); fase 2 = regreso (1..2) dura `ReturnTime` (20 s).
+- `e1 = smootherstep(min(T,1))` · `e2 = smootherstep(max(T−1,0))` · `a = e1·(1−e2)`.
+- Ubicación = `base − (dir.x·OrbitAway·a, dir.y·OrbitAway·a, OrbitRise·a)`; yaw = `base + 360·OrbitSpin·e1` (el giro se queda en 360° durante el regreso).
+- A `T = 2` apaga y loguea `HEART: el mar volvio a su lugar`.
+- `OrbitAwayDir` (Z - Interno): en `OrbitGo` = `Normalize(TransformDirection(transform del actor, (ViewerX, ViewerY, 0)))` = dirección centro→espectador. Mover el actor en −dir aleja el centro del espectador, que lo sigue mirando de frente. `OrbitGo` llama `FindViewer` antes y loguea `HEART: el mar empieza la vuelta`.
+- Perillas en `5 - Vuelta`: `OrbitTime` 60 s · `OrbitRise` 400 cm · `OrbitSpin` 1 · **`OrbitAway` 600 cm** (nueva) · **`ReturnTime` 20 s** (nueva).
+
+### Lunas que llenan el cielo
+| Qué | Antes | Ahora |
+|---|---|---|
+| Pool `OrbMax` en `MI_HeartScape_SC` (el actor lo lee de `LookMI`) | 24 | **120** |
+| Malla del template `Echoes` del CDO | `SM_HeartOrb_SC` (642 vértices) | **`SM_HeartOrbLo_SC`** (icoesfera subdiv 3, 162 vértices / 205 con costuras; `scripts/gen_heart_orb_lo.py`) |
+| Vértices totales | 24 × 642 ≈ 15,4k | 120 × 162 ≈ **19,4k** |
+| Límites de la malla | — | ampliados a ±5500 XY, +1800 / −300 Z |
+
+- `SM_HeartOrb_SC` queda intacta para volver atrás.
+- `SpawnOrb`: el sorteo del radio pasó de `lerp(SpawnMin, SpawnMax, sqrt(rand))` (uniforme en área, casi todas lejos) a `lerp(SpawnMin, SpawnMax, rand^SpawnBias)` con **`SpawnBias` 2** (perilla nueva en `4 - Esferas que emergen`): más densas cerca, cada vez más raras hacia el horizonte. Cirugía: se borró el nodo Sqrt y se puso un Power.
+- Instancia de `Test_Heart`, antes → después:
+
+| Perilla | Antes | Después |
+|---|---|---|
+| `OrbLife` | 20 | 90 |
+| `SpawnMin` | 300 | 250 |
+| `SpawnMax` | 1500 | 5000 |
+| `OrbClearance` | 500 | 350 |
+| `OrbAmoeba` | 0,08 | 0,04 (valor de Beltrán: menos warp para que no se note el low poly) |
+| `AmebaMix` | 0,489 | 0,25 |
+
+- Con vida 90 s y pool 120, la condición de reciclado `(OrbLife + SpawnMax/Speed + PushT + 1)/OrbCount` ≈ 0,8-1 s deja nacer una luna por latido hasta ~70 lpm.
+
+### Polvo
+- **`BootDust()`** (en `BeginPlay`, después de `BootOrbs`) spawnea [`BP_HeartDust_SC`](BP_HeartDust_SC.md) con `Owner = self` y lo pega al `DefaultSceneRoot` (SnapToTarget ×3) → `DustRef`.
+- `EventEndPlay` → **`DustEnd()`** lo destruye (quien spawnea destruye).
+- La membrana mide ±600 m, alcanza para lunas a 50 m.
+
+### Pendiente
+- ⬜ Look y **72 fps en visor/APK** (OVR Metrics) con 120 lunas + polvo. ⬜ PIE del regreso completo.
+- 🔴 **El pool estaba TOPADO a 32** en `SeedOrbs` (`Clamp(Integer)(round(OrbMax), 1, 32)`): con `OrbMax` 120 en la MI igual salían 32 y nacía una luna cada dos latidos. Tope subido a **160** (set_pin_value). ✅ PIE: `OrbCount` 120 y 14 lunas en 14 latidos; vuelta + regreso de prueba (12 + 6 s) = 18,0 s entre `el mar empieza la vuelta` y `el mar volvio a su lugar`, vuelve exacto a la base, 0 Accessed None.
+
+## 🌙 2026-10-01 (3) — ajustes de Beltrán tras probar: vuelta más lenta, regreso más ágil, lunas grandes y blancas en el fog, polvo rojizo
+- **Curvas de la vuelta: smootherstep → smoothstep** (`3u² − 2u³`), en fase 1 y en el regreso: menos "cola" lenta al final de cada tramo (Beltrán: "la vuelta muy rápida y la bajada lentísima"). CDO/instancia: `OrbitTime` 60 → **90** s (giro medio 4°/s, pico 6°/s) · `ReturnTime` 20 → **14** s.
+- **Color propio de las lunas**: `OrbColor` (1, 0,95, 0,93) · `OrbColorShadow` (0,80, 0,66, 0,66) · `OrbRimColor` (1, 0,92, 0,90), editables en `4 - Esferas que emergen`. `OrbTint()` (al final de `ApplyLook`) escribe `HeartLit`/`HeartShadow`/`HeartRimColor`/`HeartCore` SOLO en el MID de `Echoes`; la esfera central sigue con sus colores.
+- **Instancia de Test_Heart, antes → después**: `SizeMin` 8 → 60 · `SizeMax` 60 → 200 (lunas grandes) · `AmebaMix` 0,25 → 0 · `OrbAmoeba` 0,04 → 0 (redondas, "menos ovaladas") · `SpawnMin` 250 → 1700 (siempre por fuera del espectador, que llega a 1200 del centro) · `SpawnMax` 5000 → 6000 · `SpawnBias` 2 → 1 · `OrbClearance` 350 → 500 · `OrbRiseRamp` 2,5 → 6 (arrancan a subir más suave). El fog del mar (`FogStart` 900, `FogDistance` 5200) las envuelve: "lunas entremedio del fog".
+- Límites de `SM_HeartOrbLo_SC` → ±6600 XY, +2000/−300 Z.
+- Polvo (`MI_HeartDust_SC`): `DustAlpha` 0,22 → 0,45 · `DustSizeDeg` 0,10 → 0,16 · `DustColor` (1, 0,88, 0,84) → (1, 0,52, 0,46) · `SparkAlpha` 0,55 → 0,8 · `SparkSizeDeg` 0,2 → 0,3 · `SparkColor` (1, 0,72, 0,66) → (1, 0,62, 0,55) · `SizeMinDeg` 0,07 → 0,1.
+- ✅ PIE: lunas a ~37 m con radio ~1,8 m, una por latido; 0 Accessed None. ⬜ visor.
+
+## 🎛️ 2026-10-01 (4) — perillas del POLVO en el mar (pedido de Beltrán: "para poder ajustar y explorar")
+- Categoría **`7 - Polvo y particulas`** (editables, en el actor del mar): `DustAlpha` 0,45 · `DustSize` 0,16° · `DustColor` (1, 0,52, 0,46) · `SparkAlpha` 0,8 · `SparkSize` 0,3° · `SparkColor` (1, 0,62, 0,55) · `SparkTwinkle` 0,6 · `DustSizeMin` 0,1° · `DustSizeVar` 0,35 · `DustDrift` 6 cm · `DustDriftSpeed` 0,18 · `DustNearFade` 60 cm · `DustFarFade` 2600 cm · `DustGlow` 1.
+- **`DustLook(C: MeshComponent)`** escribe las 14 en el material de C. La usan: el polvo de Play (`BP_HeartDust_SC.DustDrive`, cada cuadro → se ajusta EN VIVO en el actor del mar del mundo PIE) y la vista previa del editor (**`DustPreview()`**, al final del Construction Script: `GetActorOfClass(BP_HeartDust_SC)` → `DustLook`; protegido con `IsValid`, gotcha 467).
+- **`Polvo_Preview`** (BP_HeartDust_SC con `bPreviewOnly` true) colocado en Test_Heart, colgado del `DefaultSceneRoot` del mar en (0,0,0) relativo: se ve en el viewport sin Play y se destruye al dar Play (el polvo real lo spawnea el mar). Test_Heart: 17 → 18 actores.
+- ⚠ Al colocar con `parent`, el `xform` se toma RELATIVO al padre (quedó en 1200,0,−40) → se corrigió `relativeLocation` con la forma de string `(X=..,Y=..,Z=..)` (la de dict no aplica, gotcha de toolsets).

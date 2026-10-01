@@ -76,6 +76,26 @@ def split(dsl, bp_ref):
     return {'order': order, 'code': code}
 
 
+def node_ids(dsl):
+    """Los nombres de nodo (cabeza de cada lista con '|') que hay que verificar en el editor: todo menos las variables
+    propias (Variables|<cat>|, salvo los componentes en Variables|Default|), las funciones propias y las de las clases
+    de los fantasmas (el indice de find_node_types puede no tenerlas: gotcha §560; el write las resuelve igual)."""
+    src = strip_comments(io.open(os.path.join(AQUI, dsl), encoding='utf-8').read())
+    src = re.sub(r'"[^"]*"', '""', src)
+    toks = re.findall(r'[^\s()"]+(?:\(\w+\))?|\(|\)', src)
+    out = []
+    for i, t in enumerate(toks):
+        if i == 0 or toks[i - 1] != '(' or '|' not in t:
+            continue
+        if t.startswith('CallFunction|') or t.startswith('Class|BPGhost'):
+            continue
+        if t.startswith('Variables|') and not t.startswith('Variables|Default|'):
+            continue
+        if t not in out:
+            out.append(t)
+    return sorted(out)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     shutil.copy(os.path.join(AQUI, 'ghost_spec.json'), os.path.join(OUT, 'ghost_spec.json'))
@@ -85,6 +105,9 @@ def main():
         name = dsl.replace('.dsl', '_graphs.json')
         io.open(os.path.join(OUT, name), 'w', encoding='utf-8').write(json.dumps(d, ensure_ascii=False))
         print(name, len(d['order']), 'grafos')
+    ids = {'ghost_player': node_ids('ghost_player.dsl'), 'ghost_recorder': node_ids('ghost_recorder.dsl')}
+    io.open(os.path.join(OUT, 'node_ids.json'), 'w', encoding='utf-8').write(json.dumps(ids, ensure_ascii=False, indent=1))
+    print('node_ids.json:', {k: len(v) for k, v in ids.items()})
     print('->', OUT)
 
 

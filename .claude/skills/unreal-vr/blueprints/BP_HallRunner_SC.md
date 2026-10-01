@@ -55,3 +55,6 @@ Desde el inicio (título a 2,5 s, ambiente 1 → 2 a los 13 s, pasos 0-4) · `De
 2. `Math|Vector|vector+vector` (etiqueta del read) no se puede escribir: usar `(+ a b)`.
 3. El salto del director deja al pawn en `TP_hall_pawn` (la puerta) aunque el paso sea adentro: `HRPrep` lo pasa a `StopInside` desde el paso 10.
 4. Si se crea el sensor sin tomarlo, el Hall espera su cortafuegos `FW_Tool` (20 s): por eso `HallGrab`.
+
+## 2026-10-01 (Narrativa) — `HRTitle` usa el título real
+- Si hay un actor con tag `hall_intro_title` (`TituloInicio`, `BP_IntroTitle_SC`): a RT ≥ 2,5 corrige su altura una vez, lo muestra y anima sus planos (`LT`, `Reveal`, `Out`); a 13 s lo oculta. Si no hay, cae a los planos de `BP_Credits_SC` (código viejo). Fuente `step2.json`. ✅ PIE.

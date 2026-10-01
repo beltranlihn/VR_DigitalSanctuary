@@ -60,3 +60,6 @@ Regla de Beltrán: *"cada vez que se interactúe con botones, que sea con animac
 - Variables (instance-editable, Default): `TrigDegrees` 14 · `TrigSign` −1 · `TrigFollow` 25 · `TrigAxisR` (0,976, −0,2177, −0,0083) · `TrigAxisL` (0,976, 0,2177, 0,0083). Estado: `TrigV`, `bTrigInput`. Receta de `BP_QuestCtrl_SC`.
 - ✅ Compila; PIE en la Obra: montado, `bTrigInput` true, `TrigV` 0 en Mode 0, cero warnings. ⬜ Visor: el giro con el gatillo real (en PIE no hay eje).
 - ⚠ Los getters de las variables viejas llevan su categoría: `Variables|A-Herramienta|GetRight`, `Variables|Z-Estado|GetMode` (el índice de `find_node_types` desde otro grafo puede mostrar `Default`: es viejo).
+
+## 2026-10-01 (Narrativa) — sonido en su lugar
+- `ToolApply` modo 1: `MandoSound` (`Tomado`, con `ATT_Objeto_SC`) suena en el mando (posición del actor), no en 2D. La aparición y desaparición (`ProtoSelect`, `VR_shep_scale_down_02`) ya se tocaban en la posición; ahora se espacializan porque tienen la atenuación.

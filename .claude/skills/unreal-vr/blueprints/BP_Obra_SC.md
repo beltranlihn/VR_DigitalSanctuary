@@ -168,3 +168,35 @@ Dos variables en la instancia, categoría **Debug**: **`DebugStart`** (−1 = no
 - **`IntroTitle` (2026-10-01)**: si existe la marca `mark_hall_title` (`BP_AuthorMark_SC` en Test_Hall = celda 5), el título SOUL CHARGER se pone en su pose y escala (altura corregida con la cámara), y a los 13 s la escala del actor de créditos vuelve a 1. Sin marca, como antes (cámara −45 cm).
 - 21. Un `GetAlmaRef` sobre el aura resolvió a `BPStageDirector` (otra clase con una variable del mismo nombre): usar `GetOwner`.
 - 22. En el DSL el `for` sobre un array es `(for _x arr ...)`; `(for _i _x arr)` falla con "Undefined variable _x" y deja el grafo vacío (se había borrado antes de escribir).
+
+## 2026-10-01 (Narrativa) — `IntroTitle` usa el título real
+- Igual que `BP_HallRunner_SC.HRTitle` (fase 9, PT ≥ 2,5): busca el tag `hall_intro_title` (`TituloInicio` en Test_Hall), corrige la altura una vez, lo muestra y anima; a 13 s lo oculta. Sin el actor, cae a los planos de `BP_Credits_SC`. Ya **no** copia ni restaura transforms de los planos de los créditos (antes compartían planos). Fuente `step2.json`.
+
+## 2026-10-01 (Narrativa) — el FINAL con objetos colocados (paso 5)
+Fuente `Saved/ClaudeScripts/Obra/step5.json` (generador `scratchpad/obra/gen_step5.py`); respaldo de lo anterior en `spawn/step5_backup.json` y `step5_restore.json`. Escrito con Test_Results abierto (sin instancias de la Obra ni de los créditos).
+- **Colocados en el persistente, carpeta `Final`** (posiciones = las que antes calculaba el código desde la cabeza, con `StopCard` (396,45; 0) yaw 180 y `StopExit` (−1500; 0)):
+  - `Final_Cuadro` (`BP_ResultsArt_SC`) (206,45; 0; 201,97) yaw 0, **Actor Hidden In Game**;
+  - `Final_BotonShare` (206,45; 15; 137,97) y `Final_BotonDontShare` (206,45; −15; 137,97), pitch 15;
+  - `AnilloCarga` (`BP_ChargeFx_SC`) (206,45; 112; 201,97) escala 1,9;
+  - `Final_AlmaPez` (`BP_SoulFish_SC`) (−1980; 0; 346,97) escala 2,115;
+  - `Final_Creditos` (`BP_Credits_SC`, carpeta Credits) (−1500; 0; 196,97) yaw 180;
+  - TargetPoints `final_sketch` (206,45; −100; 201,97) · `final_alma` (166,45; 222; 226,97) · `final_fish_door` (−635,84; 0; 226,97) · `final_fish_away` (−1297,68; 0; 286,97).
+  - `BP_JourneyContent_SC` sigue en z −5000: el código lo pega al cuadro.
+- **Altura:** todo usa `z + (cam.z − (pawn.z + 120))`, aplicado una sola vez por puesta en escena.
+- **Variables nuevas:** `RingHomeLoc`, `RingHomeScl`, `FishHomeLoc`, `FishHomeScl` (Vector), `HomeOK`.
+- **`FinalHome`** (función nueva, primera llamada de `FinalFlow`, una vez): lee la pose colocada del anillo y del pez antes de que nadie los mueva, y apaga la colisión del cuadro y de los botones (`SetActorEnableCollision false`), porque están en el Hall y si no taparían el láser de otras etapas.
+- **`ResultsShow`**: el cuadro usa su pose colocada (+ altura), se muestra, se le enciende la colisión y se prepara (`ResultsHideNow`) antes de `ResultsAppear`. El contenido se pega al cuadro. El gusano va en la ventana de la melodía, relativo al cuadro (+4 cm hacia el usuario, −38 cm; yaw del cuadro − 90). El anillo va a `RingHomeLoc` con escala `RingHomeScl`. El dibujo va a `final_sketch` (Size = escala X × 55). Ya no usa `RingSide` ni `ResRingScale` (quedan sin uso).
+- **`SharePlace`**: los botones quedan donde están (+ altura) y se enciende su colisión. `ShareDrop` queda sin uso.
+- **`ShareFree`**: `DoorPt`/`AwayPt` = `final_fish_door`/`final_fish_away` (+ altura).
+- **`AlmaResults`**: `ObraAlmaB` toma la posición (+ altura) y la escala de `final_alma`.
+- **`CreditsShow`**: los créditos quedan donde están (+ altura); `SoulSpot` = `FishHomeLoc` (+ altura). **`FlowConst`**: `BaseScale` = `FishHomeScl.x`.
+- **`ObraDbgFF`**: al forzar `bReturnDone` (puntos 62-64) teletransporta el pawn a `StopCard`; al forzar `bExitDone` (64), a `StopExit` (`HallTeleport` corta la caminata).
+- **`BP_Credits_SC`**: construcción con `Reveal` 1 en `TitleP`, `SubP` y `Card0` (se ven en el editor); `Show` pone `Reveal` 0 en los 8 planos antes de mostrarse (sin chispazo de un cuadro).
+- ✅ PIE 2026-10-01 (escritorio, −120 en z): 62 → cuadro, anillo y pez en su puesto, Alma en `final_alma`, pawn en `StopCard`; 63 → botones en su puesto, el pez nada por door → away, constelación con el pez en `SoulSpot` y los créditos en `Final_Creditos`; 64 → pawn en `StopExit`; arranque normal limpio. 0 errores.
+- El pez y el anillo nunca se ven juntos: al llegar, el pez se apaga (`VisTarget` 0) y el anillo se enciende en el mismo cuadro (cruce medido de ~0,1 s); en SHARE `ShareAnswer` apaga el anillo antes de que nazca el pez.
+
+## 2026-10-01 (Narrativa) — paso 6: ambientes como variables y sonidos de objetos en 3D
+- **Ambientes** (categoría `Ambientes`, editables en la instancia): `AmbClips` (SoundBase[9], el orden 1-9 de siempre), `AmbVolumes` (float[9], 0,8), `AmbFadeIn` / `AmbFadeOut` (3 s). `AmbTo(K)` crea el clip `AmbClips[K−1]` en 2D con volumen `AmbVolumes[K−1]`. `AmbStart` hace un `FadeIn` de `AmbFadeIn` a nivel 1,0 (el volumen ya viene en el clip) y `AmbFade` un `FadeOut` de `AmbFadeOut`; esos nodos `FadeIn`/`FadeOut` son los originales (AudioComponent), operados por cirugía. ✅ PIE: ambiente 1 = Clip_1 a 0,8, 2D.
+- **FX del final en su lugar** (cirugía `PlaySound2D` → `PlaySoundAtLocation`): `FX_SHAREAPPEAR` (FlowShare) y `FX_SHARESELECT` (ShareChoose) en el cuadro (`GetActorOfClass` ResultsArt); `FX_SOULVANISH` (ShareAnswer) y `FX_RINGVANISH` (ShareResOut) en `RingSpot`. Las VO siguen en 2D.
+- Variables `RingHomeLoc/Scl`, `FishHomeLoc/Scl` y `HomeOK` en la categoría `Interno`.
+- Atenuación compartida `ATT_Objeto_SC` (ver MAPA-DE-AJUSTES, Sonido). Script genérico de la cirugía: `scratchpad/obra/sfx_swap.py` (conserva exec, sonido, volumen y tono; ubicación = self / actor de una variable / vector / actor de una clase).

@@ -7,13 +7,14 @@ import json
 #                          PIE falla). Si el editor se cae, las tomas se reponen desde esos JSON.
 # SOLO_RESPALDO = False -> con el PIE DETENIDO: marca, guarda con ruta explicita y escribe el JSON.
 SOLO_RESPALDO = False
-NOTE = 'grabado por Beltran, sesion 2026-09-30'
+NOTE = 'grabado por Beltran, sesion 2026-10-01 (v2, stride 34)'
 SPEC = 'C:/Users/beltr/Desktop/Alma Digital Studio/Projects/VR Unreal/VR_Test/Saved/ClaudeScripts/ghost/ghost_spec.json'
 DIR = 'C:/Users/beltr/Desktop/Alma Digital Studio/Projects/VR Unreal/VR_Test/Saved/ClaudeScripts/ghost/'
 OT = 'editor_toolset.toolsets.object.ObjectTools.'
 AS = 'editor_toolset.toolsets.asset.AssetTools.'
 LOG = []
-PROPS = ['Id', 'Text', 'Hz', 'Frames', 'Stride', 'Data', 'bUseRight', 'bUseLeft', 'bBeamRight', 'bBeamLeft', 'Note']
+PROPS = ['Id', 'Text', 'Hz', 'Frames', 'Stride', 'Data', 'HoldR', 'HoldL', 'bBeamRight', 'bBeamLeft', 'bHeadAnchor', 'Extra',
+         'DemoTime', 'Note']
 
 
 def T(name, payload):
@@ -52,7 +53,7 @@ def run():
             continue
         n = v['Frames'] if 'Frames' in v else 0
         data = v['Data'] if 'Data' in v else []
-        st = v['Stride'] if 'Stride' in v else 28
+        st = v['Stride'] if 'Stride' in v else 34
         rec = {'cuadros': n, 'floats': len(data), 'seg': round(n / 30.0, 2)}
         if n > 1 and len(data) >= n * st:
             rec['respaldo'] = T(AS + 'write_file', {'file_path': DIR + a + '_take.json', 'content': json.dumps(v)})[0]

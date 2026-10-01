@@ -292,3 +292,14 @@ La espera de 3 s de la paleta tapaba un problema real: **una animación que arra
   · **Ensayo del Hall** `BP_HallRunner_SC` en Test_Hall: velo, título, música, `HallIntro`, HUD y bucle. `DebugStart` 2-9 salta a un paso del Hall con lo anterior hecho (Alma, sensor tomado, alma por defecto, HUD).
   · **Marcas de autor** `BP_AuthorMark_SC` (timbre, sensor, 5 almas, título del inicio): se ven en el editor y el código usa su pose y escala. CENTER y los nombres de etapa ahora se ven en el editor.
   · PIE: 0 errores. Pendiente: las posiciones del final (cuadro de resultados, anillo, dibujo, SHARE, créditos, constelación) y los puntos del Hall en el `DebugStart` de la Obra.
+- ~02:15-03:00 (01-10) · **Etapa de autoría: pasos 2, 3 y 5.**
+  · Hall: título del inicio, timbre y sensor son los **objetos reales** en Test_Hall (`TituloInicio`, `Timbre`, `Sensor`, carpeta `Ajustes`). Las marcas se borraron. PIE: ensayo del Hall y Obra.
+  · **La Obra con sus 6 niveles de test como subniveles** (Blueprint, sin carga inicial): en el editor se ve y se ajusta todo junto; en el juego sigue un solo Hall, 0 errores.
+  · **El final colocado** (carpeta `Final` de la Obra): cuadro, botones, anillo, alma-pez, créditos y los puntos `final_sketch`, `final_alma`, `final_fish_door`, `final_fish_away`. PIE 62/63/64: todo en su puesto, 0 errores. Mapa en `docs/MAPA-DE-AJUSTES.md`.
+- ~03:20-03:50 (01-10) · **Paso 6: sonido.**
+  · Asset nuevo `Core/Audio/ATT_Objeto_SC` (atenuación por defecto, decisión de Beltrán: un asset compartido), asignado a 16 sonidos de objetos. Lo que ya se tocaba "en la posición" (aparición de luz, botones SHARE, protoamebas, botones de instrucciones) ahora sí se espacializa.
+  · 2D → en el objeto: anillo de carga (13 llamadas: 8 de la secuencia, 5 de la ráfaga), pez, orbe del sensor, clic del cuadro, mando, timbre, puertas y los 4 FX del final. VO, pasos, ambientes y aviso inicial: 2D.
+  · Ambientes como variables de la Obra (`AmbClips`, `AmbVolumes`, `AmbFadeIn/Out`, categoría Ambientes).
+  · PIE Obra 63 (SHARE → puerta → constelación) y 1 (ambiente): 0 errores. Hallazgo previo, no tocado: `ProtoHover` (WarnSound del anillo) es un loop y se toca sin componente, así que queda sonando sin fin (aviso "orphaned sound" desde el 09-30).
+  · Editor cedido a la sesión de fantasmas (~90-120 min).
+- ~04:00 (01-10) · `ProtoHover` (WarnSound del anillo de carga y sonido de las esferas al nacer en Attracting) → **sin loop** (pedido de Beltrán). Antes quedaba sonando sin fin en cada carga. Ojo: dura 10,5 s y ahora suena entero una vez.

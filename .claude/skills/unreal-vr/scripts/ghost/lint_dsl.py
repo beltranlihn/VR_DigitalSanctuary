@@ -12,6 +12,9 @@ Chequea (references/dsl.md + gotchas):
   5. switch int: solo :0 :1 :2 :Default (nace con 3 salidas).
   6. Llamadas a funciones propias que no tienen su '(fn ...)' en el archivo.
   7. Con spec: variables Variables|Cat|Get/SetX que no estan declaradas (bool bX -> GetX) y parametros de fn.
+  8. (v2) Literal pasado a una funcion PROPIA (dsl.md §4: se pierde en silencio) y cantidad de argumentos.
+  9. (v2) Componentes de la spec = Variables|Default|Get<Comp>; Class|BPGhostPlayerSC|X y Class|BPGhostTakeSC|X contra
+     la spec de esa clase.
 """
 import io
 import json
@@ -95,6 +98,8 @@ class Lint:
         self.errs = []
         self.calls = set()
         self.vars = set()
+        self.callargs = []      # (fn, n_args_posicionales_sin_self, where)
+        self.classrefs = set()
 
     def err(self, where, msg):
         self.errs.append('%s :: %s :: %s' % (self.name, where, msg))
@@ -172,12 +177,18 @@ class Lint:
                 self.err(where, '(neg x): usar (* x -1.0)')
             if h.startswith('Variables|'):
                 self.vars.add(h)
+            if h.startswith('Class|BPGhost'):
+                self.classrefs.add((h, where))
             if h.startswith('CallFunction|'):
                 fn = h.split('|', 1)[1]
                 self.calls.add(fn)
                 pos = [a for a in e[1:] if not (isinstance(a, str) and a.startswith(':'))]
                 if not pos or pos[0] not in ('self', '_self'):
                     self.err(where, 'CallFunction|%s sin self primero (los literales se pierden)' % fn)
+                for a in pos[1:]:
+                    if is_literal(a):
+                        self.err(where, 'CallFunction|%s con el LITERAL %s: se pierde (dsl.md §4); pasar un valor cableado' % (fn, a))
+                self.callargs.append((fn, len(pos) - 1, where))
         for a in e[1:]:
             if isinstance(a, list):
                 if a and isinstance(a[0], str) and a[0].startswith(':'):
@@ -209,9 +220,29 @@ def run(path, spec=None, bpname=None):
     for c in sorted(L.calls):
         if c not in fns:
             L.err('llamadas', 'CallFunction|%s sin (fn %s ...) en el archivo' % (c, c))
+    for fn, n, where in L.callargs:
+        if fn in fns and n != len(fns[fn]):
+            L.err(where, 'CallFunction|%s con %d argumentos y la fn tiene %d %s' % (fn, n, len(fns[fn]), fns[fn]))
     if spec and bpname:
-        sp = json.load(io.open(spec, encoding='utf-8'))[bpname]
+        full = json.load(io.open(spec, encoding='utf-8'))
+        sp = full[bpname]
         declared = set()
+        for c in sp.get('components', []):
+            declared.add('Variables|Default|Get%s' % c['name'])
+        def members(bp):
+            out = set(full[bp]['functions'].keys())
+            for v in full[bp]['vars']:
+                n = v['name']
+                base = n[1:] if (v['type'] == 'bool' and n.startswith('b') and n[1:2].isupper()) else n
+                out.add('Get' + base)
+                out.add('Set' + base)
+            return out
+        cls = {'BPGhostPlayerSC': 'BP_GhostPlayer_SC', 'BPGhostTakeSC': 'BP_GhostTake_SC'}
+        for h, where in sorted(L.classrefs):
+            parts = h.split('|')
+            bp = cls.get(parts[1])
+            if bp and parts[2] not in members(bp):
+                L.err(where, '%s no existe en la spec de %s' % (h, bp))
         for v in sp['vars']:
             n = v['name']
             cat = v['cat'].replace(' ', '')
@@ -222,6 +253,8 @@ def run(path, spec=None, bpname=None):
             if u not in declared:
                 L.err('variables', 'no declarada en la spec: ' + u)
         for fn, params in fns.items():
+            if fn == 'ConstructionScript':
+                continue
             want = sp['functions'].get(fn)
             if want is None:
                 L.err('funciones', '(fn %s) no esta en la spec' % fn)

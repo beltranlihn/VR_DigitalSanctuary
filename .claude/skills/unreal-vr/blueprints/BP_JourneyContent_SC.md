@@ -142,3 +142,6 @@ Todo con 0 errores (Accessed None / Runtime Error / Script Msg).
   - `Utilities|Array|FindItem`, no `Find`.
   - `bind` de un literal no vale (se inlinea).
 - **En PIE, `set_properties` solo escribe variables instance-editable** (gotcha 424). Para probar `SetTip` se hizo `TipWant` editable, se probó y se revirtió.
+
+## 2026-10-01 (Narrativa) — sonido en su lugar
+- `JcTipSound`: `ClickSound` (`VR_click1`, con `ATT_Objeto_SC`) suena en la posición del contenido (pegado al cuadro), no en 2D.
