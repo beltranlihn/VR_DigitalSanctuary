@@ -1,8 +1,8 @@
 # BP_UserTool_SC — el objeto que el usuario lleva en la mano dominante (mando → sensor)
 
-**Ruta:** `/Game/SoulCharger/Mechanics/UserTool/BP_UserTool_SC`
+**Ruta:** `/Game/SoulCharger/Shared/UserTool/BP_UserTool_SC`
 **Nació:** 2026-09-30 (noche), sesión Breath, aprobado por Narrativa (director de la noche; plan `docs/PLAN-NOCHE-2026-09-30.md`).
-**Colocado en:** `/Game/Test_Entering` como `Entering_UserTool` (carpeta `Entering`, **tag `TestOnly`**, `bShowMandoOnBegin` true: flag SOLO de test). En la Obra lo coloca Narrativa en el persistente (uno solo).
+**Colocado en:** `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath` como `Entering_UserTool` (carpeta `Entering`, **tag `TestOnly`**, `bShowMandoOnBegin` true: flag SOLO de test). En la Obra lo coloca Narrativa en el persistente (uno solo).
 **Estado:** 🟢 compila (`warnings_as_errors`), PIE verificado con el contrato de Entering · ⬜ visor (pose del sensor en la mano, tamaño, aparición).
 
 ## Qué es y por qué uno solo
@@ -19,7 +19,7 @@ Según el guion V5 el usuario toma el mando en el Hall y lo lleva hasta el fin d
 - **Duplicado de `BP_BioSensorArt_SC`** (Mesh 3D): trae `Body`/`Button`/`Waves`/`Trace` con sus tags `AppearBody`/`AppearMover`/`AppearLate`/`AppearTrace` y `Appear` (`BPC_AppearLuz_SC`, FaceAxis (0,0,−1), PivotDepth 0,608, MoverHide (0,0,1,7)).
 - 🔴 **La RAÍZ del actor es el marco del SENSOR**: la aparición luz primero calcula el párpado en el marco del dueño y escala alrededor de `FaceAxis·PivotDepth` desde el origen; si el sensor no estuviera en el origen del actor, se deformaría mal. Por eso el actor se cuelga del **grip** con `SensorXf` y todo lo demás va como hijo con `Compose(XfEnGrip, Invert(SensorXf))`.
 - Mando: `MandoBodyR/L` (`SM_QuestCtrl_Body_R/L_SC`) con `MandoTrigR/L` hijo en la bisagra (R (1,565, 2,432, −0,145), L con x negado). Las transformadas en el grip son las de `SM_RHand/SM_LHand` del dibujo (`BP_TBDirector_NC`, validadas en visor): `MandoXfR` (5,686, 0,540, −1,678) (P −13,566, Y −83,539, R 64,231) ×1,0875 · `MandoXfL` (5,877, −1,567, −2,050) (P 0, Y −95, R 65) ×1,0875.
-- Sensor en el grip = **centro del cilindro viejo del rig** (`/Game/BreathR`, validado en visor 2026-09-27) con la cara (−Z) donde el rig la espera: `FacingOK` usa −Right(GripR) / +Right(GripL) → `SensorXfR` (4,325, −1,685, −2,335) Roll +90 · `SensorXfL` (4,325, +1,685, −2,335) Roll −90. La detección del rig NO depende de esta malla (usa el grip), así que moverla no rompe el umbral.
+- Sensor en el grip = **centro del cilindro viejo del rig** (`/Game/SoulCharger/Mechanics/Breath/Meshes/BreathR`, validado en visor 2026-09-27) con la cara (−Z) donde el rig la espera: `FacingOK` usa −Right(GripR) / +Right(GripL) → `SensorXfR` (4,325, −1,685, −2,335) Roll +90 · `SensorXfL` (4,325, +1,685, −2,335) Roll −90. La detección del rig NO depende de esta malla (usa el grip), así que moverla no rompe el umbral.
 - `HandGhost` (SKM_MannyXR_right, oculto en juego) = la mano del pawn (`HandRelR` = `HandRight` del `BP_VRPawn_SC` respecto del grip) vista desde el sensor: **para ajustar la pose en el viewport**, editar `SensorXfR` y mirar el fantasma y el mando (el CS los recoloca).
 - Cálculo offline: `VR_Test/Saved/ClaudeScripts/usertool/ue_xf.py` (convención de `FRotationMatrix`, verificada) + `poses.py` → `poses.json`.
 
@@ -39,16 +39,16 @@ Las transformadas se escriben con JSON `{"location":{..},"rotation":{"pitch","ya
 - **`ToolPose`** (CS y montaje): `MandoRest`, mandos y fantasma en el marco del sensor. **CS**: `ToolPose` + visibilidad para autorar + `PushColor(LightColor)`.
 - API: `ShowMando(Right)` (si cambia la mano, re-monta) · `ToSensor(Color)` · `SetSensorColor(Color)` · `Release()`.
 
-## Verificado (2026-09-30, PIE en Test_Entering, `bContractTest`)
+## Verificado (2026-09-30, PIE en Test_Breath, `bContractTest`)
 Log: `USERTOOL: listo` → `montado en el grip` → `mando en la mano` → (StageIntro) → +1,48 s `el mando se convierte en el sensor`; fin de PIE con `Mode` 2, `AppearT` 1, `LightColor` azul, `bMounted` true; cero `Accessed None`. Captura del editor: `Saved/ClaudeScripts/usertool/cap_tool.png`.
 
 ## Pendiente / límites
 - ⬜ Visor: pose del sensor contra la mano real (ajustar `SensorXfR` mirando `HandGhost`), escala (Ø19 cm), la transformación.
 - La mano del pawn se oculta/aparece de golpe (`SetHiddenInGame`), igual que en todos los rigs; un fundido pediría tocar el pawn (Core, compartido).
 - `ShowMando` cambiando de mano con el objeto ya montado deja oculta la mano vieja (la mano se elige una vez en el Hall).
-- `Test_Recorrido` (carga Test_Entering) no tiene herramienta: ahí Entering queda sin mando visible (el rig ya no dibuja el suyo).
+- `Test_Recorrido` (carga Test_Breath) no tiene herramienta: ahí Entering queda sin mando visible (el rig ya no dibuja el suyo).
 
-- **2026-09-30 (tarde) — en la Obra:** `UserTool_Obra` (persistente de `L_SoulCharger_Obra`, lo colocó Narrativa) tiene los mismos valores de autor que `Entering_UserTool` de Test_Entering (ambos = CDO; las diferencias de transform de `MandoBodyR/L` en la instancia de test son del CS, no de autor). `bShowMandoOnBegin` false. ⚠ **Heart todavía NO llama `SetSensorColor`/`Release`**: su `StageIntro`/`StageOutro` tienen solo un print de hueco (avisado a Narrativa). Mesh 3D agrega `ToolTrigger` (gatillo con el eje real) en el turno siguiente.
+- **2026-09-30 (tarde) — en la Obra:** `UserTool_Obra` (persistente de `L_SoulCharger_Obra`, lo colocó Narrativa) tiene los mismos valores de autor que `Entering_UserTool` de Test_Breath (ambos = CDO; las diferencias de transform de `MandoBodyR/L` en la instancia de test son del CS, no de autor). `bShowMandoOnBegin` false. ⚠ **Heart todavía NO llama `SetSensorColor`/`Release`**: su `StageIntro`/`StageOutro` tienen solo un print de hueco (avisado a Narrativa). Mesh 3D agrega `ToolTrigger` (gatillo con el eje real) en el turno siguiente.
 
 ## Gatillo animado del mando (2026-09-30 noche, Mesh 3D; aprobado por Narrativa y Breath)
 Regla de Beltrán: *"cada vez que se interactúe con botones, que sea con animación"*.

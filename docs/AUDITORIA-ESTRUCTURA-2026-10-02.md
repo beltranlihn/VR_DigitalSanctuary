@@ -9,6 +9,23 @@
 
 ---
 
+## 0. Qué se hizo (estado al cierre del 2026-10-02)
+| Punto de la auditoría | Hecho | Dónde |
+|---|---|---|
+| Respaldo antes de tocar nada | ✅ commit `a25b6ad` + tag `respaldo-pre-reorden-2026-10-02` | git |
+| Assets sin uso fuera del proyecto (V1/V2/V3, galería, calibración, Touch, StylizedKitchen, Fab, demos) | ✅ 1596 assets, Content de 2,2 GB a 402 MB | `_Deprecated/Content-2026-10-02/` (raíz, fuera de git), `tools/unreal/archive_unused.py` |
+| Cortar los enlaces del código vivo al viejo | ✅ | commit `d6d91f1` |
+| Una sola fuente de tiempos (C1) | ✅ `DA_Partitura_Obra` (60 perillas), la leen la Obra y los ensayos; 63 + 9 literales conectados | `docs/PARTITURA.md`, tracker `BP_Partitura_SC.md` |
+| Cierre único de etapa (C2) | ✅ `StageRequestEnd` en las 5 etapas; la Obra y el ensayo cortan igual | trackers de cada etapa |
+| Prueba de humo de la obra entera (C5) | ✅ `tools/unreal/smoke_obra.py` (marcas en orden + 0 errores; `--traza` para el editor web) | `docs/GUIA-DE-DIRECCION.md` §3 |
+| Probar un nivel sin visor | ✅ `tools/unreal/probar_nivel.py` | |
+| Empaquetar e instalar en un paso | ✅ `empaquetar_obra.py` + `instalar_quest.ps1` (APK de la Obra cocinado, sin instalar) | |
+| Guía de dirección, reglas de oro, perillas | ✅ | `docs/GUIA-DE-DIRECCION.md`, `docs/REGLAS-DE-ORO.md`, `docs/PERILLAS.md` |
+| **Carpetas ordenadas por mecánica y por tipo** (pedido del 2026-10-02 a la tarde) | ✅ 461 assets movidos, 60 archivados, 12 niveles en su carpeta nueva (3 con nombre nuevo: Test_Breath, Test_Mind, Test_Draw), CoreRedirects para las rutas viejas de los niveles | `tools/unreal/reorden_contenido_2026-10-02.json`, `CLAUDE.md` §6 |
+| Mecánicas como plugins (portables a otro proyecto) | ⬜ propuesta, pendiente de decisión | §4 de este documento y el informe final |
+| LFS + locks, llevar `core/esqueleto` a `main` | ⬜ decisiones de Beltrán | `docs/WORKFLOW-EQUIPO.md` |
+| Títulos del ensayo del Hall con literales propios | ⬜ pendiente | tracker `BP_HallRunner_SC.md` |
+
 ## 1. Veredicto corto
 
 | Pregunta | Respuesta |
@@ -63,7 +80,7 @@
 ### C6 · Nada avisa cuando algo se rompe
 - La verificación es un PIE mirado a mano y un log filtrado. El "robot" que simula un usuario nunca se usó (auditoría del 09-30).
 - No hay una lista de marcas esperadas en orden ("entra la fase 4 de la etapa 0", "StageOutro por fin propio = true", etc.) que un script compare contra el log. Por eso las roturas aparecen recién en el visor o en el APK, como pasó con el dibujo.
-- **El reloj se frena bajo carga:** el director limita el paso a 1/30 s. Por debajo de 30 fps, el timeline avanza más lento que el tiempo real, mientras que la VO y el audio siguen al tiempo real. En PIE de fondo (~10 fps) va 3 veces más lento. En la Quest a 72 fps no se nota, pero un bajón fuerte desincroniza voz e imagen.
+- **El reloj se frena bajo carga extrema:** el director limita el paso a 0,1 s (corrección del 2026-10-02: no es 1/30 s como decía la primera versión de este documento). Por debajo de 10 fps, el timeline avanza más lento que el tiempo real, mientras que la VO y el audio siguen al tiempo real. En la Quest a 72 fps no pasa; solo afecta a un PIE de fondo muy cargado o a un enganche largo (una carga), donde el reloj pierde lo que excede 0,1 s por cuadro.
 
 ---
 

@@ -1,7 +1,7 @@
 # BP_BreathValley_SC — el valle de colinas de Entering
 
-**Ruta:** `/Game/SoulCharger/Mechanics/Breath/Valley/BP_BreathValley_SC`
-**Estado (2026-09-28): v2 APLICADA** en `/Game/Test_Entering` (`Entering_Valle`, carpeta `Entering`) · 🟢 PIE (sombra sigue al metaball, cero errores) · 🟢 movimiento medido en el editor · 🟢 **capa viva aplicada** (fases V del plan de respiración) y **verificada en PIE** (`LiveS` sigue a la respiración, ver la sección 🫁) · ⬜ visor · ⬜ medido en la Quest · ⬜ sin commitear (la carpeta `Valley/` y el nivel están sin versionar).
+**Ruta:** `/Game/SoulCharger/Mechanics/Breath/Blueprints/BP_BreathValley_SC`
+**Estado (2026-09-28): v2 APLICADA** en `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath` (`Entering_Valle`, carpeta `Entering`) · 🟢 PIE (sombra sigue al metaball, cero errores) · 🟢 movimiento medido en el editor · 🟢 **capa viva aplicada** (fases V del plan de respiración) y **verificada en PIE** (`LiveS` sigue a la respiración, ver la sección 🫁) · ⬜ visor · ⬜ medido en la Quest · ⬜ sin commitear (la carpeta `Valley/` y el nivel están sin versionar).
 **Spec completa (v2: geometría, altura, oleaje, sombreado, niebla, cielo, 71 parámetros, valores de control, costo, riesgos):** [`docs/PLAN-VALLE-ENTERING-2026-09-27.md`](../../../../docs/PLAN-VALLE-ENTERING-2026-09-27.md) — la sección "v2" de arriba tiene la devolución de Beltrán y las decisiones.
 
 ## Qué es

@@ -1,6 +1,6 @@
 # BP_Obra_SC — el director del NIVEL FINAL de la obra
 
-- **refPath**: `/Game/SoulCharger/Obra/BP_Obra_SC.BP_Obra_SC` · parent Actor · duplicado de [[BP_StageTour_SC]] (2026-09-30, noche del director general).
+- **refPath**: `/Game/SoulCharger/Obra/Blueprints/BP_Obra_SC.BP_Obra_SC` · parent Actor · duplicado de [[BP_StageTour_SC]] (2026-09-30, noche del director general).
 - **Nivel**: `/Game/SoulCharger/Obra/L_SoulCharger_Obra` (duplicado de Test_Recorrido). Instancia `BP_Obra_SC_C_0`, **tag `TOUR`** (Attracting y Drawing lo usan para NO autoarrancar), `Speed` 1 (solo se sube para pruebas).
 - **Plan y registro de la noche**: [`docs/PLAN-NOCHE-2026-09-30.md`](../../../../docs/PLAN-NOCHE-2026-09-30.md).
 
@@ -19,7 +19,7 @@
 🟡 Falta (T2b): llamadas reales al Hall (`BP_HallDirector_SC`), nacimiento del HUD, armado del cuadro de resultados, créditos (constelación + título + tarjetas), explosiones de la carga final. ⬜ Visor y APK.
 
 ## Motor (heredado de StageTour)
-- Carga los **6 niveles de prueba** con `LoadLevelInstance` al arrancar, en negro: celdas 0-4 = Test_Entering, Test_Heart, Test_Fluid (Loving), Test_Sequencer (Attracting), L_TBTest_SC (Surrounding); **celda 5 = `/Game/SoulCharger/Mechanics/Hall/Test_Hall`**. `ClassifyOne` recorre 0..5.
+- Carga los **6 niveles de prueba** con `LoadLevelInstance` al arrancar, en negro: celdas 0-4 = Test_Breath, Test_Heart, Test_Mind (Loving), Test_Sequencer (Attracting), Test_Draw (Surrounding); **celda 5 = `/Game/SoulCharger/Hall/Maps/Test_Hall`**. `ClassifyOne` recorre 0..5.
 - Una celda apagada: `SetVisibleInSceneCaptureOnly` + sin colisión + sin tick. Encendido por cola (`QBatch`).
 - `DestroyTestOnly`: al arrancar destruye todo actor con tag **`TestOnly`** (los andamios de prueba de cada nivel de test).
 - Velo (`Veil`, esfera 30 cm con `M_TourVeil_SC`, Amount / CTop / CHor) y título (`Title`, plano con `MI_TourTitle_<ETAPA>`).
@@ -48,7 +48,7 @@
 `CallIntro/CallBegin/CallOutro/ReadDone(K)` con switch por clase: `BP_BreathStage_SC`, `BP_HeartManager_SC`, `BP_LovingCell_SC`, `BP_Sequencer_SC`, `BP_TBDirector_NC` → `StageIntro()`, `StageBegin()`, `StageOutro()`, `bStageDone`.
 
 ## La carga (T2a, 2026-09-30)
-- Actor **`BP_ChargeFx_SC_C_0`** (`/Game/SoulCharger/Obra/BP_ChargeFx_SC`, duplicado de [[BP_ChargeTest_SC]]; `HudRef` = el HUD del nivel, `AutoStart` false) + TargetPoint tag **`ObraChargeTarget`**.
+- Actor **`BP_ChargeFx_SC_C_0`** (`/Game/SoulCharger/Obra/Blueprints/BP_ChargeFx_SC`, duplicado de [[BP_ChargeTest_SC]]; `HudRef` = el HUD del nivel, `AutoStart` false) + TargetPoint tag **`ObraChargeTarget`**.
 - `ChargeStart(K)`: pone el TargetPoint a **2,53 m al frente del yaw de la etapa, +37 cm, escala 2,115** (la pose aprobada por Beltrán en Test_Hall) y le pasa al anillo `TargetRef`, `CavParam` (`CavNames[K]`), `StageColor` (`StageCols[K]`), `ChargeTime` (`ChargeTimes` = **4 / 4 / 4 / 4 / 6 s**, Beltrán 09-30), `HoldTime` (2; la última 9999 = no vuelve al HUD), `SpinDeg` (−450; la última −1440) → `RunCharge`.
 - `ReadCharge`: etapas 0-3 = `Running` del anillo; la última = `PT < 4,97 + ChargeTimes[4]`.
 - `FinalStart`: `FinalLook` del anillo (materiales DDT del HUD, sort 204/205, por delante del negro), `HUDVanish` del arte del HUD, oculta el widget, fase 10.
@@ -64,7 +64,7 @@
 4. Un PIE de la Obra con el pincel sin instalar inundaba la salida del `StartPIE` con `Accessed None … Tip` (~90k tokens): venía de `BP_TBTrail_NC.TrailPush`. ✅ Blindado por Drawing (2026-09-30 11:21: 903 errores en 5 s → 0). Igual, leer el log de la Obra filtrado (`OBRA:|CHARGE|Accessed None`) y no la salida del tool.
 
 ## T2b (2026-09-30, mediodía) — Hall real, HUD, resultados y créditos
-- **Hall** (`/Game/SoulCharger/Mechanics/Hall/BP_HallDirector_SC`): `HallCheck` llama `HallIntro` con PT ≥ 1 (nunca en el cuadro de encender la celda), sigue `GetHudBorn` → `HudBirth` (la píldora `HUDAppear`) y el EEG (`BP_SoulHUD_SC.Birth`) 1 s después; termina con `GetHallDone`. `ReturnCheck`/`ExitCheck`: `SetLeadActor(:self hd :LeadActor anillo)` + `HallReturn`/`HallExit`, terminan con `GetReturnDone`/`GetExitDone`. `HallCalled` evita llamar dos veces; se resetea en HallStart/HallLeave/HallBack/ResultsHide.
+- **Hall** (`/Game/SoulCharger/Hall/Blueprints/BP_HallDirector_SC`): `HallCheck` llama `HallIntro` con PT ≥ 1 (nunca en el cuadro de encender la celda), sigue `GetHudBorn` → `HudBirth` (la píldora `HUDAppear`) y el EEG (`BP_SoulHUD_SC.Birth`) 1 s después; termina con `GetHallDone`. `ReturnCheck`/`ExitCheck`: `SetLeadActor(:self hd :LeadActor anillo)` + `HallReturn`/`HallExit`, terminan con `GetReturnDone`/`GetExitDone`. `HallCalled` evita llamar dos veces; se resetea en HallStart/HallLeave/HallBack/ResultsHide.
 - **HUD en la Obra**: instancia con `bBirthOnStart` false; `StartObra` hace `HUDHideNow` (cancela el AppearOnPlay de 3 s del arte), EEG en 0 (`SetBirthT 0` + `PushBirth`) y **`SetBioFound false`** (el HUD cachea el primer BioHub que encuentra; si era un `TestOnly` que la Obra destruye, `StepSignals` inunda el log con "pending kill").
 - **Resultados** (`ResultsShow`): `BP_ResultsArt_SC_C_0` + `BP_JourneyContent_SC_C_0` en el persistente (z −5000, `ResultsHideNow` + oculto en HallStart). Cuadro a 1,9 m frente a la cámara (−8 cm), mirando al usuario; contenido colgado con `AttachActorToActor` (así lee los K del marco); `SetBreathScores(CycleScores)` + `SetMinutes 0` + `Build` + `ResultsAppear`; anillo a la izquierda del usuario (−right × 100 cm, escala 0,5), dibujo a la derecha (`PlaceSketch`, 55 cm), gusano en la ventana de la melodía (`ResultsShow(Xf)`, z −38, X local = derecha del usuario), láser `ResultsBeam(true)`. `ResultsHover` (por cuadro en fase 12, desde `FinalRing`): impacto del láser en local del marco → |Y| ≤ 51,5 y bandas Z (calma ≥ 15,5 · ritmo ≥ −7,5 · respiración ≥ −26,5 · melodía ≥ −47,5) → `SetTip` + `TipShow/TipHide` solo al cambiar (`LastTipK`).
 - **Créditos** (`CreditsShow` + `BP_Credits_SC`): el actor de créditos va al ojo mirando al frente; el anillo sube a `SoulSpot` (ojo + 4,8 m al frente + 1,5 m arriba, dentro de la niebla de 6 m del Hall); VO_35b a PT 8 y VO_37 a PT 18,5; en la fase 15 `Hide` funde el título (los planos son DDT sort 110 y quedarían por encima del velo negro). Estrellas = 30 `StaticMeshActor` con tag `CreditStar` (carpeta Credits del outliner), colocadas a mano-por-script alrededor de StopExit: se autoran moviéndolas en el viewport.
@@ -82,7 +82,7 @@ Todo lo nuevo vive en grafos NUEVOS; RunObra no se toca. `TickAll` llama `FinalF
 - **Celdas apagadas en el negro**: la cola `QueueCell/StepQueue` apagaba de a `QBatch` componentes por cuadro y el velo se abría en el mismo cuadro → se veían las etapas (celdas a veces superpuestas en el origen). Ahora `QBatch` = 100000 durante el arranque (se guarda en `QSave`) y vuelve a su valor a PT 1 de la fase 9.
 - **Velo del Hall**: fase 9, PT < 3,5 negro opaco; abre 3,5 → 5,5 a la niebla del Hall (que ya está a pleno).
 - **`IntroTitle`**: SOUL CHARGER + bajada QUIETOS con `TitleP/SubP` de `BP_Credits_SC` (se coloca una vez a PT 2,5 frente a la cámara, −45 cm; revela PT 3 → 6,5, sale 10 → 12,5; `TitleSt` 0/1/2). La caminata del Hall arranca a PT 13 (`IntroHold` 12 s del Hall).
-- **Ambientes** (`AmbPick` → `AmbTo(K)` → `AmbFade`/`AmbStart`): `AmbCur` (AudioComponent) con `CreateSound2D` + FadeIn 3 s a 0,8 y FadeOut 3 s. Intro (1) → Start (2, al terminar el título) → Hall (3, cuando `DoorW` > 0,3; se queda hasta que `DoorE` > 0,05) → silencio → Breath (4) / Heart (5) / Mind (6) / Attracting = pad del secuenciador / Surrounding = el AmbientSound de `L_TBTest_SC` (se enciende con la celda) → regreso y resultados = Salida (8) → créditos (9). Solo con `Booted` (antes el Hall no existe → Accessed None).
+- **Ambientes** (`AmbPick` → `AmbTo(K)` → `AmbFade`/`AmbStart`): `AmbCur` (AudioComponent) con `CreateSound2D` + FadeIn 3 s a 0,8 y FadeOut 3 s. Intro (1) → Start (2, al terminar el título) → Hall (3, cuando `DoorW` > 0,3; se queda hasta que `DoorE` > 0,05) → silencio → Breath (4) / Heart (5) / Mind (6) / Attracting = pad del secuenciador / Surrounding = el AmbientSound de `Test_Draw` (se enciende con la celda) → regreso y resultados = Salida (8) → créditos (9). Solo con `Booted` (antes el Hall no existe → Accessed None).
 - **Fotos de depuración**: con `bPhotos`, HighResShot a PT 1 / 6 / 9 de la fase 9 (`DbgShot`).
 
 ### Trampas nuevas
@@ -176,7 +176,7 @@ Dos variables en la instancia, categoría **Debug**: **`DebugStart`** (−1 = no
 ## Arranque limpio (2026-10-01 ~00:10)
 - **Glitch reportado por Beltrán**: al dar Play se veían títulos de las transiciones y sonaba otra música ≈2,5 s antes del negro del aviso.
   - **Títulos**: `Title`/`Veil` de los 5 `BP_StageRunner_SC` nacían visibles (sort 32700, por encima del velo de la Obra, sort 32600) entre que la celda se registra y su BeginPlay. → ocultos en el CDO.
-  - **Música**: el AmbientSound `Ambient_Surrounding` de `L_TBTest_SC` (Ambient_Clip_7) se autoactiva al cargar la celda, y la Obra recién lo pausaba en `StartObra`. → **`ObraBootMute`** (primera llamada de `FinalFlow`): antes de `Booted`, pausa cada AmbientSound en cada cuadro. Es la misma pausa de `SetCell`, adelantada; al entrar a Surrounding `AudioOn` lo reanuda como antes.
+  - **Música**: el AmbientSound `Ambient_Surrounding` de `Test_Draw` (Ambient_Clip_7) se autoactiva al cargar la celda, y la Obra recién lo pausaba en `StartObra`. → **`ObraBootMute`** (primera llamada de `FinalFlow`): antes de `Booted`, pausa cada AmbientSound en cada cuadro. Es la misma pausa de `SetCell`, adelantada; al entrar a Surrounding `AudioOn` lo reanuda como antes.
 - **Auras huérfanas**: cada Alma de ensayo (TestOnly) spawnea su `BP_AlmaAura_SC` en su celda. Al destruirse el Alma quedaban 5 auras (900 motas cada una) dentro de las celdas.
   - `DestroyTestOnly` termina con **`DestroyOrphans`**, que destruye las auras cuyo `Owner` ya no es válido, antes de `Classify`.
   - La misma aura se destruye sola si pierde su `AlmaRef` (`AuraDrive`).
@@ -350,10 +350,10 @@ Pedido de Beltrán: *"ya tienes la animación y el mesh; es hacer más rápida e
   | Nivel | Fantasmas |
   |---|---|
   | Test_Hall | BELL, TAKE, PICK |
-  | Test_Entering | BREATH |
+  | Test_Breath | BREATH |
   | Test_Heart | HEART |
   | Test_Sequencer | ATTRACT |
-  | L_TBTest_SC | DRAW |
+  | Test_Draw | DRAW |
 
   Todos con `bShowText` false, `bAutoPlay` false y sin sonido.
 - PIE con `DebugStart` 3, 0 errores: el Hall llega al paso 6, coloca el timbre y en ese cuadro arranca `DA_Ghost_Bell`, que sigue al timbre real (`FollowTag`), en bucle. TAKE y PICK quedan quietos.
@@ -392,7 +392,7 @@ Pedido de Beltrán: *"ya tienes la animación y el mesh; es hacer más rápida e
   | **Fases 11-14** (Hall de salida, resultados, créditos) | **9 (Credits)** |
   | Fase 15 | funde a 0 |
 
-  El `AmbientSound_0` (*Ambient_Surrounding*, Clip 7) de `L_TBTest_SC` pasó a `TestOnly`: en la Obra se descarta (`TestOnly descartados` 19 → 20) y en su nivel de test sigue sonando. Antes se sumaba al de la Obra. PIE con `DebugStart` 50: "ambiente 7", 0 errores.
+  El `AmbientSound_0` (*Ambient_Surrounding*, Clip 7) de `Test_Draw` pasó a `TestOnly`: en la Obra se descarta (`TestOnly descartados` 19 → 20) y en su nivel de test sigue sonando. Antes se sumaba al de la Obra. PIE con `DebugStart` 50: "ambiente 7", 0 errores.
 - **Tiempos del arranque (Beltrán, 10-01 noche):**
   - `DiscTime` 9 → **19** s (CDO; no es instance-editable).
   - En `BP_Disclaimer_SC.DiscStep`, la salida del texto (`Out`) pasó de 7,6-8,7 a **17,6-18,7** s. Estaba fija en segundos: si se cambia `DiscTime`, hay que correrla también.

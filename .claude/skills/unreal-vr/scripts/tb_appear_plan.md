@@ -1,6 +1,6 @@
 # Aparición "luz primero" en la paleta: plan de integración (Drawing, 2026-09-30)
 
-Fuente: `blender-3d/scripts/anim_palette_luz.py` (tabla `T`, `pose()`) + componente `BPC_AppearLuz_SC` de Mesh 3D (`/Game/SoulCharger/Mechanics/Appear/`).
+Fuente: `blender-3d/scripts/anim_palette_luz.py` (tabla `T`, `pose()`) + componente `BPC_AppearLuz_SC` de Mesh 3D (`/Game/SoulCharger/Shared/Appear/`).
 Reloj = `AppearT` del componente (0..1, 1,5 s; `Vanish` = misma curva al revés). Mis piezas se posan leyendo `AppearT`: **no** llevan tag.
 
 ## Reparto

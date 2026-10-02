@@ -19,7 +19,7 @@ Obra de **VR inmersiva de sanación/meditación** para **Meta Quest 3**. Experie
 ## 3. 🎬 ESTADO ACTUAL (desde 2026-09-30): la OBRA
 🔴 **El nivel de trabajo y del APK es `/Game/SoulCharger/Obra/L_SoulCharger_Obra`.** El editor arranca ahí.
 - **El director** es `BP_Obra_SC`: lleva el reloj y las fases (Hall → 5 etapas → final → créditos).
-- **Las celdas son los niveles de test** de cada etapa (`Test_Entering`, `Test_Heart`, `Test_Fluid`, `Test_Sequencer`, `L_TBTest_SC`, `Test_Hall`), cargados con `LoadLevelInstance`. Lo que se ajusta en un nivel de test es lo que se ve en la Obra. Los actores con tag `TestOnly` se descartan al arrancar.
+- **Las celdas son los niveles de test** de cada etapa (`Test_Breath`, `Test_Heart`, `Test_Mind`, `Test_Sequencer`, `Test_Draw`, `Test_Hall`), cargados con `LoadLevelInstance`. Lo que se ajusta en un nivel de test es lo que se ve en la Obra. Los actores con tag `TestOnly` se descartan al arrancar.
 - **Cada nivel de test tiene su ensayo** (`BP_StageRunner_SC`): Play en el nivel y la etapa corre como en la Obra, con los mismos tiempos.
 
 🧭 **Cómo se administra la obra (qué se cambia dónde, cómo probar, checklist de público): [`docs/GUIA-DE-DIRECCION.md`](docs/GUIA-DE-DIRECCION.md).** Resumen de las cuatro preguntas:
@@ -80,13 +80,16 @@ VR Unreal/                      ← raíz del repo
 └─ VR_Test/                     ← EL PROYECTO UNREAL (UE 5.8)
    ├─ Config/                   ← Default{Engine,Game,Input}.ini (el APK cocina solo la Obra y sus celdas)
    └─ Content/
-      ├─ SoulCharger/Obra/      ← director, Partitura, nivel final, ensayos, títulos, voces
-      ├─ SoulCharger/Mechanics/ ← una carpeta por mecánica, con su nivel de test
-      ├─ SoulCharger/Core/      ← piezas compartidas vivas (Alma, pawn, alma del usuario, BioHub, audio, luz) → coordinar
-      ├─ NeuralCanvas/          ← el dibujo (autocontenido) + L_TBTest_SC
-      ├─ Test_Entering/Heart/Fluid/Sequencer.umap ← celdas de 4 etapas (raíz por historia; la Obra las carga por ruta)
-      └─ XRFramework/, XRMannequins/ ← base VR (GameMode, input, manos)
+      ├─ SoulCharger/Obra/            ← L_SoulCharger_Obra (el nivel final) + Blueprints/ (director, ensayos) + Partitura/ + Titles/ + Audio/ (voces)
+      ├─ SoulCharger/Hall/            ← inicio, hall y regreso (+ timbre). Maps/Test_Hall
+      ├─ SoulCharger/Mechanics/       ← las 5 mecánicas, una carpeta cada una, con su nivel de test en Maps/:
+      │    Breath/ (Entering) · Heart/ (Recognizing) · Mind/ (Loving) · Sequencer/ (Attracting) · Draw/ (Surrounding)
+      ├─ SoulCharger/Shared/          ← piezas que usan varias etapas: HUD, Results, Ghost, UserTool, Appear, BioSensor, ChargeRing, QuestController, Subtitles
+      ├─ SoulCharger/Core/            ← base de la obra: Alma, pawn, alma del usuario (ProtoSoul), señales (BioHub/OSC), luz, audio, puntero, input, UI → coordinar
+      ├─ XRFramework/, XRMannequins/  ← base VR de Epic (GameMode, input, manos)
+      └─ _Deprecated/                 ← lo que no usa nada; se saca del proyecto con tools/unreal/limpiar_con_editor_cerrado.py
 ```
+Dentro de cada mecánica, del Hall y de la Obra, los assets van **por tipo**: `Blueprints/ Materials/ Meshes/ Textures/ Audio/ Input/ VFX/ UI/ Data/ Maps/`. Los niveles de test se llaman `Test_<Mecánica>`. El mapa viejo → nuevo de cada asset (reordenamiento del 2026-10-02) está en `tools/unreal/reorden_contenido_2026-10-02.json`.
 
 ## 7. 🔴 Qué NO tocar sin cuidado
 - **Los grafos de `BP_Obra_SC`**: para ajustar tiempos está la Partitura. Si hay que tocarlos, leer el tracker y correr la prueba de humo después.

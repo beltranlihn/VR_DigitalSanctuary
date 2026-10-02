@@ -1,6 +1,6 @@
 # BP_IntroTitle_SC — el título SOUL CHARGER del inicio
 
-**Ruta:** `/Game/SoulCharger/Obra/BP_IntroTitle_SC` · **Creado:** 2026-10-01 (Narrativa) · **Estado:** 🟢 PIE (ensayo del Hall) · ⬜ visor
+**Ruta:** `/Game/SoulCharger/Obra/Blueprints/BP_IntroTitle_SC` · **Creado:** 2026-10-01 (Narrativa) · **Estado:** 🟢 PIE (ensayo del Hall) · ⬜ visor
 
 ## Qué es
 El título del inicio como **objeto real** que Beltrán mueve y escala en el editor. Reemplaza a la marca `Mark_TituloInicio` (retirada) y deja de compartir los planos con `BP_Credits_SC`.

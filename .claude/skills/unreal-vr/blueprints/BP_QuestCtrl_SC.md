@@ -1,6 +1,6 @@
 # BP_QuestCtrl_SC — el mando de la obra (visual pasivo)
 
-- **Ruta**: `/Game/SoulCharger/Mechanics/QuestController/BP_QuestCtrl_SC` · **Estado**: 🟢 construido y verificado en el editor con capturas (2026-09-29, `Test_QuestCtrl`) · ⬜ visor.
+- **Ruta**: `/Game/SoulCharger/Shared/QuestController/BP_QuestCtrl_SC` · **Estado**: 🟢 construido y verificado en el editor con capturas (2026-09-29, `Test_QuestCtrl`) · ⬜ visor.
 - **Propósito**: el mando que ve el usuario. Pedido de Beltrán:
   - forma del Meta Quest sin botones, cuerpo negro y tapa gris-blanca;
   - solo el gatillo, que **se mueve y cambia de material al apretar**;
@@ -13,7 +13,7 @@
 
 | Componente | Qué es |
 |---|---|
-| `Root` (Scene) | Marco del Touch Plus oficial, el mismo de `/Game/NeuralCanvas/Mesh/Controller`. |
+| `Root` (Scene) | Marco del Touch Plus oficial, el mismo de `/Game/SoulCharger/Mechanics/Draw/Meshes/Controller`. |
 | `Body` (StaticMesh) | `SM_QuestCtrl_Body_R_SC` / `_L_SC`; 2 instancias de material por mano: cuerpo y tapa en una sola, por UV1. |
 | `Trigger` (StaticMesh, hijo de Root) | `SM_QuestCtrl_Trigger_R_SC` / `_L_SC`. Posición relativa = pivote de la bisagra. |
 
@@ -36,7 +36,7 @@
 - **`ApplyTrigger(V)`** hace dos cosas:
   - `Trigger.SetRelativeRotation(RotatorFromAxisAndAngle(Eje, Signo · V · PressDegrees))`
   - `TrigMID.SetScalar("Pressed", V)`, o el cambio de material entero si `PressedMaterial` está asignado.
-- **Montaje en un rig**: `ChildActorComponent` colgado del **Grip**, con la transformada de `/Game/NeuralCanvas/Mesh/Controller` en ese rig. Los rigs con `/Game/ControllerR|L` usan otro marco: medir la relación en el editor antes de cambiarlos. **No tocar rigs sin pedido de Beltrán.**
+- **Montaje en un rig**: `ChildActorComponent` colgado del **Grip**, con la transformada de `/Game/SoulCharger/Mechanics/Draw/Meshes/Controller` en ese rig. Los rigs con `/Game/SoulCharger/Shared/QuestController/ControllerR|L` usan otro marco: medir la relación en el editor antes de cambiarlos. **No tocar rigs sin pedido de Beltrán.**
 
 ## Verificar al construir
 

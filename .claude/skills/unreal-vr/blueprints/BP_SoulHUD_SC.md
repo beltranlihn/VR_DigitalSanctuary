@@ -1,4 +1,4 @@
-# BP_SoulHUD_SC — el HUD de la versión limpia (Core/HUD/)
+# BP_SoulHUD_SC — el HUD de la versión limpia (Shared/HUD/)
 
 ## Purpose
 El HUD que acompaña toda la experiencia, pegado a la cabeza. Rehecho limpio en `MapsV2` (2026-08-24).
@@ -7,9 +7,9 @@ Tres elementos: **barra de carga**, **gráfico EEG** y **punto pulsante de ritmo
 ## Assets
 | Asset | Qué es |
 |---|---|
-| `Core/HUD/BP_SoulHUD_SC` | el actor |
-| `Core/HUD/WBP_SoulHUD_SC` | **el widget único** con los tres elementos |
-| `Core/HUD/M_HudWidget_SC` | 🔴 el material "por encima de todo" para widgets |
+| `Shared/HUD/BP_SoulHUD_SC` | el actor |
+| `Shared/HUD/WBP_SoulHUD_SC` | **el widget único** con los tres elementos |
+| `Shared/HUD/M_HudWidget_SC` | 🔴 el material "por encima de todo" para widgets |
 
 ## 🔁 Historia de la forma (importa para no volver atrás)
 1. **Primera versión: tres `WidgetComponent` separados**, uno por elemento, para poder moverlos con el
@@ -270,3 +270,7 @@ en el gráfico (`GraphArea` está en alpha 0) y el riel de la barra quedó en **
 ## Relacionados
 [[BP_SoulHUD]] (el viejo, referencia) · [[BP_BioHub]] (la señal) · [[BP_Director_Story]] (el `Room` que da la carga) ·
 [[BP_ProtoSoul_SC]] (el mismo truco de Disable Depth Test) · [[BP_FaceAnchor_SC]] (el doble del HMD)
+
+## 2026-10-02 (Narrativa) — reordenamiento
+- Se cortaron las referencias al código viejo (V2/V3) que ya no existe (reordenamiento 1, commit d6d91f1). Ver `docs/AUDITORIA-ESTRUCTURA-2026-10-02.md`.
+- Carpeta nueva: ver la tabla de lo vigente en [_INDEX.md](_INDEX.md) (las rutas de este tracker ya están actualizadas).

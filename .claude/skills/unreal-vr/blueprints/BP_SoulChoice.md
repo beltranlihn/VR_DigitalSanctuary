@@ -67,7 +67,7 @@ La cirugía de capas del 2026-08-12 declaró los params `H` de `CheckHand/CheckH
 
 ## Por qué Beltrán "veía una sola proto ameba" (resuelto 2026-08-13)
 1. El arco a ±70° dejaba 4 de las 5 fuera del FOV sentado → veía solo la central.
-2. **El sensor usaba la MISMA esfera + `M_ProtoSoul`** (0.12 vs 0.14 de escala) → indistinguible de una ameba; la "ameba fijada al HUD" era el 2º sensor attacheado a su otra mano. Fix: **`MI_Sensor`** (Core/Sensor/, blanco tibio, Brightness 0.55, Agitation 0.06) + candidatas 1.6×.
+2. **El sensor usaba la MISMA esfera + `M_ProtoSoul`** (0.12 vs 0.14 de escala) → indistinguible de una ameba; la "ameba fijada al HUD" era el 2º sensor attacheado a su otra mano. Fix: **`MI_Sensor`** (Core/Pointer/, blanco tibio, Brightness 0.55, Agitation 0.06) + candidatas 1.6×.
 
 ## TODO
 - [ ] 🔴 Test en visor: ver las 5 en el arco, tocar UNA deliberadamente tras `eleccion armada`, HUD naciendo con su color.

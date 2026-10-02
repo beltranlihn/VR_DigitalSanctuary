@@ -1,6 +1,6 @@
 # BP_HallRunner_SC — el ENSAYO del Hall en Test_Hall
 
-- **refPath**: `/Game/SoulCharger/Obra/BP_HallRunner_SC.BP_HallRunner_SC` · parent Actor · creado 2026-10-01 (Narrativa, pedido de Beltrán: "la del hall debería contener desde el inicio con el título hasta salir del hall" + un debug director).
+- **refPath**: `/Game/SoulCharger/Obra/Blueprints/BP_HallRunner_SC.BP_HallRunner_SC` · parent Actor · creado 2026-10-01 (Narrativa, pedido de Beltrán: "la del hall debería contener desde el inicio con el título hasta salir del hall" + un debug director).
 - **Instancia**: `HallRunner` en `Test_Hall` (origen), tag **`TestOnly`** → la Obra la destruye al arrancar. En la Obra no hace nada (`IsObra`) y su velo nace oculto.
 - Fuentes: `VR_Test/Saved/ClaudeScripts/Obra/hallrunner.json` (DSL), `hallrunner_build.py`; los 6 `HRIn*/HROut*` se armaron por cirugía (ver trampa 1).
 

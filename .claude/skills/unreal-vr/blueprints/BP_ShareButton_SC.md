@@ -1,6 +1,6 @@
 # BP_ShareButton_SC — los botones SHARE / DON'T SHARE del cuadro de resultados
 
-- **Ruta**: `/Game/SoulCharger/Mechanics/Results/BP_ShareButton_SC`.
+- **Ruta**: `/Game/SoulCharger/Shared/Results/Blueprints/BP_ShareButton_SC`.
 - **Estado**: 🟢 construido y compilando (2026-09-30 noche) · 🟢 dos instancias en `L_SoulCharger_Obra` · ⬜ prueba de hover/press en PIE · ⬜ visor.
 - **Modelo y look**: `blender-3d/assets/share-button.md`. Los grafos los genera `unreal-vr/scripts/share_button_dsl.py`.
 - **Es arte + interacción mínima.** La Obra (Narrativa) decide el hover con el láser de resultados (`BP_SeqRig_SC.ResultsBeam` → `BeamHitActor`) y llama a la API.

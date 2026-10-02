@@ -1,6 +1,6 @@
 # BP_SoulHUD3D_SC — el HUD como objeto 3D (prueba de ubicación, 2026-09-30)
 
-`/Game/SoulCharger/Mechanics/HUD/` · **hijo de [BP_SoulHUD_SC](BP_SoulHUD_SC.md)**: hereda el pegado a la cabeza (offset horneado contra `BP_FaceAnchor_SC` en el Construction Script), el widget del EEG en vivo (`WBP_SoulHUD_SC`, datos del `BP_BioHub`) y el nacimiento. Armado por Narrativa para que Beltrán pruebe **ubicación y tamaño** en el visor. La construcción completa (cargas, teletransporte, halo, borde que se enciende) es de la sesión "HUD y cargas".
+`/Game/SoulCharger/Shared/HUD/` · **hijo de [BP_SoulHUD_SC](BP_SoulHUD_SC.md)**: hereda el pegado a la cabeza (offset horneado contra `BP_FaceAnchor_SC` en el Construction Script), el widget del EEG en vivo (`WBP_SoulHUD_SC`, datos del `BP_BioHub`) y el nacimiento. Armado por Narrativa para que Beltrán pruebe **ubicación y tamaño** en el visor. La construcción completa (cargas, teletransporte, halo, borde que se enciende) es de la sesión "HUD y cargas".
 
 ## Dónde está colocado
 `Test_Hall` (Mechanics/Hall): `SoulHUD3D_Test` + `FaceAnchor_HUDTest` (−390, 0, 122) + `BioHub_HUDTest` (`bFakeSignal` = true).

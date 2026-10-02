@@ -2,7 +2,7 @@
 
 > ⚫ **RETIRADA 2026-10-01.** En Test_Hall ya no hay marcas: el título, el timbre y el sensor son objetos reales (`TituloInicio`, `Timbre`, `Sensor`, carpeta `Ajustes`). Lo de abajo queda como historia.
 
-- **refPath**: `/Game/SoulCharger/Obra/BP_AuthorMark_SC.BP_AuthorMark_SC` · parent Actor · creado 2026-10-01 (Narrativa). Pedido de Beltrán: "todo lo que requiera mi decisión de dónde va, tamaños, etc. quiero tener acceso".
+- **refPath**: `/Game/SoulCharger/Obra/Blueprints/BP_AuthorMark_SC.BP_AuthorMark_SC` · parent Actor · creado 2026-10-01 (Narrativa). Pedido de Beltrán: "todo lo que requiera mi decisión de dónde va, tamaños, etc. quiero tener acceso".
 - **Idea**: la marca muestra EN EL EDITOR hasta dos piezas del objeto real (malla + material + offset/giro/escala) y en el juego es invisible (`P0`/`P1` con `bHiddenInGame`, sin colisión ni sombra). El código la busca **por tag** y usa **su transformación de actor**: posición, rotación y escala.
 - **Altura**: la marca se autora para ojos a **120 cm sobre el piso del pawn** (z de las paradas = 76,97 en Test_Hall). En runtime: `z + (cámara.z − (pawn.z + 120))` → se corrige sola con la altura real del usuario.
 - Fuente: `Saved/ClaudeScripts/Obra/authormark.json` (construction script).

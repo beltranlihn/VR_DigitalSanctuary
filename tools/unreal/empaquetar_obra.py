@@ -18,8 +18,8 @@ UPROJECT = os.path.join(ROOT, "VR_Test", "VR_Test.uproject")
 ENGINE = os.environ.get("UE_ROOT", r"C:\Program Files\Epic Games\UE_5.8")
 INI = os.path.join(ROOT, "VR_Test", "Config", "DefaultEngine.ini")
 USERINI = os.path.join(ROOT, "VR_Test", "Saved", "Config", "WindowsEditor", "EditorPerProjectUserSettings.ini")
-MAPS = ["/Game/SoulCharger/Obra/L_SoulCharger_Obra", "/Game/Test_Entering", "/Game/Test_Heart", "/Game/Test_Fluid",
-        "/Game/Test_Sequencer", "/Game/NeuralCanvas/Maps/L_TBTest_SC", "/Game/SoulCharger/Mechanics/Hall/Test_Hall"]
+MAPS = ["/Game/SoulCharger/Obra/L_SoulCharger_Obra", "/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath", "/Game/SoulCharger/Mechanics/Heart/Maps/Test_Heart", "/Game/SoulCharger/Mechanics/Mind/Maps/Test_Mind",
+        "/Game/SoulCharger/Mechanics/Sequencer/Maps/Test_Sequencer", "/Game/SoulCharger/Mechanics/Draw/Maps/Test_Draw", "/Game/SoulCharger/Hall/Maps/Test_Hall"]
 VARIANTES = {"obra": ("com.almadigital.soulcharger", "Soul Charger", "Android_Obra"),
              "v2": ("com.almadigital.soulchargerv2", "Soul Charger V2", "Android_ObraV2")}
 
@@ -65,6 +65,7 @@ def main():
     finally:
         open(INI, "w", encoding="utf-8").write(ini0)
         fix_mcp_autostart()
+        import mcp_config; mcp_config.asegurar_autostart()
     print("UAT termino con codigo %d en %d min" % (rc, (time.time() - t0) / 60))
     apks = sorted(glob.glob(os.path.join(arch, "**", "*.apk"), recursive=True), key=os.path.getmtime)
     if not apks:

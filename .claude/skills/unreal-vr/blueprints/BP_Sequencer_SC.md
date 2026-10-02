@@ -1,10 +1,10 @@
-# BP_Sequencer_SC — la etapa Attracting de la versión limpia (Core/Attracting/)
+# BP_Sequencer_SC — la etapa Attracting de la versión limpia (Mechanics/Sequencer/)
 
 📊 **Performance: MEDIDA en visor el 2026-09-24 y no llega.** 24,85 ms contra un presupuesto de
 13,9 (40 fps de 72), **fill-rate bound** confirmado. Numeros, palancas probadas y pendientes en
 [`docs/PERF-ATTRACTING-2026-09-24.md`](../../../../docs/PERF-ATTRACTING-2026-09-24.md).
 
-> Ecosistema completo de la sala 4 (2026-08-26): **`BP_Sequencer_SC`** (director de la sala) + **`BP_SoundOrb_SC`** (la esfera con sonido) + **`BP_SeqSlot_SC`** (el slot) + **`BP_SaveMelody_SC`** (el botón SAVE MELODY). Todo en `/Game/SoulCharger/Core/Attracting/`.
+> Ecosistema completo de la sala 4 (2026-08-26): **`BP_Sequencer_SC`** (director de la sala) + **`BP_SoundOrb_SC`** (la esfera con sonido) + **`BP_SeqSlot_SC`** (el slot) + **`BP_SaveMelody_SC`** (el botón SAVE MELODY). Todo en `/Game/SoulCharger/Mechanics/Sequencer/`.
 > Colocados en **`MapsV2/RoomsV2/L_Attracting_SC`**: `Sequencer_Attracting` (5720,0,60) · 8 `SeqSlot_0..7` (X=5720, Y=−105..+105 cada 30, Z=85, `StepIndex` 0-7 izquierda→derecha) · `SaveMelody_Attracting` (5720,0,62, pitch 90) · `TP_orb_intro_attracting` (5745,0,115, en el panel) · **20 `BP_Anchor` `TP_orb_attracting_01..20` DETRÁS del widget** (x 5850-6250, y ±180, z 105-190 — una por sonido del módulo).
 > **Estado: 🟢 flujo intro → pad alineado → esferas verificado en PIE por log y medición; beam en DOS manos verificado con manos posadas; 🔴 falta visor (todo el tacto).**
 
@@ -84,7 +84,7 @@ Disco r=8 con `Label` TextRender **"SAVE MELODY"**. Aparece con los slots (`Show
 ## 🔧 2026-08-26 (2ª pasada, tras el primer visor de Beltrán)
 Reporte: *"El beam no aparece… Los slot y el botón están con un color negro… Las esferas deben estar por detrás del widget"*. Tres causas, tres fixes:
 1. 🔴🔴 **El beam era invisible porque el trace nacía DENTRO del muro de la sala.** `Cylinder_001` (el anillo de muro de `Asset/RoomBase`, compartido por las 6 salas) tenía `CollisionTraceFlag = UseDefault` → su colisión simple es un **sólido convexo que llena todo el interior**: cualquier line-trace lanzado dentro de la sala pegaba a distancia 0 (medido: `BeamHitLoc == BeamStart`, largo 0 → mesh de escala z=0 = invisible). Era el **primer** line-trace dentro de una sala de RoomBase, por eso nunca se vio. ✅ Fix: **`CTF_UseComplexAsSimple` en el BodySetup de `Cylinder_001`** — los traces pegan en la superficie real del anillo; beneficia a las 6 salas; sin física que lo necesite. Verificado en PIE con la mano posada (truco del robot): trace de 8 m limpio, mesh visible escala (0.012, 0.012, 8), y apuntando a la esfera → `BeamHitActor = BP_SoundOrb_SC_C_0` + `Hovered=true`/`HoverT=1`. Ver gotcha §238.
-2. **Slots/botón/esferas negros**: tenían el material default (que en el mundo horneado rinde negro). Ahora **3 MIs de `M_Beam_SC`** (unlit emisivo) en `Core/Attracting/`: `MI_AttractSlot` (gris tenue 0.12), `MI_AttractOrb` (cálido 0.55/0.50/0.38), `MI_AttractButton` (naranja 0.8/0.4/0.12 — el acento de la sala). Es placeholder digno; el arte final es de Beltrán (se cambia en la MI, sin tocar BPs).
+2. **Slots/botón/esferas negros**: tenían el material default (que en el mundo horneado rinde negro). Ahora **3 MIs de `M_Beam_SC`** (unlit emisivo) en `Mechanics/Sequencer/`: `MI_AttractSlot` (gris tenue 0.12), `MI_AttractOrb` (cálido 0.55/0.50/0.38), `MI_AttractButton` (naranja 0.8/0.4/0.12 — el acento de la sala). Es placeholder digno; el arte final es de Beltrán (se cambia en la MI, sin tocar BPs).
 3. **Las esferas van DETRÁS del widget** (pedido explícito): las 12 anclas se movieron de "arco alrededor del usuario" a **ocupar el fondo de la sala detrás del panel** — x 5850..6250, y −170..+150, z 105..185. Siguen siendo `BP_Anchor` arrastrables.
 
 ### 🎛️ MÓDULOS (pedido de Beltrán: "en attracting serán distintos módulos, y cada módulo tiene 20 sonidos")
@@ -132,8 +132,8 @@ Tras el reporte de regresión de Beltrán se ENUMERARON todos los componentes co
 ⬜ Visor: beam izquierdo visible, agarre izquierdo, sin choques cerca del cuerpo, preview discreto. Los prints de diagnóstico siguen activos.
 
 ## 🎯 2026-08-26 (8ª pasada) — EL LOG LO NOMBRÓ: `SoulHUD_SC`
-El print `BEAM R/L corto contra:` de la 5ª pasada entregó al culpable con nombre y apellido: **cientos de líneas `BEAM R/L corto contra: SoulHUD_SC`** en todas las corridas de visor de Beltrán. El **HUD pegado a la cámara** (`BP_SoulHUD_SC`, `Core/HUD/` — su `WidgetComponent` de 40×16 cm frente a la vista) **bloqueaba el canal Visibility** (la gotcha §54 de los WidgetComponents). Explicaba TODO lo restante: el beam derecho cortándose al cruzar la vista, y el izquierdo **permanentemente invisible** (la mano en reposo apunta a través del panel → muñón de ~20 cm). El código del beam izquierdo siempre fue idéntico al derecho — el bloqueo era físico.
-✅ **`NoCollision` en `Hud` y `HeadRef`**: instancia del persistente + CDO (`Core/HUD/BP_SoulHUD_SC` — ojo: NO está en `Core/UI/`), compilado, y verificado EN VIVO en PIE (`collisionEnabled: NoCollision`, `Visibility: ECR_Ignore`).
+El print `BEAM R/L corto contra:` de la 5ª pasada entregó al culpable con nombre y apellido: **cientos de líneas `BEAM R/L corto contra: SoulHUD_SC`** en todas las corridas de visor de Beltrán. El **HUD pegado a la cámara** (`BP_SoulHUD_SC`, `Shared/HUD/` — su `WidgetComponent` de 40×16 cm frente a la vista) **bloqueaba el canal Visibility** (la gotcha §54 de los WidgetComponents). Explicaba TODO lo restante: el beam derecho cortándose al cruzar la vista, y el izquierdo **permanentemente invisible** (la mano en reposo apunta a través del panel → muñón de ~20 cm). El código del beam izquierdo siempre fue idéntico al derecho — el bloqueo era físico.
+✅ **`NoCollision` en `Hud` y `HeadRef`**: instancia del persistente + CDO (`Shared/HUD/BP_SoulHUD_SC` — ojo: NO está en `Core/UI/`), compilado, y verificado EN VIVO en PIE (`collisionEnabled: NoCollision`, `Visibility: ECR_Ignore`).
 📚 Moraleja de la saga completa de colisionadores fantasma (viñeta → ameba+anillos → HUD): **todo lo que viaja pegado al pawn/cámara en este proyecto debe nacer `NoCollision`** — viñeta, HUD, proto ameba y anillos, beams, visualizadores de mandos. Ninguno lo era. El diagnóstico correcto desde el principio habría sido el print con nombre (una pasada) en vez de hipótesis por turno.
 ⬜ Visor: beams en ambas manos completos y sin cortes. Los prints de diagnóstico siguen activos; apagarlos al aprobar.
 
@@ -558,3 +558,7 @@ Beltrán vio en la línea de tiempo web un sonido por hover. **En Unreal ya no e
 - **Regla de Beltrán "los tiempos los fija el timeline, nunca la duración del sonido"**: `Boot` ya no hace `Duration(PadSound)/NumSteps`; llama **`CalcStepDur`** = `60 / max(StepBPM, 1)`. **`StepBPM`** 90 (0-Config, no IE) → `StepDur` 0,6667 (el mismo valor de antes). Los nodos viejos se borraron.
 - **`ResultsPlay`** usa **`ResultsPadDelay`** 0,5 s (0-Config, no IE) en vez de `PadDelay`: en la Obra el pad arrancaba 18,8 s después de `ResultsPlay`. ✅ Verificado por Narrativa en el PIE completo: el pad suena 0,5 s después.
 - ✅ PIE de la Obra (`bDebugEnding` + `bPhotos`, `HighresScreenshot00102`): gusano completo en recta dentro de la ventana, `ResultsPlay` → "pad ON", sin `Accessed None`. Obra guardada limpia (59 actores, flags false/false, Speed 1).
+
+## 2026-10-02 (Narrativa) — reordenamiento
+- `StageRequestEnd` (evento nuevo) + función `ReqHasMelody` (recorre los slots con guardas `IsValid`; reemplaza a `ResultsCountOcc`, que daba "Accessed None property S"): si hay melodía y está en fase 2 llama a `SaveMelody` (cierra guardando); si no, levanta `bStageDone`.
+- Carpeta nueva: ver la tabla de lo vigente en [_INDEX.md](_INDEX.md) (las rutas de este tracker ya están actualizadas).

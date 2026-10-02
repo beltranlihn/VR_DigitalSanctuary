@@ -1,4 +1,4 @@
-# BP_HallLights_SC — "se prende la luz del hall" (Mechanics/Hall/)
+# BP_HallLights_SC — "se prende la luz del hall" (Hall/)
 
 ## Purpose
 Pedido de Beltrán (2026-09-29): en la narrativa estamos **afuera del edificio y se ve todo negro**; en un momento **se ilumina como si se prendiera la luz del interior** y ahí aparece el portal. Este actor es ese interruptor, listo para que la narrativa lo llame.

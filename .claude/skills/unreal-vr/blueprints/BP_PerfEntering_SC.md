@@ -1,7 +1,7 @@
 # BP_PerfEntering_SC — el banco de medición de la etapa Entering (Core/Debug/)
 
 > Creado el 2026-09-27. **Herramienta de medición, no es parte de la obra.**
-> Colocado en `/Game/Test_Entering` como **`Perf_Entering`** (carpeta `Debug`, en 0, 60, 0).
+> Colocado en `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath` como **`Perf_Entering`** (carpeta `Debug`, en 0, 60, 0).
 > Estado: 🟢 efecto verificado en PIE (`PerfStartMode` 3 → `Volume` y `Panel` con `bVisible = false`, 0 `Accessed None`) · ⬜ **primera sesión en visor pendiente**.
 
 ## Qué contesta

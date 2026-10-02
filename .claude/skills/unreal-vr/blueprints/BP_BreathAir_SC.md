@@ -1,7 +1,7 @@
 # BP_BreathAir_SC — el ALIENTO VISIBLE de Entering
 
-**Ruta:** `/Game/SoulCharger/Mechanics/Breath/Air/BP_BreathAir_SC` · malla `SM_BreathAir_SC` · material `M_BreathAir_SC` / `MI_BreathAir_SC` (misma carpeta)
-**Colocado en:** `/Game/Test_Entering` como **`Entering_Aire`** (carpeta `Entering`), en (0, 0, 120) sin rotar = los ojos del usuario sentado sobre el `PlayerStart`.
+**Ruta:** `/Game/SoulCharger/Mechanics/Breath/Blueprints/BP_BreathAir_SC` · malla `SM_BreathAir_SC` · material `M_BreathAir_SC` / `MI_BreathAir_SC` (misma carpeta)
+**Colocado en:** `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath` como **`Entering_Aire`** (carpeta `Entering`), en (0, 0, 120) sin rotar = los ojos del usuario sentado sobre el `PlayerStart`.
 **Estado (2026-09-28):** 🟢 construido (receta E1-E14 del plan) · 🟢 **PIE verificado** (T1-T8, abajo) · 🟢 Simulate limpio · ⬜ banco del aire en PIE (`PerfMode` no se puede forzar desde el MCP, ver "Trampas del instrumento") · ⬜ APK, banco en la Quest y visor (fase S: con Beltrán) · ⬜ sin commitear (la carpeta `Mechanics/Breath/Air/` y el nivel están **sin versionar**).
 **Plan (fuente de verdad):** [`docs/PLAN-RESPIRACION-ENTORNO-2026-09-28.md`](../../../../docs/PLAN-RESPIRACION-ENTORNO-2026-09-28.md) — §2 arquitectura, §3 señales, §4 el efecto, §5 assets/parámetros/grafos (tablas 5.3, 5.4, 5.5, 5.6), §11 receta del editor, §15 qué cambió en la rev. 2.
 
@@ -64,7 +64,7 @@ Nombres de propiedad para `get_properties`: camelCase (`glob`, `moveFade`, `rate
 - **Construction Script:** sort 20 (red de seguridad, gotcha 478) + `PreviewAir`.
 
 ## Verificado en PIE (2026-09-28, fase T del plan) — evidencia en `VR_Test/Saved/ClaudeScripts/capa_viva/pie/`
-Condiciones: `/Game/Test_Entering`, PIE en el viewport, en la instancia de PIE `bFakeBreath` = true en el rig (`FakePeriod` 6 s = 10 resp/min) y `Cycles` = 0 en el pacer (infinito, lo mismo que hace `PerfELoop`) para que la etapa no retire el rig durante la prueba. Nada de eso tocó las instancias del editor (verificado después: `bFakeBreath` false, `Cycles` 5).
+Condiciones: `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath`, PIE en el viewport, en la instancia de PIE `bFakeBreath` = true en el rig (`FakePeriod` 6 s = 10 resp/min) y `Cycles` = 0 en el pacer (infinito, lo mismo que hace `PerfELoop`) para que la etapa no retire el rig durante la prueba. Nada de eso tocó las instancias del editor (verificado después: `bFakeBreath` false, `Cycles` 5).
 - **Montaje:** `AIRE: listo` → `AIRE: montado…` **una vez** por sesión, 1,4 s después (cuando la etapa activa el rig); `bMounted` true; `AirMesh` hijo de `BP_VRPawn_SC_C_0.Camera`. Cero `Accessed None` y cero errores de runtime en las dos sesiones de PIE.
 - **Modo y transporte** (traza por cuadro de 11 s, `t4_traza_12s.json`): `Flow` alterna −1 (2,6-2,9 s) → 0 (0,07-0,08 s) → +1 (2,85 s) → 0 → −1, período 6,0 s. `Tin` avanza **solo** inhalando (Δ máx fuera de inhalar 0,0003 = el cuadro del cambio) y `Tout` solo exhalando; una inhalación completa mueve `Tin` ~0,88 (≈ `InTravel` 0,9). La respiración falsa es una senoide: casi no tiene retención, así que "quieto en la pausa" se verificó como "quieto fuera de su modo"; la pausa larga con ruido real es la prueba S3 del visor.
 - **Ritmo:** `RateBpm` 9,86 → 9,999 (real 10) en ~6 ciclos; `RateCalm` 1.
@@ -117,4 +117,4 @@ Pedidos: *"el cono de inhalación es muy abierto"* · *"las de exhalación deben
 - [ ] **S1-S3 con Beltrán:** APK Development, banco (`-Modos 0,4,5,6`: FONDO = m0 − m4, AIRE = m5 − m6), visor: primero el ruido real con `ke * AirDbg` (retención y balanceo sin respirar), después `AirAmount` 0,3 → 1.
 - [ ] Si la pausa "respira" con el ruido real: `VelEnter`/`VelStay`/`VelTau` en la instancia (regla de §3 del plan).
 - [ ] Decisiones de §14 del plan (dónde vive, pluma bajo el metaball, `PitchFollow`, colores).
-- [ ] Commit (con permiso): `Mechanics/Breath/Air/` y `Test_Entering.umap` están sin versionar.
+- [ ] Commit (con permiso): `Mechanics/Breath/Air/` y `Test_Breath.umap` están sin versionar.

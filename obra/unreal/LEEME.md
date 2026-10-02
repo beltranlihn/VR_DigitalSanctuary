@@ -7,6 +7,23 @@ Acuerdo entre la sesión del director (Unreal) y la del editor web, 2026-10-02.
 - **El editor web nunca escribe `.uasset`.** Lo que proponga va a `partitura_propuesta.json` (en esta carpeta, con el mismo formato que `partitura.json` → `valores`, solo con las perillas que cambian). Una sesión con el editor de Unreal lo aplica al DA, corre la prueba de humo y vuelve a exportar.
 - `web/editor-obra/.../guion.js` es la referencia visual del guion; no es la fuente de los tiempos.
 
+## Cómo se aplica una propuesta (acordado 2026-10-02, regla de Beltrán: "con un botón y con vuelta atrás")
+La web solo escribe `partitura_propuesta.json` cuando Beltrán aprieta **Send to Unreal** y confirma la tarjeta de revisión. Campos: `estado` ("enviada"), `enviado`, `por`, `base` {`hash`, `exportado`}, `valores` (solo lo que cambia; los arreglos de 5 enteros), `motivos`, `respaldo` (el valor vivo de cada perilla antes del cambio).
+
+Del lado Unreal (aplicador: `tools/unreal/partitura_apply.py` + su script MCP; **todavía no existe**, se arma la primera vez que haga falta):
+1. **Nunca se aplica solo porque apareció el archivo.** Se aplica únicamente cuando Beltrán lo pide (o una sesión, por pedido suyo). Nadie vigila la carpeta.
+2. Al empezar: `estado: "aplicando"` (el servidor web no pisa el archivo en ese estado).
+3. Antes de tocar el DA: respaldo de los valores vivos en `obra/unreal/respaldos/partitura-<fecha>.json`.
+4. Aplicar → guardar → `python tools/unreal/smoke_obra.py`.
+   - **OK** → re-exportar `partitura.json`, `estado: "aplicada"` + `aplicado: <fecha>`.
+   - **Falla** → restaurar el respaldo en el DA, guardar, `estado: "rechazada"` + `rechazado: <fecha>` + `motivo_rechazo` (qué marca faltó o qué error dio la prueba).
+5. Si `base.hash` no coincide con el `partitura.json` actual (alguien cambió el DA después), no se aplica sin confirmarlo con Beltrán.
+
+El archivo **no se borra** al aplicar: queda con su `estado` y la web lo muestra como "Applied" o "Not applied: <motivo>". "Undo it in Unreal" pone en espera los valores del `respaldo`, y eso vuelve a pasar por Send.
+
+## Niveles (desde el reordenamiento de carpetas del 2026-10-02)
+Los niveles de test cambiaron de lugar y algunos de nombre: `Test_Entering` → **`Test_Breath`**, `Test_Fluid` → **`Test_Mind`**, `L_TBTest_SC` → **`Test_Draw`**. `Test_Heart`, `Test_Sequencer` y `Test_Hall` conservan el nombre. Rutas: `/Game/SoulCharger/Mechanics/<Breath|Heart|Mind|Sequencer|Draw>/Maps/Test_<X>` y `/Game/SoulCharger/Hall/Maps/Test_Hall`. Las rutas de todos los assets que se movieron están en `tools/unreal/reorden_contenido_2026-10-02.json`.
+
 ## Archivos
 | Archivo | Lo escribe | Qué es |
 |---|---|---|

@@ -1,6 +1,6 @@
 # BP_ResultsArt_SC — el arte del CUADRO DE RESULTADOS, con su entrada "luz primero" por piezas
 
-- **Ruta**: `/Game/SoulCharger/Mechanics/Results/BP_ResultsArt_SC`.
+- **Ruta**: `/Game/SoulCharger/Shared/Results/Blueprints/BP_ResultsArt_SC`.
 - **Estado**: 🟢 creado, compilado y guardado (2026-09-30, turno de Mesh 3D) · 🟢 Simulate en `Test_Results`: espera de 3 s → entrada → reposo exacto (AppearT 1, K* = 1, `WinCalm` en z 26 con escala 1), sin errores en el log · ⬜ muestreo de la entrada a mitad de camino (la latencia MCP supera los 2 s; las fórmulas son las de Blender) · ⬜ visor.
   - Diseño aprobado por Narrativa: marco, bisel, cascada de ventanas y la cajita que se abre al apuntar.
 - **Es solo arte + aparición.** Los contenidos (título, gráficos de calma y latido, anillos de respiración, el gusano, los textos de la cajita), el láser y los sonidos de hover son de Narrativa (`BP_Obra_SC` / resultados).
@@ -63,7 +63,7 @@
   - `Tick` usa **Dt = min(DeltaSeconds, 1/30)** (regla de carga del plan) y re-posa solo cuando cambian `AppearT` o `TipK`.
   - Además los eventos de la API.
 
-## Nivel de prueba `/Game/SoulCharger/Mechanics/Results/Test_Results` (pedido de Narrativa)
+## Nivel de prueba `/Game/SoulCharger/Shared/Results/Maps/Test_Results` (pedido de Narrativa)
 - Es una copia de `Test_Appear`: oscuro, sin luces, `BP_XRGameMode`.
 - Vacío salvo el PlayerStart y `BP_ResultsArt_SC` a 2 m al frente, mirándolo. El centro queda a ~122 cm sobre el piso: ojos sentados ~120 (tracking Stage) + 2 cm, como `front(p, 2, .02)` de la web.
 - En la instancia: `AppearOnPlay` true + 3 s (flag de test).

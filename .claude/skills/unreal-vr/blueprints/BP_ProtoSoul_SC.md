@@ -503,3 +503,7 @@ entero mide ~3,5 m de ancho a ~5 m de distancia (39°). Se achica **escalando es
   usuario. Sin `HasDraw`, agarrar la ameba con la mano en esa etapa lo apagaría. Detalle y la verificación
   de las dos ramas en [`BP_Sensor_Soul.md`](BP_Sensor_Soul.md).
 - 💡 Las esferas ya desaparecían solas (`HidePortrait` → `Hide` → `StopMelody` → `VanishOrbs`).
+
+## 2026-10-02 (Narrativa) — reordenamiento
+- Se cortaron las referencias al código viejo (V2/V3) que ya no existe (reordenamiento 1, commit d6d91f1).
+- Carpeta nueva: ver la tabla de lo vigente en [_INDEX.md](_INDEX.md) (las rutas de este tracker ya están actualizadas).

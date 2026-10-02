@@ -14,13 +14,13 @@
 
 | Quiero… | Dónde | Campo |
 |---|---|---|
-| Jugar una etapa sola, completa | su nivel de test (Test_Entering, Test_Heart, Test_Fluid, Test_Sequencer, L_TBTest_SC) | Play. Corre el ensayo `StageRunner`. |
+| Jugar una etapa sola, completa | su nivel de test (Test_Breath, Test_Heart, Test_Mind, Test_Sequencer, Test_Draw) | Play. Corre el ensayo `StageRunner`. |
 | Jugar el Hall solo | Test_Hall | Play. `HallRunner` → `DebugStart` (−1 = desde el título; 2 portal · 3 timbre · 4 Alma · 5 sensor · 6 elección · 7 baldosas · 8 HUD · 9 salida) · `DebugSoul` = qué alma se asume |
 | Jugar la Obra desde un punto | L_SoulCharger_Obra → `BP_Obra_SC` | `DebugStart`: 1 Hall desde el inicio (solo salta el aviso) · 2 portal · **3 timbre** · **4 justo dentro del Hall** (Alma aparece) · 5 sensor · 6 elección del alma · 7 baldosas · 8 nace el HUD · 9 Alma a la puerta de salida · 10-14 Entering (apertura · Alma · instrucciones · mecánica · salida y carga) · 20-24 Recognizing · 30-34 Loving · 40-44 Attracting · 50-54 Surrounding · 60 última carga · 61 regreso · 62 resultados · 63 SHARE · 64 constelación. `DebugSoul` = alma por defecto. **Dejar en −1 para el APK.** |
 | Acelerar la Obra | `BP_Obra_SC` | `Speed` (1 = real; solo para probar) |
 
 ## Ver todo junto: la Obra con sus subniveles
-- Abre `L_SoulCharger_Obra`. En el panel **Levels** están los 6 niveles de test como subniveles: Test_Entering, Test_Heart, Test_Fluid, Test_Sequencer, L_TBTest_SC y Test_Hall.
+- Abre `L_SoulCharger_Obra`. En el panel **Levels** están los 6 niveles de test como subniveles: Test_Breath, Test_Heart, Test_Mind, Test_Sequencer, Test_Draw y Test_Hall.
 - Todos están en el mismo origen y se superponen, así que conviene ver **uno a la vez**: el ojo de cada fila lo muestra u oculta en el editor. Por defecto queda visible Test_Hall, que es donde ocurren el inicio y el final.
 - Lo que mueves en un subnivel se guarda en ese nivel de test, y la Obra lo carga igual. Al guardar, Unreal pregunta qué niveles guardar: guarda los que tocaste.
 - **Nivel actual:** el que está en negrita en Levels recibe lo que colocas nuevo. Déjalo en *Persistent Level* salvo que quieras agregar algo a una etapa (doble clic en su fila).
@@ -144,49 +144,49 @@ Cada nivel de test tiene un `StageRunner` (TestOnly + TOUR) y 4 TargetPoints **s
 - Del `StageRunner` solo llegan a la Obra `CTop`/`CHor`. Sus tiempos vienen de la Partitura (los campos `AlmaTime`/`InstrTime`/`OutroTime`/`TimeoutS`/`ChargeTime` ya no se editan en el nivel).
 - `EyeRef` 120: supuesto compartido con la Obra, no cambiar.
 - La web del prototipo no se actualiza sola: después de mover TPs hay que re-exportar (`ensayo_export.py` → `gen_ensayo_js.py`).
-- Visor: el ensayo solo se probó en PIE en Test_Entering y Test_Sequencer; Test_Heart, Test_Fluid y L_TBTest_SC están colocados sin correr.
+- Visor: el ensayo solo se probó en PIE en Test_Breath y Test_Sequencer; Test_Heart, Test_Mind y Test_Draw están colocados sin correr.
 
 ---
 
-### 1. Entering (respiración) — `/Game/Test_Entering`, K = 0
+### 1. Entering (respiración) — `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath`, K = 0
 
 #### Posición y tamaño
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Dónde flota el metaball | Test_Entering | `Entering_Blob` | Transform (posición) | (380, 0, 125). ⚠ A menos de ~2,5 m del usuario la cámara entra en su proxy y deja de verse. No escalar el actor |
-| Tamaño del metaball | Test_Entering | `Entering_Blob` | `SizeCM` (categoría por confirmar) | 220. El Construction Script pisa la escala del actor: el tamaño se ajusta acá |
-| Dónde está el pacer y su tamaño | Test_Entering | `Entering_Pacer` | Transform + `SizeCm`, `LineWidth`, `ClearCenter` (B - Forma) | (200, 0, 70), Pitch 90, centrado en el metaball · `SizeCm` 350 · `LineWidth` 0,008 · `ClearCenter` 0,62 |
-| Colinas más cerca o más altas | Test_Entering | `Entering_Valle` | `HillNear` 4500 · `HillAmp` 2200 (1-Colinas); `FarBase`/`FarAmp` (2-Lejos) | Escala del actor = 1 siempre (se puede girar en yaw). El actor está en z −90,4 (puesto a mano) |
-| Sombra del metaball en el piso | Test_Entering | `Entering_Valle` | `bShadow` · `ShadowRadius` 85 · `ShadowStrength` 1,5 (8-Sombra) | Sigue sola al metaball (nace y se va con él) |
+| Dónde flota el metaball | Test_Breath | `Entering_Blob` | Transform (posición) | (380, 0, 125). ⚠ A menos de ~2,5 m del usuario la cámara entra en su proxy y deja de verse. No escalar el actor |
+| Tamaño del metaball | Test_Breath | `Entering_Blob` | `SizeCM` (categoría por confirmar) | 220. El Construction Script pisa la escala del actor: el tamaño se ajusta acá |
+| Dónde está el pacer y su tamaño | Test_Breath | `Entering_Pacer` | Transform + `SizeCm`, `LineWidth`, `ClearCenter` (B - Forma) | (200, 0, 70), Pitch 90, centrado en el metaball · `SizeCm` 350 · `LineWidth` 0,008 · `ClearCenter` 0,62 |
+| Colinas más cerca o más altas | Test_Breath | `Entering_Valle` | `HillNear` 4500 · `HillAmp` 2200 (1-Colinas); `FarBase`/`FarAmp` (2-Lejos) | Escala del actor = 1 siempre (se puede girar en yaw). El actor está en z −90,4 (puesto a mano) |
+| Sombra del metaball en el piso | Test_Breath | `Entering_Valle` | `bShadow` · `ShadowRadius` 85 · `ShadowStrength` 1,5 (8-Sombra) | Sigue sola al metaball (nace y se va con él) |
 | Forma del aliento (cono y pluma) | asset `MI_BreathAir_SC` | (lo usa `Entering_Aire`) | `InSpreadH` 18 · `InSpreadV` 8 · `OutStart` 40 · `PlumeLen` 95 · `OutSizeCm` 0,22 · `OutAlpha` 0,45 | Boca: `MouthFwd` 6 / `MouthDown` 9 (A-Aliento) en `Entering_Aire` |
 
 #### Color y luz
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Color y brillo del metaball | Test_Entering | `Entering_Blob` | `ColorLight` (0,92, 0,945, 1) · `ColorShadow` (0,026, 0,013, 0,12) · `Brightness` 1,546 (categoría por confirmar) | Manchas de color: `FlowAmt` 0,6 · `FlowScale` 0,12 (G - Movimiento) |
-| Color del pacer | Test_Entering | `Entering_Pacer` | `PacerColor` / `AccentColor` (1, 1, 1) · `Brightness` 1,43 · `Opacity` 0,85 · `EmissiveAlpha` 0 (C - Color) | `EmissiveAlpha` 0 = velo blanco correcto sobre el valle; en 1 se ve gris |
-| Luz y colores del valle | Test_Entering | `Entering_Valle` | `ColLit` · `ColShadow` · `ColSheen` · `Sheen` 0,28 · `LightAz` 20 · `LightEl` 25 (4-LuzColor) | Se ve en vivo en el viewport |
-| Cielo, luna y niebla | Test_Entering | `Entering_Valle` | `SkyZenith` / `SkyHorizon` / `SkyGlow` · `GlowAmt` 0,8 (5-Cielo) · `MoonAz` −40 · `MoonEl` 7 · `MoonRadius` 9 · `MoonOpacity` 0,55 · `MoonColor` (6-Luna) · `FogStart` 800 · `FogDist` 20000 · `FogMax` 0,93 (7-Niebla) | |
-| Color del sensor en esta etapa | Test_Entering | `Entering_Stage` | `SensorColor` (0,35, 0,7, 1) (0-Contrato) | Azulado; lo manda al mando/sensor de la Obra |
-| Intensidad del aliento y del polvo | Test_Entering | `Entering_Aire` / `Entering_Vida` | `AirAmount` 1 (A-Aliento) · `VidaAmount` 1 (A-Vida) · `GustLight` 2,8 (B-Rafagas) | 0 = apagado. Brillo del polvo: `DustAlpha` / `SunBase` en `MI_ValleyDust_SC` |
+| Color y brillo del metaball | Test_Breath | `Entering_Blob` | `ColorLight` (0,92, 0,945, 1) · `ColorShadow` (0,026, 0,013, 0,12) · `Brightness` 1,546 (categoría por confirmar) | Manchas de color: `FlowAmt` 0,6 · `FlowScale` 0,12 (G - Movimiento) |
+| Color del pacer | Test_Breath | `Entering_Pacer` | `PacerColor` / `AccentColor` (1, 1, 1) · `Brightness` 1,43 · `Opacity` 0,85 · `EmissiveAlpha` 0 (C - Color) | `EmissiveAlpha` 0 = velo blanco correcto sobre el valle; en 1 se ve gris |
+| Luz y colores del valle | Test_Breath | `Entering_Valle` | `ColLit` · `ColShadow` · `ColSheen` · `Sheen` 0,28 · `LightAz` 20 · `LightEl` 25 (4-LuzColor) | Se ve en vivo en el viewport |
+| Cielo, luna y niebla | Test_Breath | `Entering_Valle` | `SkyZenith` / `SkyHorizon` / `SkyGlow` · `GlowAmt` 0,8 (5-Cielo) · `MoonAz` −40 · `MoonEl` 7 · `MoonRadius` 9 · `MoonOpacity` 0,55 · `MoonColor` (6-Luna) · `FogStart` 800 · `FogDist` 20000 · `FogMax` 0,93 (7-Niebla) | |
+| Color del sensor en esta etapa | Test_Breath | `Entering_Stage` | `SensorColor` (0,35, 0,7, 1) (0-Contrato) | Azulado; lo manda al mando/sensor de la Obra |
+| Intensidad del aliento y del polvo | Test_Breath | `Entering_Aire` / `Entering_Vida` | `AirAmount` 1 (A-Aliento) · `VidaAmount` 1 (A-Vida) · `GustLight` 2,8 (B-Rafagas) | 0 = apagado. Brillo del polvo: `DustAlpha` / `SunBase` en `MI_ValleyDust_SC` |
 
 #### Tiempos y ritmo
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Tiempos de la respiración guiada | Test_Entering | `Entering_Pacer` | `InhaleTime` / `Hold1Time` / `ExhaleTime` / `Hold2Time` = 4-3-4-3 · `Cycles` 5 (A - Ritmo) | `Preset` tiene que quedar en 0 (si no, pisa los tiempos). ⚠ Los sonidos del pacer están hechos para 4-3-4-3 |
-| Pausas y halo del pacer | Test_Entering | `Entering_Pacer` | `LeadIn` / `LeadOut` 3 s (A - Ritmo) · `HaloStrength` 0,55 · `HaloFadeOut` 1,5 (F - Halo) | Progreso: `bShowProgress` · `ProgRadius` −0,035 (G - Progreso) |
-| Exploración libre y cuenta regresiva | Test_Entering | `Entering_Stage` | `ExploreTime` 12 · `CountTime` 3 · `ToolDelay` 0,8 (0-Contrato) | De `StageBegin` al fin ≈ 88 s |
-| Entrada y salida del metaball | Test_Entering | `Entering_Blob` | `IntroTime` 2,5 · `OutroTime` 2,5 · `MorphRadius` 0,08 · `MorphSpread` 1,9 · `MorphScale` 0,5 (F - Entrada Salida) | Nace por morfeo (gotas chicas que crecen y se funden) |
-| Ondulación de las lomas | Test_Entering | `Entering_Valle` | `MorphAmt` 0,45 · `MorphSpeed` 2 · `SwellAmp` 2800 · `SwellSpeed` 2 · `ExhaleSwell` 3 · `SwellFollow` 0,6 (3-Movimiento) | ⚠ Por encima de los topes de confort (decisión de Beltrán). Si marea: bajar primero `SwellSpeed`. No cambiar los `*Speed` con el visor puesto (la fase salta) |
-| Ráfagas de viento | Test_Entering | `Entering_Vida` | `FirstGap` 14 · `GapMin` / `GapMax` 20 / 40 s · `GustAmount` 1 (B-Rafagas) · `BreathEvery` 2 (C-Soplo) · `GustVolume` 0,8 (D-Sonido) | |
+| Tiempos de la respiración guiada | Test_Breath | `Entering_Pacer` | `InhaleTime` / `Hold1Time` / `ExhaleTime` / `Hold2Time` = 4-3-4-3 · `Cycles` 5 (A - Ritmo) | `Preset` tiene que quedar en 0 (si no, pisa los tiempos). ⚠ Los sonidos del pacer están hechos para 4-3-4-3 |
+| Pausas y halo del pacer | Test_Breath | `Entering_Pacer` | `LeadIn` / `LeadOut` 3 s (A - Ritmo) · `HaloStrength` 0,55 · `HaloFadeOut` 1,5 (F - Halo) | Progreso: `bShowProgress` · `ProgRadius` −0,035 (G - Progreso) |
+| Exploración libre y cuenta regresiva | Test_Breath | `Entering_Stage` | `ExploreTime` 12 · `CountTime` 3 · `ToolDelay` 0,8 (0-Contrato) | De `StageBegin` al fin ≈ 88 s |
+| Entrada y salida del metaball | Test_Breath | `Entering_Blob` | `IntroTime` 2,5 · `OutroTime` 2,5 · `MorphRadius` 0,08 · `MorphSpread` 1,9 · `MorphScale` 0,5 (F - Entrada Salida) | Nace por morfeo (gotas chicas que crecen y se funden) |
+| Ondulación de las lomas | Test_Breath | `Entering_Valle` | `MorphAmt` 0,45 · `MorphSpeed` 2 · `SwellAmp` 2800 · `SwellSpeed` 2 · `ExhaleSwell` 3 · `SwellFollow` 0,6 (3-Movimiento) | ⚠ Por encima de los topes de confort (decisión de Beltrán). Si marea: bajar primero `SwellSpeed`. No cambiar los `*Speed` con el visor puesto (la fase salta) |
+| Ráfagas de viento | Test_Breath | `Entering_Vida` | `FirstGap` 14 · `GapMin` / `GapMax` 20 / 40 s · `GustAmount` 1 (B-Rafagas) · `BreathEvery` 2 (C-Soplo) · `GustVolume` 0,8 (D-Sonido) | |
 
 #### Mecánica
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Qué tan fácil entra el umbral (panza) | Test_Entering | `Entering_BreathRig` | `SafeHorizMax` 23 · `SafeVDropMin/Max` 33 / 63 · `StillLin` / `StillAng` 14 / 45 · `ActivateDelay` 1,5 · `FacingMin` 0,34 (A - Umbral) | Valores del manager, validados en visor; confirmar en la instancia |
-| Qué tan rápido sigue el metaball a la respiración | Test_Entering | `Entering_BreathRig` | `BreathFollowTime` 3,0 · `BreathFollowAttack` 0,12 · `RangeTau` 6 · `SignedGain` 1 (D - Salida) | `BreathFollowTime` = segundos para llegar al extremo |
-| Cuánto reacciona el metaball | Test_Entering | `Entering_Blob` | `BreathSpreadIn` −0,85 · `BreathSpreadOut` 0,6 · `BreathCurlIn` −0,7 · `BreathRadiusOut` −0,15 · `BreathBrightOut` 0 (R - Respiracion) | Más negativo al inhalar = más redondo y quieto |
-| Vibración | Test_Entering | `Entering_BreathRig` | `HapticAmp` 0,25 · `bHaptics` (C - Haptica) | |
+| Qué tan fácil entra el umbral (panza) | Test_Breath | `Entering_BreathRig` | `SafeHorizMax` 23 · `SafeVDropMin/Max` 33 / 63 · `StillLin` / `StillAng` 14 / 45 · `ActivateDelay` 1,5 · `FacingMin` 0,34 (A - Umbral) | Valores del manager, validados en visor; confirmar en la instancia |
+| Qué tan rápido sigue el metaball a la respiración | Test_Breath | `Entering_BreathRig` | `BreathFollowTime` 3,0 · `BreathFollowAttack` 0,12 · `RangeTau` 6 · `SignedGain` 1 (D - Salida) | `BreathFollowTime` = segundos para llegar al extremo |
+| Cuánto reacciona el metaball | Test_Breath | `Entering_Blob` | `BreathSpreadIn` −0,85 · `BreathSpreadOut` 0,6 · `BreathCurlIn` −0,7 · `BreathRadiusOut` −0,15 · `BreathBrightOut` 0 (R - Respiracion) | Más negativo al inhalar = más redondo y quieto |
+| Vibración | Test_Breath | `Entering_BreathRig` | `HapticAmp` 0,25 · `bHaptics` (C - Haptica) | |
 
 **No ajustable hoy (Entering)**
 - **Mando y sensor en la mano:** `Entering_UserTool` es TestOnly. En la Obra manda `UserTool_Obra` del persistente `L_SoulCharger_Obra` (`SensorXfR/L`, `LightColor`, `MorphTime`, categoría A-Herramienta). La pose del sensor en la mano está sin validar en visor.
@@ -200,7 +200,7 @@ Cada nivel de test tiene un `StageRunner` (TestOnly + TOUR) y 4 TargetPoints **s
 
 ---
 
-### 2. Recognizing (latido) — `/Game/Test_Heart`, K = 1
+### 2. Recognizing (latido) — `/Game/SoulCharger/Mechanics/Heart/Maps/Test_Heart`, K = 1
 
 #### Posición y tamaño
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
@@ -248,43 +248,43 @@ Cada nivel de test tiene un `StageRunner` (TestOnly + TOUR) y 4 TargetPoints **s
 
 ---
 
-### 3. Loving (mente) — `/Game/Test_Fluid`, K = 2
+### 3. Loving (mente) — `/Game/SoulCharger/Mechanics/Mind/Maps/Test_Mind`, K = 2
 
 #### Posición y tamaño
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Dónde está la célula | Test_Fluid | `LovingCell` | Transform | (200, 0, 115), yaw 180 (su +X mira al usuario). Sube 10 cm al entrar y 15 al salir |
-| Tamaño del núcleo y de las bolas | Test_Fluid | `LovingCell` | `CentreRadius` 16 cm · `GroupSize` 1 (bola = 3,4 cm × GroupSize) · `SizeVariation` 0,5 (2-Forma) | |
-| Cuántos grupos y a qué distancia | Test_Fluid | `LovingCell` | `GroupCount` 5 (hasta 10) · `DistSeparated` 82 · `DistConnected` 38 · `GroupSpread` 1 · `FigureTilt` 15° (2-Forma) | |
-| Envoltura exterior | Test_Fluid | `LovingCell` | `OuterOpacity` 0,01 · `OuterBody` 60 · `OuterSoftness` 1 · `OuterWobble` 0,2 · `OuterMargin` 3 (6-Envoltura) | `OuterOpacity` 0 = oculta, costo cero |
-| Amebas del fondo (cantidad y tamaño) | Test_Fluid | `Fluid` (etiqueta por confirmar; clase `BP_FluidMedium_SC`) | `MidCellCount` 5 · `MidCellScale` 1,1 · `MidCellRange` 1800 · `FarCellCount` 20 · `FarCellSize` 80 (4-Celulas) | |
-| Partículas del agua | Test_Fluid | ídem | `NearSize` / `MidSize` / `FarSize` 0,45 / 1,3 / 6 · alfas 0,45 / 0,45 / 0,35 · `Bokeh` 3 (3-Particulas) | |
+| Dónde está la célula | Test_Mind | `LovingCell` | Transform | (200, 0, 115), yaw 180 (su +X mira al usuario). Sube 10 cm al entrar y 15 al salir |
+| Tamaño del núcleo y de las bolas | Test_Mind | `LovingCell` | `CentreRadius` 16 cm · `GroupSize` 1 (bola = 3,4 cm × GroupSize) · `SizeVariation` 0,5 (2-Forma) | |
+| Cuántos grupos y a qué distancia | Test_Mind | `LovingCell` | `GroupCount` 5 (hasta 10) · `DistSeparated` 82 · `DistConnected` 38 · `GroupSpread` 1 · `FigureTilt` 15° (2-Forma) | |
+| Envoltura exterior | Test_Mind | `LovingCell` | `OuterOpacity` 0,01 · `OuterBody` 60 · `OuterSoftness` 1 · `OuterWobble` 0,2 · `OuterMargin` 3 (6-Envoltura) | `OuterOpacity` 0 = oculta, costo cero |
+| Amebas del fondo (cantidad y tamaño) | Test_Mind | `Fluid` (etiqueta por confirmar; clase `BP_FluidMedium_SC`) | `MidCellCount` 5 · `MidCellScale` 1,1 · `MidCellRange` 1800 · `FarCellCount` 20 · `FarCellSize` 80 (4-Celulas) | |
+| Partículas del agua | Test_Mind | ídem | `NearSize` / `MidSize` / `FarSize` 0,45 / 1,3 / 6 · alfas 0,45 / 0,45 / 0,35 · `Bokeh` 3 (3-Particulas) | |
 
 #### Color y luz
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Colores de la ameba | Test_Fluid | `LovingCell` | `AmoebaColor1` #F7ECFB · `AmoebaColor2` #B095D5 · `ShadowColor` #4B3C5D (7-Color) | Paleta morada del 09-30 |
-| Membranas y partículas de la célula | Test_Fluid | `LovingCell` | `MembraneColor` #E8D8F0 · `MembraneRim` #BFA2D5 (7-Color) · `OuterColor` #C6B0D7 (6-Envoltura) · `DustColor` #DECBE7 · `DustOpacity` (5-Particulas) | |
-| Cáusticas del agua sobre la célula | Test_Fluid | `LovingCell` | `WaterLight` (0,5) · `WaterLightShell` (8-Agua) | 0 = apagada; 2-3 = se lee fuerte |
-| Color del agua | Test_Fluid | `Fluid` (por confirmar) | `FluidTop` #362E3E · `FluidMid` #241E2A · `FluidBottom` #131115 (2-Liquido) | |
-| Luz desde arriba, haces y cáusticas | Test_Fluid | ídem | `GlowColor` #D3C3D9 · `GlowAmount` 0,32 · `GlowPower` 4 (2-Liquido) · `ShaftAmount` 0,14 · `VeilAmount` 0 · `CausticAmount` 0,22 · `CausticScale` 38 (5-Luz) | |
-| Color de las amebas del fondo y motas | Test_Fluid | ídem | `CellHigh` #C0ACCC · `CellLow` #342A3E · `CellFill` #3B3047 · `CellContrast` 0,7 (4-Celulas) · `MoteColor` #DDCAE6 · `MoteBright` 0,75 (3-Particulas) | |
-| Profundidad y bruma | Test_Fluid | ídem | `AbsorbDist` 650 · `AbsorbMax` 0,95 (2-Liquido) | |
+| Colores de la ameba | Test_Mind | `LovingCell` | `AmoebaColor1` #F7ECFB · `AmoebaColor2` #B095D5 · `ShadowColor` #4B3C5D (7-Color) | Paleta morada del 09-30 |
+| Membranas y partículas de la célula | Test_Mind | `LovingCell` | `MembraneColor` #E8D8F0 · `MembraneRim` #BFA2D5 (7-Color) · `OuterColor` #C6B0D7 (6-Envoltura) · `DustColor` #DECBE7 · `DustOpacity` (5-Particulas) | |
+| Cáusticas del agua sobre la célula | Test_Mind | `LovingCell` | `WaterLight` (0,5) · `WaterLightShell` (8-Agua) | 0 = apagada; 2-3 = se lee fuerte |
+| Color del agua | Test_Mind | `Fluid` (por confirmar) | `FluidTop` #362E3E · `FluidMid` #241E2A · `FluidBottom` #131115 (2-Liquido) | |
+| Luz desde arriba, haces y cáusticas | Test_Mind | ídem | `GlowColor` #D3C3D9 · `GlowAmount` 0,32 · `GlowPower` 4 (2-Liquido) · `ShaftAmount` 0,14 · `VeilAmount` 0 · `CausticAmount` 0,22 · `CausticScale` 38 (5-Luz) | |
+| Color de las amebas del fondo y motas | Test_Mind | ídem | `CellHigh` #C0ACCC · `CellLow` #342A3E · `CellFill` #3B3047 · `CellContrast` 0,7 (4-Celulas) · `MoteColor` #DDCAE6 · `MoteBright` 0,75 (3-Particulas) | |
+| Profundidad y bruma | Test_Mind | ídem | `AbsorbDist` 650 · `AbsorbMax` 0,95 (2-Liquido) | |
 
 #### Tiempos y ritmo
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Largo de la mecánica | Test_Fluid | `LovingCell` | `StageDuration` (9-Etapa; la instancia tiene 60) | La Obra le pide cerrar a `Etapa_Tope[2]` 120 s |
-| Entrada y salida de la célula | Test_Fluid | `LovingCell` | `IntroTime` 3 · `OutroTime` 3 · `SndVolume` 0,8 (9-Etapa) | |
-| Viaje hacia adelante | Test_Fluid | `Fluid` (por confirmar) | `TravelSpeed` 25 cm/s · `TravelEase` 4 · `TravelEaseOut` 2 · `TravelYaw` −180 (7-Viaje) | En el viewport se ve siempre, para ajustar mirando |
-| Corriente y remolinos | Test_Fluid | ídem | `CurrentSpeed` 2,5 · `FlowSpeed` 0,1 · `Turbulence` 0,45 (1-Movimiento) · `ActiveBoost` 2 (0-EEG) | `ActiveBoost` = cuánto se acelera el mundo cuando la ameba está activa |
-| Qué tan viva o agitada | Test_Fluid | `LovingCell` | `ActivityDrive` 1 · `StateSmoothing` 1,2 (1-Estado) · `NoiseAmount` · `OrganicMotion` · `PulseSpeed` · `StrandCurl` (4-Vida) | |
+| Largo de la mecánica | Test_Mind | `LovingCell` | `StageDuration` (9-Etapa; la instancia tiene 60) | La Obra le pide cerrar a `Etapa_Tope[2]` 120 s |
+| Entrada y salida de la célula | Test_Mind | `LovingCell` | `IntroTime` 3 · `OutroTime` 3 · `SndVolume` 0,8 (9-Etapa) | |
+| Viaje hacia adelante | Test_Mind | `Fluid` (por confirmar) | `TravelSpeed` 25 cm/s · `TravelEase` 4 · `TravelEaseOut` 2 · `TravelYaw` −180 (7-Viaje) | En el viewport se ve siempre, para ajustar mirando |
+| Corriente y remolinos | Test_Mind | ídem | `CurrentSpeed` 2,5 · `FlowSpeed` 0,1 · `Turbulence` 0,45 (1-Movimiento) · `ActiveBoost` 2 (0-EEG) | `ActiveBoost` = cuánto se acelera el mundo cuando la ameba está activa |
+| Qué tan viva o agitada | Test_Mind | `LovingCell` | `ActivityDrive` 1 · `StateSmoothing` 1,2 (1-Estado) · `NoiseAmount` · `OrganicMotion` · `PulseSpeed` · `StrandCurl` (4-Vida) | |
 
 #### Mecánica
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Manos que revuelven el agua | Test_Fluid | `Fluid` (por confirmar) | `bHandStir` true · `StirStrength` · `StirRadius` · `StirSwirl` · `HandMaxSpeed` 300 (6-Manos) | ⬜ Sin visor con mandos |
-| Contraste activo/calma del agua | Test_Fluid | ídem | `EEGFlow` 1,0 · `EEGClarity` · `EEGSmoothing` 1,5 (0-EEG) | |
+| Manos que revuelven el agua | Test_Mind | `Fluid` (por confirmar) | `bHandStir` true · `StirStrength` · `StirRadius` · `StirSwirl` · `HandMaxSpeed` 300 (6-Manos) | ⬜ Sin visor con mandos |
+| Contraste activo/calma del agua | Test_Mind | ídem | `EEGFlow` 1,0 · `EEGClarity` · `EEGSmoothing` 1,5 (0-EEG) | |
 
 **No ajustable hoy (Loving)**
 - La actividad no viene de un sensor: la célula la genera sola en `StageBegin` y la copia al fluido (`StageCouple`). `EEG` / `bFakeEEG` del fluido y `GlobalState` de la célula los pisa el código: no tocarlos.
@@ -296,7 +296,7 @@ Cada nivel de test tiene un `StageRunner` (TestOnly + TOUR) y 4 TargetPoints **s
 
 ---
 
-### 4. Attracting (secuenciador) — `/Game/Test_Sequencer`, K = 3
+### 4. Attracting (secuenciador) — `/Game/SoulCharger/Mechanics/Sequencer/Maps/Test_Sequencer`, K = 3
 
 #### Posición y tamaño
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
@@ -345,45 +345,45 @@ Cada nivel de test tiene un `StageRunner` (TestOnly + TOUR) y 4 TargetPoints **s
 
 ---
 
-### 5. Surrounding (dibujo) — `/Game/NeuralCanvas/Maps/L_TBTest_SC`, K = 4
+### 5. Surrounding (dibujo) — `/Game/SoulCharger/Mechanics/Draw/Maps/Test_Draw`, K = 4
 
 ⚠ Etapa **cerrada por Beltrán** el 2026-09-30 ("Funciona. Todo correcto."). Tocar solo si hace falta.
 
 #### Posición y tamaño
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Mesa de dibujo | L_TBTest_SC | `DrawTable` (BP_TBTable) | Transform | (−265, 0, 180), Yaw 180; su +X apunta hacia quien dibuja. Moverla cambia el ancla; su escala no escala el dibujo |
-| Dónde se exhibe el dibujo guardado | L_TBTest_SC | `SketchTarget` (TargetPoint) | Transform (posición, giro, escala) | (235, 0, 80), Yaw 180, escala 4,89; +X hacia quien mira; la escala agranda el dibujo |
-| Pose de la paleta en la mano | L_TBTest_SC | `TBDirector` | `PaletteSide` / `PaletteUp` / `PaletteNear` (cm) · `PaletteTilt` / `PaletteBank` / `PaletteSpin` (°) · `PaletteScale` 0,464 (07 PALETA) | Se ajusta en vivo durante el PIE; al parar, copiar los valores a la instancia |
-| Mar | L_TBTest_SC | `DrawSea` | Transform · `SwellAmp` 22 · `SwellLenMax` / `SwellLenMin` 2600 / 420 (1-Oleaje) | z −120 = 226 cm bajo el usuario; escala 1; se puede girar en yaw |
-| Grosor del trazo | L_TBTest_SC | `TBDirector` | `StartSize` 0,45 · `SliderMinSize` / `SliderMaxSize` 0,5 / 1,5 (07 PALETA) | |
-| Halo de la punta | L_TBTest_SC | `TBDirector` | `bHalo` · `HaloScale` 3 · `HaloIntensity` 0,6 · `HaloBoost` 1 (06 PUNTA) | |
+| Mesa de dibujo | Test_Draw | `DrawTable` (BP_TBTable) | Transform | (−265, 0, 180), Yaw 180; su +X apunta hacia quien dibuja. Moverla cambia el ancla; su escala no escala el dibujo |
+| Dónde se exhibe el dibujo guardado | Test_Draw | `SketchTarget` (TargetPoint) | Transform (posición, giro, escala) | (235, 0, 80), Yaw 180, escala 4,89; +X hacia quien mira; la escala agranda el dibujo |
+| Pose de la paleta en la mano | Test_Draw | `TBDirector` | `PaletteSide` / `PaletteUp` / `PaletteNear` (cm) · `PaletteTilt` / `PaletteBank` / `PaletteSpin` (°) · `PaletteScale` 0,464 (07 PALETA) | Se ajusta en vivo durante el PIE; al parar, copiar los valores a la instancia |
+| Mar | Test_Draw | `DrawSea` | Transform · `SwellAmp` 22 · `SwellLenMax` / `SwellLenMin` 2600 / 420 (1-Oleaje) | z −120 = 226 cm bajo el usuario; escala 1; se puede girar en yaw |
+| Grosor del trazo | Test_Draw | `TBDirector` | `StartSize` 0,45 · `SliderMinSize` / `SliderMaxSize` 0,5 / 1,5 (07 PALETA) | |
+| Halo de la punta | Test_Draw | `TBDirector` | `bHalo` · `HaloScale` 3 · `HaloIntensity` 0,6 · `HaloBoost` 1 (06 PUNTA) | |
 
 #### Color y luz
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Los 4 colores de la paleta | L_TBTest_SC | `TBDirector` | `SlotColorA[4]` · `SlotColorB[4]` (degradado) · `bColorGradient` · `ColorMode` 1 (01 COLOR) | Las teclas de la paleta se pintan con `SlotColorA` |
-| Brillo de la punta | L_TBTest_SC | `TBDirector` | `TipGain` 1,5 · `TipLift` 0,06 (06 PUNTA) | |
-| Color de la mesa | L_TBTest_SC | `TBDirector` | `TableColor` (0,25 / 0,55 / 1) (03 SKETCH) | Solo en juego. Opacidad: `TableOpacity` 0,35 en `M_TB_Table` |
-| Mar y cielo | L_TBTest_SC | `DrawSea` | `DeepColor` / `SurfColor` / `CrestColor` · `CrestAmt` · `LightAz` 40 · `LightEl` 22 (5-Superficie) · `ZenithColor` / `HorizonColor` · `GlowColor` · `FogStart` 500 · `FogDensity` 0,00017 (6-CieloNiebla) | |
-| Polvo | L_TBTest_SC | `DrawSea` | `bShowDust` · `DustColor` · `DustAmt` 0,45 · `DustSize` 0,9 · `DustRise` 0,6 (7-Polvo) | |
+| Los 4 colores de la paleta | Test_Draw | `TBDirector` | `SlotColorA[4]` · `SlotColorB[4]` (degradado) · `bColorGradient` · `ColorMode` 1 (01 COLOR) | Las teclas de la paleta se pintan con `SlotColorA` |
+| Brillo de la punta | Test_Draw | `TBDirector` | `TipGain` 1,5 · `TipLift` 0,06 (06 PUNTA) | |
+| Color de la mesa | Test_Draw | `TBDirector` | `TableColor` (0,25 / 0,55 / 1) (03 SKETCH) | Solo en juego. Opacidad: `TableOpacity` 0,35 en `M_TB_Table` |
+| Mar y cielo | Test_Draw | `DrawSea` | `DeepColor` / `SurfColor` / `CrestColor` · `CrestAmt` · `LightAz` 40 · `LightEl` 22 (5-Superficie) · `ZenithColor` / `HorizonColor` · `GlowColor` · `FogStart` 500 · `FogDensity` 0,00017 (6-CieloNiebla) | |
+| Polvo | Test_Draw | `DrawSea` | `bShowDust` · `DustColor` · `DustAmt` 0,45 · `DustSize` 0,9 · `DustRise` 0,6 (7-Polvo) | |
 | Relieve del marcador | asset `MI_TB_TaperedMarker` | — | `ReliefAmt` 0,15 | El pincel 1, "sutil" a pedido de Beltrán |
 
 #### Tiempos y ritmo
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Largo de la etapa (la tinta) | L_TBTest_SC | `TBDirector` | `InkMeters` 30 m · `bInk` (10 TINTA) | ~100 s de dibujo a 30 cm/s. Al agotarse, guarda solo |
-| Exhibición del dibujo | L_TBTest_SC | `TBDirector` | `HoldTime` 5 s · `SpinSpeed` 20 °/s · `ShowTime` / `HideTime` · `OutroTime` 1,2 (03 SKETCH) | |
-| Entrada de mandos y paleta | L_TBTest_SC | `TBDirector` | `IntroTime` 0,8 · `ContractPaletteDelay` 0,6 (11 CONTRATO) | |
-| Vaivén de los trazos | L_TBTest_SC | `TBDirector` | `bSwayEnabled` · `SwayStrength` 2,739 · `SwaySpeed` · `SwayWave` · `SwaySpan` · `SwayFade` (02 ANIMACION) | |
-| Oleaje y avance del mar | L_TBTest_SC | `DrawSea` | `Tempo` 0,28 (1-Oleaje) · `Advance` 5 (3-Avance) | |
+| Largo de la etapa (la tinta) | Test_Draw | `TBDirector` | `InkMeters` 30 m · `bInk` (10 TINTA) | ~100 s de dibujo a 30 cm/s. Al agotarse, guarda solo |
+| Exhibición del dibujo | Test_Draw | `TBDirector` | `HoldTime` 5 s · `SpinSpeed` 20 °/s · `ShowTime` / `HideTime` · `OutroTime` 1,2 (03 SKETCH) | |
+| Entrada de mandos y paleta | Test_Draw | `TBDirector` | `IntroTime` 0,8 · `ContractPaletteDelay` 0,6 (11 CONTRATO) | |
+| Vaivén de los trazos | Test_Draw | `TBDirector` | `bSwayEnabled` · `SwayStrength` 2,739 · `SwaySpeed` · `SwayWave` · `SwaySpan` · `SwayFade` (02 ANIMACION) | |
+| Oleaje y avance del mar | Test_Draw | `DrawSea` | `Tempo` 0,28 (1-Oleaje) · `Advance` 5 (3-Avance) | |
 | Estela del pincel | Class Defaults de `BP_TBTrail_NC` | (se crea en runtime) | `TrailLife` 0,12 · `TrailWidth` 0,7 · `TrailIdeal` 6 (10 ESTELA) | |
 
 #### Mecánica
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Vibración al dibujar | L_TBTest_SC | `TBDirector` | `DrawHapAmp` · `DrawHapFreq` · `ClickHapAmp` · `DrawHapPulse` (05 HAPTICA) | |
-| Sonidos y música | L_TBTest_SC | `TBDirector` / `Ambient_Surrounding` | `BrushLoop[]` / `BrushLoopVol[]` · `ClickVol` · `SfxVol` · `ChargeVol` 0,6 · `SliderVol` 0,3 (04 AUDIO) · volumen del AmbientSound (Ambient_Clip_7) | La música es el AmbientSound del nivel |
+| Vibración al dibujar | Test_Draw | `TBDirector` | `DrawHapAmp` · `DrawHapFreq` · `ClickHapAmp` · `DrawHapPulse` (05 HAPTICA) | |
+| Sonidos y música | Test_Draw | `TBDirector` / `Ambient_Surrounding` | `BrushLoop[]` / `BrushLoopVol[]` · `ClickVol` · `SfxVol` · `ChargeVol` 0,6 · `SliderVol` 0,3 (04 AUDIO) · volumen del AmbientSound (Ambient_Clip_7) | La música es el AmbientSound del nivel |
 
 **No ajustable hoy (Surrounding)**
 - La paleta 3D no tiene teclas Save/Clear: el cierre es por tinta. `SaveHoldTime` no tiene efecto.

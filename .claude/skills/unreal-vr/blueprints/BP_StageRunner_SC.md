@@ -1,7 +1,7 @@
 # BP_StageRunner_SC — el ENSAYO de una etapa en su nivel de test
 
-- **refPath**: `/Game/SoulCharger/Obra/BP_StageRunner_SC.BP_StageRunner_SC` · parent Actor · creado 2026-09-30 (Narrativa, pedido de Beltrán: "Ensayo de etapa primero").
-- **Instancias** (label `StageRunner`, tags **`TestOnly` + `TOUR`**): una en cada nivel de test — Test_Entering (K 0), Test_Heart (1), Test_Fluid (2), Test_Sequencer (3), L_TBTest_SC (4). Con cada una: `Alma_Ensayo` (BP_Alma_SC, TestOnly) y 4 TargetPoints **sin TestOnly** `TP_sc<K>_alma_in / _alma_side / _charge / _title` (tag = el nombre sin `TP_`).
+- **refPath**: `/Game/SoulCharger/Obra/Blueprints/BP_StageRunner_SC.BP_StageRunner_SC` · parent Actor · creado 2026-09-30 (Narrativa, pedido de Beltrán: "Ensayo de etapa primero").
+- **Instancias** (label `StageRunner`, tags **`TestOnly` + `TOUR`**): una en cada nivel de test — Test_Breath (K 0), Test_Heart (1), Test_Mind (2), Test_Sequencer (3), Test_Draw (4). Con cada una: `Alma_Ensayo` (BP_Alma_SC, TestOnly) y 4 TargetPoints **sin TestOnly** `TP_sc<K>_alma_in / _alma_side / _charge / _title` (tag = el nombre sin `TP_`).
 - Fuentes: `VR_Test/Saved/ClaudeScripts/Obra/runner.json` (DSL), `runner_build.py`, `ensayo_place*.py` (colocación, idempotente), `ensayo_export.py` (Unreal → web).
 
 ## 🔴 Estado vigente (2026-10-02, reordenamiento)
@@ -11,9 +11,9 @@
 - `LevelName` se usa en `OpenLevel(byName)` cuando `Loop` reinicia el ensayo: tiene que coincidir con el nombre del nivel.
 
 ## Status
-🟢 **Probado en PIE en Test_Entering (2026-09-30 18:00), sin errores y con reinicio en bucle**: StageEnv → Alma recibe (VO_10, envelope activo) → StageIntro (Alma al costado) → StageBegin → cuenta + pacer, 5 ciclos → StageOutro por fin propio → vista previa del anillo → despedida (VO_13 + VO_14) → velo cierra → `OpenLevel` → arranca de nuevo.
+🟢 **Probado en PIE en Test_Breath (2026-09-30 18:00), sin errores y con reinicio en bucle**: StageEnv → Alma recibe (VO_10, envelope activo) → StageIntro (Alma al costado) → StageBegin → cuenta + pacer, 5 ciclos → StageOutro por fin propio → vista previa del anillo → despedida (VO_13 + VO_14) → velo cierra → `OpenLevel` → arranca de nuevo.
 🟢 **Test_Sequencer (2026-10-01 00:06)**: PIE hasta StageBegin sin errores (Alma a 5,5 s, StageIntro a ~15 s, StageBegin a ~21 s).
-⬜ Visor. ⬜ PIE de Test_Heart, Test_Fluid y L_TBTest_SC (colocados y guardados, sin correr).
+⬜ Visor. ⬜ PIE de Test_Heart, Test_Mind y Test_Draw (colocados y guardados, sin correr).
 - **2026-10-01: `Title`, `Veil` y `Ghost` nacen OCULTOS** (`bVisible` false en el CDO). Antes nacían visibles y, dentro de la Obra, el título (sort 32700) se veía por encima del velo negro entre que la celda se registraba y su BeginPlay: eran los "textos de las transiciones" al dar Play. `RBoot`/`RStep`/`RGhost` ya los prenden cuando corresponde.
 
 ## Qué hace (la misma coreografía que la Obra)

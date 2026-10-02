@@ -1,4 +1,4 @@
-# BP_SlotChain_SC + M_SlotChain_SC — el metaball del secuenciador (Core/Attracting/)
+# BP_SlotChain_SC + M_SlotChain_SC — el metaball del secuenciador (Mechanics/Sequencer/)
 
 > Creado el 2026-09-21 (commit `2256ce8`, "metaball en fila: una gota por slot"). **Tracker escrito el 2026-09-23**, tras una jornada entera de iteración en vivo con Beltrán.
 > **Estado: 🟢 aprobado paso a paso por Beltrán en el editor.** ⬜ Sin visor con la mecánica corriendo · 🔴 sin commitear y el nivel sin guardar.

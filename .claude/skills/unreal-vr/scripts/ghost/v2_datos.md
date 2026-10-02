@@ -10,7 +10,7 @@ Atajos de ruta: `BP/` = `.claude/skills/unreal-vr/blueprints/`; `SC/` = `VR_Test
 - **Pawn del Hall** `TP_hall_pawn`: (−980, 0, 76,97), yaw 0.
 - **Timbre** `Timbre` (`BP_BellArt_SC`, tag `hall_bell`):
   - (−932, 0, 168,97), pitch **+59,7**, con la cara +Z hacia los ojos. Queda **48 al frente y 28 bajo los ojos**.
-  - Mallas en `Mechanics/Bell/`: `SM_Bell_Base_SC`, `_Button_SC`, `_Slider_SC` y `_Trace_SC`, todas con el origen en el centro.
+  - Mallas en `Hall/`: `SM_Bell_Base_SC`, `_Button_SC`, `_Slider_SC` y `_Trace_SC`, todas con el origen en el centro.
 - **Sensor** `Sensor` (`BP_BioSensorArt_SC`, tag `hall_sensor`):
   - (−252, 0, 168,97), pitch **−59,7**, con la cara −Z hacia los ojos. Mismo 48/28, desde StopInside (−300).
   - Mientras está vivo gira en yaw del mundo a 20 °/s (`BP_SensorOrb_SC`).
@@ -31,12 +31,12 @@ Atajos de ruta: `BP/` = `.claude/skills/unreal-vr/blueprints/`; `SC/` = `VR_Test
   - Malla `SKM_MannyXR_*`, `ABP_MannequinsXR`, material `MI_Hand_SC`.
   - R loc (−2,98, 3,5, 4,56). La rotación figura como "(25 · 0 · 90)", sin orden de ejes: **el turno la copia del CDO del pawn**.
 - **Sensor**: `SensorXfR` (4,325, −1,685, −2,335), Roll +90. L (4,325, +1,685, −2,335), Roll −90 (`BP/BP_UserTool_SC.md:21`).
-  - Mallas en `Mechanics/BioSensor/`: `SM_BioSensor_SC` (cuerpo), `_Button_SC`, `_Waves_SC` y `_Trace_SC`.
+  - Mallas en `Shared/BioSensor/`: `SM_BioSensor_SC` (cuerpo), `_Button_SC`, `_Waves_SC` y `_Trace_SC`.
 - **SAVE**: `BtnOffset` (5,57, 0,8, −2,08), rot (P0, Y−90, R55), escala **0,4**, en el grip **NO dominante** (`BP/BP_SeqRig_SC.md:84`).
-  - Mallas en `Mechanics/SaveMelody/`: `SM_SaveMelody_Base_SC`, `_Plate_SC`, `_Slider_SC` y `_Trace_SC` (150×60 mm).
+  - Mallas en `Mechanics/Sequencer/`: `SM_SaveMelody_Base_SC`, `_Plate_SC`, `_Slider_SC` y `_Trace_SC` (150×60 mm).
 - **Paleta**: ⚠ es el `ArtAnchor` por defecto de `BP_TBPalette`: (2,19, 2,76, 7,51), rot (0, 146,12, −37,31). La escala viva es 0,464.
   - La pose viva la arma `PlaceArt` con perillas del director que no están escritas en ningún lado.
-  - Mallas en `Mechanics/DrawPalette/`. Todas tienen el origen en el centro de la paleta y solo cambia el yaw:
+  - Mallas en `Mechanics/Draw/`. Todas tienen el origen en el centro de la paleta y solo cambia el yaw:
     - `Base` y `Swatch`.
     - `Key` en −60/−20/20/60 (colores) y en −120/−160/−200/−240 (pinceles).
     - `SideKey` en −32,72 y +4,72, escala 1,4.
@@ -60,7 +60,7 @@ Atajos de ruta: `BP/` = `.claude/skills/unreal-vr/blueprints/`; `SC/` = `VR_Test
 - **Draw**: no hay evento de primer trazo. Lo más cercano es `BeginStroke`, `bDrawing` o `InkUsed > 0`.
 
 ## Sonidos del grabador
-- `/Game/NeuralCanvas/Sound/`:
+- `/Game/SoulCharger/Mechanics/Draw/Sound/`:
   - Tic de la cuenta: `VR_click1`.
   - "Ya": `VR_shep_scale_up_02`.
   - Fin: `VR_shep_scale_down_02`.

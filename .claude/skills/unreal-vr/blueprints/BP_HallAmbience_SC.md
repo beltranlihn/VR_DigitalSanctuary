@@ -1,4 +1,4 @@
-# BP_HallAmbience_SC — lo que se ve del Hall según el paso del director (Mechanics/Hall/)
+# BP_HallAmbience_SC — lo que se ve del Hall según el paso del director (Hall/)
 
 > Creado 2026-09-30 (turno INICIO). Una instancia en `Test_Hall` (`HallAmbience`, en el origen), que la Obra carga como celda 5.
 > **No toca al director**: lee `Mode`/`Step` de `BP_HallDirector_SC` y `Amount` de `BP_HallFog_SC` en el Tick.

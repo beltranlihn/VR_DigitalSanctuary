@@ -1,6 +1,6 @@
 # BP_OSCReceiver — progress tracker
 
-- **refPath**: `/Game/OSC/BP_OSCReceiver.BP_OSCReceiver` (class `BP_OSCReceiver_C`; in node ids it's `BPOSCReceiver`)
+- **refPath**: `/Game/SoulCharger/Core/Signals/BP_OSCReceiver.BP_OSCReceiver` (class `BP_OSCReceiver_C`; in node ids it's `BPOSCReceiver`)
 - **parent**: Actor · **in level**: yes (user placed it)
 - **Purpose**: Runs an OSC server that receives float messages over the LAN and exposes them as variables for other BPs to read.
 - **Status**: 🟢 done (scale path working)

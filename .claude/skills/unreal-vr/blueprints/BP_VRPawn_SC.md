@@ -133,3 +133,7 @@ Beltrán: *"se nota mucho que es la mano de Unreal… que la textura sea más su
 - Eje medido con `SkeletalMeshTools.get_bounds`: `SKM_MannyXR_right` y `_left` van de Y −2,7 (muñeca) a +17,5 cm (puntas), espejados solo en X → una sola regla para las dos.
 - Perillas: `WristFadeStart` −2 · `WristFadeLength` 7 (opaca desde media palma). **`MI_Hand_SC`**: `Opacity` 0,22 · `EdgeBoost` 0,5 → **0,35** · `EdgePower` 3 → **1,6** (borde más ancho y suave: desdibuja nudillos y uñas).
 - ⬜ Visor.
+
+## 2026-10-02 (Narrativa) — reordenamiento
+- Se cortaron las referencias al código viejo (V2/V3) que ya no existe (reordenamiento 1, commit d6d91f1). El pawn sigue liviano: nada de lógica de etapa.
+- Carpeta nueva: ver la tabla de lo vigente en [_INDEX.md](_INDEX.md) (las rutas de este tracker ya están actualizadas).

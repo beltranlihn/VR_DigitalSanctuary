@@ -1,6 +1,6 @@
-# BP_BreathOrb_SC — la esfera que se controla con la respiración (Core/Sensor/)
+# BP_BreathOrb_SC — la esfera que se controla con la respiración (Core/Pointer/)
 
-> `/Game/SoulCharger/Core/Sensor/BP_BreathOrb_SC` · creado 2026-08-24 · **una instancia** en `MapsV2/RoomsV2/L_Entering_SC` (`BreathOrb_Entering`, en **1380/−40/125**, carpeta `3 Escena`) — viaja con el streaming de la sala.
+> `/Game/SoulCharger/Core/Pointer/BP_BreathOrb_SC` · creado 2026-08-24 · **una instancia** en `MapsV2/RoomsV2/L_Entering_SC` (`BreathOrb_Entering`, en **1380/−40/125**, carpeta `3 Escena`) — viaja con el streaming de la sala.
 > **Estado: 🟡 ciclo completo verificado en PIE por log y por medición directa (`ORB: true` → 10 s → `ORB: false`, `RevealT` 0→1 medido en la instancia PIE); el control por respiración real necesita visor.**
 
 ## Qué es

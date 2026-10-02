@@ -1,6 +1,6 @@
-# BPC_AppearLuz_SC — la aparición "luz primero", portable (Mechanics/Appear/)
+# BPC_AppearLuz_SC — la aparición "luz primero", portable (Shared/Appear/)
 
-- **Estado**: 🟢 compila y guardado (2026-09-30, Tick corregido) · 🟢 PIE dentro de la paleta (Drawing) · 🟢 **Simulate en `Mechanics/Appear/Test_Appear`** con timbre, SAVE y sensor en `Demo`. Las capturas (`ClaudeScripts/Appear/sim_sheet.png`) muestran trazo → rendija → párpado → enfriado → pieza que asoma → luces · ⬜ visor: el párpado de canto necesita la cámara del jugador; en Simulate toma la del editor.
+- **Estado**: 🟢 compila y guardado (2026-09-30, Tick corregido) · 🟢 PIE dentro de la paleta (Drawing) · 🟢 **Simulate en `Shared/Appear/Test_Appear`** con timbre, SAVE y sensor en `Demo`. Las capturas (`ClaudeScripts/Appear/sim_sheet.png`) muestran trazo → rendija → párpado → enfriado → pieza que asoma → luces · ⬜ visor: el párpado de canto necesita la cámara del jugador; en Simulate toma la del editor.
 - **Propósito**: reemplazar la "escala de 0 a 1" por la aparición aprobada por Beltrán (ver `blender-3d/assets/aparicion-luz.md` y los GIF). Cumple tres cosas:
   - **Entrada** `Appear()` de 1,5 s y **salida** `Vanish()`, que es la misma curva al revés.
   - Un solo componente sirve para cualquier actor de arte: timbre, SAVE MELODY, sensor, la base de la paleta y el HUD.
@@ -67,7 +67,7 @@
 - `BP_BioSensorArt_SC`: `FaceAxis` (0,0,−1), 0,608 y (0,0,1,7); las ondas llevan tag `AppearLate`.
 - **Paleta (Drawing)**: tag `AppearBody` en la base y `AppearTrace` en `SM_DrawPalette_Trace_SC`; `FaceAxis` (0,0,1), `PivotDepth` −1,64. Cuñas, casquete, undo/redo, slider y disco los posa Drawing leyendo `AppearT`.
 
-## Nivel de prueba `Mechanics/Appear/Test_Appear`
+## Nivel de prueba `Shared/Appear/Test_Appear`
 - Es una copia de `Test_QuestCtrl`: sin luces, con `BP_XRGameMode`, los 4 mandos y la paleta.
 - Timbre en (90, −42, 160) con pitch 90; SAVE en (70, 2, 160) con yaw 90 y roll 90 (el texto se lee derecho); sensor en (70, 32, 160) con pitch −90. Los tres miran al PlayerStart.
 - `Appear.Demo` = true en las tres instancias.

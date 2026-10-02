@@ -1,9 +1,9 @@
 # BP_JourneyContent_SC — el CONTENIDO del cuadro de resultados
 
-- **refPath**: `/Game/SoulCharger/Mechanics/Results/BP_JourneyContent_SC.BP_JourneyContent_SC` · parent Actor · creado 2026-09-30 (noche del director general, turno Drawing T2).
-- **Material**: `/Game/SoulCharger/Mechanics/Results/M_JourneyCard_SC` (Unlit, Additive, TwoSided).
+- **refPath**: `/Game/SoulCharger/Shared/Results/Blueprints/BP_JourneyContent_SC.BP_JourneyContent_SC` · parent Actor · creado 2026-09-30 (noche del director general, turno Drawing T2).
+- **Material**: `/Game/SoulCharger/Shared/Results/Materials/M_JourneyCard_SC` (Unlit, Additive, TwoSided).
 - **El MARCO es de Mesh 3D**: `BP_ResultsArt_SC` (misma carpeta): vidrio, ventanas, franja de título, cajita del tip y los fundidos `KTitle/KCalm/KHeart/KBreath/KMelody/KTip`. Este BP solo **dibuja el contenido** y va colgado del marco.
-- **Nivel de prueba**: `/Game/SoulCharger/Mechanics/Results/Test_Results` (lo creó Mesh 3D). Instancia `BP_JourneyContent_SC_C_0`, **AttachToActor a `BP_ResultsArt_SC_C_0` con transform identidad** (9 → 10 actores). Instancia: `bBuildOnPlay` true, `bPreviewInEditor` false.
+- **Nivel de prueba**: `/Game/SoulCharger/Shared/Results/Maps/Test_Results` (lo creó Mesh 3D). Instancia `BP_JourneyContent_SC_C_0`, **AttachToActor a `BP_ResultsArt_SC_C_0` con transform identidad** (9 → 10 actores). Instancia: `bBuildOnPlay` true, `bPreviewInEditor` false.
 - **Diseño aprobado que copia**: `web/prototipo-narrativo/world.js`, sección RESULTADOS (`drawGraphCard`, `drawBreathCard`, `drawMelodyCard`, `drawResHeader`, `drawResTip`, `RES_ITEMS`).
 - **Fuente del código**: [`scripts/journey_content.dsl`](../scripts/journey_content.dsl) (diseño, API, layout en mm, textos) y [`scripts/journey_content_body.dsl`](../scripts/journey_content_body.dsl) (los cuerpos, = lo que hay en el editor). El partidor para escribir por tandas: `VR_Test/Saved/ClaudeScripts/journey/split_journey.py` (su `rep{}` traduce los nombres `;;?` a los reales).
 
@@ -92,7 +92,7 @@ Todo con 0 errores (Accessed None / Runtime Error / Script Msg).
 - `BreathScores` [0,62 0,83 1 0,71] · `Minutes` 0
 - `StageColors` (5, lineales: Entering, Recognizing, Loving, Attracting, Surrounding) · `Cream` · `Grey` · `FontPx` 24
 - `TipKeys` / `TipNames` / `TipStage` [2,1,0,3,−1,4] / `TipTexts` (los `RES_ITEMS` de la web, en inglés)
-- `ClickSound` (`/Game/NeuralCanvas/Sound/VR_click1`) · `ClickVol` 1
+- `ClickSound` (`/Game/SoulCharger/Mechanics/Draw/Audio/VR_click1`) · `ClickVol` 1
 - `bPreviewInEditor` · `bBuildOnPlay`
 - ⚠ La variable `Gain` del BP se **borró** (2026-09-30): no la usaba ningún grafo (verificado en los 54 con control positivo). El brillo está en el material.
 

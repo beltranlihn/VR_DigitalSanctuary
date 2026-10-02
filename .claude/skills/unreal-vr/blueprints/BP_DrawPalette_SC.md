@@ -1,10 +1,10 @@
-# BP_DrawPalette_SC — la paleta nueva de la etapa de dibujo (Mechanics/DrawPalette/)
+# BP_DrawPalette_SC — la paleta nueva de la etapa de dibujo (Mechanics/Draw/)
 
 ## Purpose
 La paleta física que modeló la sesión Mesh 3D (plano de Beltrán, 2026-09-29; modelo: `blender-3d/assets/draw-palette.md`). **Solo arte + estado visual**: la interacción (puntero, gatillo, qué pincel/color se elige, undo/redo, grosor) la pone la sesión **Drawing**, que la reemplaza por la paleta vieja (`BP_TBPalette`, ProceduralMesh).
 
 ## Status
-🟢 Compila; colocada en `Mechanics/DrawPalette/Test_DrawPalette` (sin luz direccional, GameMode `BP_XRGameMode`). Capturas del editor OK. 🟢 **Integrada por Drawing** (2026-09-29, ver abajo): interacción verificada en PIE con punta virtual. ⬜ Visor.
+🟢 Compila; colocada en `Mechanics/Draw/Test_DrawPalette` (sin luz direccional, GameMode `BP_XRGameMode`). Capturas del editor OK. 🟢 **Integrada por Drawing** (2026-09-29, ver abajo): interacción verificada en PIE con punta virtual. ⬜ Visor.
 
 ## Componentes (StaticMesh, sin colisión, sin sombras; todas las mallas con el ORIGEN EN EL CENTRO de la paleta)
 | Componente | Malla | Material | Yaw |
@@ -33,7 +33,7 @@ Nivel **sin luz direccional** → emisión propia + **sombreado falso**: luz pri
 - Elegir: setear `SelectedColor` / `SelectedBrush` / `Thickness` y llamar `ApplyState`.
 - Selección por puntero: los centros de las cuñas están a r ≈ 10,2 cm del centro, a los yaw de la tabla; undo/redo a r ≈ 23 cm (yaw 0 / −28 respecto del ángulo 166° del plano); el slider es el arco r 21,7 cm entre 227° y 313° del plano. Si hace falta colisión, las mallas no la tienen (`remove_collisions`): generarla o usar distancias.
 
-## 🟢 INTEGRADA por Drawing (2026-09-29) — la usa `BP_TBPalette` (`/Game/NeuralCanvas/TB/`)
+## 🟢 INTEGRADA por Drawing (2026-09-29) — la usa `BP_TBPalette` (`/Game/SoulCharger/Mechanics/Draw/TB/`)
 La lógica (qué se toca, qué se elige) vive en `BP_TBPalette`; este BP sigue siendo **solo arte + estado visual**, ahora animado. Detalle de la interacción: `BP_TBStroke.md` §5u.
 
 **Cambios de Drawing en este BP y sus materiales** (Mesh 3D: no pisar sin avisar):

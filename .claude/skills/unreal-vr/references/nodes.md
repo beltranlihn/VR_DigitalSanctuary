@@ -79,7 +79,7 @@ Message parsing (Message is `OSCMessage` struct, `/Script/OSC.OSCMessage`, by-re
 Runtime cross-BP pull (receiver caches ref, reads a var each tick):
 ```
 (event EventBeginPlay
-  (bind found (Actor|GetActorOfClass :ActorClass "/Game/OSC/BP_OSCReceiver.BP_OSCReceiver_C"))
+  (bind found (Actor|GetActorOfClass :ActorClass "/Game/SoulCharger/Core/Signals/BP_OSCReceiver.BP_OSCReceiver_C"))
   (bind osc (Utilities|Casting|CastToBP_OSCReceiver :Object found)
     (:then (Variables|Default|SetOSCRef osc))
     (:CastFailed)))

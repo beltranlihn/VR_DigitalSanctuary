@@ -1,6 +1,6 @@
-# BP_HallDirector_SC — el director del Inicio, el Hall y el Regreso (Mechanics/Hall/)
+# BP_HallDirector_SC — el director del Inicio, el Hall y el Regreso (Hall/)
 
-> `/Game/SoulCharger/Mechanics/Hall/BP_HallDirector_SC` · sesión "Inicio y Hall de acceso" · creado 2026-09-30 (noche, plan de Narrativa `docs/PLAN-NOCHE-2026-09-30.md`).
+> `/Game/SoulCharger/Hall/Blueprints/BP_HallDirector_SC` · sesión "Inicio y Hall de acceso" · creado 2026-09-30 (noche, plan de Narrativa `docs/PLAN-NOCHE-2026-09-30.md`).
 > Una instancia en `Test_Hall` (`HallDirector`), en el **centro del hall** (origen de `SM_HallShell_SC`): todo lo que mueve es relativo a ese punto, así el mismo actor sirve en la celda 0 de `L_SoulCharger_Obra`.
 
 ## Estado

@@ -1,7 +1,7 @@
 # BP_BreathBlob_SC + M_BreathBlob_SC — el metaball de respiración (solo modo 0)
 
-**Ruta:** `/Game/SoulCharger/Mechanics/Breath/BP_BreathBlob_SC` + `M_BreathBlob_SC`
-**Colocado en:** `/Game/Test_Entering` como `Entering_Blob` (380, 0, 125)
+**Ruta:** `/Game/SoulCharger/Mechanics/Breath/Blueprints/BP_BreathBlob_SC` + `M_BreathBlob_SC`
+**Colocado en:** `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath` como `Entering_Blob` (380, 0, 125)
 **Nació:** 2026-09-27 · **duplicado de [[BP_MetaBlob_SC]] + `M_MetaBlob_SC`**, que quedan intactos.
 **Estado:** 🟢 compila estricto, entrada/salida verificada en PIE y Simulate · ⬜ visor
 
@@ -74,10 +74,10 @@ Beltrán en visor: *"siento que al respirar el metaball se pone gris"*. Era `Bre
 Sin tocar el shader del raymarch. `BlobApplyEnv` (vaciada y reescrita) + función nueva **`BlobMorph`**: empuja al MID del `Volume` las perillas de forma × una curva de `EnvT` (quíntica `q`); en `q` = 1 todo vale EXACTAMENTE la perilla autorada.
 - `BlobRadius` × lerp(`MorphRadius` 0,08, 1, q) · `SizeVariation` lerp(`MorphSizeVar` 1,6 → la perilla): con 1,6 las gotas de SF negativo quedan en el piso del shader mientras las otras crecen → **nacen escalonadas** · `Spread` × lerp(`MorphSpread` 1,9 entrando / `MorphSpreadOut` 2,3 saliendo, 1, q) (según `bShown`) · `Smoothness` × lerp(`MorphSmooth` 0,2) · `Brightness` × lerp(`MorphBright` 1,35) · `CurlAmount` × lerp(`MorphCurl` 1,3).
 - Escala del actor = smoothstep(0, 0,2, EnvT) × lerp(`MorphScale` 0,5, 1, q) (nace de tamaño cero, sin puntos que salten el primer cuadro). La sombra del valle la sigue igual.
-- `IntroTime` 2 → **4** s, `OutroTime` 2 → **2,5** s (CDO; en la instancia de Test_Entering eran 2/2 heredados, no autorados: se escribieron 4/2,5).
+- `IntroTime` 2 → **4** s, `OutroTime` 2 → **2,5** s (CDO; en la instancia de Test_Breath eran 2/2 heredados, no autorados: se escribieron 4/2,5).
 - Perillas en `F - Entrada Salida` (instance-editable). Paso del Tick limitado: `min(DeltaSeconds, 1/30)` antes de `BlobEnvStep` y `BlobMotionStep` (cirugía en el EventGraph; regla de la obra).
 - Verificado: capturas desde los ojos a `EnvT` 0,1 / 0,25 / 0,4 / 0,6 / 0,8 / 1 (`Saved/ClaudeScripts/usertool/morfeo_ojo.png`): puntos → gotas chicas dispersas de tamaños distintos → crecen y se acercan → el metaball autorado. PIE: `BLOB: entra` → `sale` → `salida terminada` 2,5 s.
 - ⚠ Capturar a menos de ~2,5 m del metaball deja la cámara dentro del proxy (one-sided): desaparece en la foto, no en el juego.
 ## Conexión con la respiración
 Ninguna referencia de clase: lee **`MPC_Breath`** (lo escribe [[BP_BreathRig_SC]]). Sin umbral (`On` = 0) sigue su reloj de atracción; con umbral la respiración toma el spread, el curl, el radio y el brillo (mapeo `m = 1 + S·lerp(−Out, In, smoothstep)`, ver el tracker del original).
-- **2026-09-30 (tarde):** `IntroTime` 4 → **2,5** s (agilidad, decisión de Narrativa; CDO e instancia de Test_Entering).
+- **2026-09-30 (tarde):** `IntroTime` 4 → **2,5** s (agilidad, decisión de Narrativa; CDO e instancia de Test_Breath).

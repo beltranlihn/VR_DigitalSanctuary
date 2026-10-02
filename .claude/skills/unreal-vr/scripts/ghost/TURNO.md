@@ -23,7 +23,7 @@ Todo preparado y probado fuera del editor:
 
 ## 0. Nivel propio primero (aísla el Undo de los scripts: un script fallido no puede deshacer lo de otra sesión)
 1. `SceneTools.get_current_level`. Anotar cuál es; si tiene cambios sin guardar, **no** tocarlo y avisar.
-2. `AssetTools.duplicate(/Game/SoulCharger/Mechanics/QuestController/Test_QuestCtrl → /Game/SoulCharger/Mechanics/Ghost/L_GhostRec_SC)`
+2. `AssetTools.duplicate(/Game/SoulCharger/Shared/QuestController/Test_QuestCtrl → /Game/SoulCharger/Shared/Ghost/Maps/L_GhostRec_SC)`
    → `save_assets([L_GhostRec_SC])` → `SceneTools.load_level(L_GhostRec_SC)`. Canario: 4 `BP_QuestCtrl_SC` más lo del template.
 
 ## 1. Encargo chico: `SketchAppear` / `SketchVanish` (~15 min)
@@ -32,7 +32,7 @@ Todo preparado y probado fuera del editor:
 2. Completar `sketch_fx.dsl` (los `TURNO`).
 3. Variables `Z-SketchFx` (`FxT`, `FxDir`, `bFxBusy`), `add_function_graph` × 5 + parámetros (`SketchFxSound(Snd)`, `SketchVis(On)`).
 4. `write_graph_dsl` uno por uno (llamada directa) → `compile_blueprint`.
-5. **Sin PIE de la Obra**: la prueba es en `L_TBTest_SC` si hay tiempo (dibujar no se puede sin visor: probar con el `SketchSet` vacío = sin errores). Si no hay tiempo, queda probado en el turno de Narrativa.
+5. **Sin PIE de la Obra**: la prueba es en `Test_Draw` si hay tiempo (dibujar no se puede sin visor: probar con el `SketchSet` vacío = sin errores). Si no hay tiempo, queda probado en el turno de Narrativa.
 
 ## 2. Assets de datos y material (~10 min)
 1. `execute_tool_script(ghost_build.py)` con `PARTE = 'take'` → clase `BP_GhostTake_SC`, 11 variables y los 10 DA con Id, Text y banderas. Mirar `das` y `da0`.

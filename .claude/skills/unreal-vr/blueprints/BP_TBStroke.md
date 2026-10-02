@@ -2053,9 +2053,9 @@ guardar, el dibujo queda en el Target Point **tal como estaba respecto de la mes
   Se hizo el cambio mínimo pedido; enderezarla entera (componer 180° en Y a `PaletteRot` y quitar el signo invertido
   de `SelectLift`) queda ofrecido.
 
-### 5o - MIGRADO A SOUL CHARGER (2026-09-27): `/Game/NeuralCanvas/`
+### 5o - MIGRADO A SOUL CHARGER (2026-09-27): `/Game/SoulCharger/Mechanics/Draw/`
 **Cómo se hizo (sin tocar nada de SC):** en Neural Canvas se **movieron** (`AssetTools.move`, arregla referencias) los
-59 assets del sistema a una carpeta raíz propia, `/Game/NeuralCanvas/{TB, TB/Icons, TB/Textures, Input, Mesh, Sound}`, y
+59 assets del sistema a una carpeta raíz propia, `/Game/SoulCharger/Mechanics/Draw/{TB, TB/Icons, TB/Textures, Input, Mesh, Sound}`, y
 se **copió esa carpeta** a `VR_Test/Content/NeuralCanvas` (no existía → cero sobrescrituras). SC tiene su propio
 `/Game/Drawing` con `White`/`Yellow`/sonidos de igual nombre: por eso NADA del paquete quedó bajo `/Game/Drawing`.
 - ✅ Grep sobre los `.uasset`: las únicas rutas `/Game/` fuera de `/Game/NeuralCanvas` son `contentImportPath` (metadato
@@ -2069,14 +2069,14 @@ se **copió esa carpeta** a `VR_Test/Content/NeuralCanvas` (no existía → cero
   `OculusTouch_*_Trigger_Axis` → Pressure. El director agrega **solo el IMC de la mano que dibuja** (`AddDrawIMC`,
   prioridad 1000) y lo saca en `EndPlay` (`RemoveDrawIMC`).
 - **No se migró**: `BP_TBPawn`, `GM_TBTest` (referencia `BP_GameFlowManager` de NC) ni `L_TBTest` (referencia además
-  `/Game/OSC/BP_OSCRECIEVER`, y SC tiene su propia `/Game/OSC` → podría engancharse a un asset de SC por nombre). El
+  `/Game/SoulCharger/Core/Signals/BP_OSCRECIEVER`, y SC tiene su propia `/Game/OSC` → podría engancharse a un asset de SC por nombre). El
   pincel viejo `/Game/Drawing/BP` tampoco (arrastra `VRPawn`/`BP_PincelSelect`). Los **9 presets** de TB viajan adentro
   de `BP_TBStroke` (incluidos los que la paleta de 4 no muestra).
 
 **Receta de instalación en un nivel de SC** (nada más; el director no crea ni referencia pawns):
 1. El nivel usa el GameMode de SC (`BP_XRGameMode` → `BP_VRPawn_SC`) y su PlayerStart. El pawn cumple el contrato:
    MotionControllers con `MotionSource` `LeftAim`/`RightAim`/`LeftGrip`/`RightGrip`.
-2. Arrastrar **`/Game/NeuralCanvas/TB/BP_TBDirector_NC`**.
+2. Arrastrar **`/Game/SoulCharger/Mechanics/Draw/Blueprints/BP_TBDirector_NC`**.
 3. Arrastrar un **`TargetPoint`** donde se exhibe el dibujo guardado: su +X apunta **hacia quien mira**; mover/rotar/
    escalar el target afecta al dibujo.
 4. Arrastrar **`BP_TBTable`** ~50 cm frente al usuario sentado, a la altura de la mesa: su +X apunta **hacia quien
@@ -2086,9 +2086,9 @@ se **copió esa carpeta** a `VR_Test/Content/NeuralCanvas` (no existía → cero
 6. Integración con la obra: `SetHandedness(bLeft)` (la etapa previa decide la mano hábil) y el dispatcher
    **`OnStageFinished`** (se dispara al terminar la exhibición del dibujo guardado).
 
-✅ **Nivel de prueba en SC: `/Game/NeuralCanvas/Maps/L_TBTest_SC`** (2026-09-27), réplica exacta de `L_TBTest` de NC,
+✅ **Nivel de prueba en SC: `/Game/SoulCharger/Mechanics/Draw/Maps/Test_Draw`** (2026-09-27), réplica exacta de `L_TBTest` de NC,
 armado de cero (NO se copió el `.umap` de NC: arrastraba nodos viejos del Level BP con `BP_GameFlowManager`,
-`/Game/OSC/BP_OSCRECIEVER`, `GM_TBTest` y un streaming del VRTemplate). Base: duplicado de `Template_Default` con la luz,
+`/Game/SoulCharger/Core/Signals/BP_OSCRECIEVER`, `GM_TBTest` y un streaming del VRTemplate). Base: duplicado de `Template_Default` con la luz,
 atmósfera, niebla, nubes y piso quitados (NC no tiene luces; duplicar `/Engine/Maps/Entry` **no guarda**: "Illegal
 reference to private object Model2"). Transforms leídos del nivel de NC: PlayerStart (-315,0,106); `DrawTable`
 (-265,0,**180**) Yaw 180; `SketchTarget` (**235,0,80**) Yaw 180 escala **4,89**; `BP_Sky_Sphere` con sus 11 valores de
@@ -2152,7 +2152,7 @@ Animado … Debe bloquear el seguir dibujando"*, *"esconde las manos"*.
   `SaveMid` creado, log limpio. ⬜ **El cierre (OutroStep) no se pudo ejercitar en PIE** (requiere trazos + gatillo): falta visor.
 - 🔴 Otra vez la instancia: las perillas nuevas nacieron en **0/false en el director colocado** aunque el CDO tenía 3 / 1,2 /
   true (la instancia se reinstanció antes de setear el CDO). Con `SaveHoldTime` 0 el guardado habría disparado al tocar.
-  Corregido en la instancia de `L_TBTest_SC` y guardado.
+  Corregido en la instancia de `Test_Draw` y guardado.
 
 ### 5q - El botón Guardar se selecciona como los pinceles + clic de hover + sonido de carga (2026-09-27, copia de SC)
 - **`M_TB_Save`** ganó el mismo WPO que `M_TB_Icon`: `Constant3Vector(1,0,0)` → `Transform` Local→World × **`Lift`** (neutro 0).
@@ -2165,7 +2165,7 @@ Animado … Debe bloquear el seguir dibujando"*, *"esconde las manos"*.
   Duración/SaveHoldTime**, acotado 0,5–2: el sonido termina justo al guardar) / `ChargeStop` (`AudioFadeOut` 0,15 s, el
   wrapper que ya existía por la duplicación de `FadeOut`). Perillas `04 AUDIO > ChargeSound` (`VR_shep_scale_up_01`, 2,78 s:
   sube; al guardar suena `HideSound` = `VR_shep_scale_down_02`, que baja) y `ChargeVol` (0,6). Seteadas en CDO **y** en la
-  instancia de `L_TBTest_SC` desde el principio.
+  instancia de `Test_Draw` desde el principio.
 - ⚠ `Class|SoundBase|GetDuration` se lee como `Components|GeometryCache|GetDuration`: rótulo falso, el `self` es SoundBase.
 - ✅ Compila, PIE limpio en reposo (sin carga, sin clics espurios). ⬜ Hover/carga/guardado: visor.
 
@@ -2178,7 +2178,7 @@ target (fases 1-5) la mesa sigue visible; al volver a 0 con el sistema cerrado q
 ### 5s - CONTRATO TOUR (2026-09-29, PREPARADO offline, sin construir) - pedido de Narrativa para `Test_Recorrido`
 - Con un actor de tag **`TOUR`** en el nivel (o `08 TOUR > bForceTour`), el director **nace dormido**: no se autoinstala, no
   oculta las manos, sin input, sin Tick. **`TourWake()` / `TourSleep()`**: públicas, sin parámetros, idempotentes (`bAwake`).
-  Sin TOUR, `L_TBTest_SC` igual que hoy (`TourBegin` → `TourWakeNow` → `CheckController`).
+  Sin TOUR, `Test_Draw` igual que hoy (`TourBegin` → `TourWakeNow` → `CheckController`).
 - `TourSleep`: suelta el trazo, corta carga del Guardar, loop del pincel y háptica; `DisableInput` + `RemoveDrawIMC`; manos
   del pawn devueltas **solo si las ocultó el director** (`bHidePawnHands`); oculta mesa, paleta (y su Tick), mallas de mando y
   punta; Tick del actor y de `TBTool` apagados. `TourWake` ya instalado: `InstallInput` + `MountHands`/`InstallTip` + paleta
@@ -2193,7 +2193,7 @@ target (fases 1-5) la mesa sigue visible; al volver a 0 con el sistema cerrado q
   (sin instalar a los 4 s, sin paleta, mesa oculta), log limpio. ⬜ `ke * TourWake/TourSleep` en visor.
 - ⚠ `SetHandedness` llamada dormido vuelve a mostrar punta y mando (InstallTip + ApplyHands): llamarla después de `TourWake`.
 - **Sonidos fuera de `/Engine/VREditor`** (mismo turno): `VR_click1/2`, `VR_shep_scale_up_01/02`, `VR_shep_scale_down_02`
-  copiados a `/Game/NeuralCanvas/Sound/`; reapuntados en el CDO del director, su instancia, el CDO de `BPC_TBTool_NC` y la
+  copiados a `/Game/SoulCharger/Mechanics/Draw/Sound/`; reapuntados en el CDO del director, su instancia, el CDO de `BPC_TBTool_NC` y la
   plantilla `TBTool` (la instancia del componente queda en None: el director le empuja los sonidos). `grep VREditor` = 0.
 
 ### 5t - En el recorrido el gatillo no dibujaba: el director instala `IMC_Weapon_*` (2026-09-29, copia de SC)
@@ -2240,7 +2240,7 @@ abajo, cara al usuario. ⚠ Offset/rotación de **primera aproximación**: se aj
 - **Visibilidad**: la paleta 3D se esconde sola cuando la paleta lógica deja de tickear (TourSleep, fin del sistema).
 - **Depuración**: `3D Debug > bDebugTip` + `DebugTipLocal` reemplazan la punta por un punto en el espacio local de la paleta 3D
   (así se probó en PIE sin mandos).
-✅ **PIE en `L_TBTest_SC` con punta virtual**: arranque = color 0 y pincel 0 elevados 0,66 cm y brillo 0,5 (base 0,15); teclas
+✅ **PIE en `Test_Draw` con punta virtual**: arranque = color 0 y pincel 0 elevados 0,66 cm y brillo 0,5 (base 0,15); teclas
 con los 4 `SlotColorA` del director; casquete = TaperedMarker, 1 fila, color 0. Pincel 2 (a 160°) → `Selected` 2,
 `Tool.BrushIndex` 3 (Light), tecla 0,96 cm (0,66 + 0,3 de hover), casquete a `T_TB_Light`, `bCanDraw` false, 2 clics. Color 3
 (60°) → casquete y `Tool.BrushColor` = `SlotColorA[3]`. Slider a 90° → `Size01` 0,5, disco en 90° escala 1,05; a 50° →
@@ -2285,9 +2285,9 @@ los colores nuevos de la instancia del director, `GripPreview` oculto en juego, 
 
 ### 5x - Mando nuevo de Mesh 3D con gatillo animado (2026-09-29)
 Beltrán: *"reemplaza el motion controller por el nuevo... espejarlo para la mano izquierda"* y *"la animación del botón apretado
-cuando lo estemos apretando en la experiencia real"*. Assets de Mesh 3D en `/Game/SoulCharger/Mechanics/QuestController/`
+cuando lo estemos apretando en la experiencia real"*. Assets de Mesh 3D en `/Game/SoulCharger/Shared/QuestController/`
 (`SM_QuestCtrl_Body/Trigger_R/L_SC`, `MI_QuestCtrl_Body_SC`, `MI_QuestCtrl_Trigger_SC` con `Pressed`), mismo marco y tamaño
-que `/Game/NeuralCanvas/Mesh/Controller` (bounds iguales al mm) → transformadas de `SM_RHand/SM_LHand` sin tocar.
+que `/Game/SoulCharger/Mechanics/Draw/Meshes/Controller` (bounds iguales al mm) → transformadas de `SM_RHand/SM_LHand` sin tocar.
 - **Todo en runtime** (una instancia ya colocada no recibe bien componentes nuevos, gotcha 396; y los getters de componentes
   nuevos no aparecían en el DSL, gotcha 506): **`InstallCtrl`** (al frente de `FixHands`) pone malla + MI del cuerpo nuevo en
   `SM_RHand`/`SM_LHand` y llama **`MakeTrigR/L`**: si `Z-Mando > TrigR/TrigL` no existe, `AddComponentByClass(StaticMesh)` →
@@ -2309,7 +2309,7 @@ que `/Game/NeuralCanvas/Mesh/Controller` (bounds iguales al mm) → transformada
   pincel en la curva de TB (0 = mínimo real del pincel, `SizeMins`; 1 = máximo del preset; > 1 extrapola). `PushSizeRange` (al
   final de `PushStartSize`) → herramienta `CfgSizeLo/CfgSizeHi` → **`ApplySizeRange`** en `BeginStroke` (antes de
   `StartStroke`) → `SizeLo/SizeHi` del trazo. Antes vivían solo en el CDO de `BP_TBStroke`.
-- 🔴 Las tres nacieron en **0 en la instancia** de `L_TBTest_SC` (gotcha "instance editable nace en cero"): puestas a mano y nivel
+- 🔴 Las tres nacieron en **0 en la instancia** de `Test_Draw` (gotcha "instance editable nace en cero"): puestas a mano y nivel
   guardado.
 
 ### 5z - Pose de la paleta 3D por perillas del director, con giro en SUS ejes y ajuste en vivo (2026-09-29/30)
@@ -2456,7 +2456,7 @@ Beltrán: *"el pincel 1 quedó demasiado plano, pero algo muy sutil, porque me g
   - ⬜ Confirmar en el visor. Si sigue, sospechar del contraste: el color inicial A[0] es casi blanco y la estela del marcador es fina.
 - **Punta.** Beltrán: *"el punto frente al control, que siempre esté un poco más brillante que su color, para que se note"*.
   - `UpdateTipColor`: `Tint = BrushColor·TipGain + TipLift`.
-  - Perillas del director, 06 PUNTA: `TipGain` 1,5 y `TipLift` 0,06. Puestas en el CDO y en la instancia de `L_TBTest_SC`, porque nacieron en 0.
+  - Perillas del director, 06 PUNTA: `TipGain` 1,5 y `TipLift` 0,06. Puestas en el CDO y en la instancia de `Test_Draw`, porque nacieron en 0.
   - `M_TBHand_NC` es Unlit: el `Tint` es la emisión directa.
 - **TINTA.** Beltrán: *"una variable de metros lineales que va disminuyendo a medida que dibujamos; al llegar al final activa save drawing; con eso marcamos el largo de la etapa"*.
   - Director, **10 TINTA**: `bInk` (true) y `InkMeters` (30 m). Internas en Z-Tinta: `InkUsed`, `InkPrevP`, `bInkPrev`, `bInkFired`, `InkShown`.
@@ -2502,7 +2502,7 @@ Plan de la noche: `docs/PLAN-NOCHE-2026-09-30.md`. Borrador que se pego: `script
   - `bContractTest` + cortafuegos de 6 s. Intro a 1 s (despierto, instalado, candado; punta en su escala de reposo 0,006 tras la curva; paleta con 0,6 s). Begin a 9,02 s. Outro por cortafuegos: `bSystemDone`, `bStageDone`, `bOutroCalled`, paleta oculta tras su Vanish, punta encogida y oculta, mesa oculta. **0 errores.**
   - Test normal: igual que antes (sin tour, paleta con 3 s, mesa visible, estela ok, 0 errores).
   - ⚠ `bSynth` en true en el componente de la instancia llego en false al PIE en modo tour (en el editor seguia en true): el camino tinta -> SAVE -> `bStageDone` no se ejercito aca. Si se valido antes (5ad) y `ContractDone` es una linea.
-- **Valores de la instancia de `L_TBTest_SC`** (antes -> despues). Solo variables nuevas, que nacen en 0: `ContractBeginDelay` 0 -> 8 · `ContractFirewall` 0 -> 240 · `IntroTime` 0 -> 0,8 · `ContractPaletteDelay` 0 -> 0,6 · `bContractTest` false. Los de Beltran, intactos (`InkMeters` 30, `TipGain` 1,5, `PaletteScale` 0,464...). Nivel guardado: sin esos valores, la Obra los veria en 0.
+- **Valores de la instancia de `Test_Draw`** (antes -> despues). Solo variables nuevas, que nacen en 0: `ContractBeginDelay` 0 -> 8 · `ContractFirewall` 0 -> 240 · `IntroTime` 0 -> 0,8 · `ContractPaletteDelay` 0 -> 0,6 · `bContractTest` false. Los de Beltran, intactos (`InkMeters` 30, `TipGain` 1,5, `PaletteScale` 0,464...). Nivel guardado: sin esos valores, la Obra los veria en 0.
 
 ### 5af - El dibujo del CUADRO DE RESULTADOS aparece y se va con su animacion (2026-09-30, noche; encargo de Narrativa)
 Antes, `PlaceSketch` lo colocaba de golpe. Borrador y notas: `scripts/ghost/sketch_fx.dsl`.
@@ -2525,3 +2525,7 @@ Antes, `PlaceSketch` lo colocaba de golpe. Borrador y notas: `scripts/ghost/sket
 - **`DbgSynth()`** (director): enciende el trazo sintético de la herramienta (Dur 8, Delay 1, Speed 45, R 15, T 0, bSynth). Solo para pruebas desde la Obra (`DbgDrawSynth`).
 - Presentación nominal: Hide 2 + Gap 0,4 + Show 2,5 + Hold 5 + Out 2 ≈ 12 s (medido 12 s en PIE). Con el paso limitado a 0,033 s, en PIE a ~10 fps dura ~3x: no confundir con un cuelgue.
 - ⚠ `read_graph_dsl` rotula mal las llamadas propias (`Class|BPBreathStageSC|StageOutro`, `Class|BPObraSC|SketchSpin`): `get_node_infos` da `|StageOutro` con `self` conectado. Es la función propia.
+
+## 2026-10-02 (Narrativa) — reordenamiento
+- Dibujo (`BP_TBDirector_NC`): `StageRequestEnd` llama a `TimeUp`. Las ramas de `TimeUp` sin dibujo o con datos inválidos ahora también levantan `bStageDone` (antes la etapa quedaba esperando).
+- Carpeta nueva: ver la tabla de lo vigente en [_INDEX.md](_INDEX.md) (las rutas de este tracker ya están actualizadas).

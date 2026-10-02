@@ -2,7 +2,7 @@
 
 ## Purpose
 Pedido de Beltrán (2026-10-01): *"partículas y polvo que ayuden a entender el giro"* de la vuelta del mar. Motas fijas al mar con paralaje: al girar, las cercanas pasan de costado y las lejanas despacio → se lee el giro y la subida.
-Ruta: `/Game/SoulCharger/Mechanics/Heart/Scape/BP_HeartDust_SC`. Actor SEPARADO (no un componente nuevo del scape: gotchas 402/478); lo spawnea y destruye `BP_HeartScape_SC` (`BootDust` / `DustEnd`, con `Owner = scape`, pegado al `DefaultSceneRoot`).
+Ruta: `/Game/SoulCharger/Mechanics/Heart/Blueprints/BP_HeartDust_SC`. Actor SEPARADO (no un componente nuevo del scape: gotchas 402/478); lo spawnea y destruye `BP_HeartScape_SC` (`BootDust` / `DustEnd`, con `Owner = scape`, pegado al `DefaultSceneRoot`).
 
 ## Status
 🟢 Construido y spawneado/pegado en PIE. ⬜ Look y **72 fps en visor/APK** (OVR Metrics) sin ver.

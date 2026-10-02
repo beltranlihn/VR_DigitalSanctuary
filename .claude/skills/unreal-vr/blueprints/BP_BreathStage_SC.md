@@ -1,7 +1,7 @@
 # BP_BreathStage_SC — la etapa Entering portable (orquestador)
 
-**Ruta:** `/Game/SoulCharger/Mechanics/Breath/BP_BreathStage_SC`
-**Colocado en:** `/Game/Test_Entering` como `Entering_Stage`
+**Ruta:** `/Game/SoulCharger/Mechanics/Breath/Blueprints/BP_BreathStage_SC`
+**Colocado en:** `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath` como `Entering_Stage`
 **Nació:** 2026-09-27 · **Estado:** 🟢 flujo completo verificado en PIE y Simulate · ⬜ visor
 
 ## Qué es
@@ -22,7 +22,7 @@ El único BP que conoce a los otros tres: [[BP_BreathRig_SC]] (controller), [[BP
 **Enganche con la obra:** `bAutoStart = false`, el director llama `StageStart()` y escucha `OnBreathStageDone`. `StageEnd()` = cierre forzado (para el pacer → sigue el cierre normal).
 
 ## 🚶 Contrato TOUR (2026-09-29, para `Test_Recorrido`)
-`Test_Recorrido` carga `Test_Entering` entero con `LoadLevelInstance`. Con un actor tagueado `TOUR` en el mundo la etapa nace **dormida**; sin él (el `Test_Entering` de siempre) **nada cambia** (verificado en PIE: ninguna línea Tour, mismo flujo). Plan de origen: `VR_Test/Saved/ClaudeScripts/tour/PLAN-TOUR-ENTERING.md` (se simplificó de 9 a 7 funciones).
+`Test_Recorrido` carga `Test_Breath` entero con `LoadLevelInstance`. Con un actor tagueado `TOUR` en el mundo la etapa nace **dormida**; sin él (el `Test_Breath` de siempre) **nada cambia** (verificado en PIE: ninguna línea Tour, mismo flujo). Plan de origen: `VR_Test/Saved/ClaudeScripts/tour/PLAN-TOUR-ENTERING.md` (se simplificó de 9 a 7 funciones).
 
 **Estado real de la etapa:** lo que ya había. `Phase` y `PhaseTimer` (categoría `Z-Estado`, sin espacios → `Variables|Z-Estado|…`), refs `Rig`/`Blob`/`Pacer`. `StageStart` ya llama `StageFind` y fija fase 1 + reloj 0, sin guarda. La fase 6 es inerte (el `switch` no tiene caso 6). **Dormida = Tick apagado** (cero variables nuevas); "corriendo" = fase 1-5.
 
@@ -37,7 +37,7 @@ El único BP que conoce a los otros tres: [[BP_BreathRig_SC]] (controller), [[BP
 | `StageHushOne(Comp)` | interna | `AudioComponent.FadeOut(0,25 s, 0)` — **por cirugía** (`create_node` + `declaring_class` `/Script/Engine.AudioComponent`): `FadeOut` está duplicado con `SynthComponent` |
 
 **Qué hace dormir:** control apagado (rig inactivo, `RevealT` → 0 en 0,6 s, manos del pawn devueltas, háptica cortada, `MPC_Breath` a 0 → aire y valle a neutro solos) · metaball afuera (`BlobDisappear`, 2 s) · pacer quieto (`PacerStop`: reloj y sonidos nuevos cortados al instante, visible en su pausa de salida ~3 s y se achica en 0,6 s) · sonidos del pacer y de la vida con fundido de 0,25 s · vida con `bVida` false (el polvo se va con `GlobTau`, no salen ráfagas nuevas).
-**Qué hace despertar:** arranca desde cero como en `Test_Entering`: rig + metaball (`StageStart`), `PacerDelay` 2 s → `PacerPlay` (resetea ciclos), vida con `bVida` true y la primera ráfaga a `FirstGap` s.
+**Qué hace despertar:** arranca desde cero como en `Test_Breath`: rig + metaball (`StageStart`), `PacerDelay` 2 s → `PacerPlay` (resetea ciclos), vida con `bVida` true y la primera ráfaga a `FirstGap` s.
 
 **Reglas para el director del recorrido:**
 - Llamar **solo** `TourWake()`/`TourSleep()`. **No tocar el Tick de la etapa** (es su estado de dormida).
@@ -59,7 +59,7 @@ Plan: `docs/PLAN-NOCHE-2026-09-30.md`. Los stubs los creó Narrativa; los llenó
 | `bStageDone` | al terminar los ciclos (fase 4 del flujo viejo) → fase **13** + `OnBreathStageDone`. El metaball NO sale solo |
 | `StageOutro()` | fase **14**: `Blob.BlobDisappear()` (2,5 s) + `BlobOutSound` · `Rig.SetRigActive(false)` · `StageHush(Pacer)` y `PacerStop` si corría (cortafuegos) · **el sensor queda en la mano** · al llegar el metaball a 0 → fase 6 |
 | `ContractStep(DT)` | en el Tick DESPUÉS de `StageTick` (cirugía en el EventGraph); `dt = min(DT, 1/30)`; mueve las fases 10-14 (el switch viejo no tiene casos para ellas: quedan inertes allí) |
-| `ContractTest(DT)` | `bContractTest` (instance-editable; **true en Test_Entering**): Intro a 1,5 s → Begin 8 s después → Outro al `bStageDone`. Con un actor `TOUR` en el mundo se apaga solo (`TestStage` 99) |
+| `ContractTest(DT)` | `bContractTest` (instance-editable; **true en Test_Breath**): Intro a 1,5 s → Begin 8 s después → Outro al `bStageDone`. Con un actor `TOUR` en el mundo se apaga solo (`TestStage` 99) |
 Perillas `0-Contrato`: `bContractTest` · `ExploreTime` 20 · `CountTime` 3 · `ToolDelay` 1,5 · `SensorColor` (0,35, 0,7, 1) · `CountSound` · `BlobInSound` (VR_shep_scale_up_01) · `BlobOutSound` (VR_shep_scale_down_02). Estado `Z-Estado`: `ContractTimer`, `TestClock`, `TestStage`, `bContract`, `bToolDone`.
 - 🔴 **La Obra NO llama `TourWake`** (arranca la etapa vieja entera: rig + metaball + pacer). `TourSleep` sigue sirviendo para dormirla después de `StageOutro`.
 - `TourWake`/`TourSleep`/`bAutoStart` (flujo viejo) intactos: `Test_Recorrido` sigue igual (sin mando visible: el rig ya no dibuja el suyo).
@@ -67,7 +67,7 @@ Perillas `0-Contrato`: `bContractTest` · `ExploreTime` 20 · `CountTime` 3 · `
 - 🐛 Pagado al escribir: `(Actor|Tick|SetActorTickEnabled true)` sin target escribió `bEnabled` = **false** (el literal fue al pin `self`); se corrigió con `set_pin_value`. Leer siempre el grafo después de escribir.
 - 🟢 **`CycleScores`** (float[], `Y-Publicado`, lo lee el cuadro de resultados: `BP_JourneyContent_SC.SetBreathScores` después de `bStageDone`): un valor 0..1 por ciclo = clamp(Pearson(P, S)). **P** = la guía del pacer desde SU reloj (`T`, `InhaleTime`/`Hold1Time`/`ExhaleTime`: inhala −1→+1 · sostiene +1 · exhala +1→−1 · sostiene −1; lineal, el MID del pacer no conecta con `GetScalarParameterValue` desde el DSL) · **S** = `BreathFollow` del rig (lo que va a `MPC_Breath.Signed`). `ScoreStep(DT)` en el Tick después de `ContractStep`: muestrea solo en fase 3 con el pacer corriendo (`ScoreSample`, sumas `ScN/ScP/ScS/ScPP/ScSS/ScPS`); cierra el ciclo cuando la guía vuelve a subir desde el fondo (−0,95 → −0,9) y el último cuando el pacer para (`ScoreFinish` + `ScoreReset`, mínimo 30 muestras); `ScoreClear` en la fase 10; si `BreathOn` nunca pasó de 0,5 (`bSawOn`), el array queda vacío en la fase 13. Log `BREATHSTAGE: puntaje del ciclo …`. DSL: `Saved/ClaudeScripts/usertool/score.dsl`.
   - Verificado en PIE (2 ciclos, respiración falsa de 12 s): `[0,956, 0,288]`. El segundo bajo es del INSTRUMENTO: bajo el sondeo del MCP el PIE corre a < 30 fps y el paso limitado a 1/30 atrasa al pacer (12 s de pacer = 14 s reales) contra la respiración falsa en tiempo real. A 72 fps el límite no actúa.
-- Flags de test **en false al guardar** (regla de Narrativa): `bContractTest` y `Entering_UserTool.bShowMandoOnBegin`. Para probar el contrato suelto en Test_Entering, tildarlos y destildarlos antes de guardar (con los dos en false, Play corre el flujo viejo sin sensor visible).
+- Flags de test **en false al guardar** (regla de Narrativa): `bContractTest` y `Entering_UserTool.bShowMandoOnBegin`. Para probar el contrato suelto en Test_Breath, tildarlos y destildarlos antes de guardar (con los dos en false, Play corre el flujo viejo sin sensor visible).
 ## Perillas `0 - Etapa`
 `bAutoStart` true · `StartDelay` 1,5 · `PacerDelay` 2 · `BlobOutDelay` 0,6. Los ciclos y tiempos de respiración se autoran **en el pacer** (Preset 1 = 6-0-6-0, `Cycles` 5 en el nivel de test).
 
@@ -77,25 +77,25 @@ Perillas `0-Contrato`: `bContractTest` · `ExploreTime` 20 · `CountTime` 3 · `
 - El read rotula `Retire`/`SetRigActive` como `Class|BPSeqRigSC|…` y el `GetEnvT` del metaball como del pacer: **es la etiqueta**; `get_node_infos` confirmó la clase del pin `self` de cada llamada.
 
 ## 📦 APK de prueba + banco de medición (2026-09-27)
-`Test_Entering` empaquetado (Development ASTC, `com.almadigital.entering`, "Soul Charger Entering") e **instalado en la Quest**. El nivel lleva además `Perf_Entering` ([[BP_PerfEntering_SC]], carpeta `Debug`), que apaga/prende metaball y pacer por consola para medir cuánto pesa cada uno con `scripts/quest_entering_perf.ps1`. La etapa no sabe que existe: durante la medición el pacer queda en ciclos infinitos (`PerfELoop`) y al final vuelve a sus ciclos, así que el cierre (pacer → metaball → `OnBreathStageDone`) es el de siempre.
+`Test_Breath` empaquetado (Development ASTC, `com.almadigital.entering`, "Soul Charger Entering") e **instalado en la Quest**. El nivel lleva además `Perf_Entering` ([[BP_PerfEntering_SC]], carpeta `Debug`), que apaga/prende metaball y pacer por consola para medir cuánto pesa cada uno con `scripts/quest_entering_perf.ps1`. La etapa no sabe que existe: durante la medición el pacer queda en ciclos infinitos (`PerfELoop`) y al final vuelve a sus ciclos, así que el cierre (pacer → metaball → `OnBreathStageDone`) es el de siempre.
 
 ## Verificado (2026-09-27, `bFakeBreath` + pacer 1-0-1-0 × 2)
 Log en orden: `BREATHRIG: montado` → `activo` → `BLOB: entra` → `BREATHSTAGE: inicio` → manos escondidas → `BREATH: listo` → `pacer en marcha` → `el pacer termino sus ciclos` → `BLOB: sale` → `BLOB: salida terminada` → `BREATHRIG: inactivo` → `fin de la etapa` → manos devueltas. Cero `Accessed None` en PIE y en Simulate.
 
 ## ⏱ 2026-09-30 (tarde) — agilidad (decisiones de Narrativa, pedido de Beltrán)
-- `ExploreTime` 20 → **12** · `ToolDelay` 1,5 → **0,8** (CDO e instancia de Test_Entering, antes → después).
+- `ExploreTime` 20 → **12** · `ToolDelay` 1,5 → **0,8** (CDO e instancia de Test_Breath, antes → después).
 - **El pacer aparece CON el "three, two, one"**: cirugía de exec en `ContractStep` — `PacerPlay` pasó de la rama fase 12→2 al final de la rama 11→12 (después del print `three, two, one`). La pausa de entrada del pacer (`LeadIn` 3 s) corre durante la cuenta (`CountTime` 3 s) y la respiración arranca al terminar "one". El print de la rama 12→2 ahora dice `fin de la cuenta (el pacer ya aparecio con ella)`. La fase 2 espera `Pacer.bRunning` como siempre.
 - Medido en PIE: `three, two, one` 17:17:34,28 → `pacer en marcha` 17:17:37,30 (antes: +6 s). Desde `StageBegin` hasta `bStageDone`: 12 + 3 + 70 (4-3-4-3 × 5) + 3 (`LeadOut`) ≈ **88 s** (antes 99).
 - ⚠ Instrumento: con scripts MCP corriendo durante el PIE el editor se traba y el `Dt` recortado a 1/30 alarga los temporizadores (la exploración midió 21 s con `ExploreTime` 12 leído en el mundo de PIE). No es de la etapa.
-- La Obra encuentra al sensor con `GetActorOfClass(BP_UserTool_SC)` en `StageTool`: el de Test_Entering es `TestOnly` (lo destruye la Obra) y el que queda es `UserTool_Obra` del persistente (valores = CDO = los de Test_Entering, verificado).
+- La Obra encuentra al sensor con `GetActorOfClass(BP_UserTool_SC)` en `StageTool`: el de Test_Breath es `TestOnly` (lo destruye la Obra) y el que queda es `UserTool_Obra` del persistente (valores = CDO = los de Test_Breath, verificado).
 - 🔴 **Sensor que no aparecía en la Obra con StageBegin temprano (arreglado):** la conversión mando → sensor (`StageTool` a los `ToolDelay`) exigía `Phase == 10`; en la Obra a `Speed` 8 `StageBegin` llegó a los 0,75 s (antes de 0,8) y el sensor no aparecía nunca. Cirugía: el `==` (`K2Node_PromotableOperator_4`) pasó a **`>=` 10** → si `StageBegin` llega antes, el sensor aparece a los `ToolDelay` del reinicio del reloj de exploración. Verificado en la Obra (PIE, Speed 8): `StageIntro` → `StageBegin` +0,75 s → `UserTool.ToSensor (azulado)` +0,80 s → `mode 2`, `LightColor` (0,35, 0,7, 1), `bMounted`, visible → cuenta → pacer en marcha +3 s.
 
 ## 🗣 2026-10-01 — la voz acompaña el PRIMER ciclo (VO v2 de Beltrán, `docs/VO-SOUL-CHARGER-2026-10-01.md`)
 - **Cuenta de 4 tiempos** `VO_12c` "Three… two… one… inhale." (reemplazó a la vieja; wav 48 kHz en `Mechanics/Breath/Audio/`, provisorio hasta la mezcla de Beltrán en Ableton). "inhale" empieza a los **3,48 s** del clip.
-- `ContractStep`: el `PacerPlay` SALIÓ de la rama 11→12 (cirugía; el nodo y su getter se borraron). Lo lanza **`StepCycleVO(DT)`** (función nueva, en el Tick después de `ContractStep`, antes de `ScoreStep`) cuando, en fase 12, `ContractTimer ≥ InhaleCueAt − Pacer.LeadIn` (3,48 − 3 = 0,48 s) → la pausa de entrada del pacer termina justo en "inhale". Respaldo: en fase 2 sin cue lo lanza igual. `CountTime` 3 → **3,6** (CDO; la instancia de Test_Entering lo hereda).
+- `ContractStep`: el `PacerPlay` SALIÓ de la rama 11→12 (cirugía; el nodo y su getter se borraron). Lo lanza **`StepCycleVO(DT)`** (función nueva, en el Tick después de `ContractStep`, antes de `ScoreStep`) cuando, en fase 12, `ContractTimer ≥ InhaleCueAt − Pacer.LeadIn` (3,48 − 3 = 0,48 s) → la pausa de entrada del pacer termina justo en "inhale". Respaldo: en fase 2 sin cue lo lanza igual. `CountTime` 3 → **3,6** (CDO; la instancia de Test_Breath lo hereda).
 - Primer ciclo: `HoldSound` (`VO_12f1` "Hold.") / `ExhaleSound` (`VO_12f2` "Exhale.") / `HoldSound`, `CueLead` (0,3 s) antes de cada cambio de fase, según los tiempos del pacer (una retención de 0 s no habla). Ciclos 2+: silencio (`VO_12b` eliminada). Todo solo con `bContract` (el flujo viejo no cambia).
 - Perillas `0-Contrato`: `bCycleVO` (true) · `InhaleCueAt` (3,48; **si la mezcla de Beltrán mueve el "inhale", ajustar acá**) · `CueLead` (0,3) · `HoldSound` · `ExhaleSound`. Estado `Z-Estado`: `bPacerCued`, `CueStep`.
-- Construido con Test_Results abierto (regla de Narrativa: las variables nuevas no nacen en 0 en las instancias de Test_Entering/Obra); la instancia de Test_Entering leyó los valores del CDO (verificado). La lectura del DSL rotula `GetT`/`GetCycleIndex` con otras clases (colisión de nombres): `get_node_infos` confirma que el `self` es `BP Pacer SC`.
+- Construido con Test_Results abierto (regla de Narrativa: las variables nuevas no nacen en 0 en las instancias de Test_Breath/Obra); la instancia de Test_Breath leyó los valores del CDO (verificado). La lectura del DSL rotula `GetT`/`GetCycleIndex` con otras clases (colisión de nombres): `get_node_infos` confirma que el `self` es `BP Pacer SC`.
 - Verificado en PIE con el runner de Narrativa: `three, two, one` 55,610 → `pacer lanzado con la cuenta` 56,094 (+0,484) → el pacer corre a +3,48 s (= "inhale") → `fin de la cuenta` +3,60; a `T` 11,25 del ciclo 0 `CueStep` 3 (las tres voces disparadas). 0 errores, 0 Accessed None.
 
 ## 🗣 2026-10-01 (madrugada) — las VO de ADENTRO de Entering (auditoría `docs/VO-AUDITORIA-2026-10-01.md`)
@@ -103,5 +103,9 @@ Log en orden: `BREATHRIG: montado` → `activo` → `BLOB: entra` → `BREATHSTA
 - **`StepStageVO(DT)`** en el Tick ENTRE `StageTick` y `ContractStep` (solo con `bContract`; `SayStep` 0-4, se resetea al volver a la fase 10): VO_11 (`ClipInstr`) a `ToolDelay + SayAfterTool` (fase 10 u 11) → VO_11b (`ClipExplore`) en fase 11 apenas queda libre (`SayEndAt + SayGap`) → VO_11h (`ClipHelp`) `HelpAfter` s después, SOLO si `Rig.bZone` es false → VO_12 (`ClipReady`) a `ExploreTime − dur − 0,4` (nunca antes de quedar libre). **La cuenta espera**: mientras `SayStep < 4` o no pasó `SayEndAt + 0,3`, `ContractTimer` se mantiene en `ExploreTime − 0,05`.
 - **`StepCycleVO`**: el cue del pacer en la fase 11 ahora también exige `SayStep ≥ 4` y `GameTime ≥ SayEndAt + 0,3 + (InhaleCueAt − LeadIn)` → sigue cayendo 0,44 s antes de la cuenta aunque la cuenta se retrase por la VO.
 - Perillas `0-Contrato`: `SayAfterTool` 1 · `SayGap` 0,5 · `HelpAfter` 4 · `ClipInstr/Explore/Help/Ready` = `Obra/Audio/VO_11, VO_11b, VO_11h, VO_12`. Estado `Z-Estado`: `SayStep`, `SayEndAt`. Nombres sin "VO" adelante a propósito (camelCase de propiedades).
-- Runner de Test_Entering: `InstrTime` 6 → 8,5 (VO_11 empieza a ~1,8 s y dura 5,84).
+- Runner de Test_Breath: `InstrTime` 6 → 8,5 (VO_11 empieza a ~1,8 s y dura 5,84).
 - PIE (runner): StageIntro 03,09 → ToSensor 03,88 → VO_11 04,89 → StageBegin 11,59 → VO_11b 11,61 → VO_12 19,56 → (retención) → pacer 28,90 → cuenta 29,36 → inhalación 31,90 vs "inhale" 31,92. 0 errores. La lectura del DSL rotula `GetDuration`/`GetAppearT` con otras clases: `get_node_infos` confirma SoundBase / BP_Alma_SC / BP_BreathRig_SC.
+
+## 2026-10-02 (Narrativa) — reordenamiento
+- `StageRequestEnd` (evento nuevo): imprime el pedido y levanta `bStageDone`. Lo llama la Obra (`RequestEnd`) o el ensayo (`RRequestEnd`) cuando se cumple `Etapa_Tope[0]` de la Partitura.
+- Carpeta nueva: ver la tabla de lo vigente en [_INDEX.md](_INDEX.md) (las rutas de este tracker ya están actualizadas).

@@ -64,7 +64,7 @@ _105 perillas listadas de 105 variables._
 
 ## Entering: la etapa — `BP_BreathStage_SC`
 
-Nivel donde se ajusta: **Test_Entering**. 
+Nivel donde se ajusta: **Test_Breath**. 
 
 **0 - Etapa** — `bAutoStart` true · `StartDelay` 1.5 · `PacerDelay` 2 · `BlobOutDelay` 0.6
 
@@ -76,7 +76,7 @@ _26 perillas listadas de 51 variables._
 
 ## Entering: el sensor de respiracion (mandos) — `BP_BreathRig_SC`
 
-Nivel donde se ajusta: **Test_Entering**. Umbral y suavizado de la respiracion.
+Nivel donde se ajusta: **Test_Breath**. Umbral y suavizado de la respiracion.
 
 **0 - Rig** — `bStartActive` false · `bShowControllers` true · `bShowSensors` true · `bHideHands` true · `CtrlColor` {"r": 0.3499999940395355, "g": 0.800000011920929, "b": 1, "a": 1} · `SensorColor` {"r": 0.8859999775886536, "g": 0.6039999723434448, "b": 0.446999996900... · `CtrlBrightness` 1.5 · `RevealTime` 0.6 · `CtrlMat` {"refPath": "/Game/SoulCharger/Mechanics/Breath/M_BreathCtrl_SC.M_Brea...
 
@@ -96,7 +96,7 @@ _55 perillas listadas de 88 variables._
 
 ## Entering: el metaball — `BP_BreathBlob_SC`
 
-Nivel donde se ajusta: **Test_Entering**. 
+Nivel donde se ajusta: **Test_Breath**. 
 
 **A - Forma** — `SizeCM` 220 · `BlobRadius` 13.58 · `Smoothness` 9 · `Spread` 19.46
 
@@ -124,7 +124,7 @@ _46 perillas listadas de 50 variables._
 
 ## Entering: el pacer (guia de respiracion) — `BP_Pacer_SC`
 
-Nivel donde se ajusta: **Test_Entering**. Ciclos y tiempos 4-3-4-3.
+Nivel donde se ajusta: **Test_Breath**. Ciclos y tiempos 4-3-4-3.
 
 **A - Ritmo** — `InhaleTime` 6 · `Hold1Time` 0 · `ExhaleTime` 6 · `Hold2Time` 0 · `Mode` 1 · `Preset` 1 · `Cycles` 0 · `bAutoPlay` true · `bInhaleToCenter` true · `LeadIn` 3 · `LeadOut` 3
 
@@ -168,7 +168,7 @@ _42 perillas listadas de 72 variables._
 
 ## Loving: la celula — `BP_LovingCell_SC`
 
-Nivel donde se ajusta: **Test_Fluid**. StageDuration = duracion de la mecanica.
+Nivel donde se ajusta: **Test_Mind**. StageDuration = duracion de la mecanica.
 
 **2-Forma** — `GroupCount` 5 · `GroupSize` 1 · `GroupSpread` 1 · `CenterAttraction` 1 · `ConnectionStrength` 1 · `CentreRadius` 16 · `DistSeparated` 72 · `DistConnected` 48 · `FigureTilt` 15 · `SizeVariation` 0.5 · `bBridges` false
 
@@ -194,7 +194,7 @@ _65 perillas listadas de 133 variables._
 
 ## Loving: el fluido cerebral — `BP_FluidMedium_SC`
 
-Nivel donde se ajusta: **Test_Fluid**. 
+Nivel donde se ajusta: **Test_Mind**. 
 
 **0-EEG** — `EEG` 0.3 · `bFakeEEG` false · `FakePeriod` 60 · `EEGSmoothing` 2 · `EEGFlow` 0.7 · `EEGClarity` 0.5 · `ActiveBoost` 0
 
@@ -240,7 +240,7 @@ _39 perillas listadas de 73 variables._
 
 ## Surrounding: el dibujo (director) — `BP_TBDirector_NC`
 
-Nivel donde se ajusta: **L_TBTest_SC**. Tinta, paleta, presentacion.
+Nivel donde se ajusta: **Test_Draw**. Tinta, paleta, presentacion.
 
 **00 MANO** — `bLeftHanded` false · `bHidePawnHands` true
 
@@ -270,7 +270,7 @@ _110 perillas listadas de 134 variables._
 
 ## Surrounding: la herramienta de dibujo — `BPC_TBTool_NC`
 
-Nivel donde se ajusta: **L_TBTest_SC**. 
+Nivel donde se ajusta: **Test_Draw**. 
 
 **09 DEBUG** — `bSynth` false · `SynthSpeed` 45 · `SynthR` 15 · `SynthDur` 8 · `SynthDelay` 3 · `bSynthDry` false
 

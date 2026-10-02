@@ -8,6 +8,32 @@
 
 ---
 
+## 0. 🔴 Actualización 2026-10-02: las mecánicas vigentes y su dependencia medida
+> Las fichas de §4 son de septiembre y nombran mecánicas y rutas que ya no existen (`BP_DrawCanvas`, `Stages/...`). Lo vigente después del reordenamiento de carpetas:
+
+Cada mecánica tiene su carpeta: `/Game/SoulCharger/Mechanics/<Breath|Heart|Mind|Sequencer|Draw>/`, con los assets por tipo y su nivel en `Maps/`. **Lo que cada una usa de afuera** (medido con `tools/unreal/deps.py` sobre los `.uasset`, contando los assets distintos):
+
+| Mecánica | Shared | Core | Obra | Otra mecánica | XR de Epic |
+|---|---|---|---|---|---|
+| **Draw** | QuestController 12, Ghost 4, Appear 2 | Audio 3, Alma 2, UI 1 | 2 (ensayo y título, solo en el nivel de test) | — | 8 |
+| **Breath** | BioSensor 9, QuestController 7, Ghost 4, UserTool 2, Appear 1 | Alma 3, Light 3, UI 1, Debug 1 | 27 (las voces de Alma en `BP_BreathStage_SC` + ensayo) | Draw 3 (2 sonidos de la paleta + la base de la paleta en el nivel) | 4 |
+| **Heart** | Ghost 4, QuestController 3, BioSensor 1, UserTool 1 | Alma 4, Signals 2 (BioHub/OSC), Audio 1, UI 1 | 29 (voces en `BP_HeartManager_SC` + ensayo) | Draw 1 (base de la paleta en el nivel) | 2 |
+| **Mind** | — | Light 4, Alma 3, Pawn 1 | 26 (voces en `BP_LovingCell_SC` + ensayo) | — | 1 |
+| **Sequencer** | Appear 8, QuestController 7, Ghost 4 | Audio 10, Debug 6, Pointer 5, Alma 5, Light 3, UI 1 | 2 | Heart 1 (la malla de la membrana en Chladni), Draw 1 | 8 |
+
+**Lectura:**
+1. Lo que ata cada mecánica a la Obra son **las voces de Alma**, referenciadas directamente desde el BP de etapa, y el ensayo y los títulos del nivel de test. Es la capa **etapa** del contrato de §1, la que no viaja.
+2. Lo que necesitan de afuera es casi todo de una misma base chica: mandos (`QuestController`), aparición (`Appear`), fantasmas de instrucción (`Ghost`), sensor (`BioSensor`/`UserTool`), puntero, luz y Alma.
+3. Hay tres cruces entre mecánicas que cortar: la base de la paleta usada como pedestal en tres niveles, dos sonidos de la paleta en Breath y la membrana de Heart en el Chladni de Sequencer.
+
+**Propuesta (pendiente de decisión de Beltrán): una mecánica = un plugin de contenido.** No replicar las mecánicas dentro de cada proyecto, porque dos copias divergen a la semana. Que vivan **afuera** y el proyecto las use:
+- `Plugins/SC_Base` (mandos, aparición, fantasmas, sensor, puntero, luz; **sin** Alma ni voces) y `Plugins/SC_Breath`, `SC_Heart`, `SC_Mind`, `SC_Sequencer`, `SC_Draw`. Cada uno lleva su motor, su herramienta, sus assets y un nivel de demostración sin la Obra. En el `.uplugin` declaran que dependen de `SC_Base`.
+- **Se quedan en el proyecto** la capa etapa (el BP que habla con la Obra: voces, `StageIntro/Begin/RequestEnd/Outro`), los niveles `Test_<X>` con el ensayo, el Hall, los resultados y la Obra.
+- Para usar una mecánica en otro proyecto se copian `SC_Base` y `SC_<X>` a su carpeta `Plugins/` y se activan. No hace falta "Migrate".
+- Orden: **Draw primero**: es la más autocontenida, ya nació como paquete portable y no tiene voces. Después Breath, Heart, Mind y Sequencer. Cada paso: cortar las voces y los cruces (pasan a la etapa o a `SC_Base`), mover al plugin con la misma técnica del reordenamiento (`tools/unreal/mcp/reorden_job.py`, gotcha 583), prueba de humo.
+
+---
+
 ## 1. El contrato de arquitectura (las reglas que hacen portable una mecánica)
 
 ### 1.1 Las tres capas
@@ -80,7 +106,7 @@ Estas muerden en CUALQUIER mecánica; van antes que cualquier ficha:
 ## 4. Fichas de empaque por mecánica
 
 > 🖌️ **Dibujo estilo Tilt Brush (2026-09-27) — ya transplantado, y es el modelo a seguir.** Vive en
-> `/Game/NeuralCanvas/` (carpeta raíz propia, cero dependencias fuera de ella, input propio no consumidor). Un solo
+> `/Game/SoulCharger/Mechanics/Draw/` (carpeta raíz propia, cero dependencias fuera de ella, input propio no consumidor). Un solo
 > actor (`BP_TBDirector_NC`) + un `TargetPoint` + `BP_TBTable`. Receta completa en
 > [`BP_TBStroke.md` §5o](../.claude/skills/unreal-vr/blueprints/BP_TBStroke.md). El método — **mover primero todo a una
 > carpeta raíz única en el proyecto origen, verificar por grep que nada apunte afuera, y recién ahí copiar la carpeta** —
@@ -105,7 +131,7 @@ Estas muerden en CUALQUIER mecánica; van antes que cualquier ficha:
 ### 4.2 🟢/🟡 Dibujo 3D — `BP_DrawCanvas` (motor) + `BP_ControllerRig` (herramienta portable)
 **El examen de portabilidad ya rendido**: el rig se montó en `L_XRTemplate` y en `TestMeshes` con dos pawns distintos y **dibuja en visor** (validado 2026-09-03).
 
-- **Paquete mínimo:** `Stages/Movement/BP_DrawCanvas` (motor, viaja INTACTO) + `/Game/BP_ControllerRig` + material del pincel (`/Game/Drawing/Material/M_Emissive_Inst`; alternativa: `M_Brush_Light` + `MI_Brush_Veil/Neon` en `Stages/Movement/Materials/` — dos familias conviven, elegir una) + meshes `/Game/ControllerL|R`, `/Game/BreathL|R`, `SKM_MannyXR_left|right`. Requisito de proyecto: plugin **ProceduralMeshComponent** activo. Opcional: `BP_BrushPalette` (paleta 3×3) y `MPC_Draw` (el fade de etapa).
+- **Paquete mínimo:** `Stages/Movement/BP_DrawCanvas` (motor, viaja INTACTO) + `/Game/BP_ControllerRig` + material del pincel (`/Game/Drawing/Material/M_Emissive_Inst`; alternativa: `M_Brush_Light` + `MI_Brush_Veil/Neon` en `Stages/Movement/Materials/` — dos familias conviven, elegir una) + meshes `/Game/SoulCharger/Shared/QuestController/ControllerL|R`, `/Game/SoulCharger/Mechanics/Breath/Meshes/BreathL|R`, `SKM_MannyXR_left|right`. Requisito de proyecto: plugin **ProceduralMeshComponent** activo. Opcional: `BP_BrushPalette` (paleta 3×3) y `MPC_Draw` (el fade de etapa).
 - **Enchufe:** el pawn solo necesita SceneComponents llamados exactamente **`HandRight`/`HandLeft`** (`FindHand` sin cast — cumplen `BP_XRPawn` y `BP_VRPawn_SC`). 💡 Y como esas manos son **hijas de su MotionController Grip**, el mismo contrato alcanza para conseguir la señal del mando (velocidad → calma): `GetAttachParent` + cast, sin tocar la clase del pawn. Input: eventos `IA_Shoot_L/R` (gratis por `IMC_Weapon_*`). El canvas SIEMPRE en **transform identidad** (el rig lo spawnea así). ⚠ El motor referencia `BP_AudioHub`/`BP_HapticHub` (acople blando: sin ellos no suena/vibra, no rompe).
 - **API del motor:** `BeginStroke(BrushId, StartLoc, ControllerUp, BaseColor, **Mat**)` — 🔴 **5 parámetros; sin el Mat el trazo sale gris o invisible** · `AddPoint(NewLoc, ControllerUp, Width, Calm)` · `EndStroke()` · `RebuildFrom(CSV)` / `SerializeDraw()` (persistencia). Perillas del rig por instancia: `DrawWidth` 1.8 · `DrawColor` · `DrawMat` · `bCanDraw` · `HapticAmp` 0.25 · `bRightHand` · `bShow*`.
 - **Receta (la probada):** copiar paquete → verificar contrato del pawn → arrastrar 2 rigs (posición del actor da igual: se re-anclan a la mano en BeginPlay) → `bRightHand=false` en uno → 🔴 escribir TODAS las perillas en las DOS instancias (nacen en cero) → verificar `IMC_Weapon_*` en `DefaultInput.ini` del proyecto destino → PIE: `RIGDRAW INIT` una vez por rig → visor.
@@ -145,7 +171,7 @@ Manager limpio (no conoce directores por clase… en el diseño — ver deuda), 
 ### 4.5 🔴 Beam de apuntado + far-grab — modo 4 de `BP_Sensor_Soul`
 El beam en sí (trace + Niagara + publicación por mano) es motor limpio y **validado en visor**; el problema es dónde vive.
 
-- **Paquete:** `Core/Sensor/` (BP + `M_Beam_SC` + `MI_Sensor`) + Niagara **`Stages/Touch/VFX/LineTrace`** (🔴 el beam ES este Niagara; los mesh-beams se eliminaron por decisión). Pero copiar `BP_Sensor_Soul` arrastra HOY: `BP_VRPawn_SC`, `BP_Director_Story`, `BP_ProtoSoul_SC`, `BP_BioHub`, el cluster Attracting, `BP_BrushPalette`, `BP_DrawCanvas`, `MPC_Draw`.
+- **Paquete:** `Core/Pointer/` (BP + `M_Beam_SC` + `MI_Sensor`) + Niagara **`Stages/Touch/VFX/LineTrace`** (🔴 el beam ES este Niagara; los mesh-beams se eliminaron por decisión). Pero copiar `BP_Sensor_Soul` arrastra HOY: `BP_VRPawn_SC`, `BP_Director_Story`, `BP_ProtoSoul_SC`, `BP_BioHub`, el cluster Attracting, `BP_BrushPalette`, `BP_DrawCanvas`, `MPC_Draw`.
 - **Enchufe:** pawn `BP_VRPawn_SC` obligatorio (lee los Aim por accesor) · una instancia del sensor · nivel sin colisiones fantasma (§3 trampa 4; muros con `CTF_UseComplexAsSimple`).
 - **API:** `SetStage(4)` enciende / `SetStage(-1)` apaga (activación Y visibilidad de `BeamFxR/L` — `Deactivate` solo no basta: el ribbon queda congelado) · `ExploreOn(On)` / `AimBeams()` (beam sin trace) · publica por mano: `BeamStart(L)`, `BeamHitLoc(L)`, `BeamHitActor(L)`, `bBeamHit`/`BeamHitL`, `HeldOrb(L)`, `BeamEndR/L` (fin visual) · el hover es **polling** (`BeamHitActor == self`), el grab lo maneja el sensor (`BeamPress` → cast → `GrabStart` del objetivo). Knobs: `TraceDistance` 800 · `BeamRadius` 0.6.
 - **Estado:** 🟢 dos beams, hover, far-grab y háptico por mano validados en visor (2026-08-26).
@@ -153,10 +179,10 @@ El beam en sí (trace + Niagara + publicación por mano) es motor limpio y **val
 
 ---
 
-### 4.6 🟡 Attracting — secuenciador musical + esferas (`Core/Attracting/`)
+### 4.6 🟡 Attracting — secuenciador musical + esferas (`Mechanics/Sequencer/`)
 Los motores (`BP_SoundOrb_SC`, `BP_SeqSlot_SC`, `BP_SaveMelody_SC`) están limpios; el manager (`BP_Sequencer_SC`) conoce al director, al sensor y al panel por llamada dura.
 
-- **Paquete:** la carpeta `Core/Attracting/` completa (4 BPs + `MI_AttractSlot/Orb/Button`, maestro `M_Beam_SC`) + `Core/Audio/AttractingSounds/Module1/` (`PadM1` looping 5.333 s + los 20 clips; ojo: `M1S10v3` y `M1S18v2` reemplazan a los originales borrados) + el paquete del beam (ficha 4.5) + el panel (ficha 4.4) si se quiere la intro.
+- **Paquete:** la carpeta `Mechanics/Sequencer/` completa (4 BPs + `MI_AttractSlot/Orb/Button`, maestro `M_Beam_SC`) + `Core/Audio/AttractingSounds/Module1/` (`PadM1` looping 5.333 s + los 20 clips; ojo: `M1S10v3` y `M1S18v2` reemplazan a los originales borrados) + el paquete del beam (ficha 4.5) + el panel (ficha 4.4) si se quiere la intro.
 - **Enchufe:** `BP_Sensor_Soul` en modo 4 (cuatro puntos de acople: `SetStage(4)`, polling de `BeamHitActor/L`, `GrabStart` desde `BeamPress`, `SetStage(-1)` en `BeamOff`) · anclas `BP_Anchor` por tag: 20× `orb_attracting`, 1× `orb_intro_attracting`, 1× `seq_final_attracting` · 8 `BP_SeqSlot_SC` con `StepIndex` 0..7 **por instancia** y `ZoneRadius` (nace en 0) · el cierre llama `Director_Story.StepTimeDone()` — sin director hay que reapuntarlo.
 - **API:** `SeqIntro()` (el arranque) · `SaveMelody()` · `NotifyPlaced(Orb)` · `SerializeMelody()` → `"paso:clip,…"`. Config por instancia: `ModuleSounds` (los 20), `PadSound`, `NumSteps` 8, `FinalPasses` 2, los 4 tags. La alineación pad↔pasos es **por construcción** (`StepDur = Duration(Pad)/NumSteps`): no se ajusta a mano; `PadM1` necesita `bLooping=true`.
 - **Receta:** copiar paquetes → colocar secuenciador + 8 slots + botón + 22 anclas → escribir arrays/tags/StepIndex por instancia → disparar con `Sensor.SetStage(4)` + `MaybeInput()` + `Seq.SeqIntro()` → cierre: reapuntar `StepTimeDone` si no hay director → PIE: `SEQ: boot slots=8` → `esferas=20` → `StepDur = 0.66666`.
@@ -188,8 +214,8 @@ Los motores (`BP_SoundOrb_SC`, `BP_SeqSlot_SC`, `BP_SaveMelody_SC`) están limpi
 - **Deuda:** `BP_Sensor_Soul` (la obra) todavía usa su copia — migrarlo a consumidor después del visor. El resolvedor de manos va por su 4ª copia (falta `BPFL_XRHands`).
 
 #### 4.7.b 🟢 ENTERING COMPLETA portable (2026-09-27) — rig + metaball + pacer + etapa
-La etapa entera, al modo del secuenciador y el dibujo. Nivel de test: **`/Game/Test_Entering`** (vacío negro, GameMode `BP_XRGameMode` → `BP_VRPawn_SC`, PlayerStart en el piso).
-- **Paquete:** `Mechanics/Breath/` (`BP_BreathRig_SC`, `BP_BreathBlob_SC` + `M_BreathBlob_SC`, `BP_BreathStage_SC`, `M_BreathCtrl_SC`, `MPC_Breath`) + `Mechanics/Pacer/` (`BP_Pacer_SC`, `M_Pacer_SC`, `MI_Pacer_SC`) + meshes `/Game/ControllerL|R`, `/Game/BreathL|R` + `SKM_MannyXR_*` + `GrabHapticEffect`. `Migrate` los arrastra solos (dependencias medidas: nada del pawn ni de directores).
+La etapa entera, al modo del secuenciador y el dibujo. Nivel de test: **`/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath`** (vacío negro, GameMode `BP_XRGameMode` → `BP_VRPawn_SC`, PlayerStart en el piso).
+- **Paquete:** `Mechanics/Breath/` (`BP_BreathRig_SC`, `BP_BreathBlob_SC` + `M_BreathBlob_SC`, `BP_BreathStage_SC`, `M_BreathCtrl_SC`, `MPC_Breath`) + `Mechanics/Breath/` (`BP_Pacer_SC`, `M_Pacer_SC`, `MI_Pacer_SC`) + meshes `/Game/SoulCharger/Shared/QuestController/ControllerL|R`, `/Game/SoulCharger/Mechanics/Breath/Meshes/BreathL|R` + `SKM_MannyXR_*` + `GrabHapticEffect`. `Migrate` los arrastra solos (dependencias medidas: nada del pawn ni de directores).
 - **Enchufe:** colocar los 4 actores (rig, metaball, pacer, etapa) · pawn con cámara y `HandRight`/`HandLeft` hijos de los Grips. **Sin IMC** (no hay botones). 🔴 No colocar `BP_BreathManager_SC` en el mismo nivel (los dos escriben `MPC_Breath`).
 - **Flujo:** Play → (1,5 s) el rig se activa: mandos + sensor en las manos, manos del pawn escondidas → el metaball crece → (2 s) el pacer arranca → al completar sus `Cycles` el pacer se achica → el metaball se achica → el rig se retira y devuelve las manos → `OnBreathStageDone`.
 - **Obra:** `bAutoStart = false` en la etapa; el director llama `StageStart()` y escucha `OnBreathStageDone`.
@@ -204,7 +230,7 @@ Consumidores de `MPC_Breath` que se suman a la etapa de 4.7.b. Plan: [`PLAN-RESP
 - **Enchufe del valle:** colocar `BP_BreathValley_SC` (escala 1, se puede rotar en yaw); el look en las perillas de la instancia (`ApplyLook`); las familias de la capa viva en el CDO (`L-Respira`). Al traer el material nuevo a un nivel que ya tenía el valle colocado, **recargar el nivel** antes de juzgar la vista previa (MIDs viejos).
 - **Receta de prueba sin gafas (PIE):** `bFakeBreath` true en la instancia de PIE del rig, `Cycles` 0 en el pacer de PIE → leer `bMounted`, `Flow`, `Tin`/`Tout`, `RateBpm`, `Glob` del aire y `LiveS` del valle (con trazas por cuadro dentro de un `execute_tool_script`: cada llamada es un cuadro). Para girar la cabeza: `ActorTools.set_actor_transform` sobre el pawn de PIE, nunca `set_properties` sobre su cámara (gotcha 488).
 - **Estado:** 🟢 editor (vista previa del aire y del valle desde el ojo) · 🟢 PIE y Simulate (ver trackers) · ⬜ banco en la Quest (`quest_entering_perf.ps1 -Modos 0,4,5,6`: AIRE = m5 − m6, FONDO = m0 − m4) · ⬜ visor (primero el ruido real con `ke * AirDbg`).
-- **Deuda:** el aire depende de la clase del rig; si la respiración se unifica en un solo manager, conviene que la cámara salga de una interfaz común (o del resolvedor de manos/cámara pendiente, §5). `Mechanics/Breath/Air/`, `Valley/` y `Test_Entering.umap` están sin versionar.
+- **Deuda:** el aire depende de la clase del rig; si la respiración se unifica en un solo manager, conviene que la cámara salga de una interfaz común (o del resolvedor de manos/cámara pendiente, §5). `Mechanics/Breath/Air/`, `Valley/` y `Test_Breath.umap` están sin versionar.
 
 **Lo que sigue valiendo para la obra (el sensor de Entering, sin migrar):** motor+manager+etapa+háptica comparten BP con las otras 4 mecánicas, y **los ~25 valores afinados en visor viven en la INSTANCIA del nivel**, no en el CDO.
 
@@ -247,11 +273,11 @@ Motores puros; el único acople es que **son actores que hay que colocar** — y
 ### 4.10 🟡 Célula de Loving + fluido cerebral — `BP_LovingCell_SC` / `BP_FluidMedium_SC` (2026-09-28)
 Dos mecánicas procedurales (todo en el vertex shader, fuente única en texto: `VR_Test/Shaders/Loving/LovingLib.ush`,
 `VR_Test/Shaders/Fluid/FluidLib.ush`; el BP solo integra el tiempo). Trackers: `BP_LovingCell_SC.md`, `BP_FluidMedium_SC.md`.
-- **Paquete Loving:** `Mechanics/Loving/` (BP, 7 materiales, mallas). **🔴 Desde F5 los materiales `M_LovingCentre_SC`,
-  `M_LovingBalls_SC` y `M_LovingOuter_SC` REFERENCIAN `Mechanics/Fluid/MPC_Fluid_SC`** (la luz del agua): al trasplantar
+- **Paquete Loving:** `Mechanics/Mind/` (BP, 7 materiales, mallas). **🔴 Desde F5 los materiales `M_LovingCentre_SC`,
+  `M_LovingBalls_SC` y `M_LovingOuter_SC` REFERENCIAN `Mechanics/Mind/MPC_Fluid_SC`** (la luz del agua): al trasplantar
   Loving hay que llevar esa MPC aunque el nivel no tenga fluido. Sin fluido la perilla `WaterLight` va en **0** (su
   default): el pixel es el aprobado, bit a bit; la MPC solo se lee si la perilla está encendida.
-- **Paquete fluido:** `Mechanics/Fluid/` (BP, MPC, 6 materiales, 7 mallas) + `Core/Light/SM_GanzShell` (el fondo).
+- **Paquete fluido:** `Mechanics/Mind/` (BP, MPC, 6 materiales, 7 mallas) + `Core/Light/SM_GanzShell` (el fondo).
 - **Enchufe:** colocar los dos en el origen del usuario sentado, fluido SIN rotar (su espacio local es el mundo). El fondo
   reemplaza al Ganzfeld: ocultarlo (no borrarlo) en el nivel.
 - **Entrada:** una sola para los dos, **EEG 0-1** (0 activo, 1 calma): hoy son DOS perillas separadas (`EEG` del fluido y

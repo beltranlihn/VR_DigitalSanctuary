@@ -1,11 +1,11 @@
 # BP_StageTour_SC — el recorrido de las 5 etapas (Test_Recorrido)
 
-`/Game/SoulCharger/Tour/BP_StageTour_SC` · nivel `/Game/Test_Recorrido` (duplicado de Test_Fluid, sin sus actores; GameMode BP_XRGameMode → BP_VRPawn_SC).
+`/Game/SoulCharger/Obra/Titles/BP_StageTour_SC` · nivel `/Game/Test_Recorrido` (duplicado de Test_Mind, sin sus actores; GameMode BP_XRGameMode → BP_VRPawn_SC).
 Creado 2026-09-29 (noche) por la sesión "Narrativa" para el APK de prueba de Beltrán.
 
 ## Qué hace
 1. **Begin** (BeginPlay): velo opaco con los colores de la etapa 1, carga los 5 niveles de prueba con `LoadLevelInstance(byName)` en su **posición original** (offset 0, para que los materiales con posición de mundo se vean igual) con `OptionalLevelNameOverride = "SCTour<k>"`, y arranca un **timer en bucle de 0,011 s** que llama a `Step`.
-   - Orden: 0 ENTERING = /Game/Test_Entering · 1 RECOGNIZING = /Game/Test_Heart · 2 LOVING = /Game/Test_Fluid · 3 ATTRACTING = /Game/Test_Sequencer · 4 SURROUNDING = /Game/NeuralCanvas/Maps/L_TBTest_SC.
+   - Orden: 0 ENTERING = /Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath · 1 RECOGNIZING = /Game/SoulCharger/Mechanics/Heart/Maps/Test_Heart · 2 LOVING = /Game/SoulCharger/Mechanics/Mind/Maps/Test_Mind · 3 ATTRACTING = /Game/SoulCharger/Mechanics/Sequencer/Maps/Test_Sequencer · 4 SURROUNDING = /Game/SoulCharger/Mechanics/Draw/Maps/Test_Draw.
    - El actor tiene tag **TOUR**: todas las etapas con contrato nacen dormidas.
 2. **Step → TickAll(Dt)**: pega la esfera del velo a la cámara (`GetPlayerCameraManager`, con IsValid). Mientras no arranca → `BootTick`; después → `RunTick(Dt × Speed)`.
 3. **BootTick**: `CheckVis` (los 5 `IsLevelVisible`) → cuando los 5 están visibles durante 1,5 s → `StartTour`.
@@ -69,5 +69,5 @@ Creado 2026-09-29 (noche) por la sesión "Narrativa" para el APK de prueba de Be
 - **Editor minimizado = PIE congelado**: con la ventana de Unreal minimizada el mundo de PIE no tickea (ni Tick ni timers), aunque BeginPlay corre. Restaurar la ventana (`ShowWindow(h, 9)` por PowerShell) lo arregla.
 - **`bind` no es asignación** (otra vez): en `Step`, `dt = now - LastTime` se evaluaba después de `SetLastTime(now)` → dt = 0 siempre. Llamar a TickAll ANTES de guardar LastTime.
 - `get_node_type_pins` sobre `Class|Actor|GetActorHiddenInGame` no existe: el bHidden de otro actor no se puede leer desde BP → por eso `SetVisibleInSceneCaptureOnly`.
-- El world de un LoadLevelInstance con override conserva su nombre original (`/Game/UEDPIE_0_SCTour2.Test_Fluid:PersistentLevel...`) y el paquete toma el override → se clasifica por las dos cosas.
+- El world de un LoadLevelInstance con override conserva su nombre original (`/Game/UEDPIE_0_SCTour2.Test_Mind:PersistentLevel...`) y el paquete toma el override → se clasifica por las dos cosas.
 - `BP_LovingCell_SC.LifeApply`: un Multiply `2.0 × B` con B desconectado dividía por 0 miles de veces por cuadro. Arreglado con B = 1e9 (mismo look, Asin≈0). El arreglo de diseño (conectar `_r1c`) queda para Beltrán.

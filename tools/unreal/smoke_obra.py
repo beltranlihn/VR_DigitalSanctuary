@@ -133,6 +133,7 @@ def main():
     for e in r["errors"][:10]:
         print("    " + e)
     print("reporte: " + rep)
+    import mcp_config; mcp_config.asegurar_autostart()
     if a.traza:
         tp = os.path.join(ROOT, "obra", "unreal", "traza.json")
         json.dump({"generado": tag, "speed": a.speed, "nota": "reloj_obra_s = TourT del director (tiempo real desde el arranque); pared_s = tiempo de pared desde la primera linea OBRA",

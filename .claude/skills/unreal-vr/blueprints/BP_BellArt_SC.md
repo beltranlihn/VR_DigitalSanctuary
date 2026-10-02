@@ -1,6 +1,6 @@
 # BP_BellArt_SC · BP_SaveMelodyArt_SC · BP_BioSensorArt_SC — el ARTE del timbre, del botón SAVE MELODY y del sensor
 
-- **Rutas**: `Mechanics/Bell/BP_BellArt_SC` · `Mechanics/SaveMelody/BP_SaveMelodyArt_SC` · `Mechanics/BioSensor/BP_BioSensorArt_SC`.
+- **Rutas**: `Hall/BP_BellArt_SC` · `Mechanics/Sequencer/BP_SaveMelodyArt_SC` · `Shared/BioSensor/BP_BioSensorArt_SC`.
 - **Estado**: 🟢 creados y guardados (2026-09-30) · ⬜ PIE · ⬜ visor · ⬜ integración a su lógica.
 - **Son solo arte + aparición**. La lógica ya existe en otros BP: `BP_Bell` (Core/Doors), `BP_SaveMelody_SC` y los rigs de respiración y latido. La integración (apretar, cargar, en zona) se hace cuando la pidan.
 - **Modelos**: `blender-3d/assets/bell.md`, `save-melody.md` y `bio-sensor.md`. La aparición está en `aparicion-luz.md`.
@@ -20,7 +20,7 @@ Más `Appear` (`BPC_AppearLuz_SC`):
 | SAVE | (0,0,1) | 1,5 | (0,0,−1,2) |
 | Sensor | (0,0,−1) | 0,608 | (0,0,1,7) |
 
-## Materiales (`Mechanics/Appear/` + MI por objeto)
+## Materiales (`Shared/Appear/` + MI por objeto)
 - `M_SCObject_SC`: hormigón de la familia.
   - Sombreado falso: `SCObjectShadePS` = `DrawPaletteShadePS` + `Flash` × `FlashColor`.
   - Máscara `MaskTex` por UV1: el texto del SAVE.

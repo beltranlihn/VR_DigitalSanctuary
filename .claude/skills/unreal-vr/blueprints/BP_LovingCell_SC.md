@@ -1,4 +1,4 @@
-# BP_LovingCell_SC — la célula de Loving (Mechanics/Loving/)
+# BP_LovingCell_SC — la célula de Loving (Mechanics/Mind/)
 
 > Creado el 2026-09-27. Efecto de la etapa **Loving**: una constelación orgánica — núcleo tipo
 > ameba + 4-6 grupos de 2-3 bolas fundidas + una **membrana translúcida** que envuelve cada grupo
@@ -42,12 +42,12 @@ salía de `d`, cuya z es `2·UVa.x − 1`, y `UVa.x` es también la posición a 
 quedaba TODO debajo y el último 40 % TODO arriba (4× lo parejo en un sector; medido en Python). Ahora `qd = U cos(phd) + Vb sin(phd)`
 (1,0× en todo el tramo). (2) Con tramo libre de 4-12 cm las partículas quedaban INTERPOLADAS entre hebra y bolsa (en el aire): ahora umbral
 propio por partícula, cambian de lugar achicándose a 0 en ±1,5 cm de tramo. `verify_outer.py` con el port al día: todo adentro (polvo 0,81 cm).
-**Instancia de `Test_Fluid` (antes → después)**: posición (170, −67,48, 115) → **(200, 0, 115)**, yaw 180 (frente al PlayerStart a 2 m) ·
+**Instancia de `Test_Mind` (antes → después)**: posición (170, −67,48, 115) → **(200, 0, 115)**, yaw 180 (frente al PlayerStart a 2 m) ·
 DistSeparated 72 → 82 · DistConnected 48 → 38 · ActivityDrive 1 · paleta morada (misma luminancia, tono/saturación por rol; valores en
 `Saved/ClaudeScripts/Loving/turno_0930/instancias_despues.json`, el antes en `antes.json`): AmoebaColor1 #F2EFEA → #F7ECFB · AmoebaColor2
 #8EA2C2 → #B095D5 · ShadowColor #34435A → #4B3C5D · MembraneColor #D5DEEA → #E8D8F0 · MembraneRim #9FAEC4 → #BFA2D5 · DustColor
 #D6D1C7 → #DECBE7 · OuterColor #AFB9C8 → #C6B0D7. `BP_Ganzfeld_SC` oculto del nivel: tag **TestOnly**.
-**Verificado (PIE de Test_Fluid, bContractTest, StageDuration 6)**: fases 1→2→3→4→5; escala 0,02 → 1,023 → 1,0 (3 s) y z 105 → 115;
+**Verificado (PIE de Test_Mind, bContractTest, StageDuration 6)**: fases 1→2→3→4→5; escala 0,02 → 1,023 → 1,0 (3 s) y z 105 → 115;
 S 1 (contraída) → 0,06 (se despliega) con AgTarget → 1; EEG del fluido = S; bHandStir/bFakeEEG como se diseñó; HandsReady; salida 1 → 1,05
 → 0,006, z +15; 0 Accessed None / Script Msg. Compila con warnings_as_errors. Capturas: `turno_0930/cap_vista_usuario.png`, `cap_hebra.png`.
 ⚠ `read_graph_dsl` muestra las llamadas de StageStep como `Class|BPSequencerSC|TourWake/StageIntro/…` (choque de nombres con el Secuenciador):
@@ -70,7 +70,7 @@ Fuente: `scripts/loving_intro_vo.dsl`. Respaldo de los grafos previos: `Saved/Cl
 - Grafos: `StageIntro`/`StageVisual` reescritos; nuevos `LovCues(DT)` (empalmado en `StageStep` tras `StageCouple`), `LovCueSound`,
   `LovAlmaFree`, `LovCueVO22`, `LovCueVO23`. Variables `9-Etapa` IntroDelay · VO22 · VO23 · VO22At · VO23At · VOWait; `Z-Interno` IntroClk ·
   IntroSndDone · VO22Done · VO23Done · AlmaReady.
-- Instancia de `Test_Fluid`: las nuevas (nacían en 0) → 2 / 15 / 42 / 8 / VO_22 / VO_23 · **StageDuration 80 → 60** (Narrativa, criterio
+- Instancia de `Test_Mind`: las nuevas (nacían en 0) → 2 / 15 / 42 / 8 / VO_22 / VO_23 · **StageDuration 80 → 60** (Narrativa, criterio
   "nada demasiado largo"; **valor anterior 80** por si hay que volver).
 - ✅ PIE con el runner: se muestra con Alma a 2,39 m (antes 0,20 m), a media escala Alma a 2,92 m, entrada completa a 5,0 s (< InstrTime 6);
   VO_23 esperó a que Alma terminara VO_22 y salió sola; 0 Accessed None. ⬜ visor.
@@ -102,16 +102,16 @@ Fuente versionada: `scripts/loving_tick_perf.dsl` (con el porqué de cada cambio
 - Grafos: NUEVOS `GroupPrep`, `PushGroupLive` · REESCRITOS (vaciados + `write_graph_dsl`) `Simulate`, `StepGroup`, `PushGlobals`, `PushAll`,
   `PushMore`, `PushOuter` · CIRUGÍA `LifeStep` (ForLoop `LastIndex` ← `NLast` + Branch `DoRef[Index]`) y `CalmStep` (sus 2 bucles igual + el DT del PLL).
 - Variables: `SimDivider` (int, 3, instance editable) · Z-Interno `SimFrame` `NLast` `DoRef[]` `GroupDT[]` `TgtA[]` `SprW2A[]` `SprDA[]` `StaticDirty` (CDO true) `LV2P` `LV3P` `LV5P` `NP`.
-  ⚠ La instancia de `Test_Fluid` nació con `SimDivider` 0 (gotcha 478) → puesta en 3 y guardada. `Test_Loving` la toma del CDO.
-- **Verificado (PC, PIE de `Test_Fluid`):** compila con `warnings_as_errors`; 0 Accessed None / Script Msg / índices fuera de rango;
+  ⚠ La instancia de `Test_Mind` nació con `SimDivider` 0 (gotcha 478) → puesta en 3 y guardada. `Test_Loving` la toma del CDO.
+- **Verificado (PC, PIE de `Test_Mind`):** compila con `warnings_as_errors`; 0 Accessed None / Script Msg / índices fuera de rango;
   `DoRef` y `GroupDT` con el patrón esperado; visibilidades (grupos 0-4 sí, 5-9 no, puentes no, envoltura y polvo sí); en los MID, LV2/LV3/LV5,
   OuterK/OuterCol, DustK, GP/GN (vecinos correctos), BPr 0 y M5-M9 con presencia 0; lo dinámico avanza cada cuadro. Noche perla intacta.
 - **Estimación** desde el desglose de Narrativa (NO medido): Simulate ~0,7-1,0 ms + push ~0,7-0,8 ms ≈ **1,4-1,9 ms**.
 - ✅ **Medido en la Quest (Narrativa, APK del recorrido, 2026-09-29):** LOVING 71,5 → **72,4 fps** de promedio (mínimo 62 → 65);
   racha de cuadros perdidos en transición 2→3: 9 → 5 · 3→4: 7 → 5; 0 Accessed None. Queda con `SimDivider` 3. (El ms del Tick
-  de la célula no se reportó aparte.) ⬜ commit del `.uasset` + `Test_Fluid.umap`: lo hace Beltrán.
+  de la célula no se reportó aparte.) ⬜ commit del `.uasset` + `Test_Mind.umap`: lo hace Beltrán.
 - Si hiciera falta más: pasar LV0/LV1/LV4 + M0-M9 a una MPC (−~60 llamadas; requiere tocar los 7 materiales; la célula queda "única por mundo").
-- Rollback: `git checkout 76364c2 -- VR_Test/Content/SoulCharger/Mechanics/Loving/BP_LovingCell_SC.uasset` (+ `Test_Fluid.umap`).
+- Rollback: `git checkout 76364c2 -- VR_Test/Content/SoulCharger/Mechanics/Loving/BP_LovingCell_SC.uasset` (+ `Test_Mind.umap`).
 
 ## 🔴 BUG CONOCIDO (hallado 2026-09-29 en Test_Recorrido): divide by zero en `LifeApply`
 PIE de Narrativa: miles de `Script Msg: Divide by zero: Divide_DoubleDouble` por cuadro desde `BP_LovingCell_SC_C_0`.
@@ -124,11 +124,11 @@ separación angular → decide Beltrán). **APLICADO por Narrativa (2026-09-29, 
 ✅ 0 mensajes en PIE (Narrativa) ·
 ⬜ opción de diseño (conectar `_r1c`) mañana con Beltrán: al hacerlo, quitar el 1e9.
 
-## 🟡 V4e (2026-09-28, noche) — PROPUESTA "NOCHE PERLA" (Turrell × Six N. Five), solo en la instancia de `Test_Fluid`
+## 🟡 V4e (2026-09-28, noche) — PROPUESTA "NOCHE PERLA" (Turrell × Six N. Five), solo en la instancia de `Test_Mind`
 Pedido: *"una estética tipo James Turrell, pero más visualmente como lo que hace Six N. Five"*. Workflow de investigación +
 3 propuestas + juez (`wf_c3631e33-68a`): gana **Noche perla** = el agua C que eligió Beltrán, sin el azul eléctrico: luna
 crema desde arriba (óculo sin fuente), campo casi gris, la célula como ÚNICO objeto claro, sombras azul suave.
-**Aplicado SOLO en las instancias de `Test_Fluid`** (el CDO no se tocó; esperando su juicio). Célula: `AmoebaColor1`
+**Aplicado SOLO en las instancias de `Test_Mind`** (el CDO no se tocó; esperando su juicio). Célula: `AmoebaColor1`
 (0,888 0,863 0,823) · `AmoebaColor2` (0,271 0,361 0,540) · `ShadowColor` (0,034 0,056 0,102, 0,5) · `MembraneColor`
 (0,665 0,731 0,823, 0,06) · `MembraneRim` (0,347 0,423 0,552, 0,18) · `DustColor` (0,672 0,638 0,571) · `DustOpacity` 0,4 ·
 `OuterColor` (0,429 0,485 0,578) · `WaterLight` 0,5 · `WaterLightShell` 0. **Sin cambio** (decisión de Beltrán): forma y
@@ -142,7 +142,7 @@ debería ser como el metaball, blanco con azul más suave"* · *"la membrana con
 poco más circular"* · de tres aguas mostradas eligió la **C (tinta)**: *"me gustó bastante, quizás por ahí"*.
 - **Diagnóstico:** el tono "piel" venía de sombras VIOLETAS con R > G (AmoebaColor2 0,42/0,36/0,85, ShadowColor, OuterColor
   0,62/0,52/0,86 y el default de material `OuterSh` 0,20/0,14/0,36): sobre azul se leía rosado.
-- **Aplicado en la instancia de `Test_Fluid` (guardado):** perla = AmoebaColor1 (0,966 0,977 1) · AmoebaColor2 (0,342 0,448 0,674) ·
+- **Aplicado en la instancia de `Test_Mind` (guardado):** perla = AmoebaColor1 (0,966 0,977 1) · AmoebaColor2 (0,342 0,448 0,674) ·
   ShadowColor (0,033 0,051 0,095, a 0,45) · OuterColor (0,711 0,787 0,933) · MembraneColor (0,86 0,9 1, a 0,06) · DustColor
   (0,848 0,89 1) · **OuterOpacity 0,01** + default de material **`OuterLook` = (0,06 0,035 0,55 0,95)** (reflejo 0,35 → 0,06, alfa
   del borde 0,25 → 0,035; afecta a todos los niveles). Beltrán: *"más translúcida, que apenas se note"*. Antes 0,03 (Beltrán: *"esa contenedora más translúcida"*; sobre el agua TINTA cualquier luz lineal
@@ -164,7 +164,7 @@ workflow (2 diseños independientes + juez, todo verificado sin editor): **dise�
 - **Perillas (categoría `8-Agua`, viajan en `LV5.z`/`LV5.w`, que `PushGlobals` ya empujaba):** `WaterLight` (default **0** =
   apagada, el píxel aprobado BIT A BIT — DXIL idéntico, verificado plegada y como uniform; **SIEMPRE 0 en niveles sin
   fluido**; 1 = la cantidad de las medias; 0-3) · `WaterLightShell` (default 1: la parte que cae en la envoltura; 0 = solo
-  núcleo y bolas). `Test_Fluid`: 1 / 1.
+  núcleo y bolas). `Test_Mind`: 1 / 1.
 - **Editor (aplicado y guardado):** `M_LovingCentre_SC` + VectorParameter `LV5` (default del de las bolas), CP `Caus`/`Phase`
   de `MPC_Fluid_SC`, `WorldPosition`, PS con 12 entradas · `M_LovingBalls_SC` + CP + `WorldPosition`, PS 18 · `M_LovingOuter_SC`
   + CP + `WorldPosition` (usa su `LV5`), PS 10. BP: 2 variables + 2 getters al `MakeColor` de `LifeExtra` (cirugía; espejo en
@@ -177,13 +177,13 @@ workflow (2 diseños independientes + juez, todo verificado sin editor): **dise�
 - ⚠ **Precisión:** núcleo y envoltura reciben la fase en half: en juego la red avanza a saltos de ~19 Hz (≤ 2,5 niveles en lo
   oscuro). Si se nota en el visor: que `BP_FluidMedium_SC` envuelva `CausticPhase` en [−10π, 10π) (salto a la mitad). Las bolas
   (full) no tienen esto.
-- ⬜ **Decisiones de Beltrán (mirando en `Test_Fluid`):** intensidad (`WaterLight` 1 sutil / 2-3 se lee) · ¿también en la envoltura?
+- ⬜ **Decisiones de Beltrán (mirando en `Test_Mind`):** intensidad (`WaterLight` 1 sutil / 2-3 se lee) · ¿también en la envoltura?
   (`WaterLightShell` 1/0) · tamaño de la red (bajar `CausticScale` del fluido afina también la de las medias) · ¿la célula se tiñe
   hacia el azul del medio como las amebas (absorción ~16-18 % a 1,7 m; diseñada, en espera) o conserva su color? · las medias
   queman a blanco arriba (`c(1+x)`): ¿más suaves como la célula?
 - ⬜ Control de la fase por MPC en PIE: con `CausticSpeed` del fluido en 0 la red de la célula tiene que congelarse (gotcha 416).
 
-## 🟢 V4b (2026-09-28, tarde) — AMEBA de verdad + volumen como el metaball (aplicado, guardado, en `Test_Fluid`)
+## 🟢 V4b (2026-09-28, tarde) — AMEBA de verdad + volumen como el metaball (aplicado, guardado, en `Test_Mind`)
 Pedidos de Beltrán mirando la célula dentro del fluido: *"la esfera del centro y las de los grupos se ven muy esfera, les falta
 un material con sombreado como el del Metaball o el gusano del secuenciador, se ven muy planas"* · *"le falta deformación a la
 esfera central. Está como una pelota. Debería ser como una ameba"*.
@@ -194,7 +194,7 @@ exterior con alfa 0,5 encima de todo (sort 40) comía la mitad del contraste; (3
 | Cambio | Dónde |
 |---|---|
 | `LightDir` = **(−0,551 −0,401 0,732)** en MUNDO: arriba-izquierda-adelante vista desde el usuario (mira +X) | default del parámetro en `M_LovingCentre_SC`, `M_LovingBalls_SC`, `M_LovingOuter_SC` |
-| `AmoebaColor1` (luz) = (0,97 0,95 1,0) · `AmoebaColor2` (sombra) = (0,42 0,36 0,85): los colores del metaball | CDO + instancia de `Test_Fluid` |
+| `AmoebaColor1` (luz) = (0,97 0,95 1,0) · `AmoebaColor2` (sombra) = (0,42 0,36 0,85): los colores del metaball | CDO + instancia de `Test_Mind` |
 | `BallContrast` 0,444 → **0,6** (`CoreContrast` sigue 0,70) · `OuterOpacity` 0,5 → **0,32** | CDO + instancia |
 | **Ameba**: `CoreWob` A = `min(0,75·NA·(1+0,4Ag)·lerp(1;0,5;Calm), 0,85)` (antes 0,26, sin tope). Elegida mirando 0,5 / 0,75 / 1,0 en el editor: 0,5 se leía "huevo"; 0,75 trilobulada. r_max/r_min mediana 1,13 → **2,27**. El TOPE lo pone la curvatura (radios mínimos medidos ×Rc: A 0,75 → convexo 0,28 / cóncavo 0,12; 0,85 → 0,25 / 0,09; 1,05 → 0,21 / 0,06 = un pliegue de 1 cm) | `LovingLib.ush` (`CoreWob`, `Shape.WobA`) → 8 Custom reinyectados |
 | BP: `LifeStep` → `RMin` literal 0,26 → **0,75** (`K2Node_CallFunction_132`, `MakeLiteralFloat`; sin el tope: queda CONSERVADOR, los grupos nunca más cerca de lo debido) | BP · `scripts/loving_life_phase1.dsl` |
@@ -648,3 +648,7 @@ Copia de `Test_Heart` (GameMode VR + PlayerStart en el origen mirando a +X) sin 
 - [x] Ver la membrana del núcleo junto al resto — ✅ 2026-09-27 (reabriendo la pestaña del BP).
 - [ ] Unión de un brazo que va hacia el fondo: la línea de Plateau de atrás se ve a través de la membrana
       (coherente, como una pompa); atenuarla solo si molesta en visor.
+
+## 2026-10-02 (Narrativa) — reordenamiento
+- `StageRequestEnd` (evento nuevo): imprime el pedido y levanta `bStageDone`.
+- Carpeta nueva: ver la tabla de lo vigente en [_INDEX.md](_INDEX.md) (las rutas de este tracker ya están actualizadas).

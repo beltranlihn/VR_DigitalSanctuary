@@ -1,6 +1,6 @@
 # BP_HeartManager_SC — el latido PORTABLE (Mechanics/Heart/)
 
-> `/Game/SoulCharger/Mechanics/Heart/BP_HeartManager_SC` · creado 2026-09-19 · **una instancia** en `/Game/TestMeshes` (`Galeria/_Sistema`).
+> `/Game/SoulCharger/Mechanics/Heart/Blueprints/BP_HeartManager_SC` · creado 2026-09-19 · **una instancia** en `/Game/TestMeshes` (`Galeria/_Sistema`).
 > Pedido de Beltrán: *"en esta estación vas a quitar la respiración y traer la mecánica de ritmo cardíaco, en la que el usuario tiene que poner el control en su corazón y cuando reconozca que está en el umbral de quietud va a generar un pulso háptico con cada ritmo cardíaco y con cada nacimiento de la ola, y además emitir el sonido de pulso"*.
 > Es el **paso 4 del plan de extracción** de [`docs/MECANICAS-PORTABLES.md`](../../../../docs/MECANICAS-PORTABLES.md) §4.8.
 > **Estado: 🟢 PIE ok (2026-09-29, en `Test_Heart` con la membrana) · 🟢 contrato de etapa en PIE (2026-09-30). ⬜ SIN visor.**
@@ -174,3 +174,7 @@ Actor con label `HeartManager` (`BeatDiv` 1) + `BioHub`. Su consumidor es [[BP_H
    - `BackupReset()` (StageBegin/StageOutro) apaga `bForceZone` y `bFakeBeat` si el respaldo los había prendido.
 3) **VOs de Recognizing** (nadie disparaba VO_16/16h/17a/17c; la Obra solo dice VO_15): `StageVO()` en `StageCheck` (después de `OrbitDoneCalc`): `StageT += dt` → `AlmaCheck()` (`AlmaRef` = `GetActorOfClass(BP_Alma_SC)`; `AlmaFreeCalc`: `AppearT ≥ 0,99` y `!Leaving` y su `VOComp` no suena) → si libre, `SayNext()`: VO_16 (al Begin) → VO_16h (`StageT ≥ HintAfter` 15, sin pulsos ni mano) → VO_17a (primer pulso) → VO_17c (`BeatCount ≥ VO17cAtBeat` 8, junto con la vuelta). `Alma.SayClip(:Clip)`; los largos salen del clip (mezcla nueva). `VOReset()` al final de `StageBegin`. Perillas en **`8 - Voz`**: `VO16`, `VO16h`, `VO17a`, `VO17c` (/Game/SoulCharger/Obra/Audio/VO_*), `HintAfter`, `VO17cAtBeat`.
 - ✅ PIE (ensayo Test_Heart, 0 Accessed None): VO_16 en el Begin · VO_16h a los 15 s · respaldo a los 30 s (y a 3 s con valor temporal) · VO_17a con el 1.er pulso · pulso cada 2 s a 60 lpm · pulso 8 → VO_17c + `HEART: empieza la vuelta`. ⬜ visor (la mano real saliendo del umbral solo se prueba con mandos).
+
+## 2026-10-02 (Narrativa) — reordenamiento
+- `StageRequestEnd` (evento nuevo): imprime el pedido y levanta `bStageDone`. Se cortó la llamada vieja `CallOnBeatPulse` al código de la versión V2 (reordenamiento 1, commit d6d91f1).
+- Carpeta nueva: ver la tabla de lo vigente en [_INDEX.md](_INDEX.md) (las rutas de este tracker ya están actualizadas).

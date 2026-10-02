@@ -1,6 +1,6 @@
 # BP_BreathManager_SC + MPC_Breath — la respiración PORTABLE (Mechanics/Breath/)
 
-> `/Game/SoulCharger/Mechanics/Breath/BP_BreathManager_SC` + `/Game/SoulCharger/Mechanics/Breath/MPC_Breath` · creado 2026-09-17 · **una instancia** en `/Game/TestMeshes` (`GAL_BreathManager`, carpeta `Galeria/_Sistema`, sin tags de estación).
+> `/Game/SoulCharger/Mechanics/Breath/BP_BreathManager_SC` + `/Game/SoulCharger/Mechanics/Breath/Materials/MPC_Breath` · creado 2026-09-17 · **una instancia** en `/Game/TestMeshes` (`GAL_BreathManager`, carpeta `Galeria/_Sistema`, sin tags de estación).
 > Pedido de Beltrán: *"vamos a traer la mecánica de respiración… que la mecánica incluya el umbral, haptic, etc. Lo que ya habíamos hablado que debe tener para traspasar de un proyecto a otro"*. Es el **paso 3 del plan de extracción** de [`docs/MECANICAS-PORTABLES.md`](../../../../docs/MECANICAS-PORTABLES.md).
 > **Estado: 🟢 portado y verificado en PIE** (manos y cámara resueltas sin cast al pawn, `BREATH: listo` una sola vez, respiración de prueba publicando −1↔+1, cero `Accessed None`). ⬜ **Falta el visor**: el umbral con el mando en la panza y la háptica solo se validan en gafas.
 > Plan y diseño por estación: [`docs/PLAN-GALERIA-RESPIRACION-2026-09-17.md`](../../../../docs/PLAN-GALERIA-RESPIRACION-2026-09-17.md).

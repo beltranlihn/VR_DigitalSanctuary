@@ -250,3 +250,7 @@ toda variable de autor nueva **también en el actor del nivel**, no sólo en el 
   - Busca la mínima distancia² entre las encendidas y llama `Judge` solo con esa.
   - Variables nuevas: `PickR`, `PickL`, `PickBestD`.
 - `ForceChoose` (vencimiento de plazo) sin cambios. ⬜ Sin probar en visor.
+
+## 2026-10-02 (Narrativa) — reordenamiento
+- Se cortaron las referencias al código viejo (V2/V3) que ya no existe (reordenamiento 1, commit d6d91f1). Ver `docs/AUDITORIA-ESTRUCTURA-2026-10-02.md`.
+- Carpeta nueva: ver la tabla de lo vigente en [_INDEX.md](_INDEX.md) (las rutas de este tracker ya están actualizadas).

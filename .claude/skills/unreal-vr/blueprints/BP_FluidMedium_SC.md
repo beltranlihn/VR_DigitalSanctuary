@@ -1,4 +1,4 @@
-# BP_FluidMedium_SC — el FLUIDO CEREBRAL (Mechanics/Fluid/)
+# BP_FluidMedium_SC — el FLUIDO CEREBRAL (Mechanics/Mind/)
 
 > Creado 2026-09-28. Plan: `docs/PLAN-FLUIDO-CEREBRAL.md`. Referencia visual y matemática:
 > `docs/prototipos/fluido-cerebral.html` (publicado como artifact). Pedido de Beltrán: *"sumergidos en un entorno
@@ -6,7 +6,7 @@
 > **única entrada: EEG 0-1** (0 activo, 1 calma — la misma convención que `GlobalState` de la célula).
 > **Estado: 🟢 F1 construida (fondo + 3 capas de partículas + MPC + BP) · 🟢 F2 (células medias AMEBA + siluetas lejanas) y
 > F3 (haces, velos, cáusticas en las células) construidas el 2026-09-28: compilan (DXC + log), BP con `warnings_as_errors`,
-> se ven en el editor (`Test_Fluid`, capturas en `Saved/ClaudeScripts/Fluid/shots/fluido_f2f3_vistas.png`, `fd_close_crop.png`),
+> se ven en el editor (`Test_Mind`, capturas en `Saved/ClaudeScripts/Fluid/shots/fluido_f2f3_vistas.png`, `fd_close_crop.png`),
 > diagnóstico de NaN/piezas: 0 · 🟢 PIE con `bFakeEEG` (integración exacta) · ⬜ visor · ⬜ medir (F6) · 🟢 cáusticas sobre la célula de Loving (F5, `WaterLight`).**
 
 ## Arquitectura
@@ -112,7 +112,7 @@ estar flotando, desvaneciéndose por estar a la distancia"*. Wrappers `FluidMidC
   a destiempo (0,15-1) y por dentro corren ESTRÍAS a lo ancho (fase envuelta en `BG.a`, en fp32 en el VS). Anchos compensados
   `sqrt(60/ancho)`. Ritmos constantes × T (periodos 50-220 s). Time-lapse: `Saved/ClaudeScripts/Fluid/shots/haces_animados.gif`.
 - **Velos**: 6 manchas enormes y tenues (dos gaussianas), color del medio ±, llevadas al 60 % por la corriente; con 0,5 casi no se notan.
-- ⚠ La instancia de `Test_Fluid` no heredó componentes ni variables (gotcha 478): escritos de a uno.
+- ⚠ La instancia de `Test_Mind` no heredó componentes ni variables (gotcha 478): escritos de a uno.
 - 🔴 El satélite negro: gotcha **481** (hash de seno en un Custom con WPO + interpoladores). Arreglado con hash entero y
   verificado con un PS de diagnóstico en 18 direcciones: 0 píxeles de pieza apagada, 0 NaN.
 
@@ -123,11 +123,11 @@ estar flotando, desvaneciéndose por estar a la distancia"*. Wrappers `FluidMidC
 - Un BP nuevo trae tres eventos fantasma (BeginPlay, ActorBeginOverlap, Tick): borrarlos antes de escribir el EventGraph por DSL.
 - `SetColorParameterValueonMaterials` se escribe con "on" en minúscula (el DSL lo resolvió igual en Loving).
 
-## Nivel de prueba `/Game/Test_Fluid`
+## Nivel de prueba `/Game/SoulCharger/Mechanics/Mind/Maps/Test_Mind`
 Copia de `Test_Loving`: el Ganzfeld OCULTO (`Shell.bVisible` false + `bHiddenInGame`), la célula de Loving intacta
 (y = −67,5), el fluido en el origen. 11 actores.
 
-## "Noche perla" (2026-09-28, propuesta Turrell × Six N. Five) — SOLO en la instancia de `Test_Fluid`
+## "Noche perla" (2026-09-28, propuesta Turrell × Six N. Five) — SOLO en la instancia de `Test_Mind`
 Juez del workflow `wf_c3631e33-68a`. Diagnóstico medido: la saturación del agua (0,62-0,80 HSV) y el `GlowColor` azul
 eléctrico eran lo sci-fi; Six N. Five trabaja con campos de saturación 0,11-0,25 y un solo objeto con color.
 Valores aplicados: `FluidTop` (0,0307 0,0437 0,0648) · `FluidMid` (0,0097 0,0152 0,0242) · `FluidBottom` (0,0048 0,0065 0,0097;
@@ -146,9 +146,9 @@ Plan listo (2026-09-29): variables `GlowColorCalm`, `GlowPowerCalm`, `ColorSmoot
 `LightByEEG` (CDO 0 = neutro bit a bit, porque lerp(a,b,0) = a); `k = clamp(EEGC)·LightByEEG`. ⚠ Con `FakePeriod` 60 y
 `ColorSmoothing` 25 s, el color solo recorre el 36 % (filtro de primer orden: 1/√(1+(2π·25/60)²)); con 8 s, el 77 %.
 Narrativa (orquestador, noche 09-28/29): **esta noche no**, la estética la decide Beltrán mirando → mostrárselo en PIE.
-`Test_Recorrido` carga `Test_Fluid` ENTERO como instancia de nivel: no tocar `Test_Fluid` ni este BP hasta que el APK esté listo.
+`Test_Recorrido` carga `Test_Mind` ENTERO como instancia de nivel: no tocar `Test_Mind` ni este BP hasta que el APK esté listo.
 
-- 🟢 **2026-09-29 (tarde): Beltrán ajustó en el editor `FluidTop`** (0,0307 0,0437 0,0648) → **(0,0125 0,0324 0,0648)** (arriba más azul) en la instancia de `Test_Fluid`. Guardado por Mind a pedido de Heart (el nivel estaba sucio al cambiar de nivel).
+- 🟢 **2026-09-29 (tarde): Beltrán ajustó en el editor `FluidTop`** (0,0307 0,0437 0,0648) → **(0,0125 0,0324 0,0648)** (arriba más azul) en la instancia de `Test_Mind`. Guardado por Mind a pedido de Heart (el nivel estaba sucio al cambiar de nivel).
 
 ## 🫧 AMEBAS MEDIAS = MEMBRANA + NÚCLEO PERLA (2026-09-30, pedido directo de Beltrán)
 *"Las otras amebas que flotan alrededor quedaron demasiado low poly y se ven como globitos flotando; más cercanas a la estética de la
@@ -175,7 +175,7 @@ para sentir que todo el world se activa."* Fuente: `scripts/fluid_active_boost.d
   mitad del factor. Todo por fases/derivas integradas (cambiar la velocidad no salta posiciones). Paso = min(DT, 1/30).
 - La célula (`BP_LovingCell_SC.StageCouple`) acopla SIEMPRE que vive (fases 0/2/3/4): EEG del fluido = SS(0,2; 0,9; S) = la misma
   actividad que su `AgTarget`, y apaga el falso propio del fluido (en el tour el agua y la ameba se activaban a destiempo).
-- Instancia de `Test_Fluid`: ActiveBoost 0 → **2** · EEGSmoothing 6 → **1,5 s**.
+- Instancia de `Test_Mind`: ActiveBoost 0 → **2** · EEGSmoothing 6 → **1,5 s**.
 - ✅ PIE: activa (S 0,26) corriente **10,1 cm/s** y remolinos 0,52 (antes ~3,5 y 0,18); la ameba se contrae en la entrada → el agua se
   calma a 1,7 cm/s en ~4 s; en la mecánica vuelven a activarse juntas (10,3 cm/s, ~1,5 s de retardo). ⬜ visor.
 
@@ -188,7 +188,7 @@ StirStrength). Con `bHandStir` false la velocidad objetivo es 0 y el remolino se
 Paso ≤ 1/30. Variables: `6-Manos` HandVelSpeed · HandMaxSpeed · `Z-Interno` HandL/HandR (SceneComponent) · HandsReady · HandsPrimed ·
 HandPL/PR · HandVL/VR. La célula de Loving la maneja en el contrato (TourWake/fin: off, StageBegin: on) y le escribe `EEG` = su S
 durante la mecánica (el EEG del fluido y la célula ya son UNA entrada: pendiente del TODO de abajo, resuelto para la Obra).
-Instancia de `Test_Fluid`: bHandStir true · HandVelSpeed 5 · HandMaxSpeed 300 · **EEGFlow 0,7 → 1,0** (más contraste activo/calma) ·
+Instancia de `Test_Mind`: bHandStir true · HandVelSpeed 5 · HandMaxSpeed 300 · **EEGFlow 0,7 → 1,0** (más contraste activo/calma) ·
 **paleta morada** (misma luminancia): FluidTop #1D3248 → #362E3E · FluidMid #19212B → #241E2A · FluidBottom #0D1219 → #131115 ·
 GlowColor #D2C7B3 → #D3C3D9 · MoteColor → #DDCAE6 · CellHigh → #C0ACCC · CellLow → #342A3E · CellFill → #3B3047 (valores lineales en
 `Saved/ClaudeScripts/Loving/turno_0930/instancias_despues.json`). ✅ PIE: HandsReady true. ⬜ Visor con mandos.
@@ -204,7 +204,7 @@ siluetas, velos). El fondo está en el infinito: el horizonte no se mueve. Costo
   (TravelU 1: **en el viewport del editor el viaje se ve siempre**, para ajustar `TravelSpeed` mirando).
 - Lo maneja la célula (`BP_LovingCell_SC.FluidTravel(On)`): TourWake/TourSleep off · **StageBegin on** · **StageOutro off**.
 - Variables: `7-Viaje` bTravel (false; lo prende el contrato) · TravelSpeed 25 · TravelEase 4 · TravelEaseOut 2 · TravelYaw 180 · TravelPitch 0 ·
-  `Z-Interno` TravelU · TravelVel. Instancia de `Test_Fluid`: TravelYaw **−180** (de la célula hacia el PlayerStart, calculado), resto = CDO.
+  `Z-Interno` TravelU · TravelVel. Instancia de `Test_Mind`: TravelYaw **−180** (de la célula hacia el PlayerStart, calculado), resto = CDO.
 - ✅ PIE con el runner del ensayo: 0 hasta Begin → 25 cm/s en 4,0 s → en el outro 0 en ~2,0 s (antes de la fase 5); salto máximo entre
   lecturas 0,78 cm/s. **Efecto** verificado: `Drift.x` avanza −23,9 cm/s con el viaje lleno. Registro: `Saved/ClaudeScripts/Loving/turno_0930/pie_viaje.json`. ⬜ visor.
 

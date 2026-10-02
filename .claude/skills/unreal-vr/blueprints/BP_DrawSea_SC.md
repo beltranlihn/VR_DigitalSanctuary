@@ -1,12 +1,12 @@
 # BP_DrawSea_SC — el océano de la etapa de dibujo
 
-`/Game/SoulCharger/Mechanics/Drawing/Scape/` · construido el 2026-09-29 · plan: [`docs/PLAN-OCEANO-DIBUJO-2026-09-28.md`](../../../../docs/PLAN-OCEANO-DIBUJO-2026-09-28.md) · lookdev aprobado: `docs/prototipos/oceano-dibujo.html`.
+`/Game/SoulCharger/Mechanics/Draw/Scape/` · construido el 2026-09-29 · plan: [`docs/PLAN-OCEANO-DIBUJO-2026-09-28.md`](../../../../docs/PLAN-OCEANO-DIBUJO-2026-09-28.md) · lookdev aprobado: `docs/prototipos/oceano-dibujo.html`.
 
 | Estado | |
 |---|---|
 | Materiales | 🟢 `M_DrawSea_SC` / `M_DrawDust_SC` + MI, recompile sin errores, 132 entradas cableadas |
 | BP | 🟢 compila; W/V/E del MID = modelo a 5e-8 (float32) |
-| Nivel | 🟢 colocado en `L_TBTest_SC` (label `DrawSea`) en (−315, 0, −120); PIE limpio |
+| Nivel | 🟢 colocado en `Test_Draw` (label `DrawSea`) en (−315, 0, −120); PIE limpio |
 | Viewport | 🟢 oleaje mate cruzado + niebla (el brillo del editor no es el del visor) |
 | Visor / APK / 72 fps | ⬜ |
 
@@ -34,7 +34,7 @@ Internas (`Z-Interno`): `Wc`/`Vc`/`Ec` (LinearColor, salida de `Wave`), `PerfMod
 - Verificador: `scripts/hlsl/DrawSea_check.py` (correr con `scripts/memcap.py`). Armado: `plan_draw_sea_material.py` → `apply_draw_sea_material.py` (ensayo `dryrun_draw_sea.py`).
 
 ## Para instalarlo en otro nivel
-Arrastrar `BP_DrawSea_SC` con el centro bajo los ojos del usuario, **226 cm por debajo** del punto del usuario sentado (en `L_TBTest_SC`: PlayerStart z 106 → actor z −120). Escala 1; se puede girar en yaw (el avance va hacia −X local). Con un `BP_Sky_Sphere` en el nivel, el cielo del actor lo tapa (radio 300 m).
+Arrastrar `BP_DrawSea_SC` con el centro bajo los ojos del usuario, **226 cm por debajo** del punto del usuario sentado (en `Test_Draw`: PlayerStart z 106 → actor z −120). Escala 1; se puede girar en yaw (el avance va hacia −X local). Con un `BP_Sky_Sphere` en el nivel, el cielo del actor lo tapa (radio 300 m).
 
 ## Pendiente
 APK + banco (`ke * PerfDS0..4`, dos pasadas) → 72 fps · visor con Beltrán (oscuridad, polvo, vección, banding) · decisiones §8 del plan.

@@ -1,6 +1,6 @@
-# BP_Sensor_Soul — el sensor que se toma con la mano hábil y CONTIENE las mecánicas (Core/Sensor/)
+# BP_Sensor_Soul — el sensor que se toma con la mano hábil y CONTIENE las mecánicas (Core/Pointer/)
 
-> `/Game/SoulCharger/Core/Sensor/BP_Sensor_Soul` · creado 2026-08-19 · **una instancia** en `MapsV2/L_SoulCharger` (`Sensor_Soul`, en **50/0/100**).
+> `/Game/SoulCharger/Core/Pointer/BP_Sensor_Soul` · creado 2026-08-19 · **una instancia** en `MapsV2/L_SoulCharger` (`Sensor_Soul`, en **50/0/100**).
 > **Estado: 🟡 modos + cableado con el director + fase de práctica verificados en PIE por log (2026-08-24, cero `Accessed None`); las mecánicas reales (respirar, latir, apuntar) necesitan visor.**
 
 ## Qué es
@@ -421,7 +421,7 @@ donde esta el impacto. Para eso una malla estatica gana en todo:
 - y esquiva la trampa de los user params sin linkear que ya costo una sesion entera.
 
 ### Las piezas
-- **`M_Pointer_SC`** (`Core/Sensor/`) — unlit, translucido, two-sided. `Opacity = Opacity * pow(saturate(1-t), TipFade)`
+- **`M_Pointer_SC`** (`Core/Pointer/`) — unlit, translucido, two-sided. `Opacity = Opacity * pow(saturate(1-t), TipFade)`
   donde **`t = LocalPosition.x/100 + 0.5`**, o sea 0 en la punta cercana y 1 en la lejana.
   🔴 **Ese `/100` asume que la malla es `/Engine/BasicShapes/Sphere` (radio 50).** Con otra malla el
   degradado queda corrido. Params: `Color` · `Intensity` · `Opacity` · `TipFade`.

@@ -1,4 +1,4 @@
-# BP_BlobChain_SC + M_BlobMesh_SC — el gusano por MALLA (Core/AttractingC/)
+# BP_BlobChain_SC + M_BlobMesh_SC — el gusano por MALLA (Mechanics/Sequencer/)
 
 > Creado el 2026-09-26. **Es la misma mecánica que [[BP_SlotChain_SC]]**, con otro motor de dibujo:
 > en vez de raymarch sobre un proxy, **desplazamiento de vértices** sobre `SM_BlobTube_SC`.

@@ -1,6 +1,6 @@
 # BP_ChargeTest_SC — prueba de la carga del alma (teletransporte HUD ↔ frente)
 
-`/Game/SoulCharger/Mechanics/HUD/` · 2026-09-30 · Narrativa. La coreografía aprobada por Beltrán en el prototipo web (función `teleport` de `web/prototipo-narrativo/guion.js`), llevada a Unreal para probarla en el visor. Colocado en `Test_Hall` como `ChargeTest`, con el punto de carga `ChargeTarget` (TargetPoint en (−315, 0, 112): ~75 cm al frente y 10 cm bajo la vista).
+`/Game/SoulCharger/Shared/HUD/` · 2026-09-30 · Narrativa. La coreografía aprobada por Beltrán en el prototipo web (función `teleport` de `web/prototipo-narrativo/guion.js`), llevada a Unreal para probarla en el visor. Colocado en `Test_Hall` como `ChargeTest`, con el punto de carga `ChargeTarget` (TargetPoint en (−315, 0, 112): ~75 cm al frente y 10 cm bajo la vista).
 
 ## Idea
 Es un teletransporte, así que **no se mueve el mismo objeto**: el anillo del HUD hace "pum" y se achica a casi cero, y en el punto de carga nace un anillo grande propio (`Ring` + `Soul`); a la vuelta, al revés.
@@ -39,7 +39,7 @@ Es un teletransporte, así que **no se mueve el mismo objeto**: el anillo del HU
 
 ## 2026-10-01 — el halo de las cargas de la Obra, en ALPHA BLEND (Mesh 3D, pedido de Beltrán vía Narrativa)
 - *"El halo de color de la carga casi no se notaba; que se note sin ensuciar"*: el aditivo no suma nada sobre fondos claros (Hall, Uyuni, Entering).
-- **`M_ChargeHaloTint_SC`** (`Mechanics/HUD/`) = copia de `M_ChargeHalo_SC` en **Translucent**: el Custom original sigue igual y su salida entra a un Custom nuevo `ChargeHaloTintPS` (`scripts/hlsl/ChargeHaloTintPS.hlsl`): satura el color (`HaloSat` 1,6), alfa = intensidad × `HaloOpGain` 2 con smoothstep (sin borde duro), tope `HaloMaxOpacity` 0,6, `HaloGlow` 1,1.
+- **`M_ChargeHaloTint_SC`** (`Shared/HUD/`) = copia de `M_ChargeHalo_SC` en **Translucent**: el Custom original sigue igual y su salida entra a un Custom nuevo `ChargeHaloTintPS` (`scripts/hlsl/ChargeHaloTintPS.hlsl`): satura el color (`HaloSat` 1,6), alfa = intensidad × `HaloOpGain` 2 con smoothstep (sin borde duro), tope `HaloMaxOpacity` 0,6, `HaloGlow` 1,1.
 - Solo el componente `Halo` de **`BP_ChargeFx_SC`** (Obra) lo usa; núcleo, onda y este BP de prueba siguen con el aditivo. La instancia de la Obra lo toma sola (verificado al recargar).
 - Costo: el mismo plano; translúcido ≈ aditivo en fill-rate. ⬜ Visor.
 

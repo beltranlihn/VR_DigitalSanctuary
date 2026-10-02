@@ -1,7 +1,7 @@
 # BP_BreathRig_SC — el controller PORTABLE de la respiración (Entering)
 
-**Ruta:** `/Game/SoulCharger/Mechanics/Breath/BP_BreathRig_SC` · material `M_BreathCtrl_SC` (duplicado de `M_SeqCtrl_SC`)
-**Colocado en:** `/Game/Test_Entering` como `Entering_BreathRig` (carpeta `Entering`)
+**Ruta:** `/Game/SoulCharger/Mechanics/Breath/Blueprints/BP_BreathRig_SC` · material `M_BreathCtrl_SC` (duplicado de `M_SeqCtrl_SC`)
+**Colocado en:** `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath` como `Entering_BreathRig` (carpeta `Entering`)
 **Nació:** 2026-09-27 · pedido de Beltrán: *"un controller que sea solo para la respiración, que se active solo en esta etapa, en un blueprint que podamos mover de un lado a otro"*.
 **Estado:** 🟢 **validado en visor** (2026-09-27): umbral en la panza con orientación del sensor, vibración, reacción del metaball, seguidor con frenada física. ⬜ mano izquierda en visor
 
@@ -13,7 +13,7 @@
 El pawn tiene una `CameraComponent` y dos componentes llamados **`HandRight`/`HandLeft` hijos de su MotionController Grip** (lo cumplen `BP_VRPawn_SC` y `BP_XRPawn`). Sin cast al pawn, sin director, **sin IMC propio**: la mecánica es posición + quietud + háptica, no hay botones (y por gotcha 426 un IMC propio no llegaría igual).
 
 ## Lo visual (nuevo)
-- Componentes: `GroupR`(Y +25) → `CtrlR` (`/Game/ControllerR`), `SensR` (`/Game/BreathR`, **el cilindro que importó Beltrán**), `HandGhostR` (`SKM_MannyXR_right`, oculto en juego); `GroupL`(Y −25) igual con L.
+- Componentes: `GroupR`(Y +25) → `CtrlR` (`/Game/SoulCharger/Shared/QuestController/ControllerR`), `SensR` (`/Game/SoulCharger/Mechanics/Breath/Meshes/BreathR`, **el cilindro que importó Beltrán**), `HandGhostR` (`SKM_MannyXR_right`, oculto en juego); `GroupL`(Y −25) igual con L.
 - **Offsets respecto de la mano = los de `BP_ControllerRig`, validados en visor** (2026-09-03): der Controller `(2.791, 9.5, −4.296)` / Breath `(2.791, 9.5, −3.5)`, rot `(P−90, Y−10)`; izq `x`, pitch y yaw invertidos. Se autoran moviendo el componente contra la mano fantasma en el viewport: `AttachComponentToComponent` con `KeepRelative` conserva esa transform relativa.
 - `MountRig` (reintenta cada tick hasta encontrar pawn + manos): attach de los 4 meshes a `HandRight/HandLeft`, `PaintRig`, `bMounted`. Log `BREATHRIG: mandos y sensores montados…`.
 - `RigVisualStep(Dt)` en el Tick **antes** de `TickBreathGated`, corre siempre: `RevealT` → `FInterpToConstant` hacia `(bMounted ∧ bEnabled)` a `1/RevealTime` → `ApplyReveal` (quíntico → escala de los meshes, visibilidad) → esconde las manos del pawn mientras `RevealT > 0` y **las devuelve al terminar el retiro** (`HandsHide`, `SetHiddenInGame` sin propagar: los meshes cuelgan de la mano).
@@ -63,7 +63,7 @@ Beltrán en visor: *"aunque ponga el sensor al revés entra igual al umbral… s
 - ✅ **VALIDADO EN VISOR (2026-09-27, APK 20:54, Beltrán: "Probado. Funciona")**: sensor apoyado en el estómago entra; al revés o con la mano hacia el frente no. El signo deducido era el correcto. ⚠ Si el montaje del sensor, su offset o la rotación de las manos del pawn cambian, la fórmula cambia. La mano izquierda solo se probó en PIE.
 
 ## 🔁 2026-09-30 (noche) — lo visual lo pone `BP_UserTool_SC`
-Instancia de `Test_Entering` (antes → después): `bShowControllers` true → **false** · `bShowSensors` true → **false** · `bHideHands` true → **false**. El mando/sensor que se ve es [[BP_UserTool_SC]] (el de toda la obra); el rig queda como motor (umbral, háptica, `MPC_Breath`) y su detección no cambia (usa el grip, no la malla). La etapa lo activa en `StageBegin` y lo apaga en `StageOutro`.
+Instancia de `Test_Breath` (antes → después): `bShowControllers` true → **false** · `bShowSensors` true → **false** · `bHideHands` true → **false**. El mando/sensor que se ve es [[BP_UserTool_SC]] (el de toda la obra); el rig queda como motor (umbral, háptica, `MPC_Breath`) y su detección no cambia (usa el grip, no la malla). La etapa lo activa en `StageBegin` y lo apaga en `StageOutro`.
 ## Perillas `0 - Rig` (instance-editable)
 `bStartActive` false (lo activa la etapa; true = standalone) · `bShowControllers` / `bShowSensors` / `bHideHands` true · `CtrlColor` (0.35, 0.8, 1) · `SensorColor` (0.886, 0.604, 0.447) · `CtrlBrightness` 1.5 · `RevealTime` 0.6 · `CtrlMat` `M_BreathCtrl_SC`. El resto (umbral, señal, háptica, prueba) = las categorías del manager, con sus valores.
 

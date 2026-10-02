@@ -599,7 +599,7 @@ costo que ayer, y Beltran no reporto cambios de aspecto) → el `SetMaterial` an
 La 3 (12–13 ms) es la mas justa contra el presupuesto de 13,9 ms. Todo lo demas corre a tasa completa.
 Errores del log del device: solo los 76 conocidos de `LogIoDispatcher` (fallback de memory-map, no fatal).
 
-## 🫧 2026-09-27 — como FONDO de la etapa Entering (`Test_Entering`, actor `Entering_Fondo`)
+## 🫧 2026-09-27 — como FONDO de la etapa Entering (`Test_Breath`, actor `Entering_Fondo`)
 Pedido de Beltrán: traer la esfera líquida de 3 colores de la galería (GAL_3) como contorno que envuelve la respiración, **sin la deformación del mesh**, con azules distintos entre sí, para medir frame rate.
 - **Instancia** en (0, 0, 120) (centrada en la cabeza; `add_to_scene_from_asset` ignoró el xform → se corrigió con `relativeLocation` en texto sobre `DefaultSceneRoot`). `ShellRadius`/`ShellHeight` **1500** (envuelve el metaball, cuyo bound llega a ~7,4 m). **`Mesh` = `SM_GanzShell`** (9k tris; la HD solo hacía falta para las olas).
 - 🔴 **Deformación y relieve APAGADOS en la instancia** (el CDO los trae encendidos): **`WaveShade` 0** (exacto: la rama uniforme saltea 3 de los 6 simplex 4D por píxel, ~10 ms), **`WaveAmount` 0**, **`BreathAmount` 0**. Verificado en el MID (`MID_M_Ganzfeld_SC_0`: WaveShade 0, WaveAmount 0, BreathAmount 0). El WPO sigue compilado pero sin amplitud (costo de vértices, no de fill).

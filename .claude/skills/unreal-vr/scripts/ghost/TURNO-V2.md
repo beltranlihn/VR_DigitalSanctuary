@@ -30,7 +30,7 @@
 - `remove_function_graph` + `add_function_graph` con el MISMO nombre en la misma sesión falla: usar otro nombre.
 - Un `_StrictDict.get(k, default)` en el sandbox revienta el script y dispara un Deshacer.
 
-Plan: `docs/PLAN-FANTASMAS-V2-2026-10-01.md`. Datos: `v2_datos.md`. La v1 queda en git (`80a03c9`), que hace de respaldo de los assets de `Mechanics/Ghost/`.
+Plan: `docs/PLAN-FANTASMAS-V2-2026-10-01.md`. Datos: `v2_datos.md`. La v1 queda en git (`80a03c9`), que hace de respaldo de los assets de `Shared/Ghost/`.
 
 ## Preparado fuera del editor
 - **Fuentes**:
@@ -61,7 +61,7 @@ Plan: `docs/PLAN-FANTASMAS-V2-2026-10-01.md`. Datos: `v2_datos.md`. La v1 queda 
 - PIE detenido antes de compilar.
 - `save_assets` antes de cada `StartPIE`.
 - Recompilar el material SIN MIDs vivas.
-- No tocar Test_Hall, Test_Sequencer ni L_TBTest_SC (solo lectura).
+- No tocar Test_Hall, Test_Sequencer ni Test_Draw (solo lectura).
 - Al soltar, avisar a Narrativa.
 
 ## 0. Arranque
@@ -69,7 +69,7 @@ Plan: `docs/PLAN-FANTASMAS-V2-2026-10-01.md`. Datos: `v2_datos.md`. La v1 queda 
 2. 💡 Si está abierta `L_SoulCharger_Obra`, sus 6 niveles de test están cargados como subniveles.
    - Leer **solo lectura** las transforms reales de `Timbre`, `Sensor` y `HallSoul_0..4`. Corregir `STATIONS` de `ghost_studio.py` si difieren de 48/28.
    - Si no está abierta, seguir con `v2_datos.md`.
-3. `SceneTools.load_level(/Game/SoulCharger/Mechanics/Ghost/L_GhostRec_SC)`. Canario: anotar la cuenta de actores.
+3. `SceneTools.load_level(/Game/SoulCharger/Shared/Ghost/Maps/L_GhostRec_SC)`. Canario: anotar la cuenta de actores.
 
 ## 1. Material (antes de que exista cualquier vista previa con MIDs)
 1. `execute_tool_script(ghost_material.py)`. Mirar:
@@ -158,7 +158,7 @@ Plan: `docs/PLAN-FANTASMAS-V2-2026-10-01.md`. Datos: `v2_datos.md`. La v1 queda 
 **Síntoma:** si selecciona algo en la paleta y aprieta el gatillo AL MISMO TIEMPO, se reinician las animaciones y los pinceles. "Queda raro."
 **Orden:** se hace recién cuando Beltrán dé por buenas las animaciones de instrucción. Pedir turno a Narrativa.
 **Cómo encararlo (sin adivinar):**
-1. Reproducir en `L_TBTest_SC` (base 20 actores). Mirar qué cambia en ese cuadro: selección por puntero y gatillo en el mismo instante.
+1. Reproducir en `Test_Draw` (base 20 actores). Mirar qué cambia en ese cuadro: selección por puntero y gatillo en el mismo instante.
    - Herramienta: `bCanDraw`, `SketchPhase`, `StrokeHistory`.
    - Paleta: `SelectedBrush/SelectedColor` y animación de las teclas (`BP_DrawPalette_SC`, `AnimRate`/`KeyLift`).
 2. Leer los grafos que ya andan antes de tocar nada: dónde decide la herramienta "esto es un clic de paleta" contra "esto empieza un trazo" (`NoDrawRadius`, `07 PALETA`), y qué reinicia la selección (¿se reaplica el pincel, se rearma la paleta, vuelve a correr la aparición?).

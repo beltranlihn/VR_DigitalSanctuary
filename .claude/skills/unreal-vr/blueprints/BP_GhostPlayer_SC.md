@@ -1,6 +1,6 @@
 # Fantasmas de instrucciones: `BP_GhostPlayer_SC` + `BP_GhostRecorder_SC` + `BP_GhostTake_SC`
 
-Carpeta: `/Game/SoulCharger/Mechanics/Ghost/`. Encargo de Beltrán vía Narrativa (2026-09-30, noche), guion V5.
+Carpeta: `/Game/SoulCharger/Shared/Ghost/`. Encargo de Beltrán vía Narrativa (2026-09-30, noche), guion V5.
 Plan completo: [`docs/PLAN-FANTASMAS-2026-09-30.md`](../../../../docs/PLAN-FANTASMAS-2026-09-30.md).
 Fuentes: `scripts/ghost/`. La hoja del turno es `TURNO.md`; los grafos están en `ghost_player.dsl` / `ghost_recorder.dsl` y las variables en `make_spec.py` -> `ghost_spec.json`.
 
@@ -21,10 +21,10 @@ Fuentes: `scripts/ghost/`. La hoja del turno es `TURNO.md`; los grafos están en
     | `Test_Hall` | `Ghost_BELL` | sobre `Timbre` | `hall_bell` |
     | `Test_Hall` | `Ghost_TAKE` | sobre `Sensor` | `hall_sensor` |
     | `Test_Hall` | `Ghost_PICK` | sobre `HallSoul_0` | `soul_idx_0` |
-    | `Test_Entering` | `Ghost_BREATH` | (0, 0, 120) | — (va a la cabeza) |
+    | `Test_Breath` | `Ghost_BREATH` | (0, 0, 120) | — (va a la cabeza) |
     | `Test_Heart` | `Ghost_HEART` | (0, 0, 120) | — (va a la cabeza) |
     | `Test_Sequencer` | `Ghost_ATTRACT` | PlayerStart + 120 (ojos); `OrbRest` (350, 120, 80) | — |
-    | `L_TBTest_SC` | `Ghost_DRAW` | PlayerStart + 120 | — |
+    | `Test_Draw` | `Ghost_DRAW` | PlayerStart + 120 | — |
 
     - En la toma de Attract la esfera se suelta a 75-90 cm bajo los ojos: coincide con los slots reales (−76,6).
     - ⚠ El timbre real del Hall tiene escala 0,667; el del estudio, 1.

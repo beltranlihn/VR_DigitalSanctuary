@@ -12,7 +12,7 @@ L_SoulCharger_Obra  (el nivel del APK)
  └─ BP_Obra_SC  ── el DIRECTOR: lleva el reloj y las fases (Hall → 5 etapas → final → créditos)
      ├─ lee  DA_Partitura_Obra ............ CUÁNDO pasa cada cosa (todos los tiempos narrativos)
      ├─ carga como celdas los 6 niveles de test (LoadLevelInstance):
-     │     Test_Entering · Test_Heart · Test_Fluid · Test_Sequencer · L_TBTest_SC · Test_Hall
+     │     Test_Breath · Test_Heart · Test_Mind · Test_Sequencer · Test_Draw · Test_Hall
      │     → DÓNDE pasa cada cosa (TargetPoints) y CÓMO es cada mecánica (sus actores y perillas)
      └─ habla con cada etapa SOLO por el contrato (StageIntro / Begin / RequestEnd / Outro + bStageDone)
 ```
@@ -47,7 +47,7 @@ es un tiempo que todavía no está en la Partitura: se agrega a la Partitura (ve
 3. Probar en el visor (VR Preview de `L_SoulCharger_Obra`, o el APK).
 
 ### Ajustar una mecánica
-1. Abrir su nivel de test (`Test_Entering`, `Test_Heart`, `Test_Fluid`, `Test_Sequencer`, `L_TBTest_SC`, `Test_Hall`).
+1. Abrir su nivel de test (`Test_Breath`, `Test_Heart`, `Test_Mind`, `Test_Sequencer`, `Test_Draw`, `Test_Hall`).
 2. Seleccionar el actor y cambiar la perilla en el Details (o en el Blueprint si es un valor de clase).
 3. Play en el nivel: el ensayo corre la etapa entera. Sin visor: `python tools/unreal/probar_nivel.py Test_Heart`.
 4. Guardar el nivel. La Obra lo toma tal cual (es su celda).
@@ -136,15 +136,24 @@ encendido: es lo primero que hay que mirar en el logcat del visor.
 ## 8. Mapa de carpetas
 
 ```
-/Game/SoulCharger/Obra/            el director, la Partitura, el nivel final, los ensayos, títulos y voces de la obra
-/Game/SoulCharger/Mechanics/<X>/   una carpeta por mecánica (Breath, Heart, Loving, Fluid, Sequencer, Hall, HUD, Results,
-                                   Ghost, UserTool, Appear, Pacer, QuestController, DrawPalette...) con su Test_<X> cuando lo tiene
-/Game/SoulCharger/Core/            piezas compartidas que siguen vivas: Alma, el pawn, el alma del usuario, BioHub, audio, luz
-/Game/NeuralCanvas/                el dibujo (carpeta autocontenida) y su nivel L_TBTest_SC
-/Game/Test_Entering, Test_Heart, Test_Fluid, Test_Sequencer    las celdas de 4 etapas (raíz de /Game por historia: la Obra
-                                   las carga por ruta; moverlas exige actualizar LevelPaths de la Obra y los scripts)
-/Game/XRFramework, /Game/XRMannequins   la base VR (GameMode, input, manos)
+/Game/SoulCharger/Obra/                 L_SoulCharger_Obra (el nivel final, en la raíz de la carpeta para encontrarlo rápido)
+                                        Blueprints/ (BP_Obra_SC, ensayos, créditos, aviso) · Partitura/ (DA_Partitura_Obra)
+                                        Titles/ (títulos y créditos) · Audio/ (voces de Alma, Placeholder/) · Materials/
+/Game/SoulCharger/Hall/                 inicio, hall y regreso, con el timbre · Maps/Test_Hall
+/Game/SoulCharger/Mechanics/Breath/     Entering: respiración y pacer        · Maps/Test_Breath
+/Game/SoulCharger/Mechanics/Heart/      Recognizing: el latido               · Maps/Test_Heart
+/Game/SoulCharger/Mechanics/Mind/       Loving: la célula y el fluido        · Maps/Test_Mind
+/Game/SoulCharger/Mechanics/Sequencer/  Attracting: secuenciador y Chladni   · Maps/Test_Sequencer
+/Game/SoulCharger/Mechanics/Draw/       Surrounding: el dibujo (ex NeuralCanvas) y la paleta · Maps/Test_Draw, Test_DrawPalette
+/Game/SoulCharger/Shared/<Pieza>/       lo que usan varias etapas: HUD, Results, Ghost, UserTool, Appear, BioSensor,
+                                        ChargeRing, QuestController, Subtitles (cada una con su Test_ si lo tiene)
+/Game/SoulCharger/Core/<Pieza>/         la base: Alma, Pawn, ProtoSoul, Signals (BioHub/OSC), Light, Audio, Pointer, Input, UI, Debug
+/Game/XRFramework, /Game/XRMannequins   la base VR de Epic (GameMode, input, manos)
+/Game/_Deprecated/                      sin uso: se saca del proyecto con tools/unreal/limpiar_con_editor_cerrado.py
 ```
+Dentro de cada mecánica, del Hall y de la Obra los assets van **por tipo**: `Blueprints/ Materials/ Meshes/ Textures/ Audio/
+Input/ VFX/ UI/ Data/ Maps/`. Un asset nuevo va a la carpeta de su mecánica y a la subcarpeta de su tipo. Si lo usan dos
+mecánicas o más, va a `Shared/`.
 
 Lo que la obra no usa quedó **fuera del proyecto**, en `_Deprecated/Content-2026-10-02/` (1596 assets: V1/V2/V3, galería,
 calibración, Touch, StylizedKitchen, Fab, EasyFog, demos del template). Para traer algo de vuelta:
