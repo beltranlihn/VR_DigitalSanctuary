@@ -2518,3 +2518,10 @@ Antes, `PlaceSketch` lo colocaba de golpe. Borrador y notas: `scripts/ghost/sket
   - **Interrupcion sin salto:** si `SketchVanish` llega a mitad de `SketchAppear` (o al reves), `FxT` pasa a `1 - FxT`. smoothstep es simetrico, asi que el Reveal no cambia en ese cuadro.
 - **Uso desde la Obra:** `PlaceSketch(Xf, Size)` -> `SketchAppear()` en `ResultsShow`; `SketchVanish()` en la salida de resultados.
 - ✅ Compila (warnings as errors, `null`), log limpio, guardado. ⬜ Sin probar con un dibujo real: con `SketchSet` vacio no hace nada. Queda para el turno de Narrativa en la Obra.
+
+### 5ag - El CORTE POR TIEMPO entra por el camino de la tinta (2026-10-02, Narrativa; diagnóstico de la sesión Modelado 3D)
+- Bug del APK 10-01: con el corte de la Obra (`SimCut` → `StageOutro`) no había `SaveSketch`: sin presentación, carga delante del dibujo y resultados vacíos.
+- **`TimeUp()`** (director): si `Tool.StrokeHistory` > 0 → `InkUsed = max(InkUsed, InkMeters)` + `InkEnd` (suelta el trazo, `InkSave` → `SaveSketch`, reintenta cada cuadro si estaba dibujando). Sin trazos (o sin herramienta) → `StageOutro` directo. `bStageDone` sale como siempre por `ContractDone` (bSystemDone Y SketchPhase 0).
+- **`DbgSynth()`** (director): enciende el trazo sintético de la herramienta (Dur 8, Delay 1, Speed 45, R 15, T 0, bSynth). Solo para pruebas desde la Obra (`DbgDrawSynth`).
+- Presentación nominal: Hide 2 + Gap 0,4 + Show 2,5 + Hold 5 + Out 2 ≈ 12 s (medido 12 s en PIE). Con el paso limitado a 0,033 s, en PIE a ~10 fps dura ~3x: no confundir con un cuelgue.
+- ⚠ `read_graph_dsl` rotula mal las llamadas propias (`Class|BPBreathStageSC|StageOutro`, `Class|BPObraSC|SketchSpin`): `get_node_infos` da `|StageOutro` con `self` conectado. Es la función propia.

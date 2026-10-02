@@ -31,6 +31,76 @@ Editor web de gameplay y narrativa para Soul Charger. Lo usan Beltrán y su soci
 
 ---
 
+## 0.b Auditoría de herramientas e integridad (2026-10-01, tarde)
+
+Segunda auditoría, de las herramientas contra Unreal. Los anexos 11 a 16 tienen las 5 revisiones y la consolidación verificada; el anexo 17, el sistema de integridad.
+
+**Conclusión: hoy ninguna herramienta se comunica con Unreal.** El editor mostraba datos de `guion.js`. La maqueta ya se corrigió con los datos reales de Entering.
+
+**Correcciones de fondo** (reemplazan lo que el plan decía antes; ver §2-§4):
+
+- **Esperas.** `G_BREATH` no existe en Unreal: Entering corre por reloj. Lo que el usuario hace es una **condición que no bloquea** (`breath.zone`), y solo decide si suena VO_11h (`HelpAfter` 4 s después de VO_11b).
+  - Las **esperas bloqueantes** reales son las 3 del Hall (timbre, sensor, elección) y SHARE.
+  - Los cortafuegos de las etapas son 180/120/240 s y llaman `CallOutro` sin SAVE ni coda.
+- **Salidas de una espera:** **Done / Help / Timeout**. "Late" no existe.
+- **Marcas reales:** `S<K>.OPEN → .ALMA → .INTRO → .BEGIN → .OUTRO → .CHARGE → .BYE`, más `HALL.<modo>.<paso>`, `SHARE.<estado>` y las de log (`ALMA: SayClip`, `BREATH: UMBRAL`…). No existen `GATE.late` ni `VO.end`: la voz es 2D y no avisa cuando termina.
+- **Perillas: cada una tiene su dueño.**
+  - Las del timbre son del `HallDirector`; la exploración, la cuenta y la ayuda son de `Entering_Stage`; el ritmo del pacer son 4 variables (y su audio está horneado a 4-3-4-3).
+  - `CountTime` vale 3,6, no 3.
+  - "Stays VO + 3 s" de Alma es un **literal de grafo**, no una perilla, y su valor está en conflicto (+3 o +3,5): hay que verificarlo en vivo.
+- **El único puente que funciona hoy** es la propuesta de un valor de instancia: `set_properties`, releer, guardar el subnivel y contar actores.
+  - **`set_actor_transform` no mueve nada:** lo espacial va por `set_properties` sobre el root.
+  - **La cosecha actual cambia el nivel del editor compartido:** hay que reescribirla.
+- **Sonido nuevo.**
+  - Destino: `Content/SoulCharger/Obra/Audio/FX/`.
+  - Se valida PCM, 48 kHz y mono para sonidos de objeto.
+  - Queda "en Content" hasta que una cue lo use, y recién ahí llega al APK.
+  - **No hay que borrar el WAV fuente:** con `bAutoDeleteAssets` activo, se borra también el asset.
+- **Lo que no existe en Unreal hoy:**
+  - mover a un punto (salvo Alma);
+  - rampas de parámetros;
+  - buses, ducking y patrones HAP;
+  - caminatas fuera del Hall;
+  - el sonido de aparición de Alma.
+
+  Todo eso queda **preview only** hasta construirlo.
+- **Formato cocinado:** el camino preferido pasa a ser un **DataAsset** escrito por MCP (precedente `DA_Ghost_*`), en lugar de la DataTable, porque el MCP no crea structs.
+- **Primera familia web → Unreal:** la **cadena de VO de Entering**, porque sus perillas ya existen. Los ambientes quedan después: dependen de un literal de `AmbPick`.
+
+**Sistema de integridad (pedido de Beltrán: "si algo se rompe, el software avisa qué se rompería, y si queremos, seguimos igual").**
+
+- **Cuatro capas de chequeo:**
+  1. **C1 · Estructura de la partitura:** dependientes, ramas, choques que aparecen solo con un usuario Slow o Idle.
+  2. **C2 · Reglas de la obra:** Alma habla después de aparecer + 1,5 s; toda espera tiene ayuda antes del tope; nada aparece de golpe; música continua; háptico con final; título de al menos 3 s; meta de 15:00.
+  3. **C3 · Contrato con Unreal:** literales de grafo, assets llamados por ruta, VO por índice, tags, índices de etapa, audio horneado, puntos de sincronía y dueños de perillas.
+  4. **C4 · Rendimiento del Quest:** nunca dos apariciones en el mismo cuadro, y nada arranca en el cuadro en que se enciende una celda.
+- **Invariantes** (ciclos, solapes, una VO más corta que su audio): no tienen "seguir igual".
+- **Gravedad:**
+
+  | Nivel | Para seguir igual |
+  |---|---|
+  | **Blocks** | Motivo obligatorio |
+  | **Warns** | Motivo opcional; obligatorio si la perilla tiene candado |
+  | **Info** | Solo aparece en la barra de estado |
+
+- **Tarjeta de impacto** (`_dialogBase` de ISP, con el orden de botones de `appConfirm3`): lista Breaks, Warns y Also, cada uno con el dueño en Unreal y la evidencia, y ofrece las reparaciones. Botones: *Cancel* · *Proceed anyway* (se habilita con el motivo) · *Proceed and repair* (primario y con el foco). Agrupa todo en una sola tarjeta por gesto.
+- **Romper a propósito un C3** deja el elemento en **Accepted · ≠ APK**:
+  - contorno ámbar discontinuo y el chip "≠ APK";
+  - en el inspector, "In the APK today: …";
+  - una tarea de grafo para la sesión que tenga el turno de la cola.
+
+  Se cierra solo cuando la cosecha prueba que se conectó.
+- **Panel Problems** (como el Message Log o el Map Check de Unreal): severidad, capa, regla, elemento, dueño, estado (Open / Accepted / Resolved / Waived), autor y motivo. Se abre con el contador de la barra de estado o con F8, y tiene "Check piece", que corre todas las reglas para los 4 usuarios simulados.
+- **Lista negra** en `obra/unreal/contract.json`, con la bandera `hw` en cada elemento afectado. Se refresca leyendo unos 14 grafos en el turno de la cola. Si la evidencia es vieja, la entrada queda *stale* y **se sigue aplicando**.
+- **Compuertas:**
+  - Un **push** a Unreal se bloquea si hay algún Blocks abierto en su alcance, si no hay turno de la cola, si el nivel es otro, si un paquete está sucio o si la base es vieja.
+  - Un **APK** se bloquea si hay algún Blocks abierto en la obra, si `DebugStart` ≠ −1 o si la cosecha es vieja. Además, con rupturas aceptadas sin conectar, necesita la **firma de Beltrán**.
+- **Las 10 reglas MVP** están en el anexo 17, §6.
+
+**En la maqueta:** contador de problemas en la barra de estado, panel Problems (F8), marcas en los clips, la opción "Impact card" en la pastilla (con el ejemplo de mover VO_10) y el ícono de enchufe en lo que está cableado en un grafo.
+
+---
+
 ## 1. Lo que hay hoy (hallazgos que cambian el diseño)
 
 ### 1.1 El prototipo web (`web/prototipo-narrativo/`)
@@ -346,6 +416,15 @@ Reemplaza a `ensayo_export.py` y a `gen_ensayo_js.py`.
 | 5 | Título de etapa: ¿cuál es el final, el del runner (1→5,5 s) o el de la Obra (0,5→1,8 s)? | Define U5. Decisión de autor. |
 | 6 | ¿Banda de actos + regla + momentos (58 px) o regla única con regiones, al estilo de ISP? | Las tres bandas: el socio piensa en actos y momentos. |
 | 7 | ¿El inspector a 320 px (ISP usa 300)? | 320. Con la app en inglés las etiquetas vuelven a los 60 px de ISP. |
+| 8 | ¿Las esperas del Hall llevan ayuda por voz (VO_01h, VO_03h), como pide el guion? Hoy solo tienen el fantasma. | Sí: cablearlas en `HallEnterIntro`. Así la regla "toda espera tiene ayuda" deja de dar error. |
+| 9 | Al vencer el cortafuegos de Attracting o Surrounding, ¿se fuerza el SAVE antes del outro? Hoy se salta SAVE y coda. | Sí, porque es lo que pide el guion ("el cortafuegos sigue el camino del final real"). |
+| 10 | ¿Quién firma un APK con rupturas aceptadas sin conectar? | Solo Beltrán. |
+
+**Correcciones a las fases (§4) tras la auditoría de herramientas:**
+- **F1** exige que las posiciones y tiempos de la vista salgan de la cosecha de Unreal; si no, la vista se rotula "previs, not Unreal positions".
+- **F1** ya incluye las 10 reglas MVP de integridad y el panel Problems.
+- **F4:** la primera familia es la **cadena de VO de Entering** y el formato es un **DataAsset**.
+- **MVP de acciones (10):** Appear, Disappear, Alma VO, Omnipresent VO, Sound, Ambience (en lectura), Title (en lectura), Veil (en lectura), Condition/Wait y Demo ghost.
 
 ---
 
@@ -354,3 +433,53 @@ Reemplaza a `ensayo_export.py` y a `gen_ensayo_js.py`.
 **F0 no necesita el editor de Unreal**, salvo la cosecha y la traza PIE, que van en la cola de Narrativa. Puede arrancar ya.
 
 En paralelo, la maqueta sigue siendo el lugar donde Beltrán decide la interfaz. Cada cambio que pide entra primero ahí (`web/editor-obra/mockup/src-body.html` → `build.py`).
+
+---
+
+## 8. Estado de construcción (2026-10-02)
+
+**La app ya corre.** Se abre con doble clic en `tools/editor/abrir-editor.bat` (o con `python tools/editor/serve_editor.py --open`) en http://localhost:8767/editor-obra/app/. Detalle de archivos y uso en [`web/editor-obra/app/README.md`](../../web/editor-obra/app/README.md).
+
+**F0, hecho:**
+- La extracción de `guion.js` a partitura está en `obra/score/score.json`: 592 elementos, 73 momentos, IDs estables y shim `legacy`.
+- La prueba dorada da 665/665 tiempos iguales al prototipo.
+- **Falta de F0:** `harvest_score.py`, la lista de divergencias y la traza PIE. Las tres necesitan Unreal y van en la cola de Narrativa.
+
+**F1, hecho y verificado en el navegador:**
+- **Interfaz:** chrome y CSS de ISP, en inglés, sin mayúsculas, a 1:1. Por debajo de 1280×720 la app entera se escala.
+- **Timeline:** grupos con sub-pistas persistentes (crear, renombrar y borrar si están vacías).
+- **Edición:**
+  - mover arrastrando, con imán (Alt lo apaga) y Ctrl para mover un elemento sin su familia;
+  - cambiar de pista sin solape y soltar en "+ New lane";
+  - recortar y mover momentos;
+  - deshacer y rehacer.
+- **Esperas elásticas:** usuario simulado (rápido, típico, lento, ausente) y total contra 15:00.
+- **Inspector:** Time, Wait, Voice, Sound y Knobs (solo lectura, con su dueño en Unreal y candado).
+- **Agregar:**
+  - con Shift+A, clic derecho en la pista, la librería y los botones;
+  - sonido vacío con WAV: lee el formato, lo sube a `obra/audio/inbox/` y, si se renombra el sonido, el WAV se renombra con él;
+  - notas y marcadores.
+- **Integridad:**
+  - una tarjeta de impacto en cada edición que rompe algo;
+  - "Proceed anyway" pide motivo cuando hay bloqueo o valor final y queda firmado en Problems con "≠ APK";
+  - "Proceed and repair" re-ancla a los elementos dependientes conservando sus tiempos (⚠ **pero no a los momentos**: ver anexo 18, A1);
+  - alinear un timeout con la perilla de Unreal no pide nada y elimina el desfase;
+  - panel Problems (F8) con filtros y la opción de reabrir.
+- **Guardado:** guarda en disco con historial (40 copias) y autoguarda un borrador local que se recupera al recargar.
+- **Vista 3D:** el prototipo sigue al cabezal. Avisa en ámbar cuántos elementos de la partitura difieren de lo que muestra.
+- **Pestañas:** dos pestañas sincronizadas (`?view=3d`, BroadcastChannel) que comparten cabezal, play y ediciones.
+
+**Pendiente:**
+- **Unreal:** el puente F3/F4. Hoy "0 of N reach Unreal" y la barra de sincronía dice "not connected".
+- **Vista de lógica:** el cajón de nodos (F5).
+- **Alcance de la vista 3D:** muestra el timing del prototipo, no el de la partitura editada.
+- **Decisiones abiertas:** las del §6.
+
+**Auditoría de la app (2026-10-02, tarde):** [anexo 18](anexos/18-auditoria-app.md).
+- **Resultado:** 54 hallazgos verificados más 13 que encontraron los verificadores.
+- **Veredicto:** el núcleo está bien construido, pero así como está rompería la obra:
+  - borrar con reparación manda momentos a 0:00;
+  - al guardar gana el último;
+  - la integridad grita en las VO y calla en el 58 % de los elementos y en el ripple;
+  - la vista previa no muestra lo editado.
+- **Plan:** arreglos en 5 lotes. El lote 1 (que no se pierda ni se corrompa nada) va antes de dárselo al socio.

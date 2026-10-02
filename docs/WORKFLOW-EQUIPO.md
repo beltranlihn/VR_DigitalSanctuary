@@ -137,6 +137,7 @@ adb shell ls -l /sdcard/Android/obb/<PACKAGE>/     # verificar el TAMAÑO exacto
 ```
 `<PACKAGE>` sale del propio log de UAT (`GetPackageInfo ReturnValue: com.almadigital.TESTMESHES`). El `adb` de la máquina de Beltrán está en `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe` (no está en el PATH).
 ⚠ `Failure [DELETE_FAILED_INTERNAL_ERROR]` en el `adb uninstall` del principio es **normal e ignorable** (no había versión previa).
+🔴 **Desinstalación limpia (2026-10-01): si se borra `/sdcard/Android/obb/<PACKAGE>`, el push siguiente falla** con `remote secure_mkdirs failed: Operation not permitted` (Android 14 no deja que `shell` cree esa carpeta), y la app queda instalada sin datos: abre y se queda en negro. Arreglo probado: abrir la app una vez (el sistema crea la carpeta), `am force-stop` y repetir el push. **Verificar siempre el tamaño en bytes con `ls -l`** — el `Select-Object -Last 1` del script escondió el error y mostró "1 file pushed".
 
 ### ⚠ Lanzar RunUAT: PowerShell con `--%`, NO la herramienta Bash
 Desde la herramienta Bash, `"C:/Program Files/Epic Games/..."` se rompe con `"C:\Program" no se reconoce como un comando` — y **sale con código 0**, así que parece que empaquetó cuando en realidad murió en el primer segundo. La forma que funciona es PowerShell con el token de stop-parsing, que además protege los `[` `]` `:` del `-AdditionalCookerOptions`:
@@ -163,3 +164,13 @@ Señal de que corrió de verdad: el log termina en `BUILD SUCCESSFUL` + `Automat
 
 🔴 **El `Install_*.bat` de Epic hace `rm -r %STORAGE%/UnrealGame/VR_Test`**, y esa carpeta es **compartida por todos los builds de VR_Test**. Instalando a mano no hace falta: `adb install -r <apk>` + el push del OBB de la sección de arriba. El `adb` que usa Meta Quest Developer Hub es el mismo del SDK (`%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`), así que no hay choque de versiones.
 ⚪ **Ruido conocido en logcat:** `LogIoDispatcher: Error: OpenMappedEx failed on: ...ucas` (decenas de veces al arrancar). El motor no puede mapear en memoria datos que están dentro del OBB y los lee de la forma normal. El flujo de Calibración corrió completo igual. Si alguna vez falta un sonido o una imagen, es el primer sospechoso.
+
+### 🎥 Grabar la experiencia en video (casting de Meta Quest Developer Hub, 2026-10-01)
+- **Cómo:** Device manager → *Cast Device* abre la ventana **Meta Casting**; el botón de cámara de video de su barra inferior graba. **La grabación la hace el visor**, no el PC: queda en `/sdcard/Documents/Casting_Video_<epoch ms>.mp4` (el número es la hora UTC de inicio, en milisegundos) y se baja con `adb pull`.
+- **Ajustes (engranaje, sección Recording):** bitrate 60 Mbps, formato MÁX, 60 FPS, y en Transmisión **"Pause when recording" ON** (el visor codifica un solo video; el PC muestra "En pausa"). Resultado medido: **2560×1440 a 60 fps**, ~6-46 Mbps según la escena, audio AAC estéreo.
+- **Audio:** graba la mezcla del sistema (el audio de la experiencia). El micrófono no entra: el único que lo usa es `com.oculus.xrstreamingclient` (Quest Link), visto en `dumpsys audio`.
+- **Costo en el visor:** el Hall da 72 fps grabando y 72 sin grabar; el aviso inicial da ~35-55 en las dos pasadas (es la carga de las celdas, no la grabación).
+- **Fotos sin costo:** se sacan del video después, cruzando la hora del logcat (o la del dictado) con la hora de inicio del nombre del archivo.
+- 🔴 **El audio sale "roto" para Premiere (y para YouTube, por las dudas):** el grabador mete como primer paquete de audio los 2 bytes de configuración del AAC, y rellena los demás paquetes a 1536 bytes. ffmpeg y Ableton lo leen; Premiere descarta la pista entera. **Arreglo obligatorio antes de editar o subir:** recodificar solo el audio (el video va tal cual; es todo cuadros clave, así que el corte es exacto):
+  `ffmpeg -ss <ini> -to <fin> -i Casting_Video_X.mp4 -map 0:v:0 -map 0:a:0 -c:v copy -c:a aac -b:a 384k -ar 48000 -ac 2 -af aresample=async=1:first_pts=0 -movflags +faststart salida.mp4`
+- ❌ `metavr capture video start/stop` (CLI de MQDH) no grabó nada y se trajo un video viejo de `VideoShots`. Los videos de 24 fps / 8 Mbps del 09-27 eran de antes de subir los ajustes.

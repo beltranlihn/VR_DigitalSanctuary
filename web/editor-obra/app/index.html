@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soul Charger Editor</title>
+<link rel="stylesheet" href="css/isp.css">
+<link rel="stylesheet" href="css/editor.css">
+</head>
+<body>
+<div class="app" id="app">
+  <div class="top" id="top"></div>
+  <div class="bodyrow" id="bodyrow">
+    <div class="stagecol" id="stagecol">
+      <div class="mid" id="mid">
+        <aside id="library"></aside>
+        <div class="gutter"></div>
+        <main id="viewerPane">
+          <div class="vptool" id="vptool"></div>
+          <div class="stage" id="stage"><iframe id="proto" title="3D preview" src="about:blank"></iframe><div class="vmsg" id="vmsg"></div></div>
+        </main>
+      </div>
+      <div class="transport" id="transport"></div>
+      <div class="timeline" id="timeline">
+        <div class="hres" id="tlResize" title="Drag to resize the timeline"></div>
+        <div class="tlmain"><div class="sctl" id="sctl"><div class="tlc" id="tlc"></div></div></div>
+        <div id="drawer"></div>
+      </div>
+    </div>
+    <div class="gutter"></div>
+    <aside id="inspector"></aside>
+  </div>
+  <div class="status" id="status"></div>
+  <div id="overlay"></div>
+</div>
+<input type="file" id="wavIn" accept=".wav,audio/wav" hidden>
+<input type="file" id="jsonIn" accept=".json,application/json" hidden>
+<script src="js/engine.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/integrity.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

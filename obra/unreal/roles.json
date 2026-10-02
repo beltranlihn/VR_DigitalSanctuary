@@ -1,0 +1,868 @@
+{
+ "note": "Roles and their Unreal knobs, verified in the tools audit (docs/editor-obra/anexos/11-herramientas-consolidado.md). row = [label, value, unit, fader %, color, variable, final-lock]. Refreshed by the harvest (F3).",
+ "verified": "2026-10-01",
+ "roles": {
+  "Bell": {
+   "icon": "obj",
+   "actor": "Timbre · Test_Hall",
+   "used": [
+    "Hall · 1.8 The bell"
+   ],
+   "sounds": [
+    [
+     "Bell",
+     "on touch · fades out in 0.5 s",
+     "real"
+    ],
+    [
+     "FX_BELLAPPEAR",
+     "appear",
+     "not assigned"
+    ],
+    [
+     "FX_BELLVANISH",
+     "vanish",
+     "not assigned"
+    ]
+   ],
+   "groups": [
+    {
+     "owner": "Timbre · Appear component",
+     "scope": "instance",
+     "rows": [
+      [
+       "Appear",
+       "1.5",
+       "s",
+       30,
+       "#7FB2E8",
+       "Appear.Duration · light first",
+       1
+      ]
+     ]
+    },
+    {
+     "owner": "HallDirector · Test_Hall",
+     "scope": "instance",
+     "rows": [
+      [
+       "Press depth",
+       "1.0",
+       "cm",
+       40,
+       "#E0645C",
+       "BellPressDepth",
+       1
+      ],
+      [
+       "Press time",
+       "0.12",
+       "s",
+       12,
+       "#E0954B",
+       "BellPressTime (verify live: may be 0)",
+       1
+      ],
+      [
+       "Hold to ring",
+       "3.0",
+       "s",
+       30,
+       "#D8C24B",
+       "BellHold",
+       1
+      ],
+      [
+       "Timeout",
+       "25",
+       "s",
+       90,
+       "#E06C6C",
+       "FW_Bell · after it, the bell fills by itself in 3 s",
+       1
+      ],
+      [
+       "Touch radius",
+       "14",
+       "cm",
+       35,
+       "#C58BD0",
+       "TouchRadius",
+       1
+      ]
+     ]
+    },
+    {
+     "owner": "HallDirector graph",
+     "scope": "literal",
+     "rows": [
+      [
+       "Release",
+       "−2 /s",
+       "",
+       null,
+       null,
+       "charge drains when released · literal in HallTickSteps"
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^(BELL_|G_BELL$)"
+   }
+  },
+  "Sensor (Hall)": {
+   "icon": "obj",
+   "actor": "BP_BioSensorArt_SC · Test_Hall",
+   "used": [
+    "Hall · 2.3 Take the sensor"
+   ],
+   "sounds": [],
+   "groups": [
+    {
+     "owner": "HallDirector · Test_Hall",
+     "scope": "instance",
+     "rows": [
+      [
+       "Timeout",
+       "20",
+       "s",
+       80,
+       "#E06C6C",
+       "FW_Tool",
+       1
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^(SENSOR_IN|ORB_IN|ORB_BURST|G_SENSOR)$"
+   }
+  },
+  "Sensor (hand)": {
+   "icon": "obj",
+   "actor": "UserTool_Obra · Obra",
+   "used": [
+    "S0.INTRO Entering",
+    "S1 Recognizing"
+   ],
+   "sounds": [
+    [
+     "ProtoSelect",
+     "on morph",
+     "real"
+    ]
+   ],
+   "groups": [
+    {
+     "owner": "UserTool_Obra · Obra",
+     "scope": "instance",
+     "rows": [
+      [
+       "Morph time",
+       "0.8",
+       "s",
+       16,
+       "#E0954B",
+       "MorphTime",
+       1
+      ],
+      [
+       "Color time",
+       "1.2",
+       "s",
+       24,
+       "#7FB2E8",
+       "ColorTime",
+       1
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^(SENSOR_HAND|SENSOR_IN3|SENSOR_TINT|SENSOR_OUT3|SENSOR_OUT|BIO|BIO_ON)$"
+   }
+  },
+  "Stage · Entering": {
+   "icon": "logic",
+   "actor": "Entering_Stage · Test_Entering",
+   "used": [
+    "Stage 1 · Entering"
+   ],
+   "sounds": [],
+   "groups": [
+    {
+     "owner": "Entering_Stage · Test_Entering",
+     "scope": "instance",
+     "rows": [
+      [
+       "Explore",
+       "12",
+       "s",
+       40,
+       "#7FB2E8",
+       "ExploreTime · minimum; the count also waits for the voice chain",
+       1
+      ],
+      [
+       "Count",
+       "3.6",
+       "s",
+       36,
+       "#E0954B",
+       "CountTime",
+       1
+      ],
+      [
+       "Inhale cue",
+       "3.48",
+       "s",
+       35,
+       "#D8C24B",
+       "InhaleCueAt",
+       1
+      ],
+      [
+       "Tool delay",
+       "0.8",
+       "s",
+       16,
+       "#C58BD0",
+       "ToolDelay",
+       1
+      ],
+      [
+       "Say after",
+       "1.0",
+       "s",
+       20,
+       "#7FB2E8",
+       "SayAfterTool",
+       1
+      ],
+      [
+       "Say gap",
+       "0.5",
+       "s",
+       10,
+       "#B8B8B8",
+       "SayGap",
+       1
+      ],
+      [
+       "Help after",
+       "4.0",
+       "s",
+       40,
+       "#E0954B",
+       "HelpAfter · after VO_11b, only if not in the zone",
+       1
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^G_BREATH$"
+   }
+  },
+  "Pacer": {
+   "icon": "obj",
+   "actor": "Entering_Pacer · Test_Entering",
+   "used": [
+    "S0.BEGIN Entering"
+   ],
+   "note": "Pads and plucks are baked at 4-3-4-3: changing the rhythm needs new audio.",
+   "sounds": [
+    [
+     "SND_PacerPad",
+     "loop",
+     "real"
+    ],
+    [
+     "SND_PacerPluck",
+     "per phase",
+     "real"
+    ]
+   ],
+   "groups": [
+    {
+     "owner": "Entering_Pacer · Test_Entering",
+     "scope": "instance",
+     "rows": [
+      [
+       "Inhale",
+       "4",
+       "s",
+       40,
+       "#7FB2E8",
+       "InhaleTime",
+       1
+      ],
+      [
+       "Hold",
+       "3",
+       "s",
+       30,
+       "#B8B8B8",
+       "Hold1Time",
+       1
+      ],
+      [
+       "Exhale",
+       "4",
+       "s",
+       40,
+       "#E0954B",
+       "ExhaleTime",
+       1
+      ],
+      [
+       "Hold",
+       "3",
+       "s",
+       30,
+       "#B8B8B8",
+       "Hold2Time",
+       1
+      ],
+      [
+       "Cycles",
+       "5",
+       "",
+       50,
+       "#D8C24B",
+       "Cycles",
+       1
+      ],
+      [
+       "Lead-in",
+       "3",
+       "s",
+       30,
+       "#C58BD0",
+       "LeadIn",
+       1
+      ],
+      [
+       "Lead-out",
+       "3",
+       "s",
+       30,
+       "#C58BD0",
+       "LeadOut",
+       1
+      ],
+      [
+       "Preset",
+       "0",
+       "",
+       null,
+       null,
+       "Preset · 0 = use the times above",
+       1
+      ]
+     ]
+    },
+    {
+     "owner": "BP_Pacer_SC",
+     "scope": "class default",
+     "rows": [
+      [
+       "Intro",
+       "0.6",
+       "s",
+       12,
+       "#7FB2E8",
+       "IntroTime"
+      ],
+      [
+       "Outro",
+       "0.6",
+       "s",
+       12,
+       "#7FB2E8",
+       "OutroTime"
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^(PACER|PACER_DIM)$"
+   }
+  },
+  "Metaball": {
+   "icon": "obj",
+   "actor": "Entering_Blob · Test_Entering",
+   "used": [
+    "S0.INTRO Entering"
+   ],
+   "sounds": [],
+   "groups": [
+    {
+     "owner": "Entering_Blob · Test_Entering",
+     "scope": "instance",
+     "rows": [
+      [
+       "Intro",
+       "2.5",
+       "s",
+       50,
+       "#7FB2E8",
+       "IntroTime",
+       1
+      ],
+      [
+       "Outro",
+       "2.5",
+       "s",
+       50,
+       "#7FB2E8",
+       "OutroTime",
+       1
+      ],
+      [
+       "Size",
+       "220",
+       "cm",
+       55,
+       "#E0645C",
+       "SizeCM · the stage overrides the actor scale",
+       1
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^BLOB_"
+   }
+  },
+  "Alma": {
+   "icon": "alma",
+   "actor": "BP_Alma_SC_C_0 · Obra",
+   "used": [
+    "every stage · S*.ALMA",
+    "Hall"
+   ],
+   "sounds": [],
+   "note": "Alma has no appear sound in Unreal. Her voice plays in 2D.",
+   "groups": [
+    {
+     "owner": "BP_Alma_SC_C_0 · Obra",
+     "scope": "instance",
+     "rows": [
+      [
+       "Size",
+       "1.00",
+       "m",
+       50,
+       "#E0645C",
+       "Size = diameter in m, × the point scale (side points 0.6)",
+       1
+      ],
+      [
+       "Brightness",
+       "1.5",
+       "",
+       60,
+       "#E8C84B",
+       "Brightness",
+       1
+      ]
+     ]
+    },
+    {
+     "owner": "BP_Alma_SC",
+     "scope": "class default",
+     "rows": [
+      [
+       "Appear",
+       "1.2",
+       "s",
+       24,
+       "#7FB2E8",
+       "AppearTime · grows by scale"
+      ],
+      [
+       "Disappear",
+       "0.6",
+       "s",
+       12,
+       "#7FB2E8",
+       "DisappearTime"
+      ],
+      [
+       "Travel",
+       "3.0",
+       "s",
+       30,
+       "#E0954B",
+       "TravelTime"
+      ]
+     ]
+    },
+    {
+     "owner": "BP_Obra_SC graph",
+     "scope": "literal",
+     "rows": [
+      [
+       "Speaks at",
+       "+1.5 s",
+       "",
+       null,
+       null,
+       "literal in AlmaSpeak"
+      ],
+      [
+       "Stays",
+       "VO + 3.5 s",
+       "",
+       null,
+       null,
+       "literal in AlmaSpeak / StageTimes · verify live (+3 or +3.5)"
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^ALMA_"
+   }
+  },
+  "Candidates": {
+   "icon": "alma",
+   "actor": "HallSoul_0..4 · Test_Hall",
+   "used": [
+    "Hall · 2.5 Choose your soul"
+   ],
+   "sounds": [],
+   "groups": [
+    {
+     "owner": "HallDirector · Test_Hall",
+     "scope": "instance",
+     "rows": [
+      [
+       "Timeout",
+       "25",
+       "s",
+       90,
+       "#E06C6C",
+       "FW_Choose",
+       1
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^(CANDS_IN|SOUL_COLOR|OTHERS_OUT|SOUL_FRONT|G_CHOOSE)$"
+   }
+  },
+  "Doors & tiles": {
+   "icon": "obj",
+   "actor": "HallDirector · Test_Hall",
+   "used": [
+    "Hall"
+   ],
+   "sounds": [],
+   "groups": [
+    {
+     "owner": "HallDirector · Test_Hall",
+     "scope": "instance",
+     "rows": [
+      [
+       "Door angle",
+       "16.5",
+       "°",
+       40,
+       "#C58BD0",
+       "DoorOpenDeg",
+       1
+      ],
+      [
+       "Door time",
+       "3",
+       "s",
+       30,
+       "#7FB2E8",
+       "DoorTime",
+       1
+      ],
+      [
+       "Tile lift",
+       "3",
+       "cm",
+       30,
+       "#E0645C",
+       "TileLiftCm",
+       1
+      ],
+      [
+       "Tile glow",
+       "0.35",
+       "",
+       35,
+       "#E8C84B",
+       "TileGlowMax",
+       1
+      ],
+      [
+       "Tile time",
+       "1.5",
+       "s",
+       30,
+       "#7FB2E8",
+       "TileTime",
+       1
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^(DOORS?_|DOOR_|TILE|TILES_DOWN|LABEL$)"
+   }
+  },
+  "Heart membrane": {
+   "icon": "obj",
+   "actor": "HeartManager · Test_Heart",
+   "used": [
+    "Stage 2 · Recognizing"
+   ],
+   "sounds": [],
+   "groups": [
+    {
+     "owner": "HeartManager · Test_Heart",
+     "scope": "instance",
+     "rows": [
+      [
+       "Beat divider",
+       "2",
+       "",
+       20,
+       "#E0645C",
+       "BeatDiv",
+       1
+      ],
+      [
+       "Stage beats",
+       "19",
+       "",
+       40,
+       "#E0954B",
+       "StageBeats",
+       1
+      ],
+      [
+       "Orbit at beat",
+       "8",
+       "",
+       30,
+       "#C58BD0",
+       "OrbitAtBeat",
+       1
+      ],
+      [
+       "Backup after",
+       "30",
+       "s",
+       60,
+       "#B8B8B8",
+       "BackupAfter",
+       1
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^(HEART|G_HEART)$"
+   }
+  },
+  "Loving cell": {
+   "icon": "obj",
+   "actor": "LovingCell · Test_Fluid",
+   "used": [
+    "Stage 3 · Loving"
+   ],
+   "sounds": [],
+   "groups": [
+    {
+     "owner": "LovingCell · Test_Fluid",
+     "scope": "instance",
+     "rows": [
+      [
+       "Duration",
+       "60",
+       "s",
+       60,
+       "#7FB2E8",
+       "StageDuration",
+       1
+      ],
+      [
+       "Intro delay",
+       "2",
+       "s",
+       10,
+       "#B8B8B8",
+       "IntroDelay",
+       1
+      ],
+      [
+       "VO_22 at",
+       "15",
+       "s",
+       25,
+       "#398559",
+       "VO22At",
+       1
+      ],
+      [
+       "VO_23 at",
+       "42",
+       "s",
+       70,
+       "#398559",
+       "VO23At",
+       1
+      ],
+      [
+       "VO wait",
+       "8",
+       "s",
+       20,
+       "#B8B8B8",
+       "VOWait",
+       1
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^(CELL_IN|SHAPE_\\d|SPIRAL)$"
+   }
+  },
+  "Ending": {
+   "icon": "logic",
+   "actor": "BP_Obra_SC_C_0 · Obra",
+   "used": [
+    "9 · Ending"
+   ],
+   "sounds": [],
+   "groups": [
+    {
+     "owner": "BP_Obra_SC_C_0 · Obra",
+     "scope": "instance",
+     "rows": [
+      [
+       "Share timeout",
+       "30",
+       "s",
+       60,
+       "#E06C6C",
+       "ShareFW · the default answer depends on bSimulated",
+       1
+      ],
+      [
+       "Alma left",
+       "45",
+       "",
+       45,
+       "#E0954B",
+       "ResAlmaLeft",
+       1
+      ],
+      [
+       "Alma scale",
+       "0.7",
+       "",
+       70,
+       "#E0645C",
+       "ResAlmaScale",
+       1
+      ]
+     ]
+    },
+    {
+     "owner": "BP_Obra_SC",
+     "scope": "class default",
+     "rows": [
+      [
+       "Results",
+       "150",
+       "s",
+       null,
+       null,
+       "ResultsTime"
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "key": "^(G_SHARE|SHARE_IN|SHARE_PRESS|RES_IN|RES_OUT|FINAL|FINAL_BURST)$"
+   }
+  },
+  "Ambiences": {
+   "icon": "sound",
+   "actor": "BP_Obra_SC_C_0 · Obra",
+   "used": [
+    "whole piece"
+   ],
+   "sounds": [
+    [
+     "AMB_01..09",
+     "AmbClips",
+     "real"
+    ]
+   ],
+   "groups": [
+    {
+     "owner": "BP_Obra_SC_C_0 · Obra",
+     "scope": "instance",
+     "rows": [
+      [
+       "Volume",
+       "0.8",
+       "",
+       80,
+       "#7FB2E8",
+       "AmbVolumes",
+       1
+      ],
+      [
+       "Fade in",
+       "3",
+       "s",
+       30,
+       "#B8B8B8",
+       "AmbFadeIn",
+       1
+      ],
+      [
+       "Fade out",
+       "3",
+       "s",
+       30,
+       "#B8B8B8",
+       "AmbFadeOut",
+       1
+      ]
+     ]
+    },
+    {
+     "owner": "BP_Obra_SC graph",
+     "scope": "literal",
+     "rows": [
+      [
+       "Which plays",
+       "AmbPick",
+       "",
+       null,
+       null,
+       "literal indices in AmbPick · needs a graph change"
+      ]
+     ]
+    }
+   ],
+   "match": {
+    "group": "amb"
+   }
+  }
+ }
+}

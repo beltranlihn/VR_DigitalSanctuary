@@ -121,6 +121,10 @@ Fuente: `Saved/ClaudeScripts/Obra/turnB2.json` (+ `turnB2_build.py`, `fish3.json
 19. Llamar a un BP por tag: `GetAllActorsWithTag` devuelve Actor y la llamada tipada falla ("Could not connect pin Output to self"); usar `Actor|GetAllActorsOfClassWithTag` (sale tipado).
 20. Getter de un bool con b de otro BP: `Class|BPHallDirectorSC|GetExitDone` (sin b).
 - **`SimCut`** (FinalFlow, rama Booted): con `bSimulated` (APK de postulación, autoplay), Attracting y Surrounding (etapas 3-4) cierran a `SimStageMax` 90 s de mecánica (PT de la fase 6 → 1000; RunObra las cierra al cuadro siguiente). Sin usuario, antes esperaban el timeout de 240 s sin nada que ver.
+  - 🔴 **2026-10-02 — el corte del DIBUJO pasa por el guardado.** Antes, la etapa 4 también cortaba con `PT = 1000` → `StageOutro` cerraba el sistema sin `SaveSketch`: el dibujo se quedaba quieto, la carga ocurría delante y en resultados no aparecía (`SketchSet` vacío). Reportado por Beltrán en el APK del 10-01 y confirmado con su logcat.
+    - Ahora solo Attracting (etapa 3) corta con `PT = 1000`. Drawing, al llegar a `SimStageMax` (simulado) o `DrawCutT` 205 (normal), llama una vez a `BP_TBDirector_NC.TimeUp()` (`DrawCutDone`, `DrawCutAt`) y `RunObra` espera el `bStageDone` normal, que llega al terminar la presentación (~12 s). Tope de seguridad: `DrawCutWait` 30 s → `PT = 1000`. `DrawCutDone` se resetea fuera de la fase 6. 205 + 30 < 240 (timeout de la fase 6).
+    - Perilla de prueba `DbgDrawSynth` (CDO, false; no es editable por instancia): a los 2 s de la etapa 4 llama `TB.DbgSynth()` (trazo sintético) y se apaga sola.
+    - ✅ PIE (DebugStart 50, sintético, corte a 40 s): corte → "se guarda el dibujo y se presenta" → 12 s → "StageOutro, por fin propio = true" → carga → resultados con el dibujo (aparece y se va con SHARE). 0 errores.
 - **PIE completo 2026-09-30 ~18:05 (log), Speed 2, flujo normal con bSimulated: 0 errores**:
   · aviso → Hall (alma del centro) → HUD;
   · Entering por fin propio · Recognizing con latido de respaldo y fin propio (~35 s) · Loving y Attracting por timeout;

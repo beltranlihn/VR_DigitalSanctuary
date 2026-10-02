@@ -1038,16 +1038,52 @@ body{overflow:hidden;user-select:none;background:var(--well-deep);}
 .menu button .ar{margin-left:auto;color:var(--ink-3);}
 .menu button.on{background:var(--surface-3);color:var(--ink);}
 .clickdot{position:absolute;width:9px;height:9px;border-radius:50%;border:1.5px solid var(--ink);z-index:49;transform:translate(-4px,-4px);}
+.owner{display:flex;align-items:center;gap:6px;padding:8px 14px 2px;font-size:10.5px;color:var(--ink-3);}
+.owner b{font-weight:500;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .owner .sc{margin-left:auto;flex-shrink:0;}
+.chip.lit{color:var(--ink-3);border:.5px dashed rgba(255,255,255,.22);background:transparent;margin-left:4px;}
+.cond{position:absolute;height:18px;border:1px dashed var(--auto-live);border-radius:9px;background:rgba(79,195,232,.06);display:flex;align-items:center;gap:5px;padding:0 8px;font-size:10.5px;color:var(--auto-live);white-space:nowrap;overflow:hidden;cursor:pointer;}
+.cond span{overflow:hidden;text-overflow:ellipsis;} .cond.sel{box-shadow:0 0 0 1.5px var(--ink);} .cond.gsel{outline:1px dashed var(--ink-3);outline-offset:1px;}
+.condok{position:absolute;width:8px;height:8px;transform:rotate(45deg);background:var(--auto-live);pointer-events:none;}
+.offview{position:absolute;left:8px;display:flex;align-items:center;gap:6px;padding:3px 9px;border-radius:10px;background:rgba(27,27,27,.85);border:.5px solid rgba(255,255,255,.12);font-size:10.5px;color:var(--ink-2);pointer-events:none;}
+.wavinfo .ok{color:#9CCBB3;} .wavinfo .warn{color:var(--auto-ovr);}
+.pbc{cursor:pointer;display:inline-flex;gap:5px;align-items:center;color:var(--ink-2);} .pbc:hover{color:var(--ink);}
+.pbc .bl{color:var(--danger);} .pbc .wa{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--danger);display:inline-block;} .pbc .ac{color:var(--auto-ovr);}
+.clip.pb-block{box-shadow:0 0 0 1.5px var(--danger);} .clip.pb-warn{box-shadow:0 0 0 1px rgba(224,108,108,.65);}
+.clip .pbdot{position:absolute;right:4px;top:4px;width:7px;height:7px;border-radius:50%;background:var(--danger);z-index:2;}
+.clip .pbdot.ring{background:transparent;border:1.5px solid var(--danger);}
+.clip.neapk{outline:1px dashed var(--auto-ovr);outline-offset:1px;} .clip .neapkchip{position:absolute;right:3px;bottom:3px;z-index:2;height:12px;padding:0 4px;border-radius:2px;background:rgba(229,181,103,.18);color:var(--auto-ovr);font-size:9.5px;font-weight:600;line-height:12px;}
+.rulmark{position:absolute;bottom:0;width:4px;height:6px;border-radius:1px 1px 0 0;}
+.pdraw{flex-shrink:0;display:flex;flex-direction:column;border-top:.5px solid rgba(0,0,0,.45);background:var(--s0);}
+.pdraw .ph2{height:26px;display:flex;align-items:center;gap:8px;padding:0 10px;background:var(--s1);border-bottom:.5px solid rgba(255,255,255,.06);font-size:11px;color:var(--ink-2);}
+.pdraw .ph2 b{color:var(--ink);font-weight:600;} .pdraw .ph2 .well button{height:16px;padding:0 8px;font-size:10.5px;}
+.pdraw .plist{flex:1;overflow-y:auto;}
+.prw{display:grid;grid-template-columns:18px 30px 128px minmax(0,1fr) 92px 190px 118px 190px;align-items:center;gap:8px;height:24px;padding:0 10px;border-bottom:.5px solid var(--line-soft);font-size:11px;color:var(--ink-2);}
+.prw:hover{background:rgba(255,255,255,.03);} .prw.hd{color:var(--ink-3);font-size:10px;height:20px;}
+.prw span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .prw .m{color:var(--ink);} .prw .el{color:var(--ink);text-decoration:underline dotted rgba(255,255,255,.25);cursor:pointer;}
+.prw .sv{width:8px;height:8px;border-radius:50%;} .sv.block{background:var(--danger);} .sv.warn{border:1.5px solid var(--danger);} .sv.info{background:var(--ink-3);} .sv.acc{background:var(--auto-ovr);}
+.prw .st.acc{color:var(--auto-ovr);} .prw .st.open{color:var(--ink);}
+.impback{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:60;}
+.imp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:460px;background:var(--s1);border:.5px solid rgba(255,255,255,.14);border-radius:8px;box-shadow:0 8px 26px rgba(0,0,0,.6);z-index:61;padding:14px 16px 12px;font-size:11px;color:var(--ink-2);}
+.imp h3{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--ink);display:flex;gap:8px;} .imp h3 span{margin-left:auto;font-weight:500;color:var(--ink-2);}
+.imp .it{display:flex;gap:8px;padding:7px 0;border-top:.5px solid var(--line-soft);line-height:1.45;} .imp .it .d{flex-shrink:0;margin-top:3px;width:8px;height:8px;border-radius:50%;}
+.imp .it b{color:var(--ink);font-weight:500;display:block;} .imp .ev{margin-left:auto;padding-left:10px;color:var(--ink-3);font-size:10px;white-space:nowrap;}
+.imp .also{padding:6px 0;border-top:.5px solid var(--line-soft);color:var(--ink-3);}
+.imp .rep{display:flex;flex-direction:column;gap:5px;padding:8px 0;border-top:.5px solid var(--line-soft);}
+.imp .rep label{display:flex;align-items:center;gap:7px;cursor:pointer;} .imp .rep input{accent-color:#4A8D6F;}
+.imp input.rsn{width:100%;height:24px;background:var(--s0);border:none;border-radius:2px;color:var(--ink);padding:0 8px;font:inherit;margin-top:2px;}
+.imp .btns{display:flex;justify-content:flex-end;gap:6px;margin-top:12px;}
+.imp .btns button{height:24px;padding:0 12px;border-radius:3px;border:.5px solid rgba(255,255,255,.12);background:var(--s2);color:var(--ink);font:inherit;font-size:11px;font-weight:500;cursor:pointer;}
+.imp .btns .pri{background:#E0E0E0;color:#111;border-color:transparent;} .imp .btns .anyway{background:#3a2424;border-color:rgba(224,108,108,.4);} .imp .btns button:disabled{opacity:.35;cursor:not-allowed;}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
 </style>
 
 <div id="wrap"><div class="screen" id="screen"></div></div>
 <div class="mockpill" aria-label="Mockup controls">
   <span class="k">Mockup</span>
-  <div class="well" id="ovSeg"><button data-o="none" class="on">Nothing</button><button data-o="add">Quick add · ⇧A</button><button data-o="ctx">Right-click</button><button data-o="drag">Dragging</button><button data-o="logic">Logic · G</button></div>
+  <div class="well" id="ovSeg"><button data-o="none" class="on">Nothing</button><button data-o="add">Quick add · ⇧A</button><button data-o="ctx">Right-click</button><button data-o="drag">Dragging</button><button data-o="logic">Logic · G</button><button data-o="impact">Impact card</button><button data-o="problems">Problems · F8</button></div>
   <button class="fs" id="fsBtn" type="button">Full screen</button>
 </div>
-<input type="file" id="wavIn" accept="audio/*,.wav" hidden>
+<input type="file" id="wavIn" accept=".wav,audio/wav" hidden>
 
 <script>
 "use strict";
@@ -1077,6 +1113,7 @@ function ICO(n,s){ s=s||13; const a=`width="${s}" height="${s}" viewBox="0 0 24 
     haptic:`<path d="M4 12h3l2-5 3 10 2-5h6"/>`, walk:`<circle cx="13" cy="4" r="2"/><path d="M9 21l3-7 3 3v5M8 12l3-4 4 3 3 1"/>`,
     alma:`<circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="9" stroke-dasharray="2 3"/>`, sound:`<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 8a5 5 0 0 1 0 8"/>`,
     upload:`<path d="M12 16V5"/><path d="M8 9l4-4 4 4"/><path d="M5 19h14"/>`,
+    wire:`<path d="M9 3v5M15 3v5"/><path d="M7 8h10v3a5 5 0 0 1-10 0z"/><path d="M12 16v5"/>`,
   };
   return `<svg ${a}>${P[n]||''}</svg>`;
 }
@@ -1089,109 +1126,153 @@ function fmtS(v){ return (Math.round(v*10)/10).toFixed(1); }
 function tc(t){ const s=370+t; const m=Math.floor(s/60), r=s-m*60; return String(m).padStart(2,'0')+':'+(r<10?'0':'')+r.toFixed(1); }
 /* ---------- hues: ISP's CLIP_HUE (app.js:100), reassigned to the piece's groups ---------- */
 const HUE={int:'#777777',vo:'#398559',ins:'#7F7936',alma:'#8468BE',obj:'#4E78B3',env:'#9A6E42',fxv:'#B75686',rec:'#5E6570',snd:'#398559',mus:'#398559',hap:'#B34FB3'};
-/* ---------- roles and their real Unreal knobs: [label, value, unit, fader %, color, variable] ---------- */
+/* ---------- roles and their REAL Unreal knobs (verified in the tools audit, 2026-10-01) ----------
+   group = one owner (actor · level, or class default, or graph literal). row = [label, value, unit, fader %, color, variable, final-lock] */
 const ROLES={
- 'Bell':{icon:'obj',bp:'BP_BellArt_SC · Timbre (Test_Hall ▸ Ajustes)',used:['1.8 · The bell','2.6 · Hall exit'],sounds:['FX_BELLAPPEAR','FX_CARGABELL','FX_BELLRING','FX_BELLVANISH'],
-   knobs:[['Appear','1.5','s',30,'#7FB2E8','BPC_AppearLuz_SC · light first'],['Press depth','1.0','cm',40,'#E0645C','BellPressDepth'],['Press time','0.12','s',12,'#E0954B','BellPressTime'],['Hold to ring','3.0','s',30,'#D8C24B','BellHold · BP_HallDirector_SC'],['Timeout','25','s',100,'#E06C6C','FW_Bell · BP_HallDirector_SC']]},
- 'Bio sensor':{icon:'obj',bp:'SM_BioSensor_SC · BP_UserTool_SC',used:['1.R4 · Tool & demo','2.R4 · Recognizing'],sounds:['FX_TOOLAPPEAR_BREATH','FX_SENSORAPPEAR','FX_SENSORVANISH'],
-   knobs:[['Appear','1.5','s',30,'#7FB2E8','BPC_AppearLuz_SC · light first'],['Tool delay','0.8','s',16,'#E0954B','ToolDelay · Entering_Stage']]},
- 'Pacer':{icon:'obj',bp:'BP_Pacer_SC',used:['1.R3 · Layers','1.R5b · The pacer'],sounds:['FX_BREATHCOUNT','FX_PACER_INHALE','FX_PACER_HOLD'],
-   knobs:[['Cycles','5','',50,'#D8C24B','Cycles'],['Rhythm','4-3-4-3','s',null,null,'inhale · hold · exhale · hold'],['Lead-in','3.0','s',30,'#E0954B','LeadIn'],['Count','3.0','s',30,'#7FB2E8','CountTime · Entering_Stage']]},
- 'Alma':{icon:'alma',bp:'BP_Alma_SC',used:['every stage · R2','Hall'],sounds:['FX_ALMAAPPEAR'],
-   knobs:[['Size','1.0','',50,'#E0645C','Size'],['Brightness','1.5','',60,'#E8C84B','Brightness'],['Stays','VO + 3','s',null,null,'AlmaTime = VO length + 3 s']]},
- 'Metaball':{icon:'obj',bp:'Entering · metaball',used:['1.R3 · Layers','1.R5b · The pacer'],sounds:['FX_BLOBFORM'],
-   knobs:[['Explore','12','s',40,'#7FB2E8','ExploreTime · Entering_Stage']]},
+ 'Bell':{icon:'obj',actor:'Timbre · Test_Hall',used:['Hall · 1.8 The bell'],
+   sounds:[['Bell','on touch · fades out in 0.5 s','real'],['FX_BELLAPPEAR','appear','not assigned'],['FX_BELLVANISH','vanish','not assigned']],
+   groups:[{owner:'Timbre · Appear component',scope:'instance',rows:[['Appear','1.5','s',30,'#7FB2E8','Appear.Duration · light first',1]]},
+     {owner:'HallDirector · Test_Hall',scope:'instance',rows:[['Press depth','1.0','cm',40,'#E0645C','BellPressDepth',1],['Press time','0.12','s',12,'#E0954B','BellPressTime (verify live: may be 0)',1],['Hold to ring','3.0','s',30,'#D8C24B','BellHold',1],['Timeout','25','s',90,'#E06C6C','FW_Bell · after it, the bell fills by itself in 3 s',1],['Touch radius','14','cm',35,'#C58BD0','TouchRadius',1]]},
+     {owner:'HallDirector graph',scope:'literal',rows:[['Release','−2 /s','',null,null,'charge drains when released · literal in HallTickSteps']]}]},
+ 'Sensor (Hall)':{icon:'obj',actor:'BP_BioSensorArt_SC · Test_Hall',used:['Hall · 2.3 Take the sensor'],sounds:[],
+   groups:[{owner:'HallDirector · Test_Hall',scope:'instance',rows:[['Timeout','20','s',80,'#E06C6C','FW_Tool',1]]}]},
+ 'Sensor (hand)':{icon:'obj',actor:'UserTool_Obra · Obra',used:['S0.INTRO Entering','S1 Recognizing'],sounds:[['ProtoSelect','on morph','real']],
+   groups:[{owner:'UserTool_Obra · Obra',scope:'instance',rows:[['Morph time','0.8','s',16,'#E0954B','MorphTime',1],['Color time','1.2','s',24,'#7FB2E8','ColorTime',1]]}]},
+ 'Stage · Entering':{icon:'logic',actor:'Entering_Stage · Test_Entering',used:['Stage 1 · Entering'],sounds:[],
+   groups:[{owner:'Entering_Stage · Test_Entering',scope:'instance',rows:[['Explore','12','s',40,'#7FB2E8','ExploreTime · minimum; the count also waits for the voice chain',1],['Count','3.6','s',36,'#E0954B','CountTime',1],['Inhale cue','3.48','s',35,'#D8C24B','InhaleCueAt',1],['Tool delay','0.8','s',16,'#C58BD0','ToolDelay',1],['Say after','1.0','s',20,'#7FB2E8','SayAfterTool',1],['Say gap','0.5','s',10,'#B8B8B8','SayGap',1],['Help after','4.0','s',40,'#E0954B','HelpAfter · after VO_11b, only if not in the zone',1]]}]},
+ 'Pacer':{icon:'obj',actor:'Entering_Pacer · Test_Entering',used:['S0.BEGIN Entering'],note:'Pads and plucks are baked at 4-3-4-3: changing the rhythm needs new audio.',
+   sounds:[['SND_PacerPad','loop','real'],['SND_PacerPluck','per phase','real']],
+   groups:[{owner:'Entering_Pacer · Test_Entering',scope:'instance',rows:[['Inhale','4','s',40,'#7FB2E8','InhaleTime',1],['Hold','3','s',30,'#B8B8B8','Hold1Time',1],['Exhale','4','s',40,'#E0954B','ExhaleTime',1],['Hold','3','s',30,'#B8B8B8','Hold2Time',1],['Cycles','5','',50,'#D8C24B','Cycles',1],['Lead-in','3','s',30,'#C58BD0','LeadIn',1],['Lead-out','3','s',30,'#C58BD0','LeadOut',1],['Preset','0','',null,null,'Preset · 0 = use the times above',1]]},
+     {owner:'BP_Pacer_SC',scope:'class default',rows:[['Intro','0.6','s',12,'#7FB2E8','IntroTime'],['Outro','0.6','s',12,'#7FB2E8','OutroTime']]}]},
+ 'Metaball':{icon:'obj',actor:'Entering_Blob · Test_Entering',used:['S0.INTRO Entering'],sounds:[],
+   groups:[{owner:'Entering_Blob · Test_Entering',scope:'instance',rows:[['Intro','2.5','s',50,'#7FB2E8','IntroTime',1],['Outro','2.5','s',50,'#7FB2E8','OutroTime',1],['Size','220','cm',55,'#E0645C','SizeCM · the stage overrides the actor scale',1]]}]},
+ 'Alma':{icon:'alma',actor:'BP_Alma_SC_C_0 · Obra',used:['every stage · S*.ALMA','Hall'],sounds:[],note:'Alma has no appear sound in Unreal. Her voice plays in 2D.',
+   groups:[{owner:'BP_Alma_SC_C_0 · Obra',scope:'instance',rows:[['Size','1.00','m',50,'#E0645C','Size = diameter in m, × the point scale (side points 0.6)',1],['Brightness','1.5','',60,'#E8C84B','Brightness',1]]},
+     {owner:'BP_Alma_SC',scope:'class default',rows:[['Appear','1.2','s',24,'#7FB2E8','AppearTime · grows by scale'],['Disappear','0.6','s',12,'#7FB2E8','DisappearTime'],['Travel','3.0','s',30,'#E0954B','TravelTime']]},
+     {owner:'BP_Obra_SC graph',scope:'literal',rows:[['Speaks at','+1.5 s','',null,null,'literal in AlmaSpeak'],['Stays','VO + 3.5 s','',null,null,'literal in AlmaSpeak / StageTimes · verify live (+3 or +3.5)']]}]},
+ 'Candidates':{icon:'alma',actor:'HallSoul_0..4 · Test_Hall',used:['Hall · 2.5 Choose your soul'],sounds:[],
+   groups:[{owner:'HallDirector · Test_Hall',scope:'instance',rows:[['Timeout','25','s',90,'#E06C6C','FW_Choose',1]]}]},
+ 'Doors & tiles':{icon:'obj',actor:'HallDirector · Test_Hall',used:['Hall'],sounds:[],
+   groups:[{owner:'HallDirector · Test_Hall',scope:'instance',rows:[['Door angle','16.5','°',40,'#C58BD0','DoorOpenDeg',1],['Door time','3','s',30,'#7FB2E8','DoorTime',1],['Tile lift','3','cm',30,'#E0645C','TileLiftCm',1],['Tile glow','0.35','',35,'#E8C84B','TileGlowMax',1],['Tile time','1.5','s',30,'#7FB2E8','TileTime',1]]}]},
+ 'Heart membrane':{icon:'obj',actor:'HeartManager · Test_Heart',used:['Stage 2 · Recognizing'],sounds:[],
+   groups:[{owner:'HeartManager · Test_Heart',scope:'instance',rows:[['Beat divider','2','',20,'#E0645C','BeatDiv',1],['Stage beats','19','',40,'#E0954B','StageBeats',1],['Orbit at beat','8','',30,'#C58BD0','OrbitAtBeat',1],['Backup after','30','s',60,'#B8B8B8','BackupAfter',1]]}]},
+ 'Loving cell':{icon:'obj',actor:'LovingCell · Test_Fluid',used:['Stage 3 · Loving'],sounds:[],
+   groups:[{owner:'LovingCell · Test_Fluid',scope:'instance',rows:[['Duration','60','s',60,'#7FB2E8','StageDuration',1],['Intro delay','2','s',10,'#B8B8B8','IntroDelay',1],['VO_22 at','15','s',25,'#398559','VO22At',1],['VO_23 at','42','s',70,'#398559','VO23At',1],['VO wait','8','s',20,'#B8B8B8','VOWait',1]]}]},
+ 'Ending':{icon:'logic',actor:'BP_Obra_SC_C_0 · Obra',used:['9 · Ending'],sounds:[],
+   groups:[{owner:'BP_Obra_SC_C_0 · Obra',scope:'instance',rows:[['Share timeout','30','s',60,'#E06C6C','ShareFW · the default answer depends on bSimulated',1],['Alma left','45','',45,'#E0954B','ResAlmaLeft',1],['Alma scale','0.7','',70,'#E0645C','ResAlmaScale',1]]},
+     {owner:'BP_Obra_SC',scope:'class default',rows:[['Results','150','s',null,null,'ResultsTime']]}]},
+ 'Ambiences':{icon:'sound',actor:'BP_Obra_SC_C_0 · Obra',used:['whole piece'],sounds:[['AMB_01..09','AmbClips','real']],
+   groups:[{owner:'BP_Obra_SC_C_0 · Obra',scope:'instance',rows:[['Volume','0.8','',80,'#7FB2E8','AmbVolumes',1],['Fade in','3','s',30,'#B8B8B8','AmbFadeIn',1],['Fade out','3','s',30,'#B8B8B8','AmbFadeOut',1]]},
+     {owner:'BP_Obra_SC graph',scope:'literal',rows:[['Which plays','AmbPick','',null,null,'literal indices in AmbPick · needs a graph change']]}]},
 };
+/* ---------- points (TargetPoints, frame of the stop: front / side (+ right) / up above the author eye = floor + 1.20 m) ---------- */
+const POINTS={alma_in:{tp:'TP_sc0_alma_in',f:2.20,s:0,u:0.05,sc:null},alma_side:{tp:'TP_sc0_alma_side',f:1.40,s:-3.00,u:0.20,sc:0.6},charge:{tp:'TP_sc0_charge',f:2.53,s:0,u:0.37,sc:2.115},title:{tp:'TP_sc0_title',f:3.00,s:0,u:0,sc:null}};
 /* ---------- mockup state ---------- */
-const PERS={fast:{n:'Fast',d:1.2,x:'acts right away, cuts the voice'},typical:{n:'Typical',d:6,x:'the expected time'},slow:{n:'Slow',d:14,x:'reaches the help'},idle:{n:'Idle',d:25,x:'hits every timeout'}};
-const UI={mode:'all',ov:'none',pers:'typical',sel:'G_BREATH',selRole:null,libTab:'esc',insTab:'insp',cam:'pov',play:false,collapsed:{rec:true,fxv:true},nNew:0};
-const PH=29.1; /* playhead: inside the wait */
-/* ---------- example score (Entering, guion.js:356-391). t = seconds from 06:10.0 ---------- */
+const PERS={fast:{n:'Fast',z:1,x:'rests the sensor right away'},typical:{n:'Typical',z:5,x:'finds the belly zone in ~5 s'},slow:{n:'Slow',z:14,x:'needs the help (VO_11h)'},idle:{n:'Idle',z:Infinity,x:'never rests the sensor'}};
+const UI={mode:'all',ov:'none',pers:'typical',sel:'ZONE',selRole:null,libTab:'esc',insTab:'insp',cam:'pov',play:false,collapsed:{rec:true},nNew:0};
+const PH=29.1;   /* playhead: 3.1 s into S0.BEGIN */
+const B=26;      /* S0.BEGIN */
+const zoneT=()=>PERS[UI.pers].z;
+const helpOn=()=>zoneT()>7.45+4;          /* HelpAfter 4 s after VO_11b, only if not in the zone */
+/* ---------- the score of Entering as it runs in Unreal (t = seconds from S0.OPEN; durations from the final VO mix) ---------- */
 const GROUPS=[
  {id:'int',n:'Interaction',subs:[
-   {n:'Waits',clips:[{id:'G_BREATH',k:'wait',a:26,fw:25,help:12,t:'G_BREATH · sensor on belly',m:'1.R4'}]},
-   {n:'Mechanics',clips:[{id:'LIBRE',k:'mech',par:['VO_11b','end',0],d:12,t:'Free breathing · ExploreTime 12 s',m:'1.R5a',role:'Metaball'},{id:'PACER',k:'mech',par:['VO_12c','start',3],d:70,cyc:14,t:'Pacer · 5 cycles 4-3-4-3',m:'1.R5b',role:'Pacer'}]},
-   {n:'Hands',clips:[{id:'HANDS',k:'blk',a:-4,d:28,t:'Translucent hands',m:'1.R3'},{id:'HOLD',k:'blk',a:24,toEnd:1,t:'Sensor in dominant hand',m:'1.R4',role:'Bio sensor'}]}]},
+   {n:'Conditions',clips:[{id:'ZONE',k:'cond',a:B,efn:()=>isFinite(zoneT())?B+zoneT():edge('PACER','start'),t:'breath.zone · sensor on belly',m:'S0.BEGIN'}]},
+   {n:'Mechanics',clips:[{id:'EXPLORE',k:'mech',a:B,until:['VO_12','start'],t:'Free breathing · ExploreTime ≥ 12 s, waits for the voice chain',m:'S0.BEGIN',role:'Stage · Entering'},{id:'PACER',k:'mech',par:['VO_12c','start',0.48],d:76,lead:3,cyc:14,t:'Pacer · lead-in 3 + 5 × 4-3-4-3 + lead-out 3',m:'S0.BEGIN',role:'Pacer'}]},
+   {n:'Hands',clips:[{id:'HANDS',k:'blk',a:-4,until:['SENSOR_IN','start'],t:'Translucent hands',m:'S0.OPEN'},{id:'HOLD',k:'blk',a:18.3,toEnd:1,t:'Sensor in dominant hand',m:'S0.INTRO',role:'Sensor (hand)'}]}]},
  {id:'vo',n:'Voice',aud:1,subs:[
    {n:'Alma',h:50,clips:[
-     {id:'VO_10',k:'vo',a:9.7,d:7.4,t:'VO_10',txt:'This is Entering. Imagine your breath like gentle waves… moving naturally within you.',m:'1.R2'},
-     {id:'VO_11',k:'vo',a:24.6,d:4.9,t:'VO_11',txt:'Rest the sensor on your belly. Feel how it rises and falls with you.',m:'1.R4'},
-     {id:'VO_11b',k:'vo',par:['G_BREATH','end',1],d:6.3,t:'VO_11b',txt:'Take a moment to explore… breathe as you like, and notice how everything moves with you.',m:'1.R5a'},
-     {id:'VO_12',k:'vo',par:['LIBRE','end',0],d:4.6,t:'VO_12',txt:'Now, let\'s do a simple breathing exercise. Follow me with your breath.',m:'1.R5b'},
-     {id:'VO_12c',k:'vo',par:['VO_12','end',0],d:2.4,t:'VO_12c',txt:'Three… two… one…',m:'1.R5b'}]},
-   {n:'Help',clips:[{id:'VO_11h',k:'vo',help:1,par:['G_BREATH','start',12],d:3.1,t:'VO_11h · only if late',txt:'Just below your ribs… flat side toward you.',m:'1.R4'}]}]},
+     {id:'VO_10',k:'vo',par:['AL_IN','start',1.5],d:8.50,t:'VO_10',txt:'This is Entering. Imagine your breath like gentle waves… moving naturally within you.',m:'S0.ALMA',by:'BP_Obra_SC › AlmaSpeak (lead-in 1.5 s)'},
+     {id:'VO_11',k:'vo',par:['SENSOR_IN','start',1.0],d:5.84,t:'VO_11',txt:'Rest the sensor on your belly. Feel how it rises and falls with you.',m:'S0.INTRO',by:'Entering_Stage › StepStageVO (SayAfterTool 1 s)'},
+     {id:'VO_11b',k:'vo',a:B,d:7.45,t:'VO_11b',txt:'Take a moment to explore… breathe as you like, and notice how everything moves with you.',m:'S0.BEGIN',by:'Entering_Stage › StepStageVO'},
+     {id:'VO_12',k:'vo',sfn:()=>helpOn()?Math.max(B+11.28,edge('VO_11h','end')+0.5):B+11.28,d:5.24,t:'VO_12',txt:'Now, let\'s do a simple breathing exercise. Follow me with your breath.',m:'S0.BEGIN',by:'Entering_Stage › StepStageVO (after ExploreTime and the chain)'},
+     {id:'VO_12c',k:'vo',par:['VO_12','end',0.3],d:3.56,t:'VO_12c',txt:'Three… two… one… inhale.',m:'S0.BEGIN',by:'Entering_Stage › count (CountTime 3.6)'}]},
+   {n:'Help',clips:[{id:'VO_11h',k:'vo',help:1,par:['VO_11b','end',4],d:3.40,t:'VO_11h · only if not in the zone',txt:'Just below your ribs… flat side toward you.',m:'S0.BEGIN',by:'Entering_Stage › HelpAfter 4 s, if !bZone'}]}]},
  {id:'ins',n:'Instruction',subs:[
-   {n:'Titles',clips:[{id:'T_IN',k:'blk',a:0,d:3.5,t:'ENTERING title · in',m:'V1'},{id:'T_OUT',k:'blk',a:6,d:3,t:'Title out',m:'V1'}]},
-   {n:'Ghosts',clips:[{id:'GHOST',k:'ghost',par:['G_BREATH','start',0],until:['G_BREATH','end'],t:'GHOST_BREATH',m:'1.R4'}]}]},
+   {n:'Titles',clips:[{id:'T_IN',k:'blk',a:0.5,d:1.3,t:'ENTERING title · in',m:'S0.OPEN',wired:'RunObra · reveal 0.5→1.8 s'},{id:'T_OUT',k:'blk',a:4.6,d:1.0,t:'Title out',m:'S0.OPEN',wired:'RunObra · out 4.6→5.6 s'}]},
+   {n:'Ghosts',clips:[{id:'GHOST',k:'ghost',a:B,until:['ZONE','end'],t:'GHOST_BREATH',m:'S0.BEGIN'}]}]},
  {id:'alma',n:'Alma',subs:[
-   {n:'State',clips:[{id:'AL_IN',k:'blk',a:8.5,d:1.2,t:'Appears',m:'1.R2',role:'Alma'},{id:'AL_FR',k:'blk',a:9.7,d:9.8,t:'In front',m:'1.R2',role:'Alma'},{id:'AL_SD',k:'blk',a:19.5,toEnd:1,t:'To the side · sc0_alma_side',m:'1.R2',role:'Alma'}]}]},
+   {n:'State',clips:[{id:'AL_IN',k:'blk',a:5.5,d:1.2,t:'Appears · grows 1.2 s',m:'S0.ALMA',role:'Alma',pt:'alma_in'},{id:'AL_FR',k:'blk',a:6.7,d:10.8,t:'In front · speaks at +1.5 s',m:'S0.ALMA',role:'Alma',pt:'alma_in'},{id:'AL_TR',k:'blk',a:17.5,d:3,t:'Travels to the side · 3 s',m:'S0.INTRO',role:'Alma',pt:'alma_side'},{id:'AL_SD',k:'blk',a:20.5,toEnd:1,t:'To the side · TP_sc0_alma_side',m:'S0.INTRO',role:'Alma',pt:'alma_side'}]}]},
  {id:'obj',n:'Objects',subs:[
-   {n:'Metaball',clips:[{id:'BLOB_IN',k:'blk',a:20,d:4,t:'Condenses from the mist',m:'1.R3',role:'Metaball'}]},
-   {n:'Bio sensor',clips:[{id:'SENSOR_IN',k:'blk',a:24,d:1.5,t:'Appears · light first',m:'1.R4',role:'Bio sensor'},{id:'BIO',k:'blk',a:25.5,toEnd:1,t:'In hand until Recognizing',m:'1.R4',role:'Bio sensor'}]},
-   {n:'Sensor rings',clips:[{id:'BIO_ON',k:'blk',par:['G_BREATH','end',0],toEnd:1,t:'Rings on · sensor resting',m:'1.R4',role:'Bio sensor'}]},
-   {n:'Pacer',clips:[{id:'PACER_DIM',k:'dia',a:24,t:'Appears still',m:'1.R3',role:'Pacer'},{id:'PACER_VIS',k:'blk',par:['PACER','start',0],toEnd:1,t:'Pacer · progress on inner ring',m:'1.R5b',role:'Pacer'}]}]},
+   {n:'Metaball',clips:[{id:'BLOB_IN',k:'blk',a:17.5,d:2.5,t:'Intro · 2.5 s',m:'S0.INTRO',role:'Metaball'},{id:'BLOB',k:'blk',a:20,toEnd:1,t:'Breathes with you',m:'S0.INTRO',role:'Metaball'}]},
+   {n:'Sensor (hand)',clips:[{id:'SENSOR_IN',k:'blk',a:18.3,d:0.8,t:'Morphs into the bio sensor · 0.8 s',m:'S0.INTRO',role:'Sensor (hand)'},{id:'BIO',k:'blk',a:19.1,toEnd:1,t:'In hand until Recognizing',m:'S0.INTRO',role:'Sensor (hand)'}]},
+   {n:'Pacer',clips:[{id:'PACER_VIS',k:'blk',par:['PACER','start',0],toEnd:1,t:'Pacer · progress on the inner ring',m:'S0.BEGIN',role:'Pacer'}]}]},
  {id:'env',n:'Environment',subs:[
-   {n:'Veil',clips:[{id:'VEIL_OPEN',k:'grad',a:-4,d:5.5,t:'Veil opens',m:'V1'}]},
-   {n:'Valley',clips:[{id:'VALLE',k:'blk',a:1.5,toEnd:1,t:'Breathing hills · swell ×3 on exhale',m:'V1'}]}]},
- {id:'fxv',n:'Visual FX',subs:[{n:'Appearances',clips:[{id:'AP1',k:'blk',a:8.5,d:1.5,t:'Light first · Alma',m:'1.R2'},{id:'AP2',k:'blk',a:24,d:1.5,t:'Light first · sensor',m:'1.R4'}]}]},
- {id:'rec',n:'Path',subs:[{n:'Walks',clips:[{id:'WALK',k:'blk',a:-4,d:3,t:'Arrives at stop sc0',m:'3.4'}]}]},
+   {n:'Veil',clips:[{id:'VEIL_OPEN',k:'grad',a:1,d:3,t:'Veil opens · 1→4 s',m:'S0.OPEN',wired:'RunObra · FlowVeil 1→4 s'}]},
+   {n:'Valley',clips:[{id:'VALLE',k:'blk',a:0,toEnd:1,t:'Breathing hills · swell ×3 on exhale',m:'S0.OPEN'}]}]},
+ {id:'rec',n:'Path',subs:[{n:'Moves',clips:[{id:'TELE',k:'dia',a:-2,t:'Teleport · PlayerStart Test_Entering (under the veil)',m:'3.4'}]}]},
  {id:'snd',n:'Sound',aud:1,subs:[
-   {n:'Appearances',clips:[{id:'FX_TITLE',k:'dia',a:0,t:'FX_TITLE',m:'V1'},{id:'FX_ALMAAPPEAR',k:'dia',a:8.5,t:'FX_ALMAAPPEAR',m:'1.R2'},{id:'FX_BLOBFORM',k:'dia',a:20,t:'FX_BLOBFORM',m:'1.R3'},{id:'FX_TOOL',k:'dia',par:['SENSOR_IN','start',0],t:'FX_TOOLAPPEAR_BREATH',m:'1.R4'}]},
-   {n:'Pacer',clips:[0,1,2,3,4].map(i=>({id:'FX_BC'+i,k:'dia',par:['PACER','start',i*14],t:'FX_BREATHCOUNT',m:'1.R5b'}))}]},
- {id:'mus',n:'Music',aud:1,subs:[{n:'AMB A',clips:[{id:'AMB_04',k:'amb',a:-4,d:6,t:'AMB_04',m:'3.4'}]},{n:'AMB B',clips:[{id:'AMB_05',k:'amb',a:-1,toEnd:1,t:'AMB_05',m:'V1'}]}]},
- {id:'hap',n:'Haptics',subs:[{n:'Dominant hand',clips:[{id:'HAP1',k:'pulse',a:24,amp:.5,t:'HAP_PULSE_SOFT',m:'1.R4'},{id:'HAP2',k:'pulse',par:['G_BREATH','end',0],amp:.5,t:'HAP_PULSE_SOFT',m:'1.R4'},{id:'HUM',k:'blk',par:['G_BREATH','end',0],toEnd:1,t:'HAP_BREATH_HUM · 0.25 while breathing',m:'1.R4'}]}]},
+   {n:'Objects',clips:[{id:'SND_PROTO',k:'dia',par:['SENSOR_IN','start',0],t:'ProtoSelect',m:'S0.INTRO',at:'Sensor (hand)'}]},
+   {n:'Pacer',clips:[{id:'PAD',k:'amb',par:['PACER','start',3],d:70,t:'SND_PacerPad · loop',m:'S0.BEGIN',at:'2D'}].concat([0,1,2,3,4].map(i=>({id:'PLK'+i,k:'dia',par:['PACER','start',3+i*14],t:'SND_PacerPluck',m:'S0.BEGIN',at:'2D'})))}]},
+ {id:'mus',n:'Music',aud:1,subs:[{n:'Ambience',clips:[{id:'AMB_04',k:'amb',a:-4,toEnd:1,t:'AMB_04',m:'S0.OPEN',at:'2D · picked by AmbPick (literal)'}]}]},
+ {id:'hap',n:'Haptics',subs:[{n:'Dominant hand',clips:[{id:'HUM',k:'blk',par:['ZONE','end',0],toEnd:1,t:'HapticAmp 0.25 while breathing · BreathManager',m:'S0.BEGIN'}]}]},
 ];
 const BY={}; function index(){ GROUPS.forEach(g=>g.subs.forEach((s,si)=>s.clips.forEach(c=>{ BY[c.id]=c; c.g=g.id; c.si=si; }))); } index();
-function R(id){ const c=BY[id]; if(c._r) return c._r; let s=c.par?edge(c.par[0],c.par[1])+c.par[2]:c.a;
-  const d=c.k==='wait'?PERS[UI.pers].d:(c.d||0); let e=c.until?edge(c.until[0],c.until[1]):c.toEnd?400:s+d; c._r={s,e}; return c._r; }
+function R(id){ const c=BY[id]; if(c._r) return c._r; c._r={s:0,e:0};
+  let s=c.sfn?c.sfn():c.par?edge(c.par[0],c.par[1])+c.par[2]:c.a;
+  let e=c.efn?c.efn():c.until?edge(c.until[0],c.until[1]):c.toEnd?400:s+(c.d||0); c._r={s,e}; return c._r; }
 function edge(id,w){ const r=R(id); return w==='end'?r.e:r.s; }
 function resetR(){ Object.values(BY).forEach(c=>delete c._r); }
 const ACTS=[{n:'3 · Arrival',s:-30,e:0},{n:'Stage 1 · Entering',s:0,e:400,veil:1}];
-const MOMS=[{id:'3.4',n:'Arrival',s:()=>-30,e:()=>0},{id:'V1',n:'Veil · title',s:()=>0,e:()=>8.5},{id:'1.R2',n:'Alma',s:()=>8.5,e:()=>20},{id:'1.R3',n:'Layers',s:()=>20,e:()=>24},
- {id:'1.R4',n:'Tool & demo',s:()=>24,e:()=>edge('G_BREATH','end')+1},{id:'1.R5a',n:'Free exploration',s:()=>edge('G_BREATH','end')+1,e:()=>edge('LIBRE','end')},{id:'1.R5b',n:'The pacer',s:()=>edge('LIBRE','end'),e:()=>400}];
+const MOMS=[{id:'3.4',n:'Arrival',s:()=>-30,e:()=>0},{id:'S0.OPEN',n:'Veil & title',s:()=>0,e:()=>5.5},{id:'S0.ALMA',n:'Alma',s:()=>5.5,e:()=>17.5},{id:'S0.INTRO',n:'Tool & instructions',s:()=>17.5,e:()=>B},{id:'S0.BEGIN',n:'Mechanic · free breathing → pacer',s:()=>B,e:()=>400}];
+/* ---------- integrity: open problems of THIS score (rules from anexos/17-integridad.md) ---------- */
+const PROBLEMS=[
+ {sv:'block',ly:'C3',rule:'C3.HW.CONFLICT',msg:'"Stays VO + 3.5 s" is a graph literal and the evidence conflicts (+3 or +3.5) · verify live',el:'AL_FR',own:'BP_Obra_SC › AlmaSpeak',st:'open',au:'harvest'},
+ {sv:'block',ly:'C2',rule:'C2.TIMEOUT.SKIPS',msg:'Timeout skips SAVE and coda in Attracting and Surrounding (CallOutro)',el:'S3 · S4',own:'BP_Obra_SC › RunObra',st:'open',au:'harvest'},
+ {sv:'warn',ly:'C2',rule:'C2.VIEW.OUTSIDE',msg:'Alma to the side is outside comfortable view (65° > 60°)',el:'AL_SD',own:'TP_sc0_alma_side',st:'open',au:'check'},
+ {sv:'warn',ly:'C2',rule:'C2.TOTAL.GOAL',msg:'Typical total ≈17:00 is over the 15:00 goal',el:'whole piece',own:'—',st:'open',au:'check'},
+ {sv:'warn',ly:'C2',rule:'C2.WAIT.NOHELP',msg:'The bell wait has no voice help (VO_01h not wired), only the ghost',el:'Hall · 1.8',own:'HallDirector › HallEnterIntro',st:'open',au:'check'},
+ {sv:'acc',ly:'C3',rule:'C3.KNOB.LOCKED',msg:'FW_Choose 25 → 30 s (final test value changed)',el:'Candidates',own:'HallDirector · Test_Hall',st:'accepted',au:'B · "longer for festival visitors"'},
+ {sv:'info',ly:'C3',rule:'C3.SCOPE',msg:'0 of 592 elements reach Unreal yet (score not wired) · preview only',el:'—',own:'—',st:'open',au:'check'},
+];
+const PBEL={AL_FR:'block',AL_SD:'warn'};
+const NEAPK=new Set();
+function pbCounts(){ const o=PROBLEMS.filter(p=>p.st==='open'); return {b:o.filter(p=>p.sv==='block').length,w:o.filter(p=>p.sv==='warn').length,a:PROBLEMS.filter(p=>p.st==='accepted').length}; }
 function kidsOf(id){ return Object.values(BY).filter(c=>(c.par&&c.par[0]===id)||(c.until&&c.until[0]===id)); }
 /* ---------- new empty sound (Add ▸ Sound) ---------- */
-function newSound(){ const n=++UI.nNew; const id='NEW'+n; const c={id,k:'dia',a:PH,t:'FX_NEW_SOUND'+(n>1?'_'+n:''),m:'1.R4',isNew:1,file:null};
+function newSound(){ const n=++UI.nNew; const id='NEW'+n; const c={id,k:'dia',a:PH,t:'FX_NEW_SOUND'+(n>1?'_'+n:''),m:'S0.BEGIN',isNew:1,file:null,at:'2D'};
   GROUPS.find(g=>g.id==='snd').subs[0].clips.push(c); index(); UI.sel=id; UI.selRole=null; UI.insTab='insp'; UI.ov='none'; syncOvSeg(); build();
   setTimeout(()=>{ const i=document.getElementById('nmIn'); if(i){ i.focus(); i.select(); } },60); }
-function cleanId(v){ v=String(v||'').toUpperCase().replace(/[^A-Z0-9_]+/g,'_').replace(/^_+|_+$/g,''); if(!/^(FX|VO|AMB|HAP)_/.test(v)) v='FX_'+(v||'NEW_SOUND'); return v; }
+function cleanId(v){ v=String(v||'').trim().replace(/\.[^.]+$/,'').replace(/[^A-Za-z0-9_]+/g,'_').replace(/^_+|_+$/g,'');
+  if(/^hap_/i.test(v)) v=v.slice(4);   /* haptics are not audio files */
+  const m=v.match(/^(fx|vo|amb)_/i); return m?m[1].toUpperCase()+v.slice(m[1].length):'FX_'+(v||'NEW_SOUND'); }
 /* ---------- geometry per window mode ---------- */
 const W0=-4;
 /* the app renders 1:1 like ISP (11 px is 11 px); extra space grows the viewer and the timeline, never the UI.
    It only scales DOWN when the window is smaller than 1280×720. */
 const PPS=11.4; let SW=1600, SH=900;
-function geo(){ if(UI.mode==='all'){ const base=SH<820?Math.round(SH*.45):402; const tlH=UI.ov==='logic'?Math.min(SH-260,base+160):base; const fieldW=SW-320-5-168-9; return {fieldW, win:fieldW/PPS, tlH, midH:SH-28-22-28-tlH}; }
+function geo(){ if(UI.mode==='all'){ const base=SH<820?Math.round(SH*.45):402; const tlH=(UI.ov==='logic'||UI.ov==='problems')?Math.min(SH-260,base+160):base; const fieldW=SW-320-5-168-9; return {fieldW, win:fieldW/PPS, tlH, midH:SH-28-22-28-tlH}; }
   if(UI.mode==='tl'){ const fieldW=SW-292-5-5-320-168-9; return {fieldW, win:fieldW/PPS, tlH:SH-28-28-22}; }
   return {fieldW:0,win:110}; }
 let G={}; const X=t=>(t-W0)*G.pps;
 /* ---------- window parts ---------- */
-function totalTxt(){ const t=1029+PERS[UI.pers].d-6; const m=Math.floor(t/60), s=Math.round(t-m*60); return '≈'+m+':'+String(s).padStart(2,'0'); }
+function totalTxt(){ const t=1020+(R('VO_12').s-(B+11.28)); const m=Math.floor(t/60), s=Math.round(t-m*60); return '≈'+m+':'+String(s).padStart(2,'0'); }
 function topBar(){ const win=[['all','All-in-one'],['v3d','3D view'],['tl','Timeline']].map(([k,l])=>`<button data-win="${k}" class="${UI.mode===k?'on':''}">${l}</button>`).join('');
  return `<div class="top"><span class="dot"></span><div class="menubar"><button class="menubtn">File</button><button class="menubtn">Edit</button><button class="menubtn">Experience</button><button class="menubtn">Window</button></div><div style="flex:1;"></div>
  <div class="well" title="Window layout">${win}</div>
  <span class="pres" title="Your partner is editing Act 2" style="margin-left:6px;"><i>S</i>Act 2</span>
- <button class="syncpill" title="Score compared with Unreal"><span class="sd"></span>3 differences with Unreal<span style="display:flex;opacity:.6;">${ICO('chevDown',9)}</span></button>
+ <button class="syncpill" title="Last read of Unreal (harvest). Edits become proposals, applied in the editor queue."><span class="sd" style="background:var(--ink-3)"></span>Unreal snapshot 19:40 · 0 proposals<span style="display:flex;opacity:.6;">${ICO('chevDown',9)}</span></button>
  <span style="font-size:11px;font-weight:600;letter-spacing:-0.008em;color:var(--ink-2);white-space:nowrap;margin-left:6px;">Soul Charger · Experience</span>
  <span class="tnum" style="font-size:11px;color:var(--ink-dim);margin-right:2px;">rev 44 · ${PERS[UI.pers].n.toLowerCase()} ${totalTxt()}</span>
  <button class="tbtn" title="All commands · F1" style="font-size:13px;font-weight:600;">?</button></div>`; }
 const LIB={
- esc:[['▸','','0 · Startup','Act · 3 items','#5E6570'],['▸','','1 · Opening','Act · 47 items','#5E6570'],['▸','','2 · Hall','Act · 92 items','#5E6570'],['▸','','3 · Arrival','Act · 6 items','#5E6570'],['▾','','Stage 1 · Entering','Stage · 70 items','#777777'],
-   ['','1','V1 · Veil & title','Moment · 8.5 s',null],['','1','1.R2 · Alma','Moment · 11.5 s',null],['','1','1.R3 · Layers','Moment · 4.0 s',null],['','1','1.R4 · Tool & demo','Moment · ≈9 s · 1 wait',null,1],['','1','1.R5a · Free exploration','Moment · ≈18 s',null],['','1','1.R5b · The pacer','Moment · ≈80 s',null],
-   ['▸','','Stage 2 · Recognizing','Stage · 69 items','#5E6570'],['▸','','Stage 3 · Loving','Stage · 74 items','#5E6570'],['▸','','Stage 4 · Attracting','Stage · 78 items','#5E6570'],['▸','','Stage 5 · Surrounding','Stage · 42 items','#5E6570'],['▸','','9 · Ending','Act · 111 items','#5E6570']],
- rol:[['alma','Alma','Role · BP_Alma_SC','ok'],['alma','Your soul + ring','Role · SM_ChargeRing_SC','ok'],['obj','Bio sensor','Role · SM_BioSensor_SC','ok'],['obj','Controller','Role · SM_QuestCtrl_SC','ok'],['obj','Bell','Role · BP_BellArt_SC','ok'],['obj','HUD','Role · SM_HUD_SC','ok'],['obj','Palette','Role · SM_DrawPalette_SC','ok'],['obj','Metaball','Role · Entering','ok'],['obj','Pacer','Role · BP_Pacer_SC','ok'],['obj','Results frame','Role · SM_Results_SC','ok'],['obj','Hall shell','Role · SM_HallShell_SC','prov']],
- snd:[['VO_10','VO · 7.4 s','ok'],['VO_11','VO · 4.9 s','ok'],['VO_11h','VO · help · 3.1 s','ok'],['VO_11b','VO · 6.3 s','ok'],['FX_TOOLAPPEAR_BREATH','FX','ok'],['FX_BREATHCOUNT','FX · per cycle','ok'],['FX_BELLRING','FX','ok'],['FX_SOULSWIM','FX · synthesized','prov'],['AMB_05','Ambience · loop','ok'],['HAP_PULSE_SOFT','Haptic','ok'],['VO_35a','VO · unused in the piece','orf']],
- act:[['sound','Empty sound','Name it, load a WAV'],['sun','Appear · light first','Object · 1.5 s'],['sun','Disappear','Object · 1.5 s'],['obj','Move to mark','Object'],['curves','Change parameter','Ramp'],['text','Title','World · min 3 s'],['viewer','Veil','World'],['walk','Walk','Path'],['hourglass','Wait','Gesture + help + timeout'],['logic','Reaction','When… → mini-sequence'],['branch','Branch','Choice + default'],['ghost','Demo ghost','Instruction'],['plus','Template · Demonstrated interaction','6 linked items'],['plus','Template · Layered reveal','Environment → Alma → items'],['plus','Template · Stage mold R1-R9','Whole stage']]};
+ esc:[['▸','','0 · Startup','Act · 3 items','#5E6570'],['▸','','1 · Opening','Act · 47 items','#5E6570'],['▸','','2 · Hall','Act · 92 items','#5E6570'],['▸','','3 · Arrival','Act · 6 items','#5E6570'],['▾','','Stage 1 · Entering','Stage · Entering_Stage','#777777'],
+   ['','1','S0.OPEN · Veil & title','Phase 0 · 5.5 s',null],['','1','S0.ALMA · Alma','Phase 4 · VO + 3.5 s',null],['','1','S0.INTRO · Tool & instructions','Phase 5 · ≈8.5 s',null],['','1','S0.BEGIN · Mechanic','Phase 6 · ≈93 s · ends by cycles or 180 s',null,1],['','1','S0.OUTRO · S0.CHARGE · S0.BYE','Phases 7 · 8 · 2',null],
+   ['▸','','Stage 2 · Recognizing','Stage · HeartManager','#5E6570'],['▸','','Stage 3 · Loving','Stage · LovingCell','#5E6570'],['▸','','Stage 4 · Attracting','Stage · Sequencer','#5E6570'],['▸','','Stage 5 · Surrounding','Stage · drawing','#5E6570'],['▸','','9 · Ending','Act · 111 items','#5E6570']],
+ snd:[['VO_10','VO · 8.50 s · final mix','ok'],['VO_11','VO · 5.84 s · final mix','ok'],['VO_11b','VO · 7.45 s · final mix','ok'],['VO_11h','VO · help · 3.40 s','ok'],['VO_12','VO · 5.24 s','ok'],['VO_12c','VO · 3.56 s','ok'],['Bell','FX · Core/Audio/Sounds','ok'],['BreathCount','FX · Core/Audio/Sounds','ok'],['ProtoSelect','FX · Core/Audio/Sounds','ok'],['SND_PacerPad','Pacer · loop','ok'],['SND_PacerPluck','Pacer · per phase','ok'],['AMB_04','Ambience','ok'],['FX_SHAREAPPEAR','FX · Obra/Audio/Placeholder','prov'],['VO_35a','VO · ShareExit','ok']],
+ act:[['sound','Empty sound','Name it, load a WAV'],['sun','Appear','Per role · light first 1.5 s · Alma grows 1.2 s'],['sun','Disappear','Per role · 0.6–2.5 s'],['obj','Move to point','Alma only (MoveTo)'],['text','Title','Hardwired today · RunObra'],['viewer','Veil','Hardwired today · FlowVeil'],['walk','Walk','Hall only'],['walk','Teleport','Under the veil'],['hourglass','Wait','Blocking · Hall and Share only'],['hourglass','Condition','Non-blocking · e.g. breath.zone'],['logic','Reaction','When… → mini-sequence · later'],['branch','Branch','Share only · later'],['ghost','Demo ghost','Not in Loving, Save or Share'],['flag','Bookmark','A named point in time'],['plus','Template · Layered reveal','Environment → Alma → items'],['plus','Template · Stage mold','Open · Alma · Intro · Begin · Outro · Charge']]};
 function library(){ const t=UI.libTab; let rows='';
   if(t==='esc') rows=LIB.esc.map(r=>{ const [tw,lvl,name,meta,col,sel]=r; return `<div class="mitem${sel?' sel':''}">${lvl?'<span class="lvl"></span>':''}<span class="tw">${tw}</span><span class="mdot" style="background:${col||'var(--s2)'}"></span><div class="mtxt"><span class="mname">${esc(name)}</span><span class="mmeta">${meta}</span></div></div>`; }).join('');
-  if(t==='rol') rows=LIB.rol.map(r=>`<div class="mitem${UI.selRole===r[1]?' sel':''}"${ROLES[r[1]]?` data-role="${r[1]}"`:''}><div class="mthumb gl" style="background:${r[0]==='alma'?HUE.alma:HUE.obj};">${ICO(r[0],14)}</div><div class="mtxt"><span class="mname">${r[1]}</span><span class="mmeta">${r[2]}${ROLES[r[1]]?' · '+ROLES[r[1]].knobs.length+(ROLES[r[1]].knobs.length===1?' knob':' knobs'):''}</span></div><span class="chip ${r[3]}">${r[3]==='ok'?'in Unreal':'pending'}</span></div>`).join('');
+  if(t==='rol'){ rows=Object.entries(ROLES).map(([name,R0])=>{ const n=R0.groups.reduce((a,g)=>a+g.rows.length,0); return `<div class="mitem${UI.selRole===name?' sel':''}" data-role="${name}"><div class="mthumb gl" style="background:${R0.icon==='alma'?HUE.alma:R0.icon==='sound'?HUE.snd:R0.icon==='logic'?HUE.int:HUE.obj};">${ICO(R0.icon,14)}</div><div class="mtxt"><span class="mname">${name}</span><span class="mmeta">${esc(R0.actor)} · ${n} ${n===1?'knob':'knobs'}</span></div><span class="chip ok">in Unreal</span></div>`; }).join('')
+      +`<div class="mitem"><div class="mthumb gl" style="background:var(--s2);color:var(--ink-3);">${ICO('obj',14)}</div><div class="mtxt"><span class="mname">Hall shell</span><span class="mmeta">SM_HallShell_SC · not built yet</span></div><span class="chip prov">pending</span></div>`; }
   if(t==='snd'){ const fresh=Object.values(BY).filter(c=>c.isNew).map(c=>`<div class="mitem${UI.sel===c.id?' sel':''}"><div class="mthumb gl" style="background:var(--s2);color:var(--auto-ovr);">${ICO('sound',14)}</div><div class="mtxt"><span class="mname">${esc(c.t)}</span><span class="mmeta">FX · ${c.file?esc(c.file.name):'no file yet'}</span></div><span class="chip prov">not in Unreal</span></div>`).join('');
-    rows=fresh+LIB.snd.map(r=>{ const hp=r[0].startsWith('HAP'); return `<div class="mitem"><div class="mthumb gl" style="background:${hp?HUE.hap:HUE.snd};">${ICO(hp?'haptic':'wave',14)}</div><div class="mtxt"><span class="mname">${r[0]}</span><span class="mmeta">${r[1]}</span></div><span class="chip ${r[2]}">${r[2]==='ok'?'real':r[2]==='prov'?'temp':'orphan'}</span></div>`; }).join(''); }
+    rows=fresh+LIB.snd.map(r=>`<div class="mitem"><div class="mthumb gl" style="background:${HUE.snd};">${ICO('wave',14)}</div><div class="mtxt"><span class="mname">${r[0]}</span><span class="mmeta">${r[1]}</span></div><span class="chip ${r[2]}">${r[2]==='ok'?'real':'temp'}</span></div>`).join(''); }
   if(t==='act') rows=LIB.act.map((r,i)=>`<div class="mitem"${i===0?' data-newsnd="1" style="cursor:pointer;"':''}><div class="mthumb gl" style="background:var(--s2);color:var(--ink-2);">${ICO(r[0],14)}</div><div class="mtxt"><span class="mname">${r[1]}</span><span class="mmeta">${r[2]}</span></div></div>`).join('');
   const tabs=[['esc','Scenes'],['rol','Roles'],['snd','Sounds'],['act','Actions']].map(([k,l])=>`<button data-lib="${k}" class="${UI.libTab===k?'on':''}" style="padding:0 8px;">${l}</button>`).join('');
   return `<aside style="width:292px;flex-shrink:0;border-right:.5px solid rgba(255,255,255,0.09);">
    <div class="panhead"><div class="pantab"><span style="color:var(--ink-3);display:flex;">${ICO('folder')}</span><span class="ttl">Library</span><span class="countbadge">592</span></div><div style="flex:1;"></div><button class="ibtn flat" title="Hide panel">${ICO('panelL')}</button></div>
    <div class="toolrow" style="height:28px;padding:0 8px;gap:8px;"><div class="well">${tabs}</div></div>
-   <div class="toolrow crrow" style="height:28px;padding:0 8px;gap:4px;"><button class="crbtn pri" title="Add at the playhead · Shift+A" data-quick="1">${ICO('plus')}<span class="crlbl" style="display:inline;">Add</span><span style="color:var(--ink-3);font-size:10px;margin-left:2px;">⇧A</span></button><button class="crbtn" data-newsnd="1" title="New empty sound: name it and load a WAV">${ICO('sound',12)}<span class="crlbl" style="display:inline;">Sound</span></button><button class="crbtn" title="New wait with help and timeout">${ICO('hourglass',12)}<span class="crlbl" style="display:inline;">Wait</span></button><button class="crbtn" title="Note at the playhead · Shift+M">${ICO('note',12)}<span class="crlbl" style="display:inline;">Note</span></button></div>
+   <div class="toolrow crrow" style="height:28px;padding:0 8px;gap:4px;"><button class="crbtn pri" title="Add at the playhead · Shift+A" data-quick="1">${ICO('plus')}<span class="crlbl" style="display:inline;">Add</span><span style="color:var(--ink-3);font-size:10px;margin-left:2px;">⇧A</span></button><button class="crbtn" data-newsnd="1" title="New empty sound: name it and load a WAV">${ICO('sound',12)}<span class="crlbl" style="display:inline;">Sound</span></button><button class="crbtn" title="New condition or wait">${ICO('hourglass',12)}<span class="crlbl" style="display:inline;">Wait</span></button><button class="crbtn" title="Note at the playhead · Shift+M">${ICO('note',12)}<span class="crlbl" style="display:inline;">Note</span></button></div>
    <div class="medialist">${rows}</div></aside>`; }
 function viewerBar(){ const c=UI.cam; return `<div class="vptool">
   <div class="vseg"><button data-cam="pov" class="${c==='pov'?'on':''}">${ICO('viewer')} POV</button><button data-cam="free" class="${c==='free'?'on':''}">${ICO('orbit')} Free</button><button data-cam="plan" class="${c==='plan'?'on':''}">${ICO('plan')} Plan</button></div>
@@ -1200,45 +1281,46 @@ function viewerBar(){ const c=UI.cam; return `<div class="vptool">
   <div class="vdiv"></div>
   <div class="vseg"><button data-play="0" class="${UI.play?'':'on'}">Edit</button><button data-play="1" class="${UI.play?'on':''}">Play</button></div>
   <div style="flex:1;"></div></div>`; }
-function nowCard(){ const wd=PERS[UI.pers].d, el=PH-26; const waiting=el<wd;
-  const rows=[['#8468BE','Alma','to the side'],['#4E78B3','Bio sensor','in hand'],['#777777','G_BREATH',waiting?`waiting ${fmtS(el)} s / timeout 25`:'resolved',waiting],['#7F7936','GHOST_BREATH','loop 1'],['#398559','AMB_05','ambience'],['#9A6E42','Valley','hills breathing']];
+function nowCard(){ const el=PH-B, inZone=el>=zoneT();
+  const rows=[['#8468BE','Alma','to the side · off view (65° left)'],['#4E78B3','Sensor (hand)','in hand'],['#777777','breath.zone',inZone?'true':`waiting ${fmtS(el)} s · non-blocking`,!inZone],['#398559','VO_11b',`playing ${fmtS(el)} / 7.5 s`],['#7F7936','GHOST_BREATH',inZone?'stopped':'loop 1'],['#4E78B3','Metaball','breathing'],['#398559','AMB_04','ambience']];
   return `<div class="nowcard"><div class="h">${ICO('now',11)} Live now · ${tc(PH)}</div>${rows.map(r=>`<div class="r${r[3]?' warn':''}"><span class="mdot" style="background:${r[0]}"></span><b>${r[1]}</b><span class="q">${r[2]}</span></div>`).join('')}</div>`; }
-function stage(){ return `<div class="stage" id="stg"><canvas id="cv"></canvas><div class="vov">${nowCard()}<div class="gizchip" id="giz"></div>${UI.play?`<div class="waitpill">${ICO('hourglass',12)}<span>Waiting: <b>sensor on belly</b></span><span class="tnum">${fmtS(PH-26)} s / timeout 25 s</span><button>Complete ⏎</button></div>`:''}</div></div>`; }
-function transport(compact){ const inW=PH-26<PERS[UI.pers].d;
+function stage(){ const el=PH-B; return `<div class="stage" id="stg"><canvas id="cv"></canvas><div class="vov">${nowCard()}<div class="gizchip" id="giz"></div>${UI.cam==='pov'?`<div class="offview" style="top:48%;">◂ Alma · 65° left · 3.3 m</div>`:''}${UI.play?`<div class="waitpill">${ICO('hourglass',12)}<span>Condition: <b>breath.zone</b> · non-blocking</span><span class="tnum">${fmtS(el)} s · help at 11.5 s</span><button>Rest the sensor ⏎</button></div>`:''}</div></div>`; }
+function transport(compact){
   return `<div class="transport" style="position:relative;">
-  <span class="plabel">Simulated user</span><button class="ddbtn" id="persBtn" title="How long the user takes at each wait"><span style="display:flex;color:var(--ink-3);">${ICO('person',11)}</span><span>${PERS[UI.pers].n}</span><span style="display:flex;color:var(--ink-3);">${ICO('chevDown',9)}</span></button>
+  <span class="plabel">Simulated user</span><button class="ddbtn" id="persBtn" title="How long the simulated user takes (not an Unreal value)"><span style="display:flex;color:var(--ink-3);">${ICO('person',11)}</span><span>${PERS[UI.pers].n}</span><span style="display:flex;color:var(--ink-3);">${ICO('chevDown',9)}</span></button>
   <div class="tccenter"><button class="tbtn" title="Go to start · Home">${ICO('toStart')}</button><button class="playb" title="Play · Space">${ICO('play')}</button><button class="tbtn" title="Go to end · End">${ICO('toEnd')}</button><button class="tbtn on" title="Follow the playhead">${ICO('follow')}</button>
-   <div class="tcbox"><span class="tc">${tc(PH)}</span><div style="width:.5px;height:14px;background:rgba(255,255,255,0.08);"></div><span class="rel">${inW?`+${fmtS(PH-26)} s in G_BREATH`:`after G_BREATH`}</span></div>
-   <button class="tbtn" title="Loop the selected moment · Ctrl+L">${ICO('loop')}</button><button class="tbtn" title="Note at the playhead · M" style="color:var(--ink-2);">${ICO('flag')}</button></div>
+   <div class="tcbox"><span class="tc">${tc(PH)}</span><div style="width:.5px;height:14px;background:rgba(255,255,255,0.08);"></div><span class="rel">+${fmtS(PH-B)} s in S0.BEGIN</span></div>
+   <button class="tbtn" title="Loop the selected moment · Ctrl+L">${ICO('loop')}</button><button class="tbtn" title="Bookmark at the playhead · M" style="color:var(--ink-2);">${ICO('flag')}</button></div>
   <div style="flex:1;"></div>
   ${compact?'':`<div class="editseg"><button class="on" title="Show all anchors · A">${ICO('anchor',11)} Anchors</button><button id="logicBtn" class="${UI.ov==='logic'?'on':''}" title="Logic drawer · G">${ICO('logic',11)} Logic</button><button title="Fit the whole piece">${ICO('fit')} Fit</button></div>
   <div class="zoomgrp"><button title="Zoom out">${ICO('zoomOut')}</button><button title="Zoom in">${ICO('zoomIn')}</button></div>`}</div>`; }
 function status(){ const c=UI.selRole?null:BY[UI.sel]; let info='';
-  if(UI.ov==='drag') info=`<span class="statinfo why"><span class="k">VO_01h</span> → occupied: it won't land here · drop it in the slot below to create lane <b>VO 3</b></span>`;
-  else if(UI.selRole) info=`<span class="statinfo"><span class="k">${UI.selRole}</span> — knobs come from Unreal · edits become a proposal applied in the editor queue</span>`;
-  else if(c&&c.isNew) info=`<span class="statinfo why"><span class="k">${esc(c.t)}</span> — new sound · ${c.file?'file loaded':'load a WAV'} · imported to Unreal on the next push</span>`;
-  else if(c&&c.k==='wait') info=`<span class="statinfo"><span class="k">Wait G_BREATH</span> — lasts as long as the user takes · help at 12 s · timeout 25 s</span>`;
+  if(UI.ov==='drag') info=`<span class="statinfo why"><span class="k">VO_14</span> → occupied: it won't land here · drop it in the slot below to create lane <b>VO 3</b></span>`;
+  else if(UI.selRole) info=`<span class="statinfo"><span class="k">${UI.selRole}</span> — knobs read from Unreal · an edit becomes a proposal applied in the editor queue</span>`;
+  else if(c&&c.isNew) info=`<span class="statinfo why"><span class="k">${esc(c.t)}</span> — new sound · ${c.file?'file loaded':'load a WAV'} · in Content after the next import, in the APK only when a cue uses it</span>`;
+  else if(c&&c.k==='cond') info=`<span class="statinfo"><span class="k">breath.zone</span> — non-blocking: Entering runs on its clock · only VO_11h depends on it</span>`;
+  else if(c&&c.wired) info=`<span class="statinfo why"><span class="k">${esc(c.t)}</span> — hardwired literal in BP_Obra_SC (${esc(c.wired)}) · changing it needs a graph change</span>`;
   else if(c) info=`<span class="statinfo"><span class="k">${esc(c.t)}</span> — ${c.k==='vo'?'lasts as long as its audio (rule)':'drag the title band to move it · Ctrl+drag moves it without its family'}</span>`;
-  return `<div class="status"><span>Ready</span>${info}<div style="flex:1;"></div><span>${PERS[UI.pers].n} · total ${totalTxt()} · goal 15:00</span><span>3 open notes</span><span class="ok">Unreal rev 41 · score rev 44</span></div>`; }
+  return `<div class="status"><span>Ready</span>${info}<div style="flex:1;"></div><span class="pbc" id="pbCount" title="Problems · F8">${(()=>{ const k=pbCounts(); return `<b class="bl">●</b> ${k.b} blocking <i class="wa"></i> ${k.w} warnings <b class="ac">●</b> ${k.a} accepted`; })()}</span><span>${PERS[UI.pers].n} · total ${totalTxt()} · goal 15:00</span><span>0 of 592 reach Unreal</span><span class="ok">score rev 44 · Unreal asset — · APK —</span></div>`; }
 /* ---------- timeline ---------- */
 function laneH(g,s){ return s.h||34; }
 function clipHTML(c,g,LH){ const r=R(c.id), hue=HUE[g.id]; const sel=!UI.selRole&&UI.sel===c.id, gs=selKids().has(c.id);
+  if(c.k==='cond'){ const x=X(r.s), x2=X(r.e), fin=isFinite(zoneT()); return `<div class="cond${sel?' sel':''}${gs?' gsel':''}" data-id="${c.id}" style="left:${x}px;width:${Math.max(40,x2-x)}px;top:${(LH-18)/2}px;" title="Non-blocking condition">${ICO('hourglass',10)}<span>${esc(c.t)} · ${fin?'true at +'+fmtS(zoneT())+' s':'never (Idle)'} · non-blocking</span></div>${fin?`<div class="condok" style="left:${x2-4}px;top:${(LH-8)/2}px;"></div>`:''}`; }
   if(c.k==='dia') return `<div class="evt${sel?' sel':''}${gs?' gsel':''}${c.isNew?' new':''}" data-id="${c.id}" style="left:${X(r.s)-3.5}px;top:${(LH-16)/2}px;max-width:${c._lw||160}px;"><i style="background:${hue}"></i><span>${esc(c.t)}</span></div>`;
   if(c.k==='pulse'){ const h=Math.round((LH-14)*c.amp+6); return `<div class="pls" data-id="${c.id}" style="left:${X(r.s)-1}px;height:${h}px;background:${hue};${sel||gs?'box-shadow:0 0 0 1px var(--ink-3);':''}"></div><span class="plsl" style="left:${X(r.s)+5}px;top:4px;max-width:${c._lw||120}px;">${esc(c.t)}</span>`; }
   const x=X(r.s), w=Math.max(14,X(Math.min(r.e,W0+G.win+40))-x), h=LH-8; const fg=textOn(hue);
-  const isHelp=c.k==='vo'&&!!c.help; let cls='clip'+(sel?' sel':'')+(gs?' gsel':'')+(isHelp?' help':'')+(c.k==='wait'?' wait':'')+(c.k==='mech'?' mech':'');
-  if(isHelp&&PERS[UI.pers].d<=c.par[2]) cls+=' inact';
+  const isHelp=c.k==='vo'&&!!c.help; let cls='clip'+(sel?' sel':'')+(gs?' gsel':'')+(isHelp?' help':'')+(c.k==='mech'?' mech':'');
+  if(isHelp&&!helpOn()) cls+=' inact';
+  if(PBEL[c.id]) cls+=' pb-'+PBEL[c.id]; if(NEAPK.has(c.id)) cls+=' neapk';
+  if(c.id==='HUM'&&!isFinite(zoneT())) cls+=' inact';
   let fill=`background-color:${hue}`; if(c.k==='grad') fill=`background-image:linear-gradient(90deg,#dfe8f5,${hue});opacity:.55`;
   let body='', gl='', cnt='';
+  if(c.wired) gl=ICO('wire',10);
   if(c.k==='vo'){ body=`<div class="bd">${wave(c.id,w,h-16,fg)}<div class="vtx">${esc(c.txt)}</div></div>`; gl=ICO('wave',11); }
-  if(c.k==='wait') gl=ICO('hourglass',11);
-  if(c.k==='ghost'){ gl=ICO('ghost',11); const n=Math.max(1,Math.floor((r.e-r.s)/5)); cnt=`×${n}`; for(let i=1;i<=n;i++) body+=`<span class="notch" style="left:${i*5*G.pps}px"></span>`; }
-  if(c.k==='mech'&&c.cyc){ cnt='×5'; for(let i=1;i<5;i++) body+=`<span class="notch" style="left:${i*c.cyc*G.pps}px"></span>`; gl=ICO('haptic',11); }
+  if(c.k==='ghost'){ gl=ICO('ghost',11); const n=Math.max(1,Math.floor((r.e-r.s)/4.3)); cnt=`×${n}`; for(let i=1;i<=n;i++) body+=`<span class="notch" style="left:${i*4.3*G.pps}px"></span>`; }
+  if(c.k==='mech'&&c.cyc){ cnt='×5'; for(let i=0;i<=5;i++) body+=`<span class="notch" style="left:${(c.lead+i*c.cyc)*G.pps}px"></span>`; gl=ICO('haptic',11); }
   if(c.k==='amb') body=`<div class="bd">${wave(c.id,w,h-16,fg,.35)}</div>`;
-  let out=`<div class="${cls}" data-id="${c.id}" style="left:${x}px;width:${w}px;height:${h}px;"><div class="fill" style="${fill}"></div><div class="scrim"></div><div class="tt" style="background:${hue};color:${fg}"><span class="gl">${gl}</span>${esc(c.t)}${cnt?`<span class="cnt">${cnt}</span>`:''}</div>${body}<div class="hd l"></div><div class="hd r"></div></div>`;
-  if(c.k==='wait'){ const e=r.e, f=r.s+c.fw; if(f>e+.05) out+=`<div class="wtail" style="left:${X(e)}px;width:${X(f)-X(e)}px;height:${h}px;"><span class="wt">tail · the user decides</span></div>`;
-    out+=`<div class="wfw" style="left:${X(f)-1}px;height:${LH-4}px;"><span>timeout 25 s</span></div><div class="whelp" style="left:${X(r.s+c.help)-3.5}px;top:${4+h-4}px;" title="help at 12 s"></div>`; }
-  return out; }
+  return `<div class="${cls}" data-id="${c.id}" style="left:${x}px;width:${w}px;height:${h}px;"><div class="fill" style="${fill}"></div><div class="scrim"></div><div class="tt" style="background:${hue};color:${fg}"><span class="gl">${gl}</span>${esc(c.t)}${cnt?`<span class="cnt">${cnt}</span>`:''}</div>${body}${PBEL[c.id]?`<span class="pbdot${PBEL[c.id]==='warn'?' ring':''}" title="Open problem · see Problems"></span>`:''}${NEAPK.has(c.id)?'<span class="neapkchip" title="Accepted break: the APK still does what Unreal is wired to do">≠ APK</span>':''}<div class="hd l"></div><div class="hd r"></div></div>`; }
 function wave(seed,w,h,fg,amp){ let d='', s=0; for(const ch of seed) s=(s*31+ch.charCodeAt(0))>>>0; const rnd=()=>{ s=(s*1664525+1013904223)>>>0; return s/4294967296; };
   for(let x=2;x<w-2;x+=2){ const env=Math.sin(Math.PI*Math.min(1,x/Math.max(8,w)))*0.9+0.1; const a=(amp||0.85)*(h/2-1)*env*(0.35+0.65*rnd()); d+=`M${x} ${h/2-a}V${h/2+a}`; }
   return `<svg class="wv" width="${w}" height="${h}"><path d="${d}" stroke="${fg==='#0E0F11'?'rgba(14,15,17,.55)':'rgba(242,244,248,.5)'}" stroke-width="1"/></svg>`; }
@@ -1248,6 +1330,7 @@ function labelWidths(){ GROUPS.forEach(g=>g.subs.forEach(s=>{ const ev=s.clips.f
 function timeline(H){ const fw=G.fieldW; labelWidths();
   const acts=ACTS.map((a,i)=>{ const x=Math.max(0,X(a.s)), x2=Math.min(fw,X(a.e)); return `<div class="actb a${i%2}" style="left:${x}px;width:${x2-x}px;">${a.veil?'<span class="vg">⧸⧸ veil</span>':''}${a.n}</div>`; }).join('');
   let ticks=''; for(let t=Math.ceil(W0/2)*2;t<=W0+G.win;t+=2){ const mj=(t%10===0); ticks+=`<span class="tk ${mj?'mj':'mn'}" style="left:${X(t)}px"></span>`; if(mj) ticks+=`<span class="tkl tnum" style="left:${X(t)}px">${tc(t).slice(0,5)}</span>`; }
+  ticks+=Object.entries(PBEL).map(([id,sv])=>`<span class="rulmark" style="left:${X(R(id).s)}px;background:var(--danger);opacity:${sv==='warn'?.55:1}" title="problem"></span>`).join('')+[...NEAPK].map(id=>`<span class="rulmark" style="left:${X(R(id).s)}px;background:var(--auto-ovr)"></span>`).join('');
   const pm=MOMS.find(m=>PH>=m.s()&&PH<m.e());
   const moms=MOMS.map(m=>{ const s=m.s(), e=m.e(); if(e<W0) return ''; const x=Math.max(0,X(s)); return `<div class="momb${m===pm?' on':''}" style="left:${x+3}px;max-width:${Math.max(0,X(e)-x-6)}px;"><b>${m.id}</b>${esc(m.n)}</div>`; }).join('');
   const momLines=MOMS.map(m=>{ const s=m.s(); return s>W0?`<div class="momline" style="left:${168+X(s)}px"></div>`:''; }).join('');
@@ -1265,66 +1348,93 @@ function timeline(H){ const fw=G.fieldW; labelWidths();
      <div class="tlhead"><div class="hpad"><div style="height:18px;">Acts</div><div style="height:24px;">Time</div><div style="height:16px;">Moments</div></div><div class="hfld"><div class="actrow">${acts}</div><div class="rulerow">${ticks}</div><div class="momrow">${moms}</div></div></div>
      ${momLines}${rows}<svg class="anc" id="anc"></svg><div class="ph" id="ph" style="left:${168+X(PH)-1}px;"></div>
    </div></div></div>
-   ${UI.ov==='logic'?logicDrawer():''}
+   ${UI.ov==='logic'?logicDrawer():''}${UI.ov==='problems'?problemsDrawer():''}
    <div class="tlzoom" title="Whole piece · drag to scroll, ends to zoom"><div class="tlztrack"><div class="tlzthumb" style="left:35%;width:${UI.mode==='tl'?7:9}%;"><span class="tlzcap l"></span><span class="tlzcap r"></span></div></div></div></div>`; }
-function dragGhost(LH){ const x=X(12), w=1.9*G.pps+60; return `<div class="ghost" style="left:${x}px;width:${w}px;height:${LH-8}px;"><div class="tt">VO_01h · occupied</div></div>`; }
-function logicDrawer(){ const items=[['#777777','G_BREATH · wait',1],['#7F7936','GHOST_BREATH'],['#4E78B3','Rings on'],['#B34FB3','HAP_PULSE_SOFT'],['#398559','VO_11h · help'],['#398559','VO_11b']];
-  return `<div class="ldraw" style="height:226px;"><div class="lread">In 1.R4, when the sensor touches the belly (or at 25 s), the rings light up, the hand pulses and free exploration begins. If nothing happens by 12 s, Alma gives the help.</div><div class="lbody"><div class="curveparams">${items.map(i=>`<button class="${i[2]?'on':''}"><span class="sw" style="background:${i[0]}"></span>${i[1]}</button>`).join('')}</div><div class="lcv" id="lcv">
+function problemsDrawer(){ const k=pbCounts();
+  return `<div class="pdraw" style="height:226px;"><div class="ph2"><b>Problems</b><span>${k.b} blocking · ${k.w} warnings · ${k.a} accepted</span><div class="well" style="margin-left:12px;"><button class="on">All</button><button>Affects APK</button><button>This act</button><button>Only mine</button></div><div style="flex:1;"></div><span style="color:var(--ink-3);">Experience ▸ Check piece runs every rule for the 4 simulated users</span></div>
+   <div class="plist"><div class="prw hd"><span></span><span>Layer</span><span>Rule</span><span>Message</span><span>Element</span><span>Owner in Unreal</span><span>State</span><span>Author · reason</span></div>
+   ${PROBLEMS.map(p=>`<div class="prw"><span class="sv ${p.sv}"></span><span>${p.ly}</span><span>${p.rule}</span><span class="m">${esc(p.msg)}</span><span class="el">${esc(p.el)}</span><span>${esc(p.own)}</span><span class="st ${p.st==='accepted'?'acc':'open'}">${p.st==='accepted'?'Accepted'+(p.ne?' · ≠ APK':''):'Open'}</span><span>${esc(p.au)}</span></div>`).join('')}</div></div>`; }
+function impactCard(scr){ const back=document.createElement('div'); back.className='impback ov'; const d=document.createElement('div'); d.className='imp ov';
+  d.innerHTML=`<h3>Move · VO_10 <span>−2.0 s</span></h3>
+   <div class="it"><span class="d" style="background:var(--danger)"></span><div><b>Breaks · wired in Unreal</b>The APK keeps VO_10 at Alma's appear + 1.5 s. Your new time is preview only.</div><span class="ev">BP_Obra_SC › AlmaSpeak</span></div>
+   <div class="it"><span class="d" style="background:var(--danger)"></span><div><b>Breaks · Alma speaks before she appears</b>Her appear ends at 06:16.7; the voice would start at 06:15.0.</div><span class="ev">rule A3</span></div>
+   <div class="also">Also: 2 cues follow it and move with it (+0 s).</div>
+   <div class="rep"><label><input type="checkbox" checked> Snap the voice to appear end + 1.5 s</label><label><input type="checkbox"> Create an Unreal task: promote the lead-in literal to a knob</label>
+    <input class="rsn" id="rsn" placeholder="Reason (required to proceed anyway) · e.g. I'll connect it to a new cue" spellcheck="false"></div>
+   <div class="btns"><button id="impCancel">Cancel</button><button class="anyway" id="impAny" disabled>Proceed anyway</button><button class="pri" id="impFix">Proceed and repair</button></div>`;
+  scr.appendChild(back); scr.appendChild(d);
+  const r=d.querySelector('#rsn'), any=d.querySelector('#impAny'); r.addEventListener('input',()=>{ any.disabled=r.value.trim().length<12; });
+  d.querySelector('#impCancel').onclick=()=>setOv('none');
+  d.querySelector('#impFix').onclick=()=>{ setOv('none'); flash('Repaired: VO_10 snapped to appear end + 1.5 s · nothing broken'); };
+  any.onclick=()=>{ PROBLEMS.unshift({sv:'acc',ly:'C3',rule:'C3.HW.LITERAL',msg:'VO_10 moved −2.0 s: the APK keeps it at appear + 1.5 s',el:'VO_10',own:'BP_Obra_SC › AlmaSpeak',st:'accepted',ne:1,au:'S · "'+r.value.trim()+'"'}); NEAPK.add('VO_10'); UI.ov='problems'; syncOvSeg(); build(); };
+  setTimeout(()=>d.querySelector('#impFix').focus(),30); }
+function flash(t){ const s=document.querySelector('.status .statinfo'); if(s){ s.className='statinfo'; s.innerHTML=`<span class="k">${esc(t)}</span>`; } }
+function dragGhost(LH){ const x=X(10), w=1.9*G.pps+60; return `<div class="ghost" style="left:${x}px;width:${w}px;height:${LH-8}px;"><div class="tt">VO_14 · occupied</div></div>`; }
+function logicDrawer(){ const items=[['#777777','breath.zone · condition',1],['#7F7936','GHOST_BREATH'],['#B34FB3','HapticAmp 0.25'],['#398559','VO_11h · help'],['#398559','VO_12 · chain']];
+  return `<div class="ldraw" style="height:226px;"><div class="lread">In S0.BEGIN Entering doesn't wait for the user. When the sensor reaches the belly zone the ghost stops and the hand starts to hum. If it isn't there 4 s after VO_11b ends, Alma says VO_11h and the count waits for her.</div><div class="lbody"><div class="curveparams">${items.map(i=>`<button class="${i[2]?'on':''}"><span class="sw" style="background:${i[0]}"></span>${i[1]}</button>`).join('')}</div><div class="lcv" id="lcv">
    <svg id="lsv"></svg>
-   <div class="node" style="left:18px;top:52px;"><div class="nh"><span class="sw" style="background:#398559"></span>VO_11 ends<span class="of">1.R4</span></div><div class="nr out">End<span class="pt" id="pA"></span></div></div>
-   <div class="node" style="left:226px;top:18px;"><div class="nh"><span class="sw" style="background:#777777"></span>G_BREATH<span class="of">wait</span></div><div class="nr in"><span class="pt" id="pWi"></span>Enter</div><div class="nr" style="color:var(--ink-3);">sensor · belly · 1 s</div><div class="nr out">Done<span class="pt" id="pH" style="border-color:var(--auto-live)"></span></div><div class="nr out">Late · 12 s<span class="pt" id="pT"></span></div><div class="nr out">Timeout · 25 s<span class="pt" id="pP" style="border-color:var(--danger)"></span></div></div>
-   <div class="node" style="left:470px;top:8px;"><div class="nh"><span class="sw" style="background:#4E78B3"></span>Rings on<span class="of">+0.0</span></div><div class="nr in"><span class="pt" id="p1"></span>Enter</div></div>
-   <div class="node" style="left:470px;top:62px;"><div class="nh"><span class="sw" style="background:#B34FB3"></span>HAP_PULSE_SOFT<span class="of">+0.0</span></div><div class="nr in"><span class="pt" id="p2"></span>Enter</div></div>
-   <div class="node" style="left:470px;top:116px;"><div class="nh"><span class="sw" style="background:#398559"></span>VO_11b · explore<span class="of">+1.0</span></div><div class="nr in"><span class="pt" id="p3"></span>Enter</div></div>
-   <div class="node" style="left:690px;top:118px;"><div class="nh"><span class="sw" style="background:#398559"></span>VO_11h · help<span class="of">+0.0</span></div><div class="nr in"><span class="pt" id="p4"></span>Enter</div></div>
+   <div class="node" style="left:18px;top:52px;"><div class="nh"><span class="sw" style="background:#777777"></span>S0.BEGIN<span class="of">mark</span></div><div class="nr out">Start<span class="pt" id="pA"></span></div></div>
+   <div class="node" style="left:226px;top:18px;"><div class="nh"><span class="sw" style="background:#777777"></span>breath.zone<span class="of">non-blocking</span></div><div class="nr in"><span class="pt" id="pWi"></span>Watch</div><div class="nr" style="color:var(--ink-3);">sensor in zone · facing in</div><div class="nr out">Done<span class="pt" id="pH" style="border-color:var(--auto-live)"></span></div><div class="nr out">Help · 4 s after VO_11b<span class="pt" id="pT"></span></div><div class="nr" style="color:var(--ink-3);justify-content:flex-end;">no timeout here</div></div>
+   <div class="node" style="left:470px;top:8px;"><div class="nh"><span class="sw" style="background:#7F7936"></span>GHOST_BREATH stops<span class="of">+0.0</span></div><div class="nr in"><span class="pt" id="p1"></span>Enter</div></div>
+   <div class="node" style="left:470px;top:62px;"><div class="nh"><span class="sw" style="background:#B34FB3"></span>HapticAmp 0.25<span class="of">+0.0</span></div><div class="nr in"><span class="pt" id="p2"></span>Enter</div></div>
+   <div class="node" style="left:470px;top:122px;"><div class="nh"><span class="sw" style="background:#398559"></span>VO_11h · help<span class="of">+0.0</span></div><div class="nr in"><span class="pt" id="p4"></span>Enter</div><div class="nr out">End<span class="pt" id="p4o"></span></div></div>
+   <div class="node" style="left:700px;top:122px;"><div class="nh"><span class="sw" style="background:#398559"></span>VO_12 waits for it<span class="of">+0.5</span></div><div class="nr in"><span class="pt" id="p3"></span>Enter</div></div>
    </div></div></div>`; }
 /* ---------- inspector ---------- */
 function prow(lab,val,u,pct,pc,opts){ opts=opts||{}; return `<div class="prow"${pc?` style="--pc:${pc}"`:''}${opts.title?` title="${esc(opts.title)}"`:''}><span class="lab">${lab}</span><div class="field">${pct!=null?`<div class="track"><i style="width:${pct}%;${pc?`background:${pc}`:''}"></i></div>`:''}<div class="box"><span class="num${opts.ovr?' ovr':''}">${val}</span><span class="u">${u||''}</span></div></div>${opts.lock?`<span class="lock" title="Final value approved in the test level">${ICO('lock',11)}</span>`:''}</div>`; }
 function prowTxt(lab,html,title){ return `<div class="prow"${title?` title="${esc(title)}"`:''}><span class="lab">${lab}</span><span class="val">${html}</span></div>`; }
 function sec(t,open,body){ return `<button class="sechead"><span style="color:var(--ink-dim);display:flex;${open?'':'transform:rotate(-90deg);'}">${ICO('chevDown')}</span><span class="t">${t}</span><span class="ln"></span></button>${open?body:''}`; }
-function knobRows(name){ const R0=ROLES[name]; return R0.knobs.map(k=>k[3]==null?prowTxt(k[0],`${k[1]} ${k[2]}`,k[5]):prow(k[0],k[1],k[2],k[3],k[4],{title:k[5]})).join('')+`<div class="knote">From ${esc(R0.bp)}. Hover a knob to see its Unreal variable. A change here becomes a proposal that is applied in the editor queue.</div>`; }
-function anchorTxt(c){ if(c.par) return `<span class="anchip"><i>${ICO('anchor',11)}</i>${c.par[1]==='end'?'after':'with'} ${c.par[0]}${c.par[2]?' +'+fmtS(c.par[2])+' s':''}</span>`; return `<span class="anchip"><i>${ICO('anchor',11)}</i>start of ${c.m}</span>`; }
+function knobGroups(name){ const R0=ROLES[name]; return R0.groups.map(g=>`<div class="owner"><b>${esc(g.owner)}</b><span class="sc">${g.scope}</span></div>`+g.rows.map(k=>k[3]==null
+    ?prowTxt(k[0],`${esc(k[1])}${k[2]?' '+k[2]:''}${g.scope==='literal'?' <span class="chip lit">literal</span>':''}`,`${k[5]} · ${g.owner}`)
+    :prow(k[0],k[1],k[2],k[3],k[4],{title:`${k[5]} · ${g.owner} · ${g.scope}`,lock:k[6]})).join('')).join('')
+  +(R0.note?`<div class="knote" style="color:var(--auto-ovr);">${esc(R0.note)}</div>`:'')
+  +`<div class="knote">Hover a knob to see its Unreal variable. Changing an instance knob creates a proposal, applied in the editor queue. Literals need a graph change. The lock marks values approved in the test levels.</div>`; }
+function placeRows(pt){ const P=POINTS[pt]; return prowTxt('Stop','PlayerStart · Test_Entering')+prowTxt('Point',P.tp)
+  +prow('Front',P.f.toFixed(2),'m',P.f/4*100,'#E0954B',{lock:1,title:'forward from the stop'})+prow('Side',(P.s>0?'+':'')+P.s.toFixed(2),'m',(P.s+4)/8*100,'#D8C24B',{lock:1,title:'+ right / − left'})
+  +prow('Height',(P.u>=0?'+':'')+P.u.toFixed(2),'m',(P.u+1)/2*100,'#C58BD0',{lock:1,title:'above the author eye (floor + 1.20 m)'})+prowTxt('Scale',P.sc?`${P.sc} (point) × Size`:'—')+prowTxt('Yaw','faces the user'); }
+function anchorTxt(c){ if(c.sfn) return `<span class="anchip"><i>${ICO('anchor',11)}</i>after ExploreTime and the voice chain</span>`; if(c.par) return `<span class="anchip"><i>${ICO('anchor',11)}</i>${c.par[1]==='end'?'after':'with'} ${c.par[0]}${c.par[2]?' +'+fmtS(c.par[2])+' s':''}</span>`; return `<span class="anchip"><i>${ICO('anchor',11)}</i>start of ${c.m}</span>`; }
 function insTabs(){ return `<div class="panhead"><div class="well" style="height:22px;"><button class="instab${UI.insTab==='insp'?' on':''}" data-itab="insp" style="display:inline-flex;align-items:center;gap:5px;">${ICO('panel')}<span class="ttl">Inspector</span></button><button class="instab${UI.insTab==='notes'?' on':''}" data-itab="notes" style="display:inline-flex;align-items:center;gap:5px;">${ICO('note')}<span class="ttl">Notes</span><span class="countbadge" style="margin-left:2px;">3</span></button></div><div style="flex:1;"></div><button class="ibtn flat" title="Collapse panel">${ICO('panelL')}</button></div>`; }
 function head(hue,icon,name,meta){ return `<div style="height:4px;width:100%;background:${hue};"></div><div class="selhead"><div class="selthumb" style="display:grid;place-items:center;background:var(--s2);color:var(--ink-2);">${ICO(icon,16)}</div><div style="flex:1;min-width:0;"><div class="selname">${esc(name)}</div><div class="selmeta">${meta}</div></div><button class="mbtn" style="height:22px;padding:0 8px;font-size:11px;flex-shrink:0;" title="Where this lives in Unreal">Unreal ▸</button></div>`; }
 function roleInspector(name){ const R0=ROLES[name];
-  return `<div class="insbody">${head(name==='Alma'?HUE.alma:HUE.obj,R0.icon,name,`Role · ${esc(R0.bp.split(' · ')[0])} · in Unreal`)}`+
-   sec('Knobs',1,knobRows(name))+
-   sec('Sounds',1,R0.sounds.map(s=>`<div class="prow snrow"><span class="dotc" style="background:${HUE.snd}"></span><span class="val">${s}</span></div>`).join(''))+
+  return `<div class="insbody">${head(R0.icon==='alma'?HUE.alma:HUE.obj,R0.icon,name,`Role · ${esc(R0.actor)}`)}`+
+   sec('Knobs',1,knobGroups(name))+
+   sec('Sounds',1,R0.sounds.length?R0.sounds.map(s=>`<div class="prow snrow"><span class="dotc" style="background:${s[2]==='real'?HUE.snd:'var(--ink-dim)'}"></span><span class="val">${s[0]} · ${s[1]}</span><span class="chip ${s[2]==='real'?'ok':'prov'}">${s[2]}</span></div>`).join(''):`<div class="knote">No sounds of its own in Unreal.</div>`)+
    sec('Used in',1,R0.used.map(u=>`<div class="prow"><span class="val">${u}</span></div>`).join(''))+'</div>'; }
-function newSoundInspector(c){ const f=c.file;
+function newSoundInspector(c){ const f=c.file, h=f&&f.hdr; let info='';
+  if(f){ info=h?`<div class="prow"><span class="lab">Format</span><span class="val wavinfo"><span class="${h.sr===48000?'ok':'warn'}">${(h.sr/1000).toFixed(h.sr%1000?1:0)} kHz</span> · <span class="${h.ch===1||c.at==='2D'?'ok':'warn'}">${h.ch===1?'mono':h.ch+' ch'}</span> · <span class="${h.fmt===1?'ok':'warn'}">${h.fmt===1?'PCM':'not PCM'} ${h.bits}-bit</span></span></div>`
+      +(h.sr!==48000?`<div class="knote" style="color:var(--auto-ovr);">The project runs at 48 kHz: this file will be resampled.</div>`:'')+(h.ch>1&&c.at!=='2D'?`<div class="knote" style="color:var(--auto-ovr);">Sounds placed on an object should be mono.</div>`:'')
+      :`<div class="knote" style="color:var(--auto-ovr);">Not a WAV file I can read: Unreal needs a PCM WAV.</div>`; }
   return `<div class="insbody">${head(HUE.snd,'sound',c.t,`Sound · new · <span class="pend">not in Unreal yet</span>`)}`+
    sec('Sound',1,`<div class="prow"><span class="lab">Name</span><input class="nmin" id="nmIn" value="${esc(c.t)}" spellcheck="false" aria-label="Sound name"></div>`+
-     (f?prowTxt('File',`${esc(f.name)} · ${fmtS(f.dur)} s <button class="mbtn" id="wavPlay" style="height:18px;padding:0 6px;font-size:10px;margin-left:6px;">▶</button>`)+`<div class="prow"><span class="lab"></span><button class="mbtn" id="wavLoad" style="height:20px;padding:0 8px;font-size:11px;">Replace WAV…</button></div>`
+     (f?prowTxt('File',`${esc(f.name)} · ${fmtS(f.dur)} s <button class="mbtn" id="wavPlay" style="height:18px;padding:0 6px;font-size:10px;margin-left:6px;">▶</button>`)+info+`<div class="prow"><span class="lab"></span><button class="mbtn" id="wavLoad" style="height:20px;padding:0 8px;font-size:11px;">Replace WAV…</button></div>`
         :`<div class="drop">${ICO('upload',14)}<span>Drop a WAV here</span><button class="mbtn" id="wavLoad">Load WAV…</button></div>`)+
-     prowTxt('Plays','at its cue, to the end of the file')+prow('Volume','60','%',60,'#7FB2E8')+prowTxt('Bus','FX'))+
-   sec('Time',1,prowTxt('Starts',`<span class="anchip"><i>${ICO('anchor',11)}</i>start of 1.R4 +${fmtS(PH-24)} s</span>`)+prowTxt('Lane','Sound ▸ Appearances'))+
-   sec('Unreal',1,`<div class="knote" style="margin-top:6px;">${f?'Ready to import':'Waiting for a file'}: on the next push it becomes a SoundWave in Content/SoulCharger/Audio with this name, and its cue joins the score.</div>`)+'</div>'; }
+     `<div class="prow"><span class="lab">Plays at</span><select class="selsel" id="atSel" style="width:auto;"><option ${c.at==='2D'?'selected':''}>2D</option><option ${c.at!=='2D'?'selected':''}>Sensor (hand)</option></select></div>`+
+     prowTxt('Plays','at its cue, to the end of the file')+prowTxt('Goes to',`Obra/Audio/FX/${esc(c.t)}`))+
+   sec('Time',1,prowTxt('Starts',`<span class="anchip"><i>${ICO('anchor',11)}</i>S0.BEGIN +${fmtS(PH-B)} s</span>`)+prowTxt('Lane','Sound ▸ Objects'))+
+   sec('Unreal',1,`<div class="knote" style="margin-top:6px;">${f?'Ready to import':'Waiting for a file'}: on the next push it becomes a SoundWave in Content/SoulCharger/Obra/Audio/FX with this name. It reaches the APK only when a cue uses it. Keep the source WAV: Unreal's auto-import deletes the asset if the file disappears.</div>`)+'</div>'; }
 function inspector(){ const tabs=insTabs();
-  if(UI.insTab==='notes') return tabs+`<div class="insbody notesl">${[['S','#4E78B3','06:36.4 · 1.R4','El fantasma podría arrancar medio segundo después de la voz. Ahora se pisan.'],['B','#8468BE','06:40.0 · 1.R5a','Ok. Lo dejo anclado al fin de VO_11 + 0,5 y lo pruebo en visor.'],['S','#4E78B3','06:12.0 · V1','El título entra justo cuando abre el velo. ¿Le damos 1 s más de aire?']].map(n=>`<div class="nrow"><span class="av" style="background:${n[1]}">${n[0]}</span><div class="nt"><span class="tnum">${n[2]}</span><p>${n[3]}</p></div></div>`).join('')}</div>`;
+  if(UI.insTab==='notes') return tabs+`<div class="insbody notesl">${[['S','#4E78B3','06:39.1 · S0.BEGIN','El fantasma podría arrancar medio segundo después de la voz. Ahora se pisan.'],['B','#8468BE','06:16.5 · S0.ALMA','Alma se queda 3,5 s después de hablar. ¿Lo bajamos a 2,5?'],['S','#4E78B3','06:10.5 · S0.OPEN','El título entra apenas abre el velo. ¿Le damos 1 s más de aire?']].map(n=>`<div class="nrow"><span class="av" style="background:${n[1]}">${n[0]}</span><div class="nt"><span class="tnum">${n[2]}</span><p>${n[3]}</p></div></div>`).join('')}</div>`;
   if(UI.selRole&&ROLES[UI.selRole]) return tabs+roleInspector(UI.selRole);
   const c=BY[UI.sel];
   if(!c) return tabs+`<div class="insbody"><div class="insEmpty">Select an item<br>in the timeline or the 3D view</div></div>`;
   if(c.isNew) return tabs+newSoundInspector(c);
-  const g=GROUPS.find(x=>x.id===c.g), hue=HUE[c.g], r=R(c.id); const dur=r.e>300?'until the stage ends':`${fmtS(r.e-r.s)} s`;
-  const kind={wait:'Wait',vo:'Voice',dia:'Sound',pulse:'Haptic',ghost:'Ghost',mech:'Mechanic',amb:'Ambience',grad:'Veil',blk:g.n}[c.k];
-  let h=tabs+`<div class="insbody">`+head(hue,c.k==='wait'?'hourglass':c.k==='vo'?'wave':c.k==='ghost'?'ghost':c.k==='pulse'?'haptic':c.g==='alma'?'alma':'obj',c.id,`${kind} · ${c.k==='wait'?'≈'+fmtS(PERS[UI.pers].d)+' s':dur} · ${c.m}`);
-  if(c.k==='wait'){
-    h+=sec('Time',1,prowTxt('Starts',anchorTxt(c))+prowTxt('Duration','as long as the user takes')+prowTxt('Lane','Interaction ▸ Waits'));
-    h+=sec('Wait',1,`<div class="sent">When <select class="selsel"><option>the sensor</option></select><select class="selsel"><option>touches zone</option></select><select class="selsel"><option>belly</option></select> for <select class="selsel"><option>1 s</option></select></div>`+
-      prow('Expected','6.0','s',24,'#7FB2E8',{lock:1})+prow('Help after','12.0','s',48,'#E0954B',{ovr:1})+prow('Timeout','25.0','s',100,'#E06C6C')+
-      prowTxt('On timeout','same as the real ending')+`<div class="prow"><span class="lab">If early</span><span class="val">cuts the voice in 0.3 s</span><button class="iosw on" role="switch" aria-checked="true"><i></i></button></div>`+
-      `<div class="perstab">${Object.entries(PERS).map(([k,v])=>`<div data-pers="${k}" class="${UI.pers===k?'on':''}"><span>${v.n}</span><b class="tnum">${fmtS(v.d)} s</b></div>`).join('')}</div>`);
-    h+=`<div class="outs">`+sec('Outputs',1,`<div class="prow"><span class="dotc" style="background:var(--auto-live)"></span><span class="lab">Done</span><span class="val">Rings, HAP_PULSE_SOFT, VO_11b +1.0 s</span></div><div class="prow"><span class="dotc" style="background:var(--ink-2)"></span><span class="lab">Late · 12 s</span><span class="val">VO_11h (help)</span></div><div class="prow"><span class="dotc" style="background:var(--danger)"></span><span class="lab">Timeout</span><span class="val">same as Done</span></div>`)+`</div>`;
-    h+=sec('Advanced',0,'');
-    h+=`<div class="lread2">In 1.R4, when the sensor touches the belly (or at 25 s), the rings light up and free exploration begins.</div>`;
-  } else {
-    h+=sec('Time',1,prowTxt('Starts',anchorTxt(c)+` <span class="tnum" style="color:var(--ink-3);margin-left:4px;">${tc(r.s)}</span>`)+(c.k==='vo'?prowTxt('Duration',`${fmtS(r.e-r.s)} s · its audio <span class="lock">${ICO('lock',11)}</span>`):c.k==='dia'||c.k==='pulse'?prowTxt('Duration','instant · its tail moves nothing'):prow('Duration',r.e>300?'∞':fmtS(r.e-r.s),r.e>300?'':'s',r.e>300?100:Math.min(100,(r.e-r.s)/20*100),'#7FB2E8'))+prowTxt('Lane',`${g.n} ▸ ${g.subs[c.si].n}`));
-    if(c.role&&ROLES[c.role]) h+=sec(`${c.role} · knobs`,1,knobRows(c.role));
-    if(c.k==='vo') h+=sec('Voice',1,`<div class="vtext">${esc(c.txt)}</div>`+prowTxt('Audio',`${c.id}.mp3 · real`)+prowTxt('From','Alma (3D)')+prow('Volume','100','%',80,'#7FB2E8')+prow('Lead-in','1.5','s',30,'#B8B8B8'));
-    else if(c.g==='obj'||c.g==='alma') h+=sec('Place',1,prowTxt('Stop','sc0 · Entering')+prow('Front','2.20','m',55,'#E0954B')+prow('Side','−0.90','m',38,'#D8C24B')+prow('Height','+0.05','m',51,'#C58BD0')+prow('Scale','1.00','×',50,'#E0645C'));
-    else if(c.k==='dia'||c.k==='amb') h+=sec('Sound',1,prowTxt('File',`${c.t} · real`)+prow('Volume','60','%',60,'#7FB2E8')+prowTxt('Bus',c.k==='amb'?'AMB (ducks under voice)':'FX'));
-    h+=sec('Advanced',0,'');
-  }
+  const g=GROUPS.find(x=>x.id===c.g), hue=HUE[c.g], r=R(c.id);
+  if(c.k==='cond'){ const fin=isFinite(zoneT());
+    return tabs+`<div class="insbody">`+head(hue,'hourglass','breath.zone','Condition · non-blocking · S0.BEGIN')+
+     sec('Condition',1,`<div class="sent">When <select class="selsel"><option>breath.zone</option><option>breath.on</option><option>pacer.running</option><option>stage.done</option></select></div>`+prowTxt('Means','sensor in the belly zone, facing in · instant','Rig.bZone · FacingMin 0.34')+prowTxt('Blocks','no · Entering runs on its clock'))+
+     `<div class="outs">`+sec('Effects',1,`<div class="prow"><span class="dotc" style="background:var(--auto-live)"></span><span class="lab">Done</span><span class="val">GHOST_BREATH stops · HapticAmp 0.25</span></div><div class="prow"><span class="dotc" style="background:var(--ink-2)"></span><span class="lab">Help</span><span class="val">VO_11h, 4 s after VO_11b, if not in the zone</span></div><div class="prow"><span class="dotc" style="background:var(--danger)"></span><span class="lab">Timeout</span><span class="val">none here · the mechanic ends at 180 s (literal)</span></div>`)+`</div>`+
+     sec('Simulation',1,`<div class="knote">Not Unreal values: how long the simulated user takes to reach the zone.</div><div class="perstab">${Object.entries(PERS).map(([k,v])=>`<div data-pers="${k}" class="${UI.pers===k?'on':''}"><span>${v.n}</span><b class="tnum">${isFinite(v.z)?fmtS(v.z)+' s':'never'}</b></div>`).join('')}</div>`)+
+     sec('Advanced',0,'')+`<div class="lread2">${fin&&!helpOn()?'With this user the help never plays.':'With this user Alma says VO_11h and the count waits for her.'} The stage never waits: the pacer starts either way.</div></div>`; }
+  const dur=r.e>300?'until the stage ends':`${fmtS(r.e-r.s)} s`;
+  const kind={vo:'Voice',dia:'Sound',pulse:'Haptic',ghost:'Ghost',mech:'Mechanic',amb:'Sound loop',grad:'Veil',blk:g.n}[c.k];
+  let h=tabs+`<div class="insbody">`+head(hue,c.k==='vo'?'wave':c.k==='ghost'?'ghost':c.k==='dia'||c.k==='amb'?'sound':c.g==='alma'?'alma':'obj',c.id,`${kind} · ${dur} · ${c.m}`);
+  if(c.wired) h+=sec('Time',1,prowTxt('Starts',`${tc(r.s)} <span class="chip lit">literal</span>`)+prowTxt('Duration',`${fmtS(r.e-r.s)} s <span class="chip lit">literal</span>`)+`<div class="knote" style="color:var(--auto-ovr);">Hardwired in BP_Obra_SC (${esc(c.wired)}). Changing it needs a graph change, or promoting it to a knob first.</div>`);
+  else h+=sec('Time',1,prowTxt('Starts',anchorTxt(c)+` <span class="tnum" style="color:var(--ink-3);margin-left:4px;">${tc(r.s)}</span>`)+(c.k==='vo'?prowTxt('Duration',`${fmtS(r.e-r.s)} s · its audio <span class="lock">${ICO('lock',11)}</span>`):c.k==='dia'?prowTxt('Duration','instant · the file plays to its end'):prowTxt('Duration',dur))+prowTxt('Lane',`${g.n} ▸ ${g.subs[c.si].n}`));
+  if(c.role&&ROLES[c.role]) h+=sec(`${c.role} · knobs`,1,knobGroups(c.role));
+  if(c.pt) h+=sec('Place',1,placeRows(c.pt));
+  if(c.k==='vo') h+=sec('Voice',1,`<div class="vtext">${esc(c.txt)}</div>`+prowTxt('Audio',`${c.id} · final mix`)+prowTxt('From','Alma (2D)')+prowTxt('Volume','global VOVolume')+prowTxt('Called by',esc(c.by||'—')));
+  else if(c.k==='dia'||c.k==='amb') h+=sec('Sound',1,prowTxt('File',`${esc(c.t.split(' ·')[0])} · real`)+prowTxt('Plays at',esc(c.at||'2D')));
+  h+=sec('Advanced',0,'');
   return h+'</div>'; }
 /* ---------- assembly per window mode ---------- */
 function build(){ resetR(); const g=geo(); G=Object.assign({},g); G.pps=g.fieldW?g.fieldW/g.win:10;
@@ -1345,26 +1455,26 @@ function mapStrip(){ const span=[-30,120], k=1/(span[1]-span[0]); const pm=MOMS.
   return `<div class="mapstrip"><span class="ed">◂ 3 · Arrival</span><div class="mp">${blocks}<div class="mph" style="left:${(PH-span[0])*k*100}%"></div></div><span class="ed">Stage 2 · Recognizing ▸</span></div>`; }
 /* ---------- overlays: quick add, right-click ---------- */
 function posIn(el,anc){ let x=0,y=0,n=el; while(n&&n!==anc){ x+=n.offsetLeft; y+=n.offsetTop; n=n.offsetParent; } const sc=document.getElementById('sctl'); if(sc&&sc.contains(el)){ x-=sc.scrollLeft; y-=sc.scrollTop; } return {x,y}; }
-function overlays(scr){ if(UI.mode==='v3d'||(UI.ov!=='add'&&UI.ov!=='ctx')) return;
+function overlays(scr){ if(UI.ov==='impact'){ requestAnimationFrame(()=>impactCard(scr)); return; } if(UI.mode==='v3d'||(UI.ov!=='add'&&UI.ov!=='ctx')) return;
   requestAnimationFrame(()=>{ const ph=document.getElementById('ph'); if(!ph) return;
     if(UI.ov==='add'){ const p=posIn(ph,scr); const d=document.createElement('div'); d.className='ov qa'; d.style.left=(p.x+10)+'px'; d.style.top=(p.y+70)+'px';
-      d.innerHTML=`<div class="qin">${ICO('plus',12)}<span>bell</span><span class="cur"></span><span class="hint">Shift+A · at the playhead</span></div>
+      d.innerHTML=`<div class="qin">${ICO('plus',12)}<span>pacer</span><span class="cur"></span><span class="hint">Shift+A · at the playhead</span></div>
        <div class="qg">New</div><button data-newsnd="1"><span class="sw" style="background:transparent;border:1px dashed var(--auto-ovr)"></span>Empty sound…<span class="k">name it, load a WAV</span></button>
-       <div class="qg">Sound</div><button class="on"><span class="sw" style="background:${HUE.snd}"></span>FX_BELLRING<span class="k">real · ↵</span></button><button><span class="sw" style="background:${HUE.snd}"></span>FX_BELLAPPEAR<span class="k">real</span></button>
-       <div class="qg">Objects · Bell</div><button><span class="sw" style="background:${HUE.obj}"></span>Appear · light first<span class="k">1.5 s</span></button><button><span class="sw" style="background:${HUE.obj}"></span>Press (sinks 1.0 cm)<span class="k">0.12 s</span></button>
-       <div class="qg">Templates</div><button><span class="sw" style="background:var(--s2)"></span>Demonstrated interaction · bell<span class="k">6 items</span></button>
-       <div class="qf"><span>↵ adds at <b>${tc(PH)}</b></span><span>in <b>Sound ▸ Appearances</b></span><span>⇥ other lane</span></div>`; scr.appendChild(d); if(p.y+70+d.offsetHeight>890) d.style.top=Math.max(4,p.y-d.offsetHeight+30)+'px';
+       <div class="qg">Sound</div><button class="on"><span class="sw" style="background:${HUE.snd}"></span>SND_PacerPluck<span class="k">real · ↵</span></button><button><span class="sw" style="background:${HUE.snd}"></span>SND_PacerPad<span class="k">real · loop</span></button>
+       <div class="qg">Knobs · Pacer</div><button><span class="sw" style="background:${HUE.obj}"></span>Cycles = 5<span class="k">proposal</span></button><button><span class="sw" style="background:${HUE.obj}"></span>Lead-in = 3 s<span class="k">proposal</span></button>
+       <div class="qg">Templates</div><button><span class="sw" style="background:var(--s2)"></span>Layered reveal · Entering<span class="k">4 items</span></button>
+       <div class="qf"><span>↵ adds at <b>${tc(PH)}</b></span><span>in <b>Sound ▸ Pacer</b></span><span>⇥ other lane</span></div>`; scr.appendChild(d); if(p.y+70+d.offsetHeight>scr.offsetHeight-10) d.style.top=Math.max(4,p.y-d.offsetHeight+30)+'px';
       d.querySelector('[data-newsnd]').onclick=newSound; }
-    if(UI.ov==='ctx'){ const lane=[...document.querySelectorAll('.fld')][3]; if(!lane) return; const p=posIn(lane,scr); const cx=p.x+X(20.4), cy=p.y+17;
+    if(UI.ov==='ctx'){ const lane=[...document.querySelectorAll('.fld')][3]; if(!lane) return; const p=posIn(lane,scr); const cx=p.x+X(17.2), cy=p.y+17;
       const dot=document.createElement('div'); dot.className='clickdot'; dot.style.left=cx+'px'; dot.style.top=cy+'px'; scr.appendChild(dot);
       const m=document.createElement('div'); m.className='menu ov'; m.style.left=(cx+6)+'px'; m.style.top=(cy+4)+'px'; m.style.minWidth='220px';
-      m.innerHTML=`<button class="on">${ICO('plus',12)}Add here<span class="ar">${ICO('chevR',11)}</span></button><button>Paste here<span class="k">Ctrl+V</span></button><button>New lane below<span class="k">Alt+T</span></button><button>Marker here<span class="k">M</span></button><button>Note for the team<span class="k">⇧M</span></button><div class="sep"></div><button>Rename lane</button><button>Lock lane</button><button class="danger">Delete empty lane</button>`;
+      m.innerHTML=`<button class="on">${ICO('plus',12)}Add here<span class="ar">${ICO('chevR',11)}</span></button><button>Paste here<span class="k">Ctrl+V</span></button><button>New lane below<span class="k">Alt+T</span></button><button>Bookmark here<span class="k">M</span></button><button>Note for the team<span class="k">⇧M</span></button><div class="sep"></div><button>Rename lane</button><button>Lock lane</button><button class="danger">Delete empty lane</button>`;
       scr.appendChild(m);
-      const s=document.createElement('div'); s.className='menu ov'; s.style.left=(cx+6+224)+'px'; s.style.top=(cy+4)+'px'; s.style.minWidth='240px';
-      s.innerHTML=`<button><span class="sw" style="background:${HUE.vo}"></span>Alma VO<span class="k">text + audio</span></button><button><span class="sw" style="background:${HUE.vo}"></span>Omnipresent VO</button><button class="on"><span class="sw" style="background:${HUE.vo}"></span>Help for a wait<span class="k">_h</span></button><button><span class="sw" style="background:transparent;border:1px dashed var(--auto-ovr)"></span>Empty voice clip…<span class="k">load audio</span></button><div class="sep"></div><button><span class="sw" style="background:var(--s2)"></span>Template · Demonstrated interaction<span class="k">6</span></button>
-       <div style="padding:6px 9px 4px;font-size:10px;color:var(--ink-3);border-top:.5px solid rgba(255,255,255,.08);margin-top:4px;">Voice ▸ Alma · at ${tc(20.4)} · only what fits this group</div>`;
+      const s=document.createElement('div'); s.className='menu ov'; s.style.left=(cx+6+224)+'px'; s.style.top=(cy+4)+'px'; s.style.minWidth='250px';
+      s.innerHTML=`<button><span class="sw" style="background:${HUE.vo}"></span>Alma VO<span class="k">2D · text + audio</span></button><button><span class="sw" style="background:${HUE.vo}"></span>Omnipresent VO<span class="k">not interruptible</span></button><button class="on"><span class="sw" style="background:${HUE.vo}"></span>Help VO<span class="k">needs a condition</span></button><button><span class="sw" style="background:transparent;border:1px dashed var(--auto-ovr)"></span>Empty voice clip…<span class="k">load audio</span></button>
+       <div style="padding:6px 9px 4px;font-size:10px;color:var(--ink-3);border-top:.5px solid rgba(255,255,255,.08);margin-top:4px;">Voice ▸ Alma · at ${tc(17.2)} · only what fits this group</div>`;
       scr.appendChild(s);
-      const mh=m.offsetHeight; if(cy+4+mh>890){ const top=Math.max(4,cy-mh-4); m.style.top=top+'px'; s.style.top=top+'px'; } }
+      const mh=m.offsetHeight; if(cy+4+mh>scr.offsetHeight-10){ const top=Math.max(4,cy-mh-4); m.style.top=top+'px'; s.style.top=top+'px'; } }
   }); }
 /* ---------- anchors (curves) ---------- */
 function drawAnchors(){ const svg=document.getElementById('anc'), tlc=document.getElementById('tlc'); if(!svg||!tlc) return;
@@ -1375,42 +1485,44 @@ function drawAnchors(){ const svg=document.getElementById('anc'), tlc=document.g
   const link=(fromId,edgeW,toId,off,live)=>{ const a=pt(fromId,edgeW), b=pt(toId,'start'); if(!a||!b) return; const col=live?'var(--auto-live)':'var(--ink-2)'; const mx=(a.x+b.x)/2, dy=Math.abs(b.y-a.y);
     out+=`<path d="M${a.x} ${a.y} C${a.x+Math.max(18,dy*.25)} ${a.y} ${b.x-Math.max(18,dy*.25)} ${b.y} ${b.x} ${b.y}" fill="none" stroke="${col}" stroke-width="1" stroke-opacity=".75"/><circle cx="${a.x}" cy="${a.y}" r="2.5" fill="${col}"/><circle cx="${b.x}" cy="${b.y}" r="2.5" fill="${col}"/>`;
     if(off) out+=`<text x="${mx+4}" y="${(a.y+b.y)/2-3}" fill="${col}">${off}</text>`; };
-  if(c.par) link(c.par[0],c.par[1],c.id,c.par[2]?('+'+fmtS(c.par[2])+' s'):'',BY[c.par[0]].k==='wait'&&c.par[1]==='end');
-  kidsOf(c.id).forEach(k=>{ if(k.par&&k.par[0]===c.id) link(c.id,k.par[1],k.id,k.par[2]?('+'+fmtS(k.par[2])+' s'):'',c.k==='wait'&&k.par[1]==='end'); else if(k.until) link(c.id,'end',k.id,'lasts until',false); });
+  if(c.par) link(c.par[0],c.par[1],c.id,c.par[2]?('+'+fmtS(c.par[2])+' s'):'',BY[c.par[0]].k==='cond'&&c.par[1]==='end');
+  kidsOf(c.id).forEach(k=>{ if(k.par&&k.par[0]===c.id) link(c.id,k.par[1],k.id,k.par[2]?('+'+fmtS(k.par[2])+' s'):'',c.k==='cond'&&k.par[1]==='end'); else if(k.until) link(c.id,'end',k.id,'lasts until',false); });
   svg.innerHTML=out; }
 function drawLogic(){ const cv=document.getElementById('lcv'), sv=document.getElementById('lsv'); if(!cv||!sv) return; sv.setAttribute('width',cv.clientWidth); sv.setAttribute('height',cv.clientHeight);
   const c=id=>{ const p=posIn(document.getElementById(id),cv); return {x:p.x+3.5,y:p.y+3.5}; }; let o='';
-  const L=(a,b,col,dash)=>{ const A=c(a),B=c(b); o+=`<path d="M${A.x} ${A.y} C${A.x+60} ${A.y} ${B.x-60} ${B.y} ${B.x} ${B.y}" fill="none" stroke="${col}" stroke-width="1.2"${dash?' stroke-dasharray="3 3"':''}/>`; };
-  L('pA','pWi','var(--ink-2)'); ['p1','p2','p3'].forEach(p=>L('pH',p,'var(--auto-live)')); L('pT','p4','var(--ink-2)'); ['p1','p2','p3'].forEach(p=>L('pP',p,'var(--danger)',1)); sv.innerHTML=o; }
+  const L=(a,b,col,dash)=>{ const A=c(a),B2=c(b); o+=`<path d="M${A.x} ${A.y} C${A.x+60} ${A.y} ${B2.x-60} ${B2.y} ${B2.x} ${B2.y}" fill="none" stroke="${col}" stroke-width="1.2"${dash?' stroke-dasharray="3 3"':''}/>`; };
+  L('pA','pWi','var(--ink-2)'); L('pH','p1','var(--auto-live)'); L('pH','p2','var(--auto-live)'); L('pT','p4','var(--ink-2)'); L('p4o','p3','var(--ink-2)',1); sv.innerHTML=o; }
 /* ---------- viewer: POV / free / plan ---------- */
 function drawStage(){ const cv=document.getElementById('cv'); if(!cv) return; const w=cv.offsetWidth, h=cv.offsetHeight; cv.width=w; cv.height=h; const g=cv.getContext('2d');
   let seed=7; const rnd=()=>{ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; };
   const giz=document.getElementById('giz'); g.font='10px Geist, system-ui';
   const dia=(x,y,l,on)=>{ g.save(); g.translate(x,y); g.rotate(Math.PI/4); g.fillStyle=on?'#E0E0E0':'#B8B8B8'; g.fillRect(-3.5,-3.5,7,7); g.restore(); g.fillStyle=on?'#E0E0E0':'#B8B8B8'; g.fillText(l,x+8,y+3); };
-  if(UI.cam==='plan'){ g.fillStyle='#0d1219'; g.fillRect(0,0,w,h); const cx=w*.5, cy=h*.78, m=h*.2;
+  if(UI.cam==='plan'){ g.fillStyle='#0d1219'; g.fillRect(0,0,w,h); const cx=w*.5, cy=h*.8, m=h*.19;
     g.strokeStyle='rgba(255,255,255,.07)'; g.lineWidth=1; for(let x=cx%(m/2);x<w;x+=m/2){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,h); g.stroke(); } for(let y=cy%(m/2);y<h;y+=m/2){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); }
     g.setLineDash([3,4]); g.strokeStyle='rgba(255,255,255,.22)'; [.5,1,2,3].forEach(r=>{ g.beginPath(); g.arc(cx,cy,r*m,Math.PI,2*Math.PI); g.stroke(); g.fillStyle='rgba(140,140,140,.9)'; g.fillText(r+' m',cx+r*m+4,cy-3); }); g.setLineDash([]);
-    g.fillStyle='rgba(79,195,232,.07)'; g.beginPath(); g.moveTo(cx,cy); g.arc(cx,cy,3.3*m,-Math.PI/2-Math.PI/6,-Math.PI/2+Math.PI/6); g.closePath(); g.fill(); g.strokeStyle='rgba(79,195,232,.5)'; g.stroke();
+    const half=36*Math.PI/180; g.fillStyle='rgba(79,195,232,.07)'; g.beginPath(); g.moveTo(cx,cy); g.arc(cx,cy,3.6*m,-Math.PI/2-half,-Math.PI/2+half); g.closePath(); g.fill(); g.strokeStyle='rgba(79,195,232,.5)'; g.stroke(); g.fillStyle='rgba(79,195,232,.7)'; g.fillText('view 72°',cx+6,cy-3.4*m);
     const P=(f,s)=>[cx+s*m,cy-f*m]; const blob=(p,r,c1)=>{ const gr=g.createRadialGradient(p[0],p[1],0,p[0],p[1],r); gr.addColorStop(0,c1); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.beginPath(); g.arc(p[0],p[1],r,0,7); g.fill(); };
-    blob(P(2.2,-.9),26,'rgba(255,190,150,.85)'); blob(P(2.0,0),22,'rgba(200,220,255,.6)');
-    let p=P(2.2,-.9); dia(p[0],p[1],'sc0_alma_side',1); p=P(2.6,-.3); dia(p[0],p[1],'sc0_alma_in'); p=P(3.4,0); dia(p[0],p[1],'sc0_title'); p=P(1.4,0); dia(p[0],p[1],'sc0_charge');
-    g.fillStyle='#E0E0E0'; g.beginPath(); g.arc(cx,cy,5,0,7); g.fill(); g.fillStyle='#8C8C8C'; g.fillText('seated user · sc0',cx+9,cy+14);
+    const pa=POINTS.alma_side; blob(P(pa.f,pa.s),22,'rgba(255,190,150,.85)');
+    Object.entries(POINTS).forEach(([k,p],i)=>{ const q=P(p.f,p.s); dia(q[0],q[1]+(k==='title'?-8:k==='charge'?8:0),p.tp,k==='alma_side'); });
+    g.fillStyle='#E0E0E0'; g.beginPath(); g.arc(cx,cy,5,0,7); g.fill(); g.fillStyle='#8C8C8C'; g.fillText('seated user · PlayerStart Test_Entering',cx+9,cy+14);
     if(giz) giz.innerHTML=''; return; }
   const sky=g.createLinearGradient(0,0,0,h); sky.addColorStop(0,'#070c14'); sky.addColorStop(.42,'#16263a'); sky.addColorStop(.56,'#3b5470'); sky.addColorStop(.6,'#6d8098'); sky.addColorStop(.64,'#2a3b50'); sky.addColorStop(1,'#060a10'); g.fillStyle=sky; g.fillRect(0,0,w,h);
   const hz=h*.6; const glow=g.createRadialGradient(w*.5,hz,0,w*.5,hz,w*.6); glow.addColorStop(0,'rgba(170,195,225,.22)'); glow.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=glow; g.fillRect(0,0,w,h);
   [[.02,h*.6,'#1a2737',.9],[.035,h*.64,'#132031',.95],[.05,h*.7,'#0d1724',1],[.07,h*.8,'#09111b',1]].forEach(([f,by,col,a],i)=>{ g.beginPath(); g.moveTo(0,h); for(let x=0;x<=w;x+=6){ const y=by-Math.sin(x*f*.1+i*1.7)*h*.025-Math.sin(x*f*.037+i)*h*.04; g.lineTo(x,y); } g.lineTo(w,h); g.closePath(); g.globalAlpha=a; g.fillStyle=col; g.fill(); g.globalAlpha=1; });
   for(let i=0;i<220;i++){ const x=rnd()*w, y=h*.2+rnd()*h*.75, r=rnd()*1.1+.2; g.fillStyle=`rgba(210,225,245,${.08+rnd()*.25})`; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }
   if(UI.cam==='free'){ g.strokeStyle='rgba(255,255,255,.08)'; for(let i=-12;i<=12;i++){ g.beginPath(); g.moveTo(w/2+i*28,h*.62); g.lineTo(w/2+i*160,h); g.stroke(); } for(let j=0;j<7;j++){ const y=h*.62+Math.pow(j/6,1.8)*h*.38; g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); } }
+  /* pinhole from the eye of the stop: horizontal FOV 72° */
+  const fpx=(w/2)/Math.tan(36*Math.PI/180); const proj=p=>[w/2+(p.s/p.f)*fpx, h/2-(p.u/p.f)*fpx];
   const blob=(x,y,r,c1,c2)=>{ const gr=g.createRadialGradient(x,y,0,x,y,r); gr.addColorStop(0,c1); gr.addColorStop(.45,c2); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); };
-  const ax=w*.3, ay=h*.47; blob(ax,ay,h*.13,'rgba(255,214,186,.95)','rgba(255,170,130,.35)'); for(let i=0;i<70;i++){ const a=rnd()*7, d=h*.06+rnd()*h*.07; g.fillStyle=`rgba(255,215,190,${.15+rnd()*.35})`; g.fillRect(ax+Math.cos(a)*d,ay+Math.sin(a)*d,1.2,1.2); }
-  const mx=w*.53, my=h*.5; blob(mx,my,h*.09,'rgba(225,236,255,.7)','rgba(160,190,235,.25)'); g.strokeStyle='rgba(205,220,245,.25)'; g.lineWidth=1.5; g.beginPath(); g.arc(mx,my,h*.15,0,7); g.stroke(); g.lineWidth=1;
-  g.save(); g.globalAlpha=.32; g.strokeStyle='rgba(207,224,255,.9)'; g.fillStyle='rgba(207,224,255,.12)'; const gx=w*.53, gy=h*.86; g.beginPath(); g.ellipse(gx,gy,h*.05,h*.022,-.2,0,7); g.fill(); g.stroke(); g.beginPath(); g.ellipse(gx-12,gy+6,h*.05,h*.022,-.2,0,7); g.stroke(); g.restore(); g.fillStyle='rgba(207,224,255,.6)'; g.fillText('ghost · rest the sensor',gx+h*.06,gy+4);
-  g.setLineDash([3,5]); g.strokeStyle='rgba(255,255,255,.16)'; [.33,.62].forEach((k,i)=>{ g.beginPath(); g.ellipse(w/2,h*.5,w*k*.5,h*k*.75,0,0,7); g.stroke(); g.fillStyle='rgba(140,140,140,.85)'; g.fillText(i?'±60°':'±30°',w/2+w*k*.5-28,h*.5-h*k*.75+14); }); g.setLineDash([]);
-  dia(w*.53,h*.2,'sc0_title'); dia(w*.42,h*.42,'sc0_alma_in'); dia(w*.62,h*.56,'sc0_charge');
-  const sx=ax, sy=ay+h*.16; dia(sx,sy,'sc0_alma_side',1);
-  g.lineWidth=2; const arr=(dx,dy,col)=>{ g.strokeStyle=col; g.fillStyle=col; g.beginPath(); g.moveTo(sx,sy); g.lineTo(sx+dx,sy+dy); g.stroke(); const a=Math.atan2(dy,dx); g.beginPath(); g.moveTo(sx+dx,sy+dy); g.lineTo(sx+dx-7*Math.cos(a-.4),sy+dy-7*Math.sin(a-.4)); g.lineTo(sx+dx-7*Math.cos(a+.4),sy+dy-7*Math.sin(a+.4)); g.fill(); };
-  arr(48,0,'#D8C24B'); arr(0,-48,'#C58BD0'); arr(-26,26,'#E0954B'); g.lineWidth=1;
-  if(giz){ giz.style.left=(sx+56)+'px'; giz.style.top=(sy+10)+'px'; giz.innerHTML=`<div class="vslab"><span class="k">Alma</span><span class="v tnum" style="width:auto;">2.20 m front · 0.90 m left · +0.05 m</span></div>`; } }
+  const mb=proj({f:2.6,s:0,u:-0.15}); blob(mb[0],mb[1],h*.1,'rgba(225,236,255,.7)','rgba(160,190,235,.25)'); g.fillStyle='rgba(205,220,245,.7)'; g.fillText('Metaball · Entering_Blob',mb[0]+h*.08,mb[1]+h*.07);
+  g.save(); g.globalAlpha=.32; g.strokeStyle='rgba(207,224,255,.9)'; g.fillStyle='rgba(207,224,255,.12)'; const gx=w*.5, gy=h*.86; g.beginPath(); g.ellipse(gx,gy,h*.05,h*.022,-.2,0,7); g.fill(); g.stroke(); g.beginPath(); g.ellipse(gx-12,gy+6,h*.05,h*.022,-.2,0,7); g.stroke(); g.restore(); g.fillStyle='rgba(207,224,255,.6)'; g.fillText('GHOST_BREATH · rest the sensor on your belly',gx+h*.06,gy+4);
+  g.setLineDash([3,5]); g.strokeStyle='rgba(255,255,255,.16)'; const x30=(Math.tan(30*Math.PI/180))*fpx; [w/2-x30,w/2+x30].forEach(x=>{ g.beginPath(); g.moveTo(x,h*.08); g.lineTo(x,h*.92); g.stroke(); }); g.setLineDash([]); g.fillStyle='rgba(140,140,140,.85)'; g.fillText('±30°',w/2+x30+4,h*.1);
+  const pt=proj(POINTS.title), pi=proj(POINTS.alma_in), pc=proj(POINTS.charge);
+  const diaL=(x,y,l)=>{ g.save(); g.translate(x,y); g.rotate(Math.PI/4); g.fillStyle='#B8B8B8'; g.fillRect(-3.5,-3.5,7,7); g.restore(); g.fillStyle='#B8B8B8'; g.textAlign='right'; g.fillText(l,x-9,y+3); g.textAlign='left'; };
+  diaL(pt[0],pt[1]-16,'TP_sc0_title · 3.00 m'); dia(pc[0],pc[1],'TP_sc0_charge · 2.53 m'); dia(pi[0],pi[1]+2,'',1);
+  const sx=pi[0], sy=pi[1]+2; g.lineWidth=2; const arr=(dx,dy,col)=>{ g.strokeStyle=col; g.fillStyle=col; g.beginPath(); g.moveTo(sx,sy); g.lineTo(sx+dx,sy+dy); g.stroke(); const a=Math.atan2(dy,dx); g.beginPath(); g.moveTo(sx+dx,sy+dy); g.lineTo(sx+dx-7*Math.cos(a-.4),sy+dy-7*Math.sin(a-.4)); g.lineTo(sx+dx-7*Math.cos(a+.4),sy+dy-7*Math.sin(a+.4)); g.fill(); };
+  arr(44,0,'#D8C24B'); arr(0,-44,'#C58BD0'); arr(-24,24,'#E0954B'); g.lineWidth=1;
+  if(giz){ giz.style.left=(sx+50)+'px'; giz.style.top=(sy+14)+'px'; giz.innerHTML=`<div class="vslab"><span class="k">TP_sc0_alma_in</span><span class="v tnum" style="width:auto;">2.20 m front · 0.00 m side · +0.05 m</span></div>`; } }
 /* ---------- wiring ---------- */
 let wavTarget=null;
 function wire(){ const scr=document.getElementById('screen');
@@ -1427,21 +1539,26 @@ function wire(){ const scr=document.getElementById('screen');
   const pb=document.getElementById('persBtn'); if(pb) pb.onclick=e=>{ e.stopPropagation(); document.querySelectorAll('.persmenu').forEach(n=>n.remove()); const p=posIn(pb,scr); const m=document.createElement('div'); m.className='menu ov persmenu'; m.style.left=p.x+'px'; m.style.top=(p.y+24)+'px'; m.style.minWidth='250px';
     m.innerHTML=Object.entries(PERS).map(([k,v])=>`<button data-pk="${k}" class="${UI.pers===k?'on':''}">${v.n}<span class="k">${v.x}</span></button>`).join('');
     scr.appendChild(m); m.querySelectorAll('[data-pk]').forEach(b=>b.onclick=()=>{ UI.pers=b.dataset.pk; build(); }); setTimeout(()=>document.addEventListener('click',()=>m.remove(),{once:true}),0); };
+  const pc=document.getElementById('pbCount'); if(pc) pc.onclick=()=>setOv(UI.ov==='problems'?'none':'problems');
   const lb=document.getElementById('logicBtn'); if(lb) lb.onclick=()=>setOv(UI.ov==='logic'?'none':'logic');
   const nm=document.getElementById('nmIn'); if(nm){ const c=BY[UI.sel]; const commit=()=>{ c.t=cleanId(nm.value); build(); }; nm.addEventListener('change',commit); nm.addEventListener('keydown',e=>{ if(e.key==='Enter') nm.blur(); }); }
   const wl=document.getElementById('wavLoad'); if(wl) wl.onclick=()=>{ wavTarget=BY[UI.sel]; document.getElementById('wavIn').click(); };
+  const at=document.getElementById('atSel'); if(at) at.onchange=()=>{ const c=BY[UI.sel]; if(c){ c.at=at.value; build(); } };
   const wp=document.getElementById('wavPlay'); if(wp) wp.onclick=()=>{ const c=BY[UI.sel]; if(c&&c.file){ try{ new Audio(c.file.url).play(); }catch(_){} } };
   const dz=scr.querySelector('.drop'); if(dz){ dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.style.borderColor='var(--auto-ovr)'; }); dz.addEventListener('dragleave',()=>{ dz.style.borderColor=''; }); dz.addEventListener('drop',e=>{ e.preventDefault(); const f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f){ wavTarget=BY[UI.sel]; loadWav(f); } }); }
   scr.querySelectorAll('.tlc [data-id]').forEach(el=>el.addEventListener('click',e=>{ e.stopPropagation(); UI.sel=el.dataset.id; UI.selRole=null; UI.insTab='insp'; const st=document.getElementById('sctl')?.scrollTop||0; build(); const sc2=document.getElementById('sctl'); if(sc2){ sc2.scrollTop=st; drawAnchors(); } }));
   const sc=document.getElementById('sctl'); if(sc) sc.addEventListener('scroll',()=>{ document.querySelectorAll('.ov,.clickdot').forEach(n=>n.remove()); }); }
-function loadWav(f){ const c=wavTarget; if(!c) return; const url=URL.createObjectURL(f); const a=new Audio(); a.preload='metadata'; a.src=url;
-  a.onloadedmetadata=()=>{ c.file={name:f.name,dur:isFinite(a.duration)?a.duration:0,url}; if(/^FX_NEW_SOUND/.test(c.t)) c.t=cleanId(f.name.replace(/\.[^.]+$/,'')); build(); };
-  a.onerror=()=>{ c.file={name:f.name,dur:0,url}; build(); }; }
+function wavHeader(buf){ try{ const d=new DataView(buf); if(d.getUint32(0,false)!==0x52494646||d.getUint32(8,false)!==0x57415645) return null; let o=12;
+  while(o+8<=d.byteLength){ const id=d.getUint32(o,false), sz=d.getUint32(o+4,true); if(id===0x666d7420) return {fmt:d.getUint16(o+8,true),ch:d.getUint16(o+10,true),sr:d.getUint32(o+12,true),bits:d.getUint16(o+22,true)}; o+=8+sz+(sz&1); } }catch(_){} return null; }
+function loadWav(f){ const c=wavTarget; if(!c) return; const url=URL.createObjectURL(f);
+  f.arrayBuffer().then(buf=>{ const hdr=wavHeader(buf); const a=new Audio(); a.preload='metadata'; a.src=url;
+    const done=dur=>{ c.file={name:f.name,dur,url,hdr}; if(/^FX_NEW_SOUND/.test(c.t)) c.t=cleanId(f.name); build(); };
+    a.onloadedmetadata=()=>done(isFinite(a.duration)?a.duration:0); a.onerror=()=>done(0); }).catch(()=>{ c.file={name:f.name,dur:0,url,hdr:null}; build(); }); }
 document.getElementById('wavIn').addEventListener('change',e=>{ const f=e.target.files&&e.target.files[0]; if(f) loadWav(f); e.target.value=''; });
 function syncOvSeg(){ document.querySelectorAll('#ovSeg button').forEach(x=>x.classList.toggle('on',x.dataset.o===UI.ov)); }
 function setOv(o){ UI.ov=o; syncOvSeg(); build(); }
 document.querySelectorAll('#ovSeg button').forEach(b=>b.onclick=()=>setOv(b.dataset.o));
-document.addEventListener('keydown',e=>{ if(e.target.closest&&e.target.closest('input,select,textarea')) return; if(e.key==='A'&&e.shiftKey) setOv(UI.ov==='add'?'none':'add'); else if(e.key==='g'||e.key==='G') setOv(UI.ov==='logic'?'none':'logic'); else if(e.key==='Escape') setOv('none'); });
+document.addEventListener('keydown',e=>{ if(e.target.closest&&e.target.closest('input,select,textarea')) return; if(e.key==='A'&&e.shiftKey) setOv(UI.ov==='add'?'none':'add'); else if(e.key==='g'||e.key==='G') setOv(UI.ov==='logic'?'none':'logic'); else if(e.key==='F8'){ e.preventDefault(); setOv(UI.ov==='problems'?'none':'problems'); } else if(e.key==='Escape') setOv('none'); });
 document.getElementById('fsBtn').onclick=()=>{ try{ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }catch(_){} };
 document.addEventListener('fullscreenchange',()=>{ document.getElementById('fsBtn').textContent=document.fullscreenElement?'Exit full screen':'Full screen'; });
 /* ---------- fit the 1600×900 app to the whole window ---------- */

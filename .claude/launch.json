@@ -15,9 +15,8 @@
       "name": "editor-obra",
       "runtimeExecutable": "python",
       "runtimeArgs": [
-        ".claude/serve_nocache.py",
-        "8767",
-        "web/editor-obra"
+        "tools/editor/serve_editor.py",
+        "8767"
       ],
       "port": 8767
     },

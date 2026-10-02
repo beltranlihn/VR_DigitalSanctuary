@@ -56,3 +56,6 @@ perf/
 # Cache de Python de los scripts de la skill
 __pycache__/
 *.pyc
+
+# Archivos de trabajo movidos del Escritorio (videos, APK, audios): pesados, no van al repo
+Recursos/Soul Charger - Escritorio 2026-10/

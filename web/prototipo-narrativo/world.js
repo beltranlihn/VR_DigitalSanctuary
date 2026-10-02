@@ -46,7 +46,9 @@ $('#stage').appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 const camera = new THREE.PerspectiveCamera(72, 1, .03, 4000);
-const rig = new THREE.Group(); rig.add(camera); camera.position.y = EYE; scene.add(rig);
+renderer.xr.enabled = true;   // WebXR: solo actúa con una sesión inmersiva abierta (botón «Ver en VR»)
+// rig = el recorrido del pawn · xrLift = altura de los ojos cuando manda el visor (0 en pantalla) · camera = la cabeza
+const rig = new THREE.Group(), xrLift = new THREE.Group(); rig.add(xrLift); xrLift.add(camera); camera.position.y = EYE; scene.add(rig);
 const hud = new THREE.Group(); camera.add(hud); // lo que viaja con la cabeza
 function resize() { const r = $('#stage').getBoundingClientRect(), w = Math.max(1, r.width), h = Math.max(1, r.height); renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
@@ -746,7 +748,23 @@ cvs.addEventListener('pointermove', e => {
 });
 cvs.addEventListener('pointerdown', e => { if (e.button === 2) { S.rdown = true; return; } S.down = true; S.clicked = true; audioOn(); });
 addEventListener('pointerup', e => { if (e.button === 2) S.rdown = false; else S.down = false; });
-function pick(objs) { ray.setFromCamera(S.mouse, camera); const hits = ray.intersectObjects(objs.filter(o => o.visible), true); return hits.length ? hits[0] : null; }
+/* WebXR: el mando activo es la mano (su rayo apunta, el gatillo es el clic) */
+const XR = { on: false, ctrl: null, ctrls: [] }, _xrQ = new THREE.Quaternion();
+const xrRayMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: .35 });
+for (let i = 0; i < 2; i++) {
+  const c = renderer.xr.getController(i);
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0, -1.5)]), xrRayMat); c.add(line);
+  c.addEventListener('connected', e => { c.userData.hand = e.data && e.data.handedness; if (!XR.ctrl || c.userData.hand === 'right') XR.ctrl = c; });
+  c.addEventListener('disconnected', () => { c.userData.hand = null; if (XR.ctrl === c) XR.ctrl = XR.ctrls.find(o => o !== c && o.userData.hand) || null; });
+  c.addEventListener('selectstart', () => { XR.ctrl = c; S.down = true; S.clicked = true; audioOn(); });
+  c.addEventListener('selectend', () => { S.down = false; });
+  xrLift.add(c); XR.ctrls.push(c);
+}
+function xrRay() {
+  const c = XR.ctrl; c.updateMatrixWorld(true);
+  ray.ray.origin.setFromMatrixPosition(c.matrixWorld); ray.ray.direction.set(0, 0, -1).applyQuaternion(c.getWorldQuaternion(_xrQ)).normalize();
+}
+function pick(objs) { if (XR.on && XR.ctrl) xrRay(); else ray.setFromCamera(S.mouse, camera); const hits = ray.intersectObjects(objs.filter(o => o.visible), true); return hits.length ? hits[0] : null; }
 function consumeClick() { const c = S.clicked; S.clicked = false; return c; }
 function hover(obj) { return !!pick([obj]); }
 

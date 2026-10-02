@@ -42,7 +42,7 @@ const amb = (id, at = 0, note = '') => clip({ key: id, id, track: 'amb', at, not
 function walk(key, label, from, to, dur, at, o = {}) {
   const c = clip({ key, track: 'pawn', label, dur, at, apply: k => {
     const e = o.linear ? k : ease(k); rig.position.set(lerp(from.x, to.x, e), 0, lerp(from.z, to.z, e)); rig.rotation.y = to.yaw;
-    if (k < 1) camera.position.y = EYE + Math.sin(k * dur * 11) * .006 * Math.sin(k * Math.PI);
+    if (k < 1 && !XR.on) camera.position.y = EYE + Math.sin(k * dur * 11) * .006 * Math.sin(k * Math.PI);
   } });
   fx('FX_WALK', [c.key, 'start', +(dur * (o.stepsAt ?? .1)).toFixed(2)], 'pasos: ' + label);
   return c;
@@ -166,7 +166,7 @@ function baseWorld() {
   ringG.scale.setScalar(1); cavities.forEach((c, i) => setCavity(i, 0)); soul.material.uniforms.uGlow.value = 0; soul.visible = true;
   calib.forEach(c => c.material.opacity = 0);
   TL_TITLES.forEach(m => { m.visible = false; m.material.uniforms.uR.value = 0; m.material.uniforms.uO.value = 0; });
-  rigTo(PS0); camera.position.y = EYE;
+  rigTo(PS0); if (!XR.on) camera.position.y = EYE;
 }
 function applyW() {
   // texto y voz
@@ -990,14 +990,16 @@ function frame(now) {
   } else if (dirty) { computeSchedule(); if (UI.expanded) place(); }
   const T = S.clock;
   // mirada
-  S.yaw = lerp(S.yaw, S.targetYaw, .12); camera.rotation.set(S.pitch, S.yaw, 0, 'YXZ');
+  if (!XR.on) { S.yaw = lerp(S.yaw, S.targetYaw, .12); camera.rotation.set(S.pitch, S.yaw, 0, 'YXZ'); }   // en el visor manda la cabeza
   evaluate(S.t);
   // cámara de revisión: más campo visual o unos pasos detrás de los ojos del pawn (no existe en el visor)
-  { const bob = camera.position.y - EYE; camera.position.set(0, EYE + bob, 0); if (S.camBack > 0) camera.position.add(tmp.set(0, 0, S.camBack).applyEuler(camera.rotation)); }
+  if (!XR.on) { const bob = camera.position.y - EYE; camera.position.set(0, EYE + bob, 0); if (S.camBack > 0) camera.position.add(tmp.set(0, 0, S.camBack).applyEuler(camera.rotation)); }
   prevT = S.playing ? S.t : null;
   if (S.playing && S.t >= TOTAL) setPlaying(false);
   // mano: rayo del mouse a ~0,6 m
-  ray.setFromCamera(S.mouse, camera); S.handPrev.copy(S.hand); S.hand.copy(ray.ray.origin).addScaledVector(ray.ray.direction, .6);
+  S.handPrev.copy(S.hand);
+  if (XR.on && XR.ctrl) { xrRay(); XR.ctrl.getWorldPosition(S.hand); }   // en el visor la mano es el mando
+  else { ray.setFromCamera(S.mouse, camera); S.hand.copy(ray.ray.origin).addScaledVector(ray.ray.direction, .6); }
   S.handVel.subVectors(S.hand, S.handPrev).divideScalar(Math.max(rdt, 1e-3));
   const mv = S.handVel.length(); S.stillness = lerp(S.stillness, clamp(1 - mv / 1.2), .05);
   handMesh.position.copy(S.hand); handMesh.visible = !S.sensorOn;
@@ -1081,7 +1083,26 @@ function frame(now) {
 }
 // ?timer: bucle por setTimeout (vistas de prueba donde requestAnimationFrame no corre)
 const TIMER = /[?&]timer/.test(location.search);
-function schedule() { if (TIMER) setTimeout(() => frame(performance.now()), 16); else requestAnimationFrame(frame); }
+function schedule() { if (XR.on) return; if (TIMER) setTimeout(() => frame(performance.now()), 16); else requestAnimationFrame(frame); }   // en el visor el bucle lo lleva la sesión XR
+
+/* ============ ver en VR (WebXR) ============ */
+async function enterVR() {
+  if (XR.on) return;
+  if (!navigator.xr) { toast('Este navegador no tiene WebXR. Abre la página en el navegador del Quest.'); return; }
+  let session;
+  try { session = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor'] }); }
+  catch (e) { toast('No se pudo entrar en VR: ' + (e && e.message || e)); return; }
+  renderer.xr.setReferenceSpaceType('local');   // origen = la cabeza al entrar; xrLift la pone a la altura de los ojos del pawn
+  await renderer.xr.setSession(session);
+  XR.on = true; xrLift.position.y = EYE; camera.position.set(0, 0, 0); camera.rotation.set(0, 0, 0);
+  if (!S.started) startPiece(true); else if (!S.sound) setSound(true, true);
+  if (!S.playing) setPlaying(true);
+  renderer.setAnimationLoop(now => frame(now));
+  session.addEventListener('end', () => {
+    XR.on = false; renderer.setAnimationLoop(null); xrLift.position.y = 0; camera.position.set(0, EYE, 0); S.down = false;
+    lastNow = performance.now(); schedule();
+  });
+}
 function hudWorldPos() { hudPanel.updateMatrixWorld(true); return hudAnchor.getWorldPosition(new THREE.Vector3()); }
 
 /* ============ controles ============ */
@@ -1130,6 +1151,9 @@ function bindControls() {
   $('#b_start').onclick = () => { startPiece(false); seek(0); setPlaying(true); };
   $('#b_start_sound').onclick = () => { startPiece(true); seek(0); setPlaying(true); };
   $('#b_start_edit').onclick = () => { startPiece(false); seek(0); setExpanded(true); };
+  $('#b_start_vr').onclick = () => { startPiece(true); seek(0); enterVR(); };
+  $('#b_vr').onclick = () => enterVR();
+  if (navigator.xr) navigator.xr.isSessionSupported('immersive-vr').then(ok => { if (ok) document.body.classList.add('xr-ok'); }).catch(() => {});
   // el borde superior del panel se arrastra para cambiar su alto
   const rz = $('#tl-grip'); rz.onpointerdown = e => { try { rz.setPointerCapture(e.pointerId); } catch (_) {} const y0 = e.clientY, h0 = UI.h;
     const mv = ev => { UI.h = h0 + (y0 - ev.clientY); applyPanelHeight(); }; const up = () => { rz.removeEventListener('pointermove', mv); rz.removeEventListener('pointerup', up); layout(); };
