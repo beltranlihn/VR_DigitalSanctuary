@@ -1,6 +1,6 @@
 # BP_BreathBlob_SC + M_BreathBlob_SC — el metaball de respiración (solo modo 0)
 
-**Ruta:** `/Game/SoulCharger/Mechanics/Breath/Blueprints/BP_BreathBlob_SC` + `M_BreathBlob_SC`
+**Ruta:** `/SC_Breath/Blueprints/BP_BreathBlob_SC` + `M_BreathBlob_SC`
 **Colocado en:** `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath` como `Entering_Blob` (380, 0, 125)
 **Nació:** 2026-09-27 · **duplicado de [[BP_MetaBlob_SC]] + `M_MetaBlob_SC`**, que quedan intactos.
 **Estado:** 🟢 compila estricto, entrada/salida verificada en PIE y Simulate · ⬜ visor

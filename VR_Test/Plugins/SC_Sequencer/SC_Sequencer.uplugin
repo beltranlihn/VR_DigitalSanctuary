@@ -1,0 +1,31 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Soul Charger - Sequencer",
+	"Description": "Soul Charger - el secuenciador musical de Attracting: orbes de sonido, slots, cadena, mandos y laser, salar de Chladni, guardar melodia. BP_Sequencer_SC implementa el contrato de etapa. Depende de SC_Base y de XRFramework (plantilla VR).",
+	"Category": "Soul Charger",
+	"CreatedBy": "Alma Digital Studio",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Plugins": [
+		{
+			"Name": "SC_Base",
+			"Enabled": true
+		},
+		{
+			"Name": "Niagara",
+			"Enabled": true
+		},
+		{
+			"Name": "EnhancedInput",
+			"Enabled": true
+		}
+	]
+}

@@ -16,7 +16,7 @@ Atajos de ruta: `BP/` = `.claude/skills/unreal-vr/blueprints/`; `SC/` = `VR_Test
   - Mientras está vivo gira en yaw del mundo a 20 °/s (`BP_SensorOrb_SC`).
 - **Almas** `HallSoul_0..4` (`BP_ProtoSoul_SC`, `Size` 0,15, unos 15 cm). ⚠ Posiciones según la fórmula vieja de `HallPickStart`:
   - Fwd = 54 − 3|k|, Side = 19k, Down = 28, con k = 0, ±1, ±2.
-  - Malla `/Game/SoulCharger/Core/Alma/SM_AlmaSphere` (r 50).
+  - Malla `/SC_Base/Meshes/SM_AlmaSphere` (r 50).
 - **Ganchos de detección** (`SC/Hall/dsl/`):
   - Timbre vivo: paso 6, `bBellLive`. Se empieza a apretar cuando sube `BellPress` (mano a menos de 14 cm). Se completa con `BellCharge ≥ 1` (3 s).
   - Sensor vivo: paso 12. Se toma con `HallGrab`.

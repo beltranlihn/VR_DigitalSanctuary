@@ -1,7 +1,7 @@
 # BP_ControllerRig — progress tracker
 
 - **refPath**: `/Game/BP_ControllerRig.BP_ControllerRig` · **parent**: Actor · **en nivel**: sí, **2 instancias** en `/Game/XRFramework/Levels/L_XRTemplate` — `ControllerRig_R` en (−40, 25, 120) y `ControllerRig_L` en (−40, −25, 120).
-- **Propósito**: el **banco de pruebas de los mandos** (2026-09-03). Beltrán importó meshes propios de mando (`/SC_Base/Meshes/ControllerL|R`) y sensores (`/Game/SoulCharger/Mechanics/Breath/Meshes/BreathL|R`) y los había colgado del `BP_XRPawn`; al hacerlo **desaparecía todo** en Play. Este BP los saca del pawn: los tiene en el mundo, donde se autoran mirándolos, y **se los engancha a la mano en `BeginPlay`**.
+- **Propósito**: el **banco de pruebas de los mandos** (2026-09-03). Beltrán importó meshes propios de mando (`/SC_Base/Meshes/ControllerL|R`) y sensores (`/SC_Breath/Meshes/BreathL|R`) y los había colgado del `BP_XRPawn`; al hacerlo **desaparecía todo** en Play. Este BP los saca del pawn: los tiene en el mundo, donde se autoran mirándolos, y **se los engancha a la mano en `BeginPlay`**.
 - **Y es el examen de portabilidad del sistema de dibujo** (pedido de Beltrán: las mecánicas tienen que poder montarse en cualquier pawn). Ver `docs/` y la memoria del mandato.
 - **Estado**: 🟢 **DIBUJA EN VISOR** (Beltrán, 2026-09-03 tarde: "Funciona") — anclaje + trazo desde el Marker con el gatillo, ambas manos. 🟡 Háptica continua agregada el mismo día (clon de `DrawHaptic` del sensor), **sin probar en visor todavía**.
 - 🆕 **2026-09-04 — el dibujo se MIGRÓ al componente [[BPC_DrawTool]]** (paso 1 de `docs/MECANICAS-PORTABLES.md`). Ver la sección "Refactor 2026-09-04" abajo. El rig quedó como **primer consumidor** de la herramienta portable: ya no tiene el filtro/calma/canvas/háptica propios, solo pasa su config al componente y le rutea el gatillo. Compila estricto; **falta el visor de confirmación** (debería reproducir lo de 2026-09-03 más el One-Euro y la calma que el rig no tenía).
@@ -12,7 +12,7 @@
 |---|---|
 | `HandRef` | `SkeletalMeshComponent` con `SKM_MannyXR_right|left`, **`Hidden in Game`**, `NoCollision`, sin sombra. 🔴 **Es SOLO una referencia visual**: no viaja a ningún lado, existe para que Beltrán calce el mando contra la mano **en el viewport, sin Play**. En juego no se dibuja. |
 | `Controller` | El mesh del mando (`/SC_Base/Meshes/ControllerR|L`). |
-| `Breath` | El mesh del sensor (`/Game/SoulCharger/Mechanics/Breath/Meshes/BreathR|L`). |
+| `Breath` | El mesh del sensor (`/SC_Breath/Meshes/BreathR|L`). |
 | `Marker` | Esfera del motor a escala **0,02 = 2 cm de diámetro**. 🔴 **Es el origen del trazo de dibujo**, no la mano. |
 
 `bRightHand` (instance-editable) manda: el **Construction Script** elige el trío correcto de meshes según su valor, así que tirar el actor al mundo y marcar el check ya muestra la mano correcta en el viewport.

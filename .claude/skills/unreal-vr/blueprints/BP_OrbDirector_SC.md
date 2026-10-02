@@ -1,6 +1,6 @@
 # BP_OrbDirector_SC — el director de la repartija de amebas
 
-**Ruta:** `/Game/SoulCharger/Mechanics/Sequencer/Blueprints/BP_OrbDirector_SC`
+**Ruta:** `/SC_Sequencer/Blueprints/BP_OrbDirector_SC`
 **Colocado en:** `/Game/TestMeshes` como `GAL_12_OrbDirector` (estación 12 de la galería)
 **Nació:** 2026-09-23
 **Estado:** 🟢 previa viva en el editor y esferas de juego enganchadas · ⬜ sin visor · 🔴 nivel sin guardar

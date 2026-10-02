@@ -140,13 +140,15 @@ encendido: es lo primero que hay que mirar en el logcat del visor.
                                         Blueprints/ (BP_Obra_SC, ensayos, créditos, aviso) · Partitura/ (DA_Partitura_Obra)
                                         Titles/ (títulos y créditos) · Audio/ (voces de Alma, Placeholder/) · Materials/
 /Game/SoulCharger/Hall/                 inicio, hall y regreso, con el timbre · Maps/Test_Hall
-/Game/SoulCharger/Mechanics/Breath/     Entering: respiración y pacer        · Maps/Test_Breath
+/Game/SoulCharger/Mechanics/Breath/     Entering, la etapa: orquestador con voces, valle, aliento · Maps/Test_Breath
 /Game/SoulCharger/Mechanics/Heart/      Recognizing: el latido               · Maps/Test_Heart
 /Game/SoulCharger/Mechanics/Mind/       Loving: la célula y el fluido        · Maps/Test_Mind
-/Game/SoulCharger/Mechanics/Sequencer/  Attracting: secuenciador y Chladni   · Maps/Test_Sequencer
+/Game/SoulCharger/Mechanics/Sequencer/  Attracting, la etapa                 · Maps/Test_Sequencer
 /Game/SoulCharger/Mechanics/Draw/       Surrounding: la etapa (el océano) · Maps/Test_Draw, Test_DrawPalette
 /SC_Draw/  (VR_Test/Plugins/SC_Draw)    el SISTEMA de dibujo, portable: director, herramienta, trazo, paleta
-/SC_Base/  (VR_Test/Plugins/SC_Base)    lo que comparten las mecánicas portables: mandos, aparición, sonidos de interfaz, pedestal
+/SC_Breath/ (VR_Test/Plugins/SC_Breath) el sistema de respiración: sensor, metaball, guía (la etapa queda en Mechanics/Breath)
+/SC_Sequencer/ (VR_Test/Plugins/SC_Sequencer) el secuenciador entero (en Mechanics/Sequencer queda solo su nivel)
+/SC_Base/  (VR_Test/Plugins/SC_Base)    lo que comparten las mecánicas portables: mandos, aparición, puntero, sonidos de interfaz, pedestal
 /Game/SoulCharger/Shared/<Pieza>/       lo que usan varias etapas: HUD, Results, Ghost, UserTool, Appear, BioSensor,
                                         ChargeRing, QuestController, Subtitles (cada una con su Test_ si lo tiene)
 /Game/SoulCharger/Core/<Pieza>/         la base: Alma, Pawn, ProtoSoul, Signals (BioHub/OSC), Light, Audio, Pointer, Input, UI, Debug

@@ -27,7 +27,27 @@ def editor_abierto():
         return False
 
 
-def es_redirector(p):
+def rutas_viejas():
+    """Las rutas que dejaron los traslados (tools/unreal/reorden_*.json y plugin_*.json). Solo ahí puede quedar una sobra:
+    un asset real chico que todavía apunte a un redirector también tiene el texto ObjectRedirector, y no se toca."""
+    import glob
+    viejas = set()
+    for f in glob.glob(os.path.join(ROOT, "tools", "unreal", "reorden_contenido_*.json")) +              glob.glob(os.path.join(ROOT, "tools", "unreal", "plugin_*.json")):
+        d = json.load(open(f, encoding="utf-8"))
+        for o, n in d.get("mover", []) + d.get("archivar", []):
+            viejas.add(o)
+    return viejas
+
+
+VIEJAS = None
+
+
+def es_redirector(p, rel):
+    global VIEJAS
+    if VIEJAS is None:
+        VIEJAS = rutas_viejas()
+    if "/Game/" + rel.rsplit(".", 1)[0] not in VIEJAS:
+        return False
     if os.path.getsize(p) > 20000:
         return False
     b = open(p, "rb").read()
@@ -53,7 +73,7 @@ def main():
             rel = (rel_dir + "/" + f) if rel_dir != "." else f
             if rel.startswith("_Deprecated/"):
                 dep.append(rel)
-            elif es_redirector(os.path.join(dp, f)):
+            elif es_redirector(os.path.join(dp, f), rel):
                 red.append(rel)
     print("redirectores a sacar: %d" % len(red))
     print("archivados dentro del editor (/Game/_Deprecated) a sacar: %d" % len(dep))

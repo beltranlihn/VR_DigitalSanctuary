@@ -10,7 +10,9 @@ Uso: python tools/unreal/actualizar_rutas_docs.py [--aplicar] [archivos...]
 import argparse, glob, json, os, re
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-MAPAS = [os.path.join(ROOT, "tools", "unreal", f) for f in ("reorden_contenido_2026-10-02.json", "plugin_draw_2026-10-02.json")]
+MAPAS = [os.path.join(ROOT, "tools", "unreal", f) for f in ("reorden_contenido_2026-10-02.json", "plugin_draw_2026-10-02.json",
+                                                         "plugin_breath_2026-10-02.json", "plugin_base2_2026-10-02.json",
+                                                         "plugin_sequencer_2026-10-02.json")]
 SC = "/Game/SoulCharger/"
 CARPETAS = [  # carpeta vieja -> nueva (despues de reemplazar las rutas de assets una por una)
     ("/Game/NeuralCanvas/Maps/", SC + "Mechanics/Draw/Maps/"), ("/Game/NeuralCanvas/", SC + "Mechanics/Draw/"),

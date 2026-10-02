@@ -3,7 +3,9 @@
 Lee las rutas que guarda cada .uasset del plugin (sin abrir Unreal) y avisa si alguno apunta:
   - a /Game/SoulCharger/  -> PROHIBIDO: ata el plugin a la obra (el plugin ya no se puede llevar a otro proyecto);
   - a otro plugin SC_* que no está declarado en su .uplugin;
-  - a /Game/XRFramework/  -> permitido solo en los plugins que lo documentan (SC_Draw), se informa.
+  - a /Game/XRFramework/ o /Game/XRMannequins/ (plantilla VR de Epic) -> permitido solo en los plugins que lo
+    documentan en su LEEME (XR_OK), se informa;
+  - a cualquier otra cosa de /Game/ -> PROHIBIDO.
 Las rutas de origen de importación (carpetas sin asset, p. ej. /Game/Drawing/TB/Icons) se ignoran.
 
 Uso: python tools/unreal/verificar_plugins.py      (sale con 1 si hay algo prohibido)
@@ -14,7 +16,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 PLUG = os.path.join(ROOT, "VR_Test", "Plugins")
 CONTENT = os.path.join(ROOT, "VR_Test", "Content")
 PAT = re.compile(rb"/(?:Game|SC_[A-Za-z]+)/[A-Za-z0-9_/\-]+")
-XR_OK = {"SC_Draw"}
+# plugins que documentan en su LEEME que necesitan la plantilla VR de Epic (XRFramework / XRMannequins)
+XR_OK = {"SC_Draw", "SC_Breath", "SC_Sequencer"}
 
 
 def es_asset(ruta):
@@ -47,10 +50,12 @@ def main():
                         continue
                     if r.startswith("/Game/SoulCharger/"):
                         prob.add((r, f))
-                    elif r.startswith("/Game/XRFramework/"):
+                    elif r.startswith(("/Game/XRFramework/", "/Game/XRMannequins/")):
                         xr.add(r)
                     elif r.startswith("/SC_") and r.split("/")[1] not in deps:
                         otros.add((r, f))
+                    elif r.startswith("/Game/"):
+                        prob.add((r, f))
         estado = "OK" if not prob and not otros and (not xr or p in XR_OK) else "MAL"
         print("%-8s %3d assets  %s" % (p, n, estado))
         for r, f in sorted(prob):
@@ -58,7 +63,7 @@ def main():
         for r, f in sorted(otros):
             print("   SIN DECLARAR  %s  <- %s (agregar la dependencia en el .uplugin)" % (r, f))
         for r in sorted(xr):
-            print("   XRFramework  %s%s" % (r, "" if p in XR_OK else "  (no documentado)"))
+            print("   XR (Epic)  %s%s" % (r, "" if p in XR_OK else "  (no documentado)"))
         malo += estado == "MAL"
     sys.exit(1 if malo else 0)
 

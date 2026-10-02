@@ -65,7 +65,7 @@ En el editor, sin Play, **la instancia anima sola** con su reloj de preview (`Li
 | `MI_HeartScape_SC` | La superficie de autoría (paleta azul de la referencia) |
 | `Debug/SM_HeartMembranePreview_SC` | Disco de 8 m (`gen_heart_membrane.py -- preview`) **solo para verificar por miniatura**: la malla real encuadra 1,2 km y las ondas no se ven |
 | `Debug/MI_HeartPreviewCore_SC` | Hija de la MI con `Part` = 1, solo para la miniatura de la esfera |
-| Esfera: `/Game/SoulCharger/Core/Alma/SM_AlmaSphere` (radio 50, 2.665 vért.) · Cielo: `/Engine/BasicShapes/Sphere` a escala 1400 (700 m, más allá del faldón) | referenciados, no modificados |
+| Esfera: `/SC_Base/Meshes/SM_AlmaSphere` (radio 50, 2.665 vért.) · Cielo: `/Engine/BasicShapes/Sphere` a escala 1400 (700 m, más allá del faldón) | referenciados, no modificados |
 
 ## Componentes
 `DefaultSceneRoot` · `Membrane` (`SM_HeartMembrane_SC`) · `Heart` (`SM_AlmaSphere`, `boundsScale` 1,5) · `Sky` (esfera del motor, escala 1400). Los tres con `castShadow` falso, `overrideMaterials` = `MI_HeartScape_SC` en el template y colisión apagada en el Construction Script.

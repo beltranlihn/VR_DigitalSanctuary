@@ -1,6 +1,6 @@
 # BP_SeqRig_SC — el "sensor" PORTABLE de la etapa del secuenciador
 
-**Ruta:** `/Game/SoulCharger/Mechanics/Sequencer/Blueprints/BP_SeqRig_SC`
+**Ruta:** `/SC_Sequencer/Blueprints/BP_SeqRig_SC`
 **Colocado en:** `/Game/SoulCharger/Mechanics/Sequencer/Maps/Test_Sequencer` como `GAL_12_SeqRig`
 **Nació:** 2026-09-27 · Plan: [`docs/PLAN-SECUENCIADOR-PORTABLE.md`](../../../../docs/PLAN-SECUENCIADOR-PORTABLE.md)
 **Estado:** 🟢 Fase 1 construida y verificada en PIE (instalación, input, mandos y botón en la mano) · ⬜ Fase 2 (esfera/botón/secuenciador todavía leen al sensor) · ⬜ visor
