@@ -8,8 +8,9 @@ el BP que habla con la Obra, el entorno, el nivel de test) se queda en el proyec
 Uso:
   python tools/unreal/plan_plugin.py SC_Breath /Game/SoulCharger/Mechanics/Breath \
       --semillas BP_BreathRig_SC BP_BreathBlob_SC BP_Pacer_SC --extra "Audio/SND_Pacer*"
-Escribe tools/unreal/plugin_<x>_<fecha>.json (versionado) y Saved/ClaudeScripts/Obra/dump/plugin_<x>.json (para
-tools/unreal/mcp/mover_job.py). Muestra qué se queda en el proyecto y qué de lo que se queda usa el plugin.
+Escribe Saved/ClaudeScripts/Obra/dump/plugin_<x>.json (para tools/unreal/mcp/mover_job.py). Con --registrar (solo
+DESPUES de mover) escribe además tools/unreal/plugin_<x>_<fecha>.json, el registro versionado del que
+limpiar_con_editor_cerrado.py y actualizar_rutas_docs.py toman las rutas viejas: un plan sin ejecutar ahí sería peligroso. Muestra qué se queda en el proyecto y qué de lo que se queda usa el plugin.
 Después: crear el plugin (PluginToolset.CreatePlugin, plantilla "Content Only"), mover, re-guardar niveles,
 python tools/unreal/verificar_plugins.py y la prueba de humo. Detalle: gotcha 586.
 """
@@ -43,6 +44,9 @@ def main():
     ap.add_argument("carpeta")
     ap.add_argument("--semillas", nargs="+", required=True, help="nombres de los BPs del sistema")
     ap.add_argument("--extra", nargs="*", default=[], help="patrones relativos a la carpeta (Audio/SND_Pacer*)")
+    ap.add_argument("--registrar", action="store_true",
+                    help="escribir tambien tools/unreal/plugin_<x>_<fecha>.json. Solo DESPUES de mover: ese archivo es el "
+                         "registro de lo que se movio y limpiar_con_editor_cerrado.py toma de ahi las rutas viejas")
     a = ap.parse_args()
     car = a.carpeta.replace("\\", "/")
     if "/Game/" in car and not car.startswith("/Game/"):
@@ -86,11 +90,15 @@ def main():
     nombre = a.plugin.lower().replace("sc_", "")
     doc = {"generado": time.strftime("%Y-%m-%d"), "plugin": a.plugin, "carpeta": a.carpeta,
            "semillas": a.semillas, "extra": a.extra, "mover": mover}
-    json.dump(doc, open(os.path.join(ROOT, "tools", "unreal", "plugin_%s_%s.json" % (nombre, doc["generado"])), "w",
-                        encoding="utf-8"), indent=0, ensure_ascii=False)
     os.makedirs(DUMP, exist_ok=True)
     json.dump({"mover": mover}, open(os.path.join(DUMP, "plugin_%s.json" % nombre), "w"))
-    print("mapa: tools/unreal/plugin_%s_%s.json" % (nombre, doc["generado"]))
+    print("plan para mover_job.py: Saved/ClaudeScripts/Obra/dump/plugin_%s.json" % nombre)
+    if a.registrar:
+        reg = os.path.join(ROOT, "tools", "unreal", "plugin_%s_%s.json" % (nombre, doc["generado"]))
+        json.dump(doc, open(reg, "w", encoding="utf-8"), indent=0, ensure_ascii=False)
+        print("registro: tools/unreal/plugin_%s_%s.json" % (nombre, doc["generado"]))
+    else:
+        print("(sin --registrar: no queda registro versionado; correr de nuevo con --registrar despues de mover)")
 
 
 if __name__ == "__main__":
