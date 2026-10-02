@@ -18,7 +18,7 @@
 
 ## Historia (consulta; puede no coincidir con el proyecto actual)
 Planes, informes y auditorías de cada noche de trabajo. Sirven para entender por qué algo es como es; **no describen el estado actual**.
-🔴 **Usan las rutas de antes del reordenamiento de carpetas del 2026-10-02** (`/Game/Test_Entering`, `/Game/NeuralCanvas`, `Mechanics/Hall`...). La ruta nueva de cada asset está en `tools/unreal/reorden_contenido_2026-10-02.json`.
+🔴 **Usan las rutas de antes del reordenamiento de carpetas del 2026-10-02** (`/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath`, `/Game/NeuralCanvas`, `Mechanics/Hall`...). La ruta nueva de cada asset está en `tools/unreal/reorden_contenido_2026-10-02.json`.
 - Planes por fecha: `PLAN-*.md` (agosto → 2026-10-01).
 - Informes y auditorías anteriores: `AUDITORIA-2026-09-30.md`, `INFORME-NOCHE-2026-10-01.md`, `VO-AUDITORIA-2026-10-01.md`, `NOTAS-BELTRAN-2026-10-01-correcciones.md`, `HALLAZGOS-ROBOT-2026-08-15.md`, `PERF-ATTRACTING-2026-09-24.md`, `ANALISIS-CALIBRACION-2026-08-24.md`.
 - Guion anterior: `GUION-V4-2026-09-28.md`, `Soul-Charger-Script-2026-08-14.pdf`.

@@ -102,6 +102,13 @@ AddUserVariables(system, [{"name":"User.Beam_Start","description":"...",
 - Outliner: **get_folders**() / **get_actors_in_folder**(folder_path, recursive?) / **set_actor_folder**(actor, folder_path) / **rename_folder** / **delete_folder**.
 - **get_collision_channels**().
 
+## PluginToolset (`PluginToolset.PluginToolset`) — destilado 2026-10-02 (describe = ~12k)
+- **GetPluginTemplateDescriptions**() → plantillas `{name, description, onDiskPath, defaultTemplateName, bCanBePlacedInEngine}`; se pasa una entera a:
+- **CreatePlugin**(pluginName, relativePluginLocation "", bPlaceInEngine false, templateInfo, description) → ruta del `.uplugin` (vacía si falla). **Lo crea y lo monta en el editor** (no hace falta reiniciar). **ValidateNewPluginNameAndLocation**(mismos args) antes.
+- **AddPluginDependency**(pluginName, dependencyName, bOptional, bEnabled) / **RemovePluginDependency** / **GetPluginDependencies** / **GetPluginDependents**.
+- **GetPluginInfo**(name) → baseDir, contentDir, mountedAssetPath · **GetPluginForAsset**(assetPath) · **GetPluginDescriptor** / **UpdatePluginDescriptor**(name, newDescriptor con TODOS los campos).
+- **SetPluginEnabled**(name, bEnabled) (efecto al reiniciar) · **IsEnabled** · **ListEnabledPlugins** / **ListDiscoveredPlugins** · **IsPluginCreationAllowed** / **IsPluginModificationAllowed**.
+
 ## AssetTools (`editor_toolset.toolsets.asset.AssetTools`)
 - **save_assets**(asset_paths[]) — [] saves all dirty. **load_asset**(asset_path) / **is_dirty**(asset_path).
 - **find_assets**(folder_path, name, asset_type?, recursive?=true, tags?) / **exists**(path) / **get_asset_class**(asset_path).

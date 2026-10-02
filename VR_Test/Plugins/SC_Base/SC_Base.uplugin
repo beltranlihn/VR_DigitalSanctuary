@@ -1,0 +1,17 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Soul Charger - Base",
+	"Description": "Soul Charger - piezas base que usan todas las mecanicas: mandos, aparicion luz primero, sonidos de interfaz, pedestal.",
+	"Category": "Soul Charger",
+	"CreatedBy": "Alma Digital Studio",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false
+}

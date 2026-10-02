@@ -1,6 +1,6 @@
 """actualizar_rutas_docs.py - pasa los documentos vigentes por el mapa del reordenamiento de carpetas (2026-10-02).
 
-Reemplaza en los .md vigentes (CLAUDE.md, docs/ salvo la historia, la skill unreal-vr) las rutas viejas de assets por
+Reemplaza en los .md vigentes (y el mapa del plugin de Draw, tools/unreal/plugin_draw_2026-10-02.json) (CLAUDE.md, docs/ salvo la historia, la skill unreal-vr) las rutas viejas de assets por
 las nuevas (tools/unreal/reorden_contenido_2026-10-02.json), las carpetas viejas por las nuevas y los nombres de los
 niveles que cambiaron (Test_Entering -> Test_Breath, Test_Fluid -> Test_Mind, L_TBTest_SC -> Test_Draw).
 Los documentos de historia (PLAN-*, informes, auditorías viejas) no se tocan: describen el proyecto de su fecha.
@@ -10,7 +10,7 @@ Uso: python tools/unreal/actualizar_rutas_docs.py [--aplicar] [archivos...]
 import argparse, glob, json, os, re
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-MAPA = os.path.join(ROOT, "tools", "unreal", "reorden_contenido_2026-10-02.json")
+MAPAS = [os.path.join(ROOT, "tools", "unreal", f) for f in ("reorden_contenido_2026-10-02.json", "plugin_draw_2026-10-02.json")]
 SC = "/Game/SoulCharger/"
 CARPETAS = [  # carpeta vieja -> nueva (despues de reemplazar las rutas de assets una por una)
     ("/Game/NeuralCanvas/Maps/", SC + "Mechanics/Draw/Maps/"), ("/Game/NeuralCanvas/", SC + "Mechanics/Draw/"),
@@ -46,8 +46,16 @@ def main():
     ap.add_argument("--aplicar", action="store_true")
     ap.add_argument("files", nargs="*")
     a = ap.parse_args()
-    m = json.load(open(MAPA, encoding="utf-8"))
-    pares = sorted(m["mover"], key=lambda x: -len(x[0]))
+    # los mapas se encadenan: una ruta de 09-30 pasa por el reordenamiento y despues por el plugin
+    cadena = {}
+    for mp in MAPAS:
+        if os.path.exists(mp):
+            for o, n in json.load(open(mp, encoding="utf-8"))["mover"]:
+                for k, v in list(cadena.items()):
+                    if v == o:
+                        cadena[k] = n
+                cadena[o] = n
+    pares = sorted(cadena.items(), key=lambda x: -len(x[0]))
     total = 0
     for f in (a.files or archivos()):
         s = open(f, encoding="utf-8").read()

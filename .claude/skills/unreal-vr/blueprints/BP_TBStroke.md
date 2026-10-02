@@ -2076,7 +2076,7 @@ se **copió esa carpeta** a `VR_Test/Content/NeuralCanvas` (no existía → cero
 **Receta de instalación en un nivel de SC** (nada más; el director no crea ni referencia pawns):
 1. El nivel usa el GameMode de SC (`BP_XRGameMode` → `BP_VRPawn_SC`) y su PlayerStart. El pawn cumple el contrato:
    MotionControllers con `MotionSource` `LeftAim`/`RightAim`/`LeftGrip`/`RightGrip`.
-2. Arrastrar **`/Game/SoulCharger/Mechanics/Draw/Blueprints/BP_TBDirector_NC`**.
+2. Arrastrar **`/SC_Draw/Blueprints/BP_TBDirector_NC`**.
 3. Arrastrar un **`TargetPoint`** donde se exhibe el dibujo guardado: su +X apunta **hacia quien mira**; mover/rotar/
    escalar el target afecta al dibujo.
 4. Arrastrar **`BP_TBTable`** ~50 cm frente al usuario sentado, a la altura de la mesa: su +X apunta **hacia quien
@@ -2287,7 +2287,7 @@ los colores nuevos de la instancia del director, `GripPreview` oculto en juego, 
 Beltrán: *"reemplaza el motion controller por el nuevo... espejarlo para la mano izquierda"* y *"la animación del botón apretado
 cuando lo estemos apretando en la experiencia real"*. Assets de Mesh 3D en `/Game/SoulCharger/Shared/QuestController/`
 (`SM_QuestCtrl_Body/Trigger_R/L_SC`, `MI_QuestCtrl_Body_SC`, `MI_QuestCtrl_Trigger_SC` con `Pressed`), mismo marco y tamaño
-que `/Game/SoulCharger/Mechanics/Draw/Meshes/Controller` (bounds iguales al mm) → transformadas de `SM_RHand/SM_LHand` sin tocar.
+que `/SC_Draw/Meshes/Controller` (bounds iguales al mm) → transformadas de `SM_RHand/SM_LHand` sin tocar.
 - **Todo en runtime** (una instancia ya colocada no recibe bien componentes nuevos, gotcha 396; y los getters de componentes
   nuevos no aparecían en el DSL, gotcha 506): **`InstallCtrl`** (al frente de `FixHands`) pone malla + MI del cuerpo nuevo en
   `SM_RHand`/`SM_LHand` y llama **`MakeTrigR/L`**: si `Z-Mando > TrigR/TrigL` no existe, `AddComponentByClass(StaticMesh)` →

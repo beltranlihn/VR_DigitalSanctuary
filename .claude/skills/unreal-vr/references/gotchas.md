@@ -2967,3 +2967,10 @@ Lo creado durante la sesión del editor (BPs nuevos, funciones nuevas en BPs exi
 
 ## 585. Una prueba de humo larga y el traslado de assets no conviven (2026-10-02)
 El proceso `-game` de la prueba tiene abiertos los paquetes que usa. Mover o guardar esos assets mientras corre puede fallar o dar una prueba falsa. Se espera a que termine (o se corta el proceso por su línea de comandos, `-ObraSmoke`, sin tocar el editor) y se vuelve a correr después del traslado.
+
+## 586. 🧩 Pasar una mecánica a un plugin de contenido (2026-10-02, Draw → `SC_Draw` + `SC_Base`)
+- `PluginToolset.CreatePlugin` con la plantilla **"Content Only"** crea el plugin en `VR_Test/Plugins/<Nombre>` **y lo monta en el momento** (`/<Nombre>/`): no hace falta reiniciar. Dependencias con `AddPluginDependency` (otros plugins SC_* y los del motor que use: `ProceduralMeshComponent`, `EnhancedInput`).
+- `AssetTools.move` a `/<Plugin>/<Tipo>/<Asset>` anda igual que dentro de `/Game`: arregla y guarda las referencias.
+- 🔴 **`save_assets` no guarda un paquete que no está sucio**, y escribir en un actor el mismo valor que tiene no lo ensucia. Los niveles que quedaron apuntando a redirectores se re-guardan con el commandlet, todos de una vez: `UnrealEditor-Cmd.exe <uproject> -run=ResavePackages -map=/Game/A+/Game/B+... -unattended` (con el editor en un nivel que no esté en la lista; 11 niveles en ~4 min).
+- Los redirectores de **Blueprints** no se dejan borrar con el editor abierto (`delete` → False); los de mallas y materiales sí. Los de BP salen con `tools/unreal/limpiar_con_editor_cerrado.py`.
+- Antes de mover: el **cierre de dependencias** de lo que va a la base (`deps.py`). La base arrastró 4 assets que no estaban en la lista (los materiales del pedestal y `MPC_HUD_SC`). Después de mover: `python tools/unreal/verificar_plugins.py` (nada del plugin puede apuntar a `/Game/SoulCharger/`).

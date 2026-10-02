@@ -33,7 +33,7 @@ Ya instalado: **`RigRun`** → `MaybeInput` (si `bOwnInput` y falta) → `MaybeM
 Publica (mismos nombres que el sensor, para que esfera y botón solo cambien de clase): `BeamStart`/`BeamStartL`, `BeamDirR`/`L`, `BeamHitLoc`/`L`, `BeamHitActor`/`L`, `BeamEndR`/`L`, `bBeamHit`/`BeamHitL`, `HeldOrb`/`L`, `HeldBtn`.
 
 ## Perillas
-- `0-Rig`: `TraceDistance` **2500** (era 692: con el domo agrandado a 976 cm de radio el láser no llegaba; tiene que ser mayor que `DomeRadius` + desorden) · `bOwnInput` ✅ · `bShowControllers` ✅ · `bStartActive` ❌ · `bRightHanded` ✅ · `bMountButton` ✅ · `BtnOffset` (2,0,7) escala 0,5 · `CtrlOffsetR` (3,56,−0,8,−2,87 / 0,−90,55) · `CtrlOffsetL` (espejo, **estimado**) · `CtrlMeshR/L` (`/Game/SoulCharger/Shared/QuestController/ControllerR/L`) · `HapticEffect` (`GrabHapticEffect`) · `IMCRight/Left` (`IMC_Weapon_*`).
+- `0-Rig`: `TraceDistance` **2500** (era 692: con el domo agrandado a 976 cm de radio el láser no llegaba; tiene que ser mayor que `DomeRadius` + desorden) · `bOwnInput` ✅ · `bShowControllers` ✅ · `bStartActive` ❌ · `bRightHanded` ✅ · `bMountButton` ✅ · `BtnOffset` (2,0,7) escala 0,5 · `CtrlOffsetR` (3,56,−0,8,−2,87 / 0,−90,55) · `CtrlOffsetL` (espejo, **estimado**) · `CtrlMeshR/L` (`/SC_Base/Meshes/ControllerR/L`) · `HapticEffect` (`GrabHapticEffect`) · `IMCRight/Left` (`IMC_Weapon_*`).
 - `1-Puntero`: los valores afinados del sensor de `Test_Sequencer` (`PtrLen` 40, `PtrWidth` 0,45, `PtrOpacity` 0,58, `PtrDotSize` 1,14, `PtrDotPersp` 0,604…) + `PtrBeamMat`/`PtrDotMat`.
 - `CtrlOffsetR` sale de componer la mano del pawn respecto del Grip con el mando del rig de dibujo respecto de la mano. **El izquierdo es un espejo estimado**: ajustar en visor.
 

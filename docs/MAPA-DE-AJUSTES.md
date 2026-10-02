@@ -93,7 +93,7 @@ Todo está colocado donde aparece. Se prueba con `DebugStart` 62 (resultados), 6
 
 ## Sonido
 - **Ambientes:** estéreo, sin posición; se ajustan en `BP_Obra_SC` → categoría Ambientes (tabla de la Obra).
-- **Sonidos de objetos:** suenan en el lugar del objeto con la atenuación compartida `/Game/SoulCharger/Core/Audio/ATT_Objeto_SC`. Por defecto suena pleno hasta 4 m y se apaga hacia los 36 m; si cambias ese asset, cambian todos. Tienen esa atenuación: timbre (`Bell`), puertas (`DoorOpen`), aparición y desaparición de luz (`SBubbleHoverOn`/`Out`), clic y apretar botón (`VR_click1`, `ChargeFinal`), cargas (`Charge1`, `ProtoHover`, `ProtoSelect`), mando (`Tomado`, `VR_shep_scale_down_02`) y los efectos del final (`FX_SOULSWIM`, `FX_SOULVANISH`, `FX_RINGVANISH`, `FX_SHAREAPPEAR`, `FX_SHARESELECT`).
+- **Sonidos de objetos:** suenan en el lugar del objeto con la atenuación compartida `/SC_Base/Audio/ATT_Objeto_SC`. Por defecto suena pleno hasta 4 m y se apaga hacia los 36 m; si cambias ese asset, cambian todos. Tienen esa atenuación: timbre (`Bell`), puertas (`DoorOpen`), aparición y desaparición de luz (`SBubbleHoverOn`/`Out`), clic y apretar botón (`VR_click1`, `ChargeFinal`), cargas (`Charge1`, `ProtoHover`, `ProtoSelect`), mando (`Tomado`, `VR_shep_scale_down_02`) y los efectos del final (`FX_SOULSWIM`, `FX_SOULVANISH`, `FX_RINGVANISH`, `FX_SHAREAPPEAR`, `FX_SHARESELECT`).
 - **Siguen en 2D a propósito:** las voces de Alma (VO), tus pasos (`Pasos`), los ambientes y el aviso inicial.
 - Para que un sonido nuevo de objeto suene en el mundo: asígnale `ATT_Objeto_SC` en *Attenuation Settings* y tócalo con *Play Sound at Location* (o desde un componente del objeto).
 

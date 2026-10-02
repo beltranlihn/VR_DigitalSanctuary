@@ -1,0 +1,294 @@
+{
+ "generado": "20261002-185938",
+ "speed": 1.0,
+ "nota": "reloj_obra_s = TourT del director (tiempo real desde el arranque); pared_s = tiempo de pared desde la primera linea OBRA",
+ "fases": [
+  {
+   "fase": 9,
+   "etapa": 0,
+   "pared_s": 4.6,
+   "reloj_obra_s": 3.176292,
+   "speed": 1.0
+  },
+  {
+   "fase": 0,
+   "etapa": 0,
+   "pared_s": 180.88,
+   "reloj_obra_s": 179.461147,
+   "speed": 1.0
+  },
+  {
+   "fase": 4,
+   "etapa": 0,
+   "pared_s": 186.38,
+   "reloj_obra_s": 184.961631,
+   "speed": 1.0
+  },
+  {
+   "fase": 5,
+   "etapa": 0,
+   "pared_s": 197.89,
+   "reloj_obra_s": 196.4664,
+   "speed": 1.0
+  },
+  {
+   "fase": 6,
+   "etapa": 0,
+   "pared_s": 206.39,
+   "reloj_obra_s": 204.969181,
+   "speed": 1.0
+  },
+  {
+   "fase": 7,
+   "etapa": 0,
+   "pared_s": 295.48,
+   "reloj_obra_s": 294.052233,
+   "speed": 1.0
+  },
+  {
+   "fase": 8,
+   "etapa": 0,
+   "pared_s": 302.24,
+   "reloj_obra_s": 300.804278,
+   "speed": 1.0
+  },
+  {
+   "fase": 2,
+   "etapa": 0,
+   "pared_s": 313.03,
+   "reloj_obra_s": 311.592167,
+   "speed": 1.0
+  },
+  {
+   "fase": 0,
+   "etapa": 1,
+   "pared_s": 322.69,
+   "reloj_obra_s": 321.272943,
+   "speed": 1.0
+  },
+  {
+   "fase": 4,
+   "etapa": 1,
+   "pared_s": 328.21,
+   "reloj_obra_s": 326.782279,
+   "speed": 1.0
+  },
+  {
+   "fase": 5,
+   "etapa": 1,
+   "pared_s": 334.89,
+   "reloj_obra_s": 333.465361,
+   "speed": 1.0
+  },
+  {
+   "fase": 6,
+   "etapa": 1,
+   "pared_s": 340.89,
+   "reloj_obra_s": 339.46678,
+   "speed": 1.0
+  },
+  {
+   "fase": 7,
+   "etapa": 1,
+   "pared_s": 475.38,
+   "reloj_obra_s": 473.962141,
+   "speed": 1.0
+  },
+  {
+   "fase": 8,
+   "etapa": 1,
+   "pared_s": 481.14,
+   "reloj_obra_s": 479.716999,
+   "speed": 1.0
+  },
+  {
+   "fase": 2,
+   "etapa": 1,
+   "pared_s": 491.9,
+   "reloj_obra_s": 490.474078,
+   "speed": 1.0
+  },
+  {
+   "fase": 0,
+   "etapa": 2,
+   "pared_s": 500.69,
+   "reloj_obra_s": 499.273339,
+   "speed": 1.0
+  },
+  {
+   "fase": 4,
+   "etapa": 2,
+   "pared_s": 506.2,
+   "reloj_obra_s": 504.776083,
+   "speed": 1.0
+  },
+  {
+   "fase": 5,
+   "etapa": 2,
+   "pared_s": 516.97,
+   "reloj_obra_s": 515.554528,
+   "speed": 1.0
+  },
+  {
+   "fase": 6,
+   "etapa": 2,
+   "pared_s": 522.98,
+   "reloj_obra_s": 521.559711,
+   "speed": 1.0
+  },
+  {
+   "fase": 7,
+   "etapa": 2,
+   "pared_s": 582.99,
+   "reloj_obra_s": 581.569267,
+   "speed": 1.0
+  },
+  {
+   "fase": 8,
+   "etapa": 2,
+   "pared_s": 589.03,
+   "reloj_obra_s": 587.603673,
+   "speed": 1.0
+  },
+  {
+   "fase": 2,
+   "etapa": 2,
+   "pared_s": 599.8,
+   "reloj_obra_s": 598.373905,
+   "speed": 1.0
+  },
+  {
+   "fase": 0,
+   "etapa": 3,
+   "pared_s": 608.96,
+   "reloj_obra_s": 607.53593,
+   "speed": 1.0
+  },
+  {
+   "fase": 4,
+   "etapa": 3,
+   "pared_s": 614.47,
+   "reloj_obra_s": 613.048817,
+   "speed": 1.0
+  },
+  {
+   "fase": 5,
+   "etapa": 3,
+   "pared_s": 621.74,
+   "reloj_obra_s": 620.320084,
+   "speed": 1.0
+  },
+  {
+   "fase": 6,
+   "etapa": 3,
+   "pared_s": 629.08,
+   "reloj_obra_s": 627.651791,
+   "speed": 1.0
+  },
+  {
+   "fase": 7,
+   "etapa": 3,
+   "pared_s": 719.09,
+   "reloj_obra_s": 717.670284,
+   "speed": 1.0
+  },
+  {
+   "fase": 8,
+   "etapa": 3,
+   "pared_s": 722.29,
+   "reloj_obra_s": 720.868238,
+   "speed": 1.0
+  },
+  {
+   "fase": 2,
+   "etapa": 3,
+   "pared_s": 733.05,
+   "reloj_obra_s": 731.627989,
+   "speed": 1.0
+  },
+  {
+   "fase": 0,
+   "etapa": 4,
+   "pared_s": 739.89,
+   "reloj_obra_s": 738.469073,
+   "speed": 1.0
+  },
+  {
+   "fase": 4,
+   "etapa": 4,
+   "pared_s": 745.39,
+   "reloj_obra_s": 743.970928,
+   "speed": 1.0
+  },
+  {
+   "fase": 5,
+   "etapa": 4,
+   "pared_s": 758.68,
+   "reloj_obra_s": 757.247495,
+   "speed": 1.0
+  },
+  {
+   "fase": 6,
+   "etapa": 4,
+   "pared_s": 759.28,
+   "reloj_obra_s": 757.852923,
+   "speed": 1.0
+  },
+  {
+   "fase": 7,
+   "etapa": 4,
+   "pared_s": 849.28,
+   "reloj_obra_s": 847.863112,
+   "speed": 1.0
+  },
+  {
+   "fase": 8,
+   "etapa": 4,
+   "pared_s": 851.79,
+   "reloj_obra_s": 850.37219,
+   "speed": 1.0
+  },
+  {
+   "fase": 10,
+   "etapa": 4,
+   "pared_s": 863.4,
+   "reloj_obra_s": 861.978736,
+   "speed": 1.0
+  },
+  {
+   "fase": 11,
+   "etapa": 4,
+   "pared_s": 863.72,
+   "reloj_obra_s": 862.295645,
+   "speed": 1.0
+  },
+  {
+   "fase": 12,
+   "etapa": 4,
+   "pared_s": 878.86,
+   "reloj_obra_s": 877.400419,
+   "speed": 1.0
+  },
+  {
+   "fase": 13,
+   "etapa": 4,
+   "pared_s": 959.86,
+   "reloj_obra_s": 958.080587,
+   "speed": 1.0
+  },
+  {
+   "fase": 14,
+   "etapa": 4,
+   "pared_s": 961.16,
+   "reloj_obra_s": 959.380247,
+   "speed": 1.0
+  },
+  {
+   "fase": 15,
+   "etapa": 4,
+   "pared_s": 1021.17,
+   "reloj_obra_s": 1019.385217,
+   "speed": 1.0
+  }
+ ]
+}

@@ -79,11 +79,15 @@ VR Unreal/                      ← raíz del repo
 ├─ _Deprecated/                 ← assets archivados fuera del proyecto (local, ignorado por git)
 └─ VR_Test/                     ← EL PROYECTO UNREAL (UE 5.8)
    ├─ Config/                   ← Default{Engine,Game,Input}.ini (el APK cocina solo la Obra y sus celdas)
+   ├─ Plugins/                  ← 🧩 las mecánicas PORTABLES, una por plugin de contenido (se copian a otro proyecto y se activan)
+   │    SC_Base/ (mandos, aparición, sonidos de interfaz, pedestal) · SC_Draw/ (el sistema de dibujo) · cada uno con su LEEME.md
+   │    Regla: nada de un plugin apunta a /Game/SoulCharger → `python tools/unreal/verificar_plugins.py`
    └─ Content/
       ├─ SoulCharger/Obra/            ← L_SoulCharger_Obra (el nivel final) + Blueprints/ (director, ensayos) + Partitura/ + Titles/ + Audio/ (voces)
       ├─ SoulCharger/Hall/            ← inicio, hall y regreso (+ timbre). Maps/Test_Hall
-      ├─ SoulCharger/Mechanics/       ← las 5 mecánicas, una carpeta cada una, con su nivel de test en Maps/:
+      ├─ SoulCharger/Mechanics/       ← las 5 etapas, una carpeta cada una, con su nivel de test en Maps/:
       │    Breath/ (Entering) · Heart/ (Recognizing) · Mind/ (Loving) · Sequencer/ (Attracting) · Draw/ (Surrounding)
+      │    Draw/ ya solo tiene la etapa (Test_Draw, el océano): el sistema de dibujo está en Plugins/SC_Draw. Las demás pasan igual, una por vez.
       ├─ SoulCharger/Shared/          ← piezas que usan varias etapas: HUD, Results, Ghost, UserTool, Appear, BioSensor, ChargeRing, QuestController, Subtitles
       ├─ SoulCharger/Core/            ← base de la obra: Alma, pawn, alma del usuario (ProtoSoul), señales (BioHub/OSC), luz, audio, puntero, input, UI → coordinar
       ├─ XRFramework/, XRMannequins/  ← base VR de Epic (GameMode, input, manos)

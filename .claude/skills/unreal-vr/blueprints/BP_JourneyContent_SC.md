@@ -92,7 +92,7 @@ Todo con 0 errores (Accessed None / Runtime Error / Script Msg).
 - `BreathScores` [0,62 0,83 1 0,71] · `Minutes` 0
 - `StageColors` (5, lineales: Entering, Recognizing, Loving, Attracting, Surrounding) · `Cream` · `Grey` · `FontPx` 24
 - `TipKeys` / `TipNames` / `TipStage` [2,1,0,3,−1,4] / `TipTexts` (los `RES_ITEMS` de la web, en inglés)
-- `ClickSound` (`/Game/SoulCharger/Mechanics/Draw/Audio/VR_click1`) · `ClickVol` 1
+- `ClickSound` (`/SC_Base/Audio/VR_click1`) · `ClickVol` 1
 - `bPreviewInEditor` · `bBuildOnPlay`
 - ⚠ La variable `Gain` del BP se **borró** (2026-09-30): no la usaba ningún grafo (verificado en los 54 con control positivo). El brillo está en el material.
 
