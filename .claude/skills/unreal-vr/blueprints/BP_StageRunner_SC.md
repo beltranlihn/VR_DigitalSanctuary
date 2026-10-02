@@ -4,6 +4,12 @@
 - **Instancias** (label `StageRunner`, tags **`TestOnly` + `TOUR`**): una en cada nivel de test — Test_Entering (K 0), Test_Heart (1), Test_Fluid (2), Test_Sequencer (3), L_TBTest_SC (4). Con cada una: `Alma_Ensayo` (BP_Alma_SC, TestOnly) y 4 TargetPoints **sin TestOnly** `TP_sc<K>_alma_in / _alma_side / _charge / _title` (tag = el nombre sin `TP_`).
 - Fuentes: `VR_Test/Saved/ClaudeScripts/Obra/runner.json` (DSL), `runner_build.py`, `ensayo_place*.py` (colocación, idempotente), `ensayo_export.py` (Unreal → web).
 
+## 🔴 Estado vigente (2026-10-02, reordenamiento)
+- **Lee la misma Partitura que la Obra**: `RLoadPartitura` (al arrancar) copia `DA_Partitura_Obra` a sus variables de la categoría Partitura. `AlmaTime/InstrTime/OutroTime/TimeoutS/ChargeTime` **ya no son instance-editables** y se calculan de la Partitura: `RAlmaIn` hace `AlmaTime = Duration(VOEntrada[StageK]) + AlmaTrasVoz` y el tope es `EtapaTopeRun = EtapaTope[K] + CorteEspera`. Hay 9 pines conectados a la Partitura. En la instancia quedan solo `StageK`, `Loop`, `Speed`, `EyeRef`, `CTop/CHor`, `TitleMI`, `LevelName` y los tags.
+- **Mismo cierre que la Obra**: `RCortes` pide el cierre con `RRequestEnd` (`StageRequestEnd` del BP de la etapa) al llegar a `EtapaTope[K]` y marca `RCortePedido`. El ensayo y la obra terminan las etapas de la misma forma, con los mismos tiempos.
+- Variable nueva `VOEntrada` (SoundBase[5], la VO de bienvenida de cada etapa): `CurrentVO` era un int y no servía para medir.
+- `LevelName` se usa en `OpenLevel(byName)` cuando `Loop` reinicia el ensayo: tiene que coincidir con el nombre del nivel.
+
 ## Status
 🟢 **Probado en PIE en Test_Entering (2026-09-30 18:00), sin errores y con reinicio en bucle**: StageEnv → Alma recibe (VO_10, envelope activo) → StageIntro (Alma al costado) → StageBegin → cuenta + pacer, 5 ciclos → StageOutro por fin propio → vista previa del anillo → despedida (VO_13 + VO_14) → velo cierra → `OpenLevel` → arranca de nuevo.
 🟢 **Test_Sequencer (2026-10-01 00:06)**: PIE hasta StageBegin sin errores (Alma a 5,5 s, StageIntro a ~15 s, StageBegin a ~21 s).

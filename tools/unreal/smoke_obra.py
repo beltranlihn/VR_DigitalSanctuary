@@ -55,14 +55,22 @@ def stamp(line):
     t = time.strptime(m.group(1), "%Y.%m.%d-%H.%M.%S")
     return time.mktime(t) + int(m.group(2)) / 1000.0
 
+TRZ = re.compile(r"OBRA SMOKE: fase (\d+) etapa (\d+)(?: reloj ([\d.]+) speed ([\d.]+))?")
+
 def analyze(lines):
-    exp = expected(); i = 0; hits = []; errors = []; outro = []; t0 = None
+    exp = expected(); i = 0; hits = []; errors = []; outro = []; t0 = None; traza = []
     for line in lines:
         s = stamp(line)
         if s and t0 is None and "OBRA" in line:
             t0 = s
         if ERR.search(line):
             errors.append(line.strip()[:300])
+        mt = TRZ.search(line)
+        if mt:
+            traza.append({"fase": int(mt.group(1)), "etapa": int(mt.group(2)),
+                          "pared_s": round((s - t0) if (s and t0) else -1, 2),
+                          "reloj_obra_s": float(mt.group(3)) if mt.group(3) else None,
+                          "speed": float(mt.group(4)) if mt.group(4) else None})
         if "por fin propio" in line:
             outro.append(line.strip().split("OBRA: ")[-1])
         if i < len(exp) and re.search(exp[i][1], line):
@@ -70,13 +78,14 @@ def analyze(lines):
             i += 1
     missing = [e[0] for e in exp[i:]]
     return {"ok": not missing and not errors, "hits": hits, "missing": missing,
-            "errors": errors[:40], "n_errors": len(errors), "outros": outro}
+            "errors": errors[:40], "n_errors": len(errors), "outros": outro, "traza": traza}
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--speed", type=float, default=4.0)
     ap.add_argument("--timeout", type=int, default=1800)
     ap.add_argument("--log", default=None, help="analizar un log existente en vez de lanzar")
+    ap.add_argument("--traza", action="store_true", help="copiar la traza de fases a obra/unreal/traza.json (para el editor web; conviene --speed 1)")
     a = ap.parse_args()
     os.makedirs(OUTDIR, exist_ok=True)
     tag = time.strftime("%Y%m%d-%H%M%S")
@@ -124,6 +133,11 @@ def main():
     for e in r["errors"][:10]:
         print("    " + e)
     print("reporte: " + rep)
+    if a.traza:
+        tp = os.path.join(ROOT, "obra", "unreal", "traza.json")
+        json.dump({"generado": tag, "speed": a.speed, "nota": "reloj_obra_s = TourT del director (tiempo real desde el arranque); pared_s = tiempo de pared desde la primera linea OBRA",
+                   "fases": r["traza"]}, open(tp, "w", encoding="utf-8"), indent=1)
+        print("traza: " + tp)
     sys.exit(0 if r["ok"] else 1)
 
 if __name__ == "__main__":

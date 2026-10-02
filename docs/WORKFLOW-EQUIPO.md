@@ -2,6 +2,19 @@
 
 Dos (o más) devs trabajando el mismo proyecto Unreal, cada uno en **su stage**. El enemigo #1 son los **`.uasset`/`.umap` binarios**: git **no los puede mergear**. Si dos personas editan el mismo asset, uno de los dos pierde su trabajo. Todo lo de acá existe para que eso no pase.
 
+> **Desde el reordenamiento del 2026-10-02**, lo que se ajusta día a día está en [GUIA-DE-DIRECCION.md](GUIA-DE-DIRECCION.md) y las reglas que evitan romper cosas en [REGLAS-DE-ORO.md](REGLAS-DE-ORO.md). Este documento cubre git, el reparto del trabajo y el empaquetado.
+
+## El circuito de cada cambio (2026-10-02)
+1. **Ajustar** en el lugar que corresponde (guía §2): tiempos → `DA_Partitura_Obra`; perillas de una mecánica → su nivel de test; lugares → actores del nivel.
+2. **Ensayar la etapa sola** en su nivel de test (los ensayos leen la misma Partitura que la Obra), o `python tools/unreal/probar_nivel.py Test_Heart --segundos 120` sin abrir el visor.
+3. **Prueba de humo de la Obra entera:** `python tools/unreal/smoke_obra.py` (≈9 min a velocidad 4; con `--speed 1 --traza` deja además la traza para el editor web). OK = todas las marcas en orden y 0 errores de Blueprint.
+4. **Commit del hito** (Save All antes).
+5. **APK cuando haga falta verlo en el visor:** `python tools/unreal/empaquetar_obra.py` (deja el build en `Recursos/Soul Charger - Escritorio 2026-10/APK/`) y `powershell -File tools/unreal/instalar_quest.ps1` (instala, sube el OBB con reintento, abre la app y confirma que llega al Hall). Para un build de público: la checklist de la guía §6.
+
+## Decisiones pendientes (para Beltrán)
+- **Llevar `core/esqueleto` a `main`.** `main` está 314 commits atrás y no tiene nada propio, así que el merge es un avance directo, sin conflictos. Mientras no se haga, la rama de trabajo real es `core/esqueleto` y quien clone `main` recibe un proyecto viejo.
+- **Git LFS + locks.** Hoy no hay LFS, y el repo pesa por los WAV y PSD de `Recursos/`, no por los `.uasset`. Con más personas tocando el proyecto, LFS permite *locks* (`git lfs lock <asset>`), que es lo único que impide de verdad que dos personas editen el mismo `.uasset`. El costo es la cuota de LFS de GitHub (1 GB de almacenamiento y 1 GB de banda al mes en el plan gratis; los packs de datos se pagan aparte) y migrar el historial (`git lfs migrate`) reescribe los commits, así que cada clon tiene que volver a clonar. Recomendación: activar LFS **solo para lo nuevo** (`*.uasset`, `*.umap`, `*.wav`, `*.psd`) sin migrar el historial, y usar locks en los assets compartidos (`BP_Obra_SC`, `DA_Partitura_Obra`, el nivel de la Obra, el pawn).
+
 ---
 
 ## 0. El modelo mental: git sube CAMBIOS, no tu carpeta (leer esto primero)
@@ -28,7 +41,7 @@ Ejemplo concreto:
 ## 1. Regla de oro
 > **Un dev = un stage = una rama. Nunca dos personas editan el mismo `.uasset` a la vez.**
 
-Como cada stage vive en su propia carpeta (`Content/SoulCharger/Stages/<Stage>/`), si cada uno se queda en la suya no hay colisión. Los choques solo pasan en lo **compartido** (ver §4).
+Como cada mecánica vive en su propia carpeta (`Content/SoulCharger/Mechanics/<Mecánica>/`, con su nivel `Test_<X>`), si cada uno se queda en la suya no hay colisión. Los choques solo pasan en lo **compartido** (ver §4).
 
 ## 2. Ramas
 - Rama base: **`main`** (siempre estable, empaquetable).
@@ -46,7 +59,7 @@ Como cada stage vive en su propia carpeta (`Content/SoulCharger/Stages/<Stage>/`
 Estos los tocan todos, así que **avisá al otro antes** y serializá (uno a la vez):
 - `Content/SoulCharger/Core/` — el **pawn VR**, fades, UI compartida.
 - `VR_Test/Config/` — `DefaultEngine.ini`, `DefaultGame.ini`, `DefaultInput.ini` (project settings, mapas a cocinar, packaging).
-- El **hub / FlowDirector** cuando exista (el que encadena los stages).
+- **La Obra**: `Content/SoulCharger/Obra/` — el director `BP_Obra_SC`, el nivel `L_SoulCharger_Obra` y sobre todo **`DA_Partitura_Obra`** (todos los tiempos de la obra: lo tocan dirección y quien ajuste cualquier etapa).
 - `MapsToCook` y ajustes de packaging.
 
 Regla: si tu cambio toca algo de acá, decilo por el canal del equipo, hacelo rápido, commiteá y avisá que quedó libre. **No metas lógica de tu stage en el pawn** — cada mecánica en su propio BP (el pawn liviano es regla del proyecto).
@@ -67,21 +80,23 @@ Git no lo mergea. Opciones:
 El aprendizaje del equipo vive en el **repo**, no en la cabeza ni en la memoria local de Claude de cada uno:
 - **Técnica reusable** (un gotcha, un patrón de nodos, cómo se hace X en Quest) → PR a `.claude/skills/unreal-vr/` (a `references/` o `gotchas.md`).
 - **Estructura de un Blueprint** (qué hace cada variable, orden del grafo, qué palanca ajusta qué) → su tracker en `skills/unreal-vr/blueprints/<BP>.md`. 🔴 **Leelo antes de tocar el BP; actualizalo después.** Y actualizá su fila en el **índice maestro** `skills/unreal-vr/blueprints/_INDEX.md` (el mapa de todos los BPs: qué es, dónde, estado).
-- **Narrativa / diseño / concepto de un stage** → 🔴 **`Soul-Charger-Design.md` es la BIBLIA DE NARRATIVA** (documento vivo). Si cambia la idea/mecánica de cualquier etapa, **se actualiza ahí primero** (marcando el cambio, como la §4.4 de Touch). Los planes de construcción por stage van en `docs/stages/`.
-- **Estado de un stage** → [`ESTADO-STAGES.md`](ESTADO-STAGES.md).
+- **Narrativa / diseño / concepto** → [`OBRA-SOUL-CHARGER.md`](OBRA-SOUL-CHARGER.md) y el guion vigente ([`GUION-V5-2026-09-29.md`](GUION-V5-2026-09-29.md)). `Soul-Charger-Design.md` (raíz) quedó superado.
+- **Tiempos de la obra** → `DA_Partitura_Obra` + [`PARTITURA.md`](PARTITURA.md) (generado desde `tools/unreal/partitura_def.py`).
+- **Estado general** → `CLAUDE.md` §3 (`ESTADO-STAGES.md` es de septiembre).
 - **Memoria local de Claude Code** (`~/.claude/...`) = tus notas personales de sesión. NO es conocimiento de equipo (el otro no la ve). Si algo sirve al equipo, subilo al repo.
 
 ## 8. Checklist de fin de sesión
 1. Save All en Unreal.
 2. Actualizaste el/los tracker(s) de los BPs que tocaste.
-3. Si cambió el estado del stage → actualizaste `ESTADO-STAGES.md`.
+3. Si tocaste algo que entra en la Obra → `smoke_obra.py` OK.
 4. `/commit` (o commit + push manual a tu rama).
 5. ¿Hito cerrado? Abrí/actualizá el PR a `main`.
 
 ## 9. Nota sobre el repo
 - URL: `github.com/beltranlihn/VR_DigitalSanctuary` (fue renombrado desde `VR_Digital`; si tenés un clon viejo: `git remote set-url origin https://github.com/beltranlihn/VR_DigitalSanctuary.git`).
 - `.gitignore` (raíz) ignora lo regenerable: `Binaries/`, `Intermediate/`, `Saved/`, DDC, `Build/`. No los versiones.
-- Sin Git LFS por ahora (ningún asset >50 MB). Si algún día metés un asset pesado, avisá para evaluar LFS.
+- Sin Git LFS por ahora (ningún asset >50 MB). Ver "Decisiones pendientes" arriba.
+- Lo archivado del proyecto (`_Deprecated/`, fuera de `VR_Test/`) **no se versiona**; git lo conserva en el tag `respaldo-pre-reorden-2026-10-02`.
 
 ### 📦 Receta que FUNCIONA para empaquetar el APK desde la terminal (2026-08-19, con el editor abierto)
 ```
@@ -91,7 +106,7 @@ Salida: `VR_Test/Saved/Packaged/Android_Development/VR_Test-arm64.apk` + `main.1
 1. **Proyecto sin código**: sin `-unrealexe=...UnrealEditor-Cmd.exe` + `-skipbuildeditor`, UAT busca `Binaries/Win64/VR_TestEditor.target` y muere (`DirectoryNotFoundException`).
 2. **GameFeatures está ON** (lo arrastra el plugin `GameFeaturesToolset` del MCP) → hace falta la regla `PrimaryAssetTypesToScan` de `GameFeatureData` en `DefaultGame.ini` (ya está). Sin ella: `Error: Asset manager settings do not include a rule for GameFeatureData` y el cook sale con 1.
 3. **Con el editor abierto, el cook intenta abrir el puerto 8000 del MCP** → `Error: HttpListener unable to bind` y el cook sale con 1. El `-AdditionalCookerOptions="-ini:...bAutoStartServer=False"` lo apaga **sólo para el commandlet**; el MCP del editor sigue vivo.
-El mapa de arranque del APK es `GameDefaultMap` en `DefaultEngine.ini` (hoy `MapsV2/L_SoulCharger`).
+El mapa de arranque del APK es `GameDefaultMap` en `DefaultEngine.ini` (hoy `/Game/SoulCharger/Obra/L_SoulCharger_Obra`). 🟢 **Desde 2026-10-02 todo esto lo hace `tools/unreal/empaquetar_obra.py`** (cambia y restaura el ini, corre UAT por PowerShell, repone `bAutoStartServer` del MCP y copia el build a Recursos); la receta queda como referencia.
 
 ### 🏷️ Que el paquete se llame **SoulCharger** y no **VR_Test** (2026-08-28)
 UAT nombra los artefactos con el **nombre del `.uproject`** (`VR_Test-arm64.apk`, `Install_VR_Test-arm64.bat`).

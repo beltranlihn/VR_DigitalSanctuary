@@ -1,6 +1,6 @@
 # Mapa de ajustes — Soul Charger
 
-> Qué quieres cambiar → qué actor seleccionas → qué campo tocas. Actualizado 2026-10-01.
+> Qué quieres cambiar → qué actor seleccionas → qué campo tocas. Actualizado 2026-10-01; **tiempos de la obra actualizados el 2026-10-02: ahora viven en `DA_Partitura_Obra`** (ver `docs/PARTITURA.md` y `docs/GUIA-DE-DIRECCION.md`).
 
 ## Reglas que valen para todo
 - **Lo que ves es lo que se juega.** Cada cosa existe una sola vez, colocada donde aparece. En el juego, lo que no toca todavía está oculto; el código lo muestra en su momento y lo destruye cuando ya no se usa.
@@ -37,15 +37,15 @@ Lo que ajustas en un nivel de test llega solo a la Obra: la Obra carga esos mism
 | Dónde se hace a un lado Alma | nivel de test | `TP_sc<K>_alma_side` | |
 | Dónde aparece el anillo de carga y su tamaño | nivel de test | `TP_sc<K>_charge` | la escala del TargetPoint = el tamaño del anillo |
 | Dónde aparece el título de la etapa | nivel de test | `TP_sc<K>_title` | |
-| Cuánto dura Alma / instrucciones / salida en cada etapa | nivel de test → `StageRunner` | `AlmaTime` · `InstrTime` · `OutroTime` (cat. Ensayo) | la Obra los lee de ahí |
+| Cuánto dura Alma / instrucciones / salida en cada etapa | `DA_Partitura_Obra` | `Alma_TrasVoz` (Alma = largo de su voz + esto) · `Instr_Dur[K]` · `Salida_Dur[K]` | la Obra y el ensayo leen la Partitura (desde 2026-10-02 el `StageRunner` ya no manda) |
 | Color del velo de cada etapa (apertura y cierre) | `BP_Obra_SC` | `CTops` / `CHors` (arrays, uno por etapa) | lineales |
 | Color de la carga de cada etapa | `BP_Obra_SC` | `StageCols` | |
-| Duración de cada carga | `BP_Obra_SC` | `ChargeTimes` (4 / 4 / 4 / 4 / 6 s) | |
-| Duración del aviso inicial | `BP_Obra_SC` | `DiscTime` (5 s) · `bDisclaimer` (apagarlo lo salta) | el texto entra 0,5→2 s y sale 3,5→4,8 s (`BP_Disclaimer_SC.DiscStep`); si cambias `DiscTime`, mueve esos dos tramos |
-| Tiempos del final | `BP_Obra_SC` | `ReturnWait` · `ResultsTime` (cortafuegos, 150) · `ExploreT` 25 · `ShareFW` 30 · `SwimTime` 4 · `AwayTime` 3 · `CreditsTime` 60 | |
+| Duración de cada carga | `DA_Partitura_Obra` | `Carga_Dur` (4 / 4 / 4 / 4 / 6 s) | la última es la carga final; la rampa a negro la sigue sola (`Final_NegroRampa`) |
+| Duración del aviso inicial | `DA_Partitura_Obra` · `BP_Obra_SC` | `Aviso_Dur` (19 s) · `bDisclaimer` (categoría Config; apagarlo lo salta) | el texto entra 0,5→2 s y sale 3,5→4,8 s (`BP_Disclaimer_SC.DiscStep`); si cambias `DiscTime`, mueve esos dos tramos |
+| Tiempos del final | `DA_Partitura_Obra` (categoría 4 Final) | `Res_Tope` 150 · `Res_Explorar` 25 · `Res_Cortafuegos` 30 · `Comp_Nado` 4 · `Comp_Lejos` 3 · `Creditos_Dur` 60 · `Const_*` · `Regreso_*` | |
 | Estrellas de la constelación | L_SoulCharger_Obra, carpeta Credits | 30 `StaticMeshActor` con tag `CreditStar` | se mueven a mano |
-| Datos simulados (APK) | `BP_Obra_SC` | `bSimulated` · `SimStageMax` 90 | |
-| Transición entre etapas | `BP_Obra_SC` (literales en `RunObra`/`FlowVeil`) | velo cierra 2,5 s · título aparece T 0,5→2,3 · se va 3,3→4,5 · oculto a T 4,6 · Alma entra T 4,7 · velo abre T 1→4 | el título nunca coincide con Alma |
+| Datos simulados (APK) | `BP_Obra_SC` (Config) · `DA_Partitura_Obra` | `bSimulated` · `Sim_EtapaMax` 90 | |
+| Transición entre etapas | `DA_Partitura_Obra` (categoría 2 Cada etapa) | `Velo_CierreDur` 2,5 · `Etapa_TituloRevelaIni/Fin` 0,5→1,8 · `Etapa_TituloSaleIni/Fin` 4,6→5,6 · `Etapa_TituloOculto` 5,7 · `Alma_Entra` 5,5 · `Etapa_VeloAbreIni/Fin` 1→4 | valores medidos en el grafo el 2026-10-02 (la versión anterior de esta fila no coincidía con el código) |
 | Música ambiente de cada escena | `BP_Obra_SC`, categoría **Ambientes** | `AmbClips` (9 clips, en orden: 1 Intro · 2 Start · 3 Hall · 4 Breath · 5 Heart · 6 Mind · 7 Surrounding · 8 Salida · 9 Credits) · `AmbVolumes` (uno por clip, 0,8) · `AmbFadeIn` / `AmbFadeOut` (3 s) | siempre en estéreo (2D). Qué clip suena en cada momento lo decide la obra por fase |
 
 ## El Hall (Test_Hall; la Obra lo carga igual)
@@ -133,15 +133,15 @@ Cada nivel de test tiene un `StageRunner` (TestOnly + TOUR) y 4 TargetPoints **s
 | Dónde se hace a un lado Alma (instrucciones) | test de la etapa | `TP_sc<K>_alma_side` | Transform (posición) | Base: 140 / −300 / +20 |
 | Dónde aparece el anillo de carga y **de qué tamaño** | test de la etapa | `TP_sc<K>_charge` | Transform (posición **y escala**) | Base: 253 / 0 / +37, escala 2,115 (la pose aprobada en Test_Hall). El anillo mira a la cámara |
 | Dónde aparece el título de la etapa | test de la etapa | `TP_sc<K>_title` | Transform (posición) | Base: 300 / 0 / 0. En la Obra el título queda exactamente en el TP |
-| Cuánto dura la bienvenida de Alma | test de la etapa | `StageRunner` | `AlmaTime` (Ensayo) | **La Obra lo copia.** 10,5 / 11,3 / 7,2 / 9,4 / 15 s (K 0-4) = largo de la VO + ~2 s |
-| Cuánto duran las instrucciones y la salida | test de la etapa | `StageRunner` | `InstrTime` 6 · `OutroTime` 2,5 (Ensayo) | **La Obra los copia** |
+| Cuánto dura la bienvenida de Alma | — | `DA_Partitura_Obra` | `Alma_TrasVoz` 3 | Alma = largo de su voz + `Alma_TrasVoz`, en la Obra y en el ensayo |
+| Cuánto duran las instrucciones y la salida | — | `DA_Partitura_Obra` | `Instr_Dur[K]` (8,5 / 6 / 6 / 6 / 0,6) · `Salida_Dur[K]` 2,5 | la Obra y el ensayo |
 | Color del velo que abre la etapa | test de la etapa | `StageRunner` | `CTop` / `CHor` (Ensayo) | **La Obra los copia** (= el cielo real de cada etapa) |
 | Imagen del título | asset `MI_TourTitle_<ETAPA>` | — | parámetros del MI | El runner lo referencia en `TitleMI`; la Obra usa el mismo asset |
 | Velocidad del ensayo / bucle | test de la etapa | `StageRunner` | `Speed` 1 · `Loop` true (Ensayo) | Solo el ensayo; no afecta a la Obra |
-| Tiempo máximo y carga en el ensayo | test de la etapa | `StageRunner` | `TimeoutS` (240 / 150 / 120 / 240 / 240) · `ChargeTime` (4; la última 6) | Solo el ensayo. En la Obra mandan sus propios cortafuegos y `ChargeTimes` (ver §6) |
+| Cuándo se le pide a la etapa que cierre | — | `DA_Partitura_Obra` | `Etapa_Tope[K]` (240 / 180 / 120 / 240 / 205) · `Corte_Espera` 30 | la Obra y el ensayo le piden `StageRequestEnd()`: la etapa cierra por su propio camino (Attracting guarda, Surrounding presenta) |
 
 **No ajustable hoy (común)**
-- Lo que se toque en `StageRunner` fuera de `AlmaTime`/`InstrTime`/`OutroTime`/`CTop`/`CHor` y en `Alma_Ensayo` no llega a la Obra (son TestOnly).
+- Del `StageRunner` solo llegan a la Obra `CTop`/`CHor`. Sus tiempos vienen de la Partitura (los campos `AlmaTime`/`InstrTime`/`OutroTime`/`TimeoutS`/`ChargeTime` ya no se editan en el nivel).
 - `EyeRef` 120: supuesto compartido con la Obra, no cambiar.
 - La web del prototipo no se actualiza sola: después de mover TPs hay que re-exportar (`ensayo_export.py` → `gen_ensayo_js.py`).
 - Visor: el ensayo solo se probó en PIE en Test_Entering y Test_Sequencer; Test_Heart, Test_Fluid y L_TBTest_SC están colocados sin correr.
@@ -274,7 +274,7 @@ Cada nivel de test tiene un `StageRunner` (TestOnly + TOUR) y 4 TargetPoints **s
 #### Tiempos y ritmo
 | Quiero cambiar… | Nivel | Actor (Outliner) | Campo (categoría) | Nota / valor actual |
 |---|---|---|---|---|
-| Largo de la mecánica | Test_Fluid | `LovingCell` | `StageDuration` 80 s (9-Etapa) | El cortafuegos de la Obra es 120 s |
+| Largo de la mecánica | Test_Fluid | `LovingCell` | `StageDuration` (9-Etapa; la instancia tiene 60) | La Obra le pide cerrar a `Etapa_Tope[2]` 120 s |
 | Entrada y salida de la célula | Test_Fluid | `LovingCell` | `IntroTime` 3 · `OutroTime` 3 · `SndVolume` 0,8 (9-Etapa) | |
 | Viaje hacia adelante | Test_Fluid | `Fluid` (por confirmar) | `TravelSpeed` 25 cm/s · `TravelEase` 4 · `TravelEaseOut` 2 · `TravelYaw` −180 (7-Viaje) | En el viewport se ve siempre, para ajustar mirando |
 | Corriente y remolinos | Test_Fluid | ídem | `CurrentSpeed` 2,5 · `FlowSpeed` 0,1 · `Turbulence` 0,45 (1-Movimiento) · `ActiveBoost` 2 (0-EEG) | `ActiveBoost` = cuánto se acelera el mundo cuando la ameba está activa |
