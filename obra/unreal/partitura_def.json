@@ -1,0 +1,580 @@
+{
+ "source": "tools/unreal/partitura_def.py",
+ "sourceSha1": "282664946624",
+ "synced": "2026-10-15T10:32:44",
+ "asset": "/Game/SoulCharger/Obra/Partitura/DA_Partitura_Obra",
+ "units": "seconds of the director clock; PT = time inside the current phase, T = stage time (phase 0 jumps T to 9 when Alma enters)",
+ "stages": [
+  "Entering",
+  "Recognizing",
+  "Loving",
+  "Attracting",
+  "Surrounding"
+ ],
+ "knobs": [
+  {
+   "name": "Aviso_Dur",
+   "type": "f",
+   "initial": 19.0,
+   "category": "1 Opening and Hall",
+   "doc": "Duration of the prototype notice (phase 16), if bDisclaimer.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "Duración del aviso de prototipo (fase 16), si bDisclaimer."
+  },
+  {
+   "name": "Titulo_Aparece",
+   "type": "f",
+   "initial": 2.5,
+   "category": "1 Opening and Hall",
+   "doc": "When the SOUL CHARGER title is placed in the Hall (PT of phase 9).",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "Cuando se coloca el título SOUL CHARGER en el Hall (PT de la fase 9)."
+  },
+  {
+   "name": "Titulo_RevelaIni",
+   "type": "f",
+   "initial": 3.0,
+   "category": "1 Opening and Hall",
+   "doc": "The title starts to reveal.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "El título empieza a revelarse."
+  },
+  {
+   "name": "Titulo_RevelaFin",
+   "type": "f",
+   "initial": 6.5,
+   "category": "1 Opening and Hall",
+   "doc": "The title finishes revealing.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "El título termina de revelarse."
+  },
+  {
+   "name": "Bajada_RevelaIni",
+   "type": "f",
+   "initial": 5.0,
+   "category": "1 Opening and Hall",
+   "doc": "The subtitle starts to reveal.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "La bajada (subtítulo) empieza a revelarse."
+  },
+  {
+   "name": "Bajada_RevelaFin",
+   "type": "f",
+   "initial": 7.5,
+   "category": "1 Opening and Hall",
+   "doc": "The subtitle finishes revealing.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "La bajada termina de revelarse."
+  },
+  {
+   "name": "Logos_RevelaIni",
+   "type": "f",
+   "initial": 6.0,
+   "category": "1 Opening and Hall",
+   "doc": "The logos start to reveal (JHU +0.3 s, IDEAS +0.6 s).",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "Los logos empiezan a revelarse (JHU +0,3 s, IDEAS +0,6 s)."
+  },
+  {
+   "name": "Logos_RevelaFin",
+   "type": "f",
+   "initial": 8.0,
+   "category": "1 Opening and Hall",
+   "doc": "The logos finish revealing.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "Los logos terminan de revelarse."
+  },
+  {
+   "name": "Titulo_SaleIni",
+   "type": "f",
+   "initial": 17.0,
+   "category": "1 Opening and Hall",
+   "doc": "Title, subtitle and logos start to leave.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "Título, bajada y logos empiezan a irse."
+  },
+  {
+   "name": "Titulo_SaleFin",
+   "type": "f",
+   "initial": 19.5,
+   "category": "1 Opening and Hall",
+   "doc": "Title, subtitle and logos finish leaving.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "Título, bajada y logos terminan de irse."
+  },
+  {
+   "name": "Titulo_Fin",
+   "type": "f",
+   "initial": 20.0,
+   "category": "1 Opening and Hall",
+   "doc": "The title actor is hidden.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "Se oculta el actor del título."
+  },
+  {
+   "name": "Hall_VeloAbreIni",
+   "type": "f",
+   "initial": 3.5,
+   "category": "1 Opening and Hall",
+   "doc": "The black veil starts to open onto the Hall mist.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "El velo negro empieza a abrir a la niebla del Hall."
+  },
+  {
+   "name": "Hall_VeloAbreFin",
+   "type": "f",
+   "initial": 5.5,
+   "category": "1 Opening and Hall",
+   "doc": "The veil finishes opening in the Hall.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "El velo termina de abrir en el Hall."
+  },
+  {
+   "name": "Hall_IntroA",
+   "type": "f",
+   "initial": 3.0,
+   "category": "1 Opening and Hall",
+   "doc": "When the Obra tells the Hall to start (HallIntro).",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "Cuando la Obra le dice al Hall que arranque (HallIntro)."
+  },
+  {
+   "name": "HUD_EEGRetardo",
+   "type": "f",
+   "initial": 1.0,
+   "category": "1 Opening and Hall",
+   "doc": "How long after the HUD is born the EEG line is born.",
+   "categoryUnreal": "1 Inicio y Hall",
+   "docUnreal": "Cuánto después de nacer el HUD nace la línea del EEG."
+  },
+  {
+   "name": "Etapa_VeloAbreIni",
+   "type": "f",
+   "initial": 1.0,
+   "category": "2 Each stage",
+   "doc": "The color veil starts to open the stage (T).",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "El velo de color empieza a abrir la etapa (T)."
+  },
+  {
+   "name": "Etapa_VeloAbreFin",
+   "type": "f",
+   "initial": 4.0,
+   "category": "2 Each stage",
+   "doc": "The veil finishes opening the stage.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "El velo termina de abrir la etapa."
+  },
+  {
+   "name": "Etapa_TituloRevelaIni",
+   "type": "f",
+   "initial": 0.5,
+   "category": "2 Each stage",
+   "doc": "The stage title starts to reveal.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "El título de la etapa empieza a revelarse."
+  },
+  {
+   "name": "Etapa_TituloRevelaFin",
+   "type": "f",
+   "initial": 1.8,
+   "category": "2 Each stage",
+   "doc": "The stage title finishes revealing.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "El título de la etapa termina de revelarse."
+  },
+  {
+   "name": "Etapa_TituloSaleIni",
+   "type": "f",
+   "initial": 4.6,
+   "category": "2 Each stage",
+   "doc": "The stage title starts to leave.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "El título de la etapa empieza a irse."
+  },
+  {
+   "name": "Etapa_TituloSaleFin",
+   "type": "f",
+   "initial": 5.6,
+   "category": "2 Each stage",
+   "doc": "The stage title finishes leaving.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "El título de la etapa termina de irse."
+  },
+  {
+   "name": "Etapa_TituloOculto",
+   "type": "f",
+   "initial": 5.7,
+   "category": "2 Each stage",
+   "doc": "From here the stage title stays hidden.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Desde aca el título de la etapa queda oculto."
+  },
+  {
+   "name": "Alma_Entra",
+   "type": "f",
+   "initial": 5.5,
+   "category": "2 Each stage",
+   "doc": "When Alma enters (end of phase 0; the stage clock jumps to 9 at that moment).",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Cuando entra Alma (fin de la fase 0; el reloj de la etapa salta a 9 en ese momento)."
+  },
+  {
+   "name": "Alma_VozRetardo",
+   "type": "f",
+   "initial": 1.5,
+   "category": "2 Each stage",
+   "doc": "How long Alma waits to start speaking on arrival.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Cuánto espera Alma para empezar a hablar al llegar."
+  },
+  {
+   "name": "Alma_TrasVoz",
+   "type": "f",
+   "initial": 3.0,
+   "category": "2 Each stage",
+   "doc": "How long Alma stays after speaking, before the instructions.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Cuánto queda Alma después de su voz antes de las instrucciones."
+  },
+  {
+   "name": "Instr_Dur",
+   "type": "a5",
+   "initial": [
+    8.5,
+    6.0,
+    6.0,
+    6.0,
+    0.6
+   ],
+   "category": "2 Each stage",
+   "doc": "Instruction time before StageBegin, per stage.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Tiempo de instrucciones antes de StageBegin, por etapa."
+  },
+  {
+   "name": "Instr_EsperaMax",
+   "type": "f",
+   "initial": 20.0,
+   "category": "2 Each stage",
+   "doc": "Attracting: maximum wait for the brief voices before starting.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Attracting: tope de espera a las voces de la consigna antes de empezar."
+  },
+  {
+   "name": "Etapa_Tope",
+   "type": "a5",
+   "initial": [
+    240.0,
+    180.0,
+    120.0,
+    240.0,
+    205.0
+   ],
+   "category": "2 Each stage",
+   "doc": "After N s of mechanic the Obra asks the stage to close its own way (Attracting saves the melody, Surrounding presents the drawing).",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "A los N s de mecánica la Obra le PIDE a la etapa que cierre por su propio camino (Attracting guarda la melodía, Surrounding presenta el dibujo)."
+  },
+  {
+   "name": "Corte_Espera",
+   "type": "f",
+   "initial": 30.0,
+   "category": "2 Each stage",
+   "doc": "If the stage hasn't closed N s after the request, it closes anyway (safety cap).",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Si la etapa no cerro N s después del pedido, se cierra igual (tope de seguridad)."
+  },
+  {
+   "name": "Salida_Dur",
+   "type": "a5",
+   "initial": [
+    2.5,
+    2.5,
+    2.5,
+    2.5,
+    2.5
+   ],
+   "category": "2 Each stage",
+   "doc": "Stage exit (StageOutro) before the charge; never less than the voice + Salida_TrasVoz.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Salida de la etapa (StageOutro) antes de la carga; nunca menos que la voz + Salida_TrasVoz."
+  },
+  {
+   "name": "Salida_TrasVoz",
+   "type": "f",
+   "initial": 0.6,
+   "category": "2 Each stage",
+   "doc": "Margin after the congratulation voice before the charge.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Margen después de la voz de felicitacion antes de la carga."
+  },
+  {
+   "name": "Carga_Dur",
+   "type": "a5",
+   "initial": [
+    4.0,
+    4.0,
+    4.0,
+    4.0,
+    6.0
+   ],
+   "category": "2 Each stage",
+   "doc": "Duration of the ring charge per stage (the last is the final charge).",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Duración de la carga del anillo por etapa (la ultima es la carga final)."
+  },
+  {
+   "name": "Carga_Minima",
+   "type": "f",
+   "initial": 1.0,
+   "category": "2 Each stage",
+   "doc": "Minimum of the charge phase before it can be closed.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Mínimo de la fase de carga antes de poder cerrarla."
+  },
+  {
+   "name": "Despedida_Retardo",
+   "type": "f",
+   "initial": 0.9,
+   "category": "2 Each stage",
+   "doc": "How long Alma waits to invite to the next stage.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Cuánto espera Alma para invitar a la siguiente etapa."
+  },
+  {
+   "name": "Despedida_TrasVoz",
+   "type": "f",
+   "initial": 1.3,
+   "category": "2 Each stage",
+   "doc": "How long Alma stays after the invitation before leaving.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Cuánto queda Alma después de la invitación antes de irse."
+  },
+  {
+   "name": "Velo_CierreDur",
+   "type": "f",
+   "initial": 2.5,
+   "category": "2 Each stage",
+   "doc": "How long the veil takes to close the stage before moving on to the next.",
+   "categoryUnreal": "2 Cada etapa",
+   "docUnreal": "Cuánto tarda el velo en cerrar la etapa antes de pasar a la siguiente."
+  },
+  {
+   "name": "Sim_EtapaMax",
+   "type": "f",
+   "initial": 90.0,
+   "category": "3 Simulated",
+   "doc": "With bSimulated: Attracting and Surrounding are asked to close at N s (instead of Etapa_Tope).",
+   "categoryUnreal": "3 Simulado",
+   "docUnreal": "Con bSimulated: a Attracting y Surrounding se les pide cerrar a los N s (en vez de Etapa_Tope)."
+  },
+  {
+   "name": "Final_NegroRampa",
+   "type": "f",
+   "initial": 2.0,
+   "category": "4 Final",
+   "doc": "In the final charge, how long the ramp to black lasts (ends with the charge).",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "En la carga final, cuánto dura la rampa a negro (termina con la carga)."
+  },
+  {
+   "name": "Regreso_HallA",
+   "type": "f",
+   "initial": 0.3,
+   "category": "4 Final",
+   "doc": "When, already in black, it jumps to the Hall for the return.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Cuando, ya en negro, se salta al Hall para el regreso."
+  },
+  {
+   "name": "Regreso_VeloIni",
+   "type": "f",
+   "initial": 0.2,
+   "category": "4 Final",
+   "doc": "Return: the veil starts to open.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Regreso: el velo empieza a abrir."
+  },
+  {
+   "name": "Regreso_VeloFin",
+   "type": "f",
+   "initial": 1.4,
+   "category": "4 Final",
+   "doc": "Return: the veil finishes opening.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Regreso: el velo termina de abrir."
+  },
+  {
+   "name": "Regreso_PezA",
+   "type": "f",
+   "initial": 1.6,
+   "category": "4 Final",
+   "doc": "Return: when the user's soul leaves as a fish and the Hall follows it.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Regreso: cuando el alma sale como pez y el Hall la sigue."
+  },
+  {
+   "name": "Res_AlmaA",
+   "type": "f",
+   "initial": 0.5,
+   "category": "4 Final",
+   "doc": "Results: when Alma arrives and starts the reading (VO_34b).",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Resultados: cuando llega Alma y empieza su lectura (VO_34b)."
+  },
+  {
+   "name": "Res_PezMin",
+   "type": "f",
+   "initial": 1.8,
+   "category": "4 Final",
+   "doc": "Results: minimum before the user's soul settles in its ring.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Resultados: mínimo antes de que el alma se asiente en su anillo."
+  },
+  {
+   "name": "Res_PezMax",
+   "type": "f",
+   "initial": 3.4,
+   "category": "4 Final",
+   "doc": "Results: the user's soul settles at N s at the latest.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Resultados: el alma se asienta a mas tardar a los N s."
+  },
+  {
+   "name": "Res_GusanoA",
+   "type": "f",
+   "initial": 2.0,
+   "category": "4 Final",
+   "doc": "Results: when the melody plays (worm).",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Resultados: cuando suena la melodía (gusano)."
+  },
+  {
+   "name": "Res_Explorar",
+   "type": "f",
+   "initial": 25.0,
+   "category": "4 Final",
+   "doc": "Results: time to explore after Alma's reading.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Resultados: tiempo para explorar después de la lectura de Alma."
+  },
+  {
+   "name": "Res_InvitaRecorte",
+   "type": "f",
+   "initial": 1.2,
+   "category": "4 Final",
+   "doc": "The buttons appear N s before the invitation to share ends.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Los botones aparecen N s antes de que termine la invitación a compartir."
+  },
+  {
+   "name": "Res_BotonesVoz",
+   "type": "f",
+   "initial": 1.8,
+   "category": "4 Final",
+   "doc": "How long after the buttons appear Alma speaks (VO_36p).",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Cuánto después de aparecer los botones habla Alma (VO_36p)."
+  },
+  {
+   "name": "Res_SalidaRetardo",
+   "type": "f",
+   "initial": 0.5,
+   "category": "4 Final",
+   "doc": "How long after choosing the panel goes away.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Cuánto después de elegir se va el cuadro."
+  },
+  {
+   "name": "Res_Cortafuegos",
+   "type": "f",
+   "initial": 30.0,
+   "category": "4 Final",
+   "doc": "If nobody chooses SHARE/DON'T SHARE within N s, it chooses by itself.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Si nadie elige SHARE/DON'T SHARE en N s, se elige solo."
+  },
+  {
+   "name": "Res_Tope",
+   "type": "f",
+   "initial": 150.0,
+   "category": "4 Final",
+   "doc": "Timeout for the whole results phase.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Cortafuegos de toda la fase de resultados."
+  },
+  {
+   "name": "Comp_Nado",
+   "type": "f",
+   "initial": 4.0,
+   "category": "4 Final",
+   "doc": "SHARE: how long the user's soul swims to the door.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "SHARE: cuánto nada el alma hasta la puerta."
+  },
+  {
+   "name": "Comp_Lejos",
+   "type": "f",
+   "initial": 3.0,
+   "category": "4 Final",
+   "doc": "SHARE: how long the user's soul takes to leave through the door.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "SHARE: cuánto tarda el alma en irse por la puerta."
+  },
+  {
+   "name": "Salida_HallA",
+   "type": "f",
+   "initial": 0.5,
+   "category": "4 Final",
+   "doc": "When the exit from the Hall toward the constellation starts.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Cuando arranca la salida del Hall hacia la constelación."
+  },
+  {
+   "name": "Const_AlmaLlega",
+   "type": "f",
+   "initial": 5.0,
+   "category": "4 Final",
+   "doc": "Constellation: when your soul appears (if you shared).",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Constelación: cuando aparece tu alma (si compartiste)."
+  },
+  {
+   "name": "Const_Voz35",
+   "type": "f",
+   "initial": 8.0,
+   "category": "4 Final",
+   "doc": "Constellation: when VO_35b plays.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Constelación: cuando suena VO_35b."
+  },
+  {
+   "name": "Const_Voz37TrasVoz",
+   "type": "f",
+   "initial": 0.6,
+   "category": "4 Final",
+   "doc": "Constellation: margin between VO_35b and VO_37.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Constelación: margen entre VO_35b y VO_37."
+  },
+  {
+   "name": "Creditos_Dur",
+   "type": "f",
+   "initial": 60.0,
+   "category": "4 Final",
+   "doc": "Duration of the constellation with credits.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Duración de la constelación con créditos."
+  },
+  {
+   "name": "Fundido_Dur",
+   "type": "f",
+   "initial": 3.5,
+   "category": "4 Final",
+   "doc": "Final fade before restarting the piece.",
+   "categoryUnreal": "4 Final",
+   "docUnreal": "Fundido final antes de reiniciar la obra."
+  }
+ ]
+}

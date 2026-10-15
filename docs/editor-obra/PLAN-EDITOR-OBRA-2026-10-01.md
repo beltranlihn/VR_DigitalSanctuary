@@ -6,7 +6,8 @@ Editor web de gameplay y narrativa para Soul Charger. Lo usan Beltrán y su soci
   - `preview.html` se sirve con la configuración `editor-obra` de `.claude/launch.json`, en el puerto 8767.
   - `editor-obra-mockup.html` es la versión para publicar como artifact.
   - Se arma con `build.py` a partir de `src-body.html` y del CSS de ISP.
-- **Informes de la auditoría:** `docs/editor-obra/anexos/` (01 a 10).
+- **Informes de la auditoría:** `docs/editor-obra/anexos/` (01 a 20: el 18 es la auditoría de la app y su estado por lotes; el 19 y el 20, los diseños del lote 5).
+- **Decisión de arquitectura sobre cómo llegan los tiempos a Unreal:** [ADR-001](ADR-001-partitura-y-unreal.md). Donde choca con este documento (§3.3, §4 F4, §5 riesgo 2, §6 decisión 1 y la fila "Runtime en el Quest" de §0), manda el ADR.
 - **Regla:** donde un anexo contradiga este documento, manda este documento.
 
 ---
@@ -25,7 +26,7 @@ Editor web de gameplay y narrativa para Soul Charger. Lo usan Beltrán y su soci
 | Tiempo interactivo | **Esperas elásticas.** Se dibujan como bloque rayado (lo esperado), cola cian (lo que decide el usuario) y línea roja (el cortafuegos). Un **usuario simulado** (Fast · Typical · Slow · Idle) mueve todo lo anclado y el total. |
 | Fuente de verdad | **Partitura en texto en el repo** (`obra/score/`). La base del artifact es la mesa de trabajo y Unreal es el compilado. Cada documento tiene un solo dueño. |
 | Sincronización con Unreal | **Por lote, en el turno de la cola del editor.** Nunca en vivo sobre el editor compartido. La web ve Unreal en solo lectura, y lo que la web cambia llega a Unreal como propuesta. |
-| Runtime en el Quest | **Datos cocinados.** Una DataTable de cues `{Mark, Offset, Action…}` más perillas. `BP_ScorePlayer_SC` dispara las cues a partir de las marcas que emite la Obra. |
+| Runtime en el Quest | **Datos cocinados.** Una DataTable de cues `{Mark, Offset, Action…}` más perillas. `BP_ScorePlayer_SC` dispara las cues a partir de las marcas que emite la Obra. *(Superseded by ADR-001: los tiempos viven en el DataAsset `DA_Partitura_Obra`, sin DataTable; los cues por marca solo se compilan en seco.)* |
 | Ventanas | **MVP todo en uno.** Las dos pestañas (3D / Timeline) llegan en la fase 2, una vez probado el canal en el host real. |
 | Stack | **Vanilla JS sin build**, como ISP (ADR-0001), y three r128. El timeline es propio, escrito sobre las clases de ISP; no se trasplanta `renderTimeline`. |
 
@@ -329,6 +330,8 @@ Por eso cambiar de sub-pista **nunca** cambia el comportamiento.
 
 ### 3.3 Unreal
 
+> **Superseded by [ADR-001](ADR-001-partitura-y-unreal.md):** no hay DataTable ni structs nuevos, ni `ScoreApply`, ni reconciliación de tres vías en runtime. Mandan `DA_Partitura_Obra` y `partitura_propuesta.json`; los cues por marca se compilan solo en seco (`compile.mjs`). Lo demás de esta sección (cosecha, "probar desde aquí", alcance honesto) sigue vigente.
+
 **Compilación.** `compile.mjs` aplana cada cue a `{Mark, Offset}` y genera dos tablas: **Cues** (`Mark, Offset, Action, Target, Asset, P1..P4`) y **Knobs** (`Name, Value`).
 - **Preferido:** DataTable con Reimport. Beltrán crea a mano, una vez, los dos structs, porque el MCP no crea structs.
 - **Plan B:** un DataAsset con arrays, con el precedente `DA_Ghost_*`.
@@ -388,6 +391,8 @@ Reemplaza a `ensayo_export.py` y a `gen_ensayo_js.py`.
 | **F5 · Interacción completa** | Ramas como tomas; cajón Logic; lista de cues; linter de reglas; VO de etapa y runners leyendo la misma partitura | Alcance: el grafo es una vista, no un Blueprint |
 | **F6 · Opcionales** | "Probar desde aquí" (`ProbeStart` + PIE en la cola); override JSON en el APK Development (requiere JsonBlueprintUtilities y AndroidFileServer, hoy apagados) | Plugins en configuración compartida |
 
+> **F4: superseded by [ADR-001](ADR-001-partitura-y-unreal.md):** sin structs, DataTable ni `ScoreApply`; la web propone y Unreal aplica cuando se pide. `BP_ScorePlayer_SC` solo existirá si el Director decide construirlo.
+
 **Corte del MVP:** cuando F1 está en uso, el prototipo viejo pasa a **solo lectura por código** y la única forma de cambiar un tiempo es la partitura.
 
 ---
@@ -395,7 +400,7 @@ Reemplaza a `ensayo_export.py` y a `gen_ensayo_js.py`.
 ## 5. Riesgos (de más a menos grave)
 
 1. **Ilusión de control.** El socio monta algo que el APK no reproduce. *Mitigación:* insignia por elemento y alcance en la barra de estado.
-2. **`ScoreApply` pisa a Beltrán.** *Mitigación:* reconciliación de tres vías.
+2. **`ScoreApply` pisa a Beltrán.** *Mitigación:* reconciliación de tres vías. *(Superseded by ADR-001: no hay `ScoreApply`; la web solo propone y las perillas de instancia son de solo lectura.)*
 3. **Doble runtime (web y Unreal) mantenido por una sesión.** *Mitigación:* al principio, un catálogo de 10 acciones como máximo; las mecánicas entran como caja con duración simulada.
 4. **El observador pierde marcas.** *Mitigación:* dispatcher `OnMark`.
 5. **Sandbox del artifact** (pestañas, `editor.html` dentro de `files`). *Mitigación:* una prueba de 30 minutos antes de F2. Plan B: un artifact nuevo copiando los assets en el servidor.
@@ -419,6 +424,8 @@ Reemplaza a `ensayo_export.py` y a `gen_ensayo_js.py`.
 | 8 | ¿Las esperas del Hall llevan ayuda por voz (VO_01h, VO_03h), como pide el guion? Hoy solo tienen el fantasma. | Sí: cablearlas en `HallEnterIntro`. Así la regla "toda espera tiene ayuda" deja de dar error. |
 | 9 | Al vencer el cortafuegos de Attracting o Surrounding, ¿se fuerza el SAVE antes del outro? Hoy se salta SAVE y coda. | Sí, porque es lo que pide el guion ("el cortafuegos sigue el camino del final real"). |
 | 10 | ¿Quién firma un APK con rupturas aceptadas sin conectar? | Solo Beltrán. |
+
+> **Decisión 1: superseded by [ADR-001](ADR-001-partitura-y-unreal.md)** (decisión 4): las perillas de instancia son de solo lectura en la web y no hay reconciliación de tres vías; manda el DataAsset y la web propone.
 
 **Correcciones a las fases (§4) tras la auditoría de herramientas:**
 - **F1** exige que las posiciones y tiempos de la vista salgan de la cosecha de Unreal; si no, la vista se rotula "previs, not Unreal positions".
@@ -474,6 +481,7 @@ En paralelo, la maqueta sigue siendo el lugar donde Beltrán decide la interfaz.
 - **Vista de lógica:** el cajón de nodos (F5).
 - **Alcance de la vista 3D:** muestra el timing del prototipo, no el de la partitura editada.
 - **Decisiones abiertas:** las del §6.
+- **Actualización (2026-10-14):** el alcance de la vista 3D se resolvió en el lote 3. El puente a Unreal avanzó en el lote 5 (cada elemento dice si llega a Unreal, enlace con marcas, compilador de ensayo) sin escribir nada de Unreal; lo que depende del Director está en [PEDIDOS-AL-DIRECTOR.md](PEDIDOS-AL-DIRECTOR.md). La vista de lógica sigue pendiente (F5). Las decisiones abiertas del dueño están reunidas en una sola lista en el anexo 18.
 
 **Auditoría de la app (2026-10-02, tarde):** [anexo 18](anexos/18-auditoria-app.md).
 - **Resultado:** 54 hallazgos verificados más 13 que encontraron los verificadores.
@@ -483,3 +491,72 @@ En paralelo, la maqueta sigue siendo el lugar donde Beltrán decide la interfaz.
   - la integridad grita en las VO y calla en el 58 % de los elementos y en el ripple;
   - la vista previa no muestra lo editado.
 - **Plan:** arreglos en 5 lotes. El lote 1 (que no se pierda ni se corrompa nada) va antes de dárselo al socio.
+
+## 9. Acople con la Partitura de Unreal y nombre (2026-10-02, noche)
+
+**Nombre:** el software se llama **Veation VR Studio**.
+- La marca está en `web/editor-obra/app/brand/`. Es de la familia VEATION de ISP: el aro con el punto ámbar. En VR, el aro es una esfera con su horizonte y el punto es el ojo en el centro.
+- Se abre en su propia ventana con `tools/editor/abrir-editor.bat` (Edge o Chrome en modo app) y se puede instalar desde el navegador (`manifest.webmanifest`).
+
+**El director pasó los tiempos de la Obra a `DA_Partitura_Obra`:** 60 perillas, ver `docs/PARTITURA.md`. El acuerdo entre las dos sesiones está en `obra/unreal/LEEME.md`:
+- **Manda el DA.** El editor web nunca escribe `.uasset`.
+- **Unreal → web:**
+  - `obra/unreal/partitura.json` son los valores vivos, con hash;
+  - `obra/unreal/perillas.json` es el volcado de los 22 BPs;
+  - `obra/unreal/traza.json` será la secuencia real de fases (`smoke_obra.py --traza`).
+- **Web → Unreal:** `obra/unreal/partitura_propuesta.json` lleva `valores` (solo lo que cambia) y `motivos`. Una sesión con Unreal abierto la aplica, corre el smoke y vuelve a exportar.
+- **Del lado web:**
+  - `partitura_def.json` se sincroniza con `python tools/editor/sync_partitura.py` desde `tools/unreal/partitura_def.py`;
+  - `partitura_binding.json` dice qué elementos de la partitura gobierna cada perilla (31 enlaces). **Es borrador: lo valida el director**;
+  - `node tools/editor/partitura_drift.mjs` lista las diferencias;
+  - `js/partitura.js` hace la medición y la inversa.
+- **En la app:**
+  - la pestaña **Timing**, con las 60 perillas, el valor de Unreal y las diferencias con la partitura;
+  - el inspector de perilla, con cada etapa: Unreal contra partitura, "Match the score to Unreal" y "Propose to Unreal" con motivo;
+  - en cada elemento, la sección "Unreal timing";
+  - en Problems, `C3.PARTITURA` por perilla que difiere: hoy son 21;
+  - la píldora "Unreal timing · hora · N ≠".
+- **`contract.json` v1:** títulos, velos, topes de etapa y cortafuegos de SHARE dejaron de ser "literal": son perillas del DA y editarlos informa en vez de bloquear.
+- **Hecho medido:** igualar la partitura al DA cambia 64 valores, deja 0 diferencias y ninguna ancla colgando, y el total pasa de 16:58 a 16:52.
+
+**Regla de Beltrán (10-02): el paso a Unreal nunca es automático. Va con un botón y con vuelta atrás.**
+- **Proponer no envía nada.** El cambio queda en espera dentro de la partitura (`score.propuestas`): se deshace con Ctrl+Z, se guarda con Ctrl+S y no escribe nada para Unreal.
+- **Send to Unreal es la única puerta.** Está en la barra superior y en la pestaña Timing, con un contador. Abre una tarjeta de revisión con cada cambio (antes → después y motivo) y las comprobaciones de `Partitura.checks()`:
+  - el orden de revelado y salida de títulos y velos;
+  - `Carga_Minima`;
+  - los saltos grandes;
+  - `Res_Tope`;
+  - el acople de la carga final.
+
+  Si algo rompería, el envío queda bloqueado. Recién al confirmar se escribe `partitura_propuesta.json` con `estado: "enviada"` y el `respaldo` de los valores vivos. Mientras Unreal aplica (`estado: "aplicando"`), el servidor no deja pisar el archivo.
+- **Del lado Unreal (pedido al director):**
+  - se aplica solo cuando se pide;
+  - antes, respaldo;
+  - después, smoke;
+  - si falla, se restaura el respaldo y queda `estado: "rechazada"` con `motivo_rechazo`;
+  - si sale bien, `estado: "aplicada"`.
+- **El editor revisa los archivos cada 20 s** y muestra en qué quedó lo enviado: "waiting", "Applied" o "Not applied: …". Con "aplicada" ofrece "Undo it in Unreal…": pone en espera los valores del respaldo, que también necesitan Send.
+
+**Lote 1 de la auditoría (no perder ni corromper nada): hecho el 2026-10-02.**
+- El detalle está en el anexo 18, en "Estado del lote 1".
+- La lógica delicada vive en `web/editor-obra/app/js/edits.js`, que es puro y tiene pruebas: `tools/score/edits_test.mjs`.
+- Las reglas de guardado del servidor tienen su prueba en `tools/editor/server_test.py`.
+- Nombres de niveles y carpetas actualizados al reordenamiento del director: Test_Breath, Test_Mind, Test_Draw y Hall/Audio. Los efectos nuevos van a `Obra/Audio/Placeholder`.
+
+**Lotes 2 y 3 de la auditoría: hechos el 2026-10-02.** El detalle está en el anexo 18.
+- **Lote 2:** la integridad juzga lo que de verdad cambió. Muestra el ripple, deriva "≠ APK" en vez de guardarlo y suma las reglas C2 que faltaban. Problems tiene una acción por fila.
+- **Lote 3:** el 3D reproduce la partitura editada, con los 592 clips exactos. Suenan las grabaciones reales (mezcla final). Las voces se comparan con su largo real.
+- **Hallazgo:** 57 de 70 voces tenían un largo estimado por texto. Con las grabaciones la obra dura 16:24, no 16:58. El editor lo ofrece como un clic, con el efecto a la vista. No está aplicado: lo decide Beltrán.
+
+**Lote 4 de la auditoría (que el editor se sienta como un NLE): hecho el 2026-10-05.** El detalle está en el anexo 18, "Estado del lote 4".
+- **Cambiar el ancla** de un elemento o un momento, conservando su tiempo.
+- **Verbos de NLE:** J/K/L, I/O, ↑/↓, zoom, selección de varios, copiar, pegar y duplicar, y la lista de atajos con las equivalencias de Premiere y Resolve.
+- **Un timeline legible:** tarjeta al pasar el puntero, label primero, zoom por momento, acto y obra, altura de pista, Ctrl+F.
+- **Marcadores y notas** editables, y un "unsaved" que no engaña.
+
+**Lote 5 de la auditoría (que la partitura hable el idioma de Unreal y sea segura de evolucionar): construido y verificado el 2026-10-14, sin aplicar nada.** El detalle está en el anexo 18, "Estado del lote 5"; los diseños, en los anexos 19 (Unreal) y 20 (la partitura), y la decisión de arquitectura, en el [ADR-001](ADR-001-partitura-y-unreal.md).
+- **Schema 3** con ramas SHARE / DON'T SHARE, esperas como en Unreal, nombres estables y la referencia de "≠ APK" dentro de la partitura: es **Problems ▸ Upgrade…**, un botón del dueño que no mueve ningún tiempo del usuario típico.
+- **Alcance frente a Unreal:** cada elemento dice si llega a Unreal por una perilla, si Unreal lo decide solo, si podría ser un cue o si es solo previs. **Experience ▸ Bind to Unreal…** (opcional, sobre schema 3) le agrega las marcas y los `bind`, y `compile.mjs` compila en seco.
+- **Reglas al guardar** en el navegador, la terminal y el servidor, **aceptado por valor**, contrato y perillas **por id** y `guion.js` como **fuente de importación**.
+- La corrida real de Unreal (`traza.json`) se compara con la partitura en la pista **Unreal run**.
+- **La partitura real sigue en schema 2.** Las decisiones del dueño están en una sola lista en el anexo 18; lo que depende del Director, en [PEDIDOS-AL-DIRECTOR.md](PEDIDOS-AL-DIRECTOR.md).

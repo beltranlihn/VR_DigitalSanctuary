@@ -1,0 +1,245 @@
+{
+ "note": "English texts of the Partitura knobs for the editor (the app is in English). Web-owned. tools/editor/sync_partitura.py merges them into partitura_def.json and keeps the director's original text as docUnreal / categoryUnreal. Knob names are Unreal variable names and never change.",
+ "knobs": {
+  "Aviso_Dur": {
+   "category": "1 Opening and Hall",
+   "doc": "Duration of the prototype notice (phase 16), if bDisclaimer."
+  },
+  "Titulo_Aparece": {
+   "category": "1 Opening and Hall",
+   "doc": "When the SOUL CHARGER title is placed in the Hall (PT of phase 9)."
+  },
+  "Titulo_RevelaIni": {
+   "category": "1 Opening and Hall",
+   "doc": "The title starts to reveal."
+  },
+  "Titulo_RevelaFin": {
+   "category": "1 Opening and Hall",
+   "doc": "The title finishes revealing."
+  },
+  "Bajada_RevelaIni": {
+   "category": "1 Opening and Hall",
+   "doc": "The subtitle starts to reveal."
+  },
+  "Bajada_RevelaFin": {
+   "category": "1 Opening and Hall",
+   "doc": "The subtitle finishes revealing."
+  },
+  "Logos_RevelaIni": {
+   "category": "1 Opening and Hall",
+   "doc": "The logos start to reveal (JHU +0.3 s, IDEAS +0.6 s)."
+  },
+  "Logos_RevelaFin": {
+   "category": "1 Opening and Hall",
+   "doc": "The logos finish revealing."
+  },
+  "Titulo_SaleIni": {
+   "category": "1 Opening and Hall",
+   "doc": "Title, subtitle and logos start to leave."
+  },
+  "Titulo_SaleFin": {
+   "category": "1 Opening and Hall",
+   "doc": "Title, subtitle and logos finish leaving."
+  },
+  "Titulo_Fin": {
+   "category": "1 Opening and Hall",
+   "doc": "The title actor is hidden."
+  },
+  "Hall_VeloAbreIni": {
+   "category": "1 Opening and Hall",
+   "doc": "The black veil starts to open onto the Hall mist."
+  },
+  "Hall_VeloAbreFin": {
+   "category": "1 Opening and Hall",
+   "doc": "The veil finishes opening in the Hall."
+  },
+  "Hall_IntroA": {
+   "category": "1 Opening and Hall",
+   "doc": "When the Obra tells the Hall to start (HallIntro)."
+  },
+  "HUD_EEGRetardo": {
+   "category": "1 Opening and Hall",
+   "doc": "How long after the HUD is born the EEG line is born."
+  },
+  "Etapa_VeloAbreIni": {
+   "doc": "The color veil starts to open the stage (T).",
+   "category": "2 Each stage"
+  },
+  "Etapa_VeloAbreFin": {
+   "doc": "The veil finishes opening the stage.",
+   "category": "2 Each stage"
+  },
+  "Etapa_TituloRevelaIni": {
+   "doc": "The stage title starts to reveal.",
+   "category": "2 Each stage"
+  },
+  "Etapa_TituloRevelaFin": {
+   "doc": "The stage title finishes revealing.",
+   "category": "2 Each stage"
+  },
+  "Etapa_TituloSaleIni": {
+   "doc": "The stage title starts to leave.",
+   "category": "2 Each stage"
+  },
+  "Etapa_TituloSaleFin": {
+   "doc": "The stage title finishes leaving.",
+   "category": "2 Each stage"
+  },
+  "Etapa_TituloOculto": {
+   "doc": "From here the stage title stays hidden.",
+   "category": "2 Each stage"
+  },
+  "Alma_Entra": {
+   "doc": "When Alma enters (end of phase 0; the stage clock jumps to 9 at that moment).",
+   "category": "2 Each stage"
+  },
+  "Alma_VozRetardo": {
+   "doc": "How long Alma waits to start speaking on arrival.",
+   "category": "2 Each stage"
+  },
+  "Alma_TrasVoz": {
+   "doc": "How long Alma stays after speaking, before the instructions.",
+   "category": "2 Each stage"
+  },
+  "Instr_Dur": {
+   "doc": "Instruction time before StageBegin, per stage.",
+   "category": "2 Each stage"
+  },
+  "Instr_EsperaMax": {
+   "doc": "Attracting: maximum wait for the brief voices before starting.",
+   "category": "2 Each stage"
+  },
+  "Etapa_Tope": {
+   "doc": "After N s of mechanic the Obra asks the stage to close its own way (Attracting saves the melody, Surrounding presents the drawing).",
+   "category": "2 Each stage"
+  },
+  "Corte_Espera": {
+   "doc": "If the stage hasn't closed N s after the request, it closes anyway (safety cap).",
+   "category": "2 Each stage"
+  },
+  "Salida_Dur": {
+   "doc": "Stage exit (StageOutro) before the charge; never less than the voice + Salida_TrasVoz.",
+   "category": "2 Each stage"
+  },
+  "Salida_TrasVoz": {
+   "doc": "Margin after the congratulation voice before the charge.",
+   "category": "2 Each stage"
+  },
+  "Carga_Dur": {
+   "doc": "Duration of the ring charge per stage (the last is the final charge).",
+   "category": "2 Each stage"
+  },
+  "Carga_Minima": {
+   "doc": "Minimum of the charge phase before it can be closed.",
+   "category": "2 Each stage"
+  },
+  "Despedida_Retardo": {
+   "doc": "How long Alma waits to invite to the next stage.",
+   "category": "2 Each stage"
+  },
+  "Despedida_TrasVoz": {
+   "doc": "How long Alma stays after the invitation before leaving.",
+   "category": "2 Each stage"
+  },
+  "Velo_CierreDur": {
+   "doc": "How long the veil takes to close the stage before moving on to the next.",
+   "category": "2 Each stage"
+  },
+  "Sim_EtapaMax": {
+   "doc": "With bSimulated: Attracting and Surrounding are asked to close at N s (instead of Etapa_Tope).",
+   "category": "3 Simulated"
+  },
+  "Final_NegroRampa": {
+   "doc": "In the final charge, how long the ramp to black lasts (ends with the charge).",
+   "category": "4 Final"
+  },
+  "Regreso_HallA": {
+   "doc": "When, already in black, it jumps to the Hall for the return.",
+   "category": "4 Final"
+  },
+  "Regreso_VeloIni": {
+   "doc": "Return: the veil starts to open.",
+   "category": "4 Final"
+  },
+  "Regreso_VeloFin": {
+   "doc": "Return: the veil finishes opening.",
+   "category": "4 Final"
+  },
+  "Regreso_PezA": {
+   "doc": "Return: when the user's soul leaves as a fish and the Hall follows it.",
+   "category": "4 Final"
+  },
+  "Res_AlmaA": {
+   "doc": "Results: when Alma arrives and starts the reading (VO_34b).",
+   "category": "4 Final"
+  },
+  "Res_PezMin": {
+   "doc": "Results: minimum before the user's soul settles in its ring.",
+   "category": "4 Final"
+  },
+  "Res_PezMax": {
+   "doc": "Results: the user's soul settles at N s at the latest.",
+   "category": "4 Final"
+  },
+  "Res_GusanoA": {
+   "doc": "Results: when the melody plays (worm).",
+   "category": "4 Final"
+  },
+  "Res_Explorar": {
+   "doc": "Results: time to explore after Alma's reading.",
+   "category": "4 Final"
+  },
+  "Res_InvitaRecorte": {
+   "doc": "The buttons appear N s before the invitation to share ends.",
+   "category": "4 Final"
+  },
+  "Res_BotonesVoz": {
+   "doc": "How long after the buttons appear Alma speaks (VO_36p).",
+   "category": "4 Final"
+  },
+  "Res_SalidaRetardo": {
+   "doc": "How long after choosing the panel goes away.",
+   "category": "4 Final"
+  },
+  "Res_Cortafuegos": {
+   "doc": "If nobody chooses SHARE/DON'T SHARE within N s, it chooses by itself.",
+   "category": "4 Final"
+  },
+  "Res_Tope": {
+   "doc": "Timeout for the whole results phase.",
+   "category": "4 Final"
+  },
+  "Comp_Nado": {
+   "doc": "SHARE: how long the user's soul swims to the door.",
+   "category": "4 Final"
+  },
+  "Comp_Lejos": {
+   "doc": "SHARE: how long the user's soul takes to leave through the door.",
+   "category": "4 Final"
+  },
+  "Salida_HallA": {
+   "doc": "When the exit from the Hall toward the constellation starts.",
+   "category": "4 Final"
+  },
+  "Const_AlmaLlega": {
+   "doc": "Constellation: when your soul appears (if you shared).",
+   "category": "4 Final"
+  },
+  "Const_Voz35": {
+   "doc": "Constellation: when VO_35b plays.",
+   "category": "4 Final"
+  },
+  "Const_Voz37TrasVoz": {
+   "doc": "Constellation: margin between VO_35b and VO_37.",
+   "category": "4 Final"
+  },
+  "Creditos_Dur": {
+   "doc": "Duration of the constellation with credits.",
+   "category": "4 Final"
+  },
+  "Fundido_Dur": {
+   "doc": "Final fade before restarting the piece.",
+   "category": "4 Final"
+  }
+ }
+}

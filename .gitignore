@@ -63,3 +63,6 @@ Recursos/Soul Charger - Escritorio 2026-10/
 # Assets archivados fuera del proyecto Unreal (2026-10-02). Se restauran con tools/unreal/archive_unused.py --restore,
 # o desde git con el tag respaldo-pre-reorden-2026-10-02.
 _Deprecated/
+
+# Extraccion del prototipo (tools/score/extract_v1.mjs): se importa en el editor con File > Import score..., nunca pisa obra/score/score.json
+obra/score/score.extracted.json

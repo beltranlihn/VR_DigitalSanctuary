@@ -1,0 +1,1056 @@
+{
+ "generated": "2026-10-05T13:25:48.937Z",
+ "source": "live",
+ "rows": [
+  {
+   "knob": "Aviso_Dur",
+   "stage": null,
+   "da": 19,
+   "score": 20,
+   "els": [
+    "el_7cci4f2bjn"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1
+  },
+  {
+   "knob": "Hall_VeloAbreIni",
+   "stage": null,
+   "da": 3.5,
+   "score": 0,
+   "els": [
+    "el_c8d8mg1yz2"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -3.5
+  },
+  {
+   "knob": "Hall_VeloAbreFin",
+   "stage": null,
+   "da": 5.5,
+   "score": 3,
+   "els": [
+    "el_c8d8mg1yz2"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -2.5
+  },
+  {
+   "knob": "Titulo_RevelaIni",
+   "stage": null,
+   "da": 3,
+   "score": 3,
+   "els": [
+    "el_19albupmjd"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Titulo_RevelaFin",
+   "stage": null,
+   "da": 6.5,
+   "score": 7.5,
+   "els": [
+    "el_19albupmjd"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1
+  },
+  {
+   "knob": "Bajada_RevelaIni",
+   "stage": null,
+   "da": 5,
+   "score": 7.5,
+   "els": [
+    "el_5a1nvxslag"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 2.5
+  },
+  {
+   "knob": "Bajada_RevelaFin",
+   "stage": null,
+   "da": 7.5,
+   "score": 9.5,
+   "els": [
+    "el_5a1nvxslag"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 2
+  },
+  {
+   "knob": "Titulo_SaleIni",
+   "stage": null,
+   "da": 17,
+   "score": 16.5,
+   "els": [
+    "el_fwrhhcjy1q"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.5
+  },
+  {
+   "knob": "Titulo_SaleFin",
+   "stage": null,
+   "da": 19.5,
+   "score": 19,
+   "els": [
+    "el_fwrhhcjy1q"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.5
+  },
+  {
+   "knob": "Etapa_VeloAbreIni",
+   "stage": 0,
+   "da": 1,
+   "score": 0,
+   "els": [
+    "el_13m1rsj1e0"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -1
+  },
+  {
+   "knob": "Etapa_VeloAbreIni",
+   "stage": 1,
+   "da": 1,
+   "score": 1.5,
+   "els": [
+    "el_6v9hoizv15"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0.5
+  },
+  {
+   "knob": "Etapa_VeloAbreIni",
+   "stage": 2,
+   "da": 1,
+   "score": 1.5,
+   "els": [
+    "el_q9tu53khop"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0.5
+  },
+  {
+   "knob": "Etapa_VeloAbreIni",
+   "stage": 3,
+   "da": 1,
+   "score": 1.5,
+   "els": [
+    "el_1136fmk5r5"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0.5
+  },
+  {
+   "knob": "Etapa_VeloAbreIni",
+   "stage": 4,
+   "da": 1,
+   "score": 1.5,
+   "els": [
+    "el_zi7n0h80l4"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0.5
+  },
+  {
+   "knob": "Etapa_VeloAbreFin",
+   "stage": 0,
+   "da": 4,
+   "score": 0.6,
+   "els": [
+    "el_13m1rsj1e0"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -3.4
+  },
+  {
+   "knob": "Etapa_VeloAbreFin",
+   "stage": 1,
+   "da": 4,
+   "score": 6,
+   "els": [
+    "el_6v9hoizv15"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 2
+  },
+  {
+   "knob": "Etapa_VeloAbreFin",
+   "stage": 2,
+   "da": 4,
+   "score": 6,
+   "els": [
+    "el_q9tu53khop"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 2
+  },
+  {
+   "knob": "Etapa_VeloAbreFin",
+   "stage": 3,
+   "da": 4,
+   "score": 6,
+   "els": [
+    "el_1136fmk5r5"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 2
+  },
+  {
+   "knob": "Etapa_VeloAbreFin",
+   "stage": 4,
+   "da": 4,
+   "score": 6,
+   "els": [
+    "el_zi7n0h80l4"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 2
+  },
+  {
+   "knob": "Etapa_TituloRevelaIni",
+   "stage": 0,
+   "da": 0.5,
+   "score": 0,
+   "els": [
+    "el_16857iv1bj"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.5
+  },
+  {
+   "knob": "Etapa_TituloRevelaIni",
+   "stage": 1,
+   "da": 0.5,
+   "score": 0,
+   "els": [
+    "el_27jjfv1dtr"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.5
+  },
+  {
+   "knob": "Etapa_TituloRevelaIni",
+   "stage": 2,
+   "da": 0.5,
+   "score": 0,
+   "els": [
+    "el_12oj6dg1t3"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.5
+  },
+  {
+   "knob": "Etapa_TituloRevelaIni",
+   "stage": 3,
+   "da": 0.5,
+   "score": 0,
+   "els": [
+    "el_1krovqpmga"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.5
+  },
+  {
+   "knob": "Etapa_TituloRevelaIni",
+   "stage": 4,
+   "da": 0.5,
+   "score": 0,
+   "els": [
+    "el_55hncy1s2y"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.5
+  },
+  {
+   "knob": "Etapa_TituloRevelaFin",
+   "stage": 0,
+   "da": 1.8,
+   "score": 4.5,
+   "els": [
+    "el_16857iv1bj"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 2.7
+  },
+  {
+   "knob": "Etapa_TituloRevelaFin",
+   "stage": 1,
+   "da": 1.8,
+   "score": 3.5,
+   "els": [
+    "el_27jjfv1dtr"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.7
+  },
+  {
+   "knob": "Etapa_TituloRevelaFin",
+   "stage": 2,
+   "da": 1.8,
+   "score": 3.5,
+   "els": [
+    "el_12oj6dg1t3"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.7
+  },
+  {
+   "knob": "Etapa_TituloRevelaFin",
+   "stage": 3,
+   "da": 1.8,
+   "score": 3.5,
+   "els": [
+    "el_1krovqpmga"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.7
+  },
+  {
+   "knob": "Etapa_TituloRevelaFin",
+   "stage": 4,
+   "da": 1.8,
+   "score": 3.5,
+   "els": [
+    "el_55hncy1s2y"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.7
+  },
+  {
+   "knob": "Etapa_TituloSaleIni",
+   "stage": 0,
+   "da": 4.6,
+   "score": 5.7,
+   "els": [
+    "el_82t7i41weh"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.1
+  },
+  {
+   "knob": "Etapa_TituloSaleIni",
+   "stage": 1,
+   "da": 4.6,
+   "score": 6,
+   "els": [
+    "el_1svblco1r1"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.4
+  },
+  {
+   "knob": "Etapa_TituloSaleIni",
+   "stage": 2,
+   "da": 4.6,
+   "score": 6,
+   "els": [
+    "el_13mlzg15qi"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.4
+  },
+  {
+   "knob": "Etapa_TituloSaleIni",
+   "stage": 3,
+   "da": 4.6,
+   "score": 6,
+   "els": [
+    "el_d31xterpev"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.4
+  },
+  {
+   "knob": "Etapa_TituloSaleIni",
+   "stage": 4,
+   "da": 4.6,
+   "score": 6,
+   "els": [
+    "el_1tum4jf4cv"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.4
+  },
+  {
+   "knob": "Etapa_TituloSaleFin",
+   "stage": 0,
+   "da": 5.6,
+   "score": 8.7,
+   "els": [
+    "el_82t7i41weh"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 3.1
+  },
+  {
+   "knob": "Etapa_TituloSaleFin",
+   "stage": 1,
+   "da": 5.6,
+   "score": 9,
+   "els": [
+    "el_1svblco1r1"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 3.4
+  },
+  {
+   "knob": "Etapa_TituloSaleFin",
+   "stage": 2,
+   "da": 5.6,
+   "score": 9,
+   "els": [
+    "el_13mlzg15qi"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 3.4
+  },
+  {
+   "knob": "Etapa_TituloSaleFin",
+   "stage": 3,
+   "da": 5.6,
+   "score": 9,
+   "els": [
+    "el_d31xterpev"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 3.4
+  },
+  {
+   "knob": "Etapa_TituloSaleFin",
+   "stage": 4,
+   "da": 5.6,
+   "score": 9,
+   "els": [
+    "el_1tum4jf4cv"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 3.4
+  },
+  {
+   "knob": "Alma_Entra",
+   "stage": 0,
+   "da": 5.5,
+   "score": 5.7,
+   "els": [
+    "el_6wapsy1lvo"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0.2
+  },
+  {
+   "knob": "Alma_Entra",
+   "stage": 1,
+   "da": 5.5,
+   "score": 6,
+   "els": [
+    "el_3cziyh8mum"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0.5
+  },
+  {
+   "knob": "Alma_Entra",
+   "stage": 2,
+   "da": 5.5,
+   "score": 6,
+   "els": [
+    "el_rygbx01jpl"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0.5
+  },
+  {
+   "knob": "Alma_Entra",
+   "stage": 3,
+   "da": 5.5,
+   "score": 6,
+   "els": [
+    "el_t3fxk31b66"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0.5
+  },
+  {
+   "knob": "Alma_Entra",
+   "stage": 4,
+   "da": 5.5,
+   "score": 6,
+   "els": [
+    "el_1k79i3i1xo"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0.5
+  },
+  {
+   "knob": "Alma_VozRetardo",
+   "stage": 0,
+   "da": 1.5,
+   "score": 1.2,
+   "els": [
+    "el_6wapsy1lvo",
+    "el_1o0409k7xx"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.3
+  },
+  {
+   "knob": "Alma_VozRetardo",
+   "stage": 1,
+   "da": 1.5,
+   "score": 1.2,
+   "els": [
+    "el_3cziyh8mum",
+    "el_1tkedf0eyu"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.3
+  },
+  {
+   "knob": "Alma_VozRetardo",
+   "stage": 2,
+   "da": 1.5,
+   "score": 1.2,
+   "els": [
+    "el_rygbx01jpl",
+    "el_9ef5911roj"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.3
+  },
+  {
+   "knob": "Alma_VozRetardo",
+   "stage": 3,
+   "da": 1.5,
+   "score": 1.2,
+   "els": [
+    "el_t3fxk31b66",
+    "el_lg1w7kjwwa"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.3
+  },
+  {
+   "knob": "Alma_VozRetardo",
+   "stage": 4,
+   "da": 1.5,
+   "score": 1.2,
+   "els": [
+    "el_1k79i3i1xo",
+    "el_101bk0hnyv"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.3
+  },
+  {
+   "knob": "Alma_TrasVoz",
+   "stage": 0,
+   "da": 3,
+   "score": 1.96,
+   "els": [
+    "el_1o0409k7xx",
+    "el_1h7axk02hs"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -1.04
+  },
+  {
+   "knob": "Alma_TrasVoz",
+   "stage": 1,
+   "da": 3,
+   "score": 1.97,
+   "els": [
+    "el_1tkedf0eyu",
+    "el_1sx67sz1x2"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -1.03
+  },
+  {
+   "knob": "Alma_TrasVoz",
+   "stage": 2,
+   "da": 3,
+   "score": 2.05,
+   "els": [
+    "el_9ef5911roj",
+    "el_yptd46144n"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.95
+  },
+  {
+   "knob": "Alma_TrasVoz",
+   "stage": 3,
+   "da": 3,
+   "score": 1.97,
+   "els": [
+    "el_lg1w7kjwwa",
+    "el_x23cqh1sxz"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -1.03
+  },
+  {
+   "knob": "Alma_TrasVoz",
+   "stage": 4,
+   "da": 3,
+   "score": 1.95,
+   "els": [
+    "el_101bk0hnyv",
+    "el_1xfuhhw90z"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -1.05
+  },
+  {
+   "knob": "Carga_Dur",
+   "stage": 0,
+   "da": 4,
+   "score": 4,
+   "els": [
+    "el_vlt7cz1g6q"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Carga_Dur",
+   "stage": 1,
+   "da": 4,
+   "score": 4,
+   "els": [
+    "el_1mtl0nqci9"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Carga_Dur",
+   "stage": 2,
+   "da": 4,
+   "score": 4,
+   "els": [
+    "el_twqx9h13jo"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Carga_Dur",
+   "stage": 3,
+   "da": 4,
+   "score": 4,
+   "els": [
+    "el_qnrll4sw8q"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Carga_Dur",
+   "stage": 4,
+   "da": 6,
+   "score": 6,
+   "els": [
+    "el_14nq3gfw93"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Despedida_Retardo",
+   "stage": 0,
+   "da": 0.9,
+   "score": 0.9,
+   "els": [
+    "el_14jjvp01et",
+    "el_4auyvrd3lk"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Despedida_Retardo",
+   "stage": 1,
+   "da": 0.9,
+   "score": 0.9,
+   "els": [
+    "el_vmwpur8507",
+    "el_vuf7il54dh"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Despedida_Retardo",
+   "stage": 2,
+   "da": 0.9,
+   "score": 0.9,
+   "els": [
+    "el_1iey2aaw8o",
+    "el_1wqn4y3p63"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Despedida_Retardo",
+   "stage": 3,
+   "da": 0.9,
+   "score": 0.9,
+   "els": [
+    "el_1ojxj9l1r0",
+    "el_jnuh53sf7l"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Despedida_Retardo",
+   "stage": 4,
+   "da": 0.9,
+   "score": null,
+   "els": [],
+   "approx": null,
+   "stale": null,
+   "diff": null
+  },
+  {
+   "knob": "Despedida_TrasVoz",
+   "stage": 0,
+   "da": 1.3,
+   "score": 0.4,
+   "els": [
+    "el_3gw5su17oq",
+    "el_307ncd1vna"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.9
+  },
+  {
+   "knob": "Despedida_TrasVoz",
+   "stage": 1,
+   "da": 1.3,
+   "score": 0.4,
+   "els": [
+    "el_vkfltm12zs",
+    "el_1rmaf06bzb"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.9
+  },
+  {
+   "knob": "Despedida_TrasVoz",
+   "stage": 2,
+   "da": 1.3,
+   "score": 0.4,
+   "els": [
+    "el_1wgnj941n1",
+    "el_ujva1b1k3j"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.9
+  },
+  {
+   "knob": "Despedida_TrasVoz",
+   "stage": 3,
+   "da": 1.3,
+   "score": 0.4,
+   "els": [
+    "el_itytk5tr0l",
+    "el_11174261l2"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.9
+  },
+  {
+   "knob": "Despedida_TrasVoz",
+   "stage": 4,
+   "da": 1.3,
+   "score": null,
+   "els": [],
+   "approx": null,
+   "stale": null,
+   "diff": null
+  },
+  {
+   "knob": "Velo_CierreDur",
+   "stage": 0,
+   "da": 2.5,
+   "score": 4,
+   "els": [
+    "el_t39nxi1w3y"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.5
+  },
+  {
+   "knob": "Velo_CierreDur",
+   "stage": 1,
+   "da": 2.5,
+   "score": 4,
+   "els": [
+    "el_105d7f5c8o"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.5
+  },
+  {
+   "knob": "Velo_CierreDur",
+   "stage": 2,
+   "da": 2.5,
+   "score": 4,
+   "els": [
+    "el_1jai8wwq89"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.5
+  },
+  {
+   "knob": "Velo_CierreDur",
+   "stage": 3,
+   "da": 2.5,
+   "score": 4,
+   "els": [
+    "el_1oid3nvby8"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 1.5
+  },
+  {
+   "knob": "Velo_CierreDur",
+   "stage": 4,
+   "da": 2.5,
+   "score": null,
+   "els": [],
+   "approx": null,
+   "stale": null,
+   "diff": null
+  },
+  {
+   "knob": "Etapa_Tope",
+   "stage": 0,
+   "da": 240,
+   "score": null,
+   "els": [],
+   "approx": "In Unreal it counts from StageBegin and asks the stage to close by its own path; in the score only Attracting and Surrounding have a wait with a timeout.",
+   "stale": null,
+   "diff": null
+  },
+  {
+   "knob": "Etapa_Tope",
+   "stage": 1,
+   "da": 180,
+   "score": null,
+   "els": [],
+   "approx": "In Unreal it counts from StageBegin and asks the stage to close by its own path; in the score only Attracting and Surrounding have a wait with a timeout.",
+   "stale": null,
+   "diff": null
+  },
+  {
+   "knob": "Etapa_Tope",
+   "stage": 2,
+   "da": 120,
+   "score": null,
+   "els": [],
+   "approx": "In Unreal it counts from StageBegin and asks the stage to close by its own path; in the score only Attracting and Surrounding have a wait with a timeout.",
+   "stale": null,
+   "diff": null
+  },
+  {
+   "knob": "Etapa_Tope",
+   "stage": 3,
+   "da": 240,
+   "score": 120,
+   "els": [
+    "el_16c0a1kq17"
+   ],
+   "approx": "In Unreal it counts from StageBegin and asks the stage to close by its own path; in the score only Attracting and Surrounding have a wait with a timeout.",
+   "stale": null,
+   "diff": -120
+  },
+  {
+   "knob": "Etapa_Tope",
+   "stage": 4,
+   "da": 205,
+   "score": 120,
+   "els": [
+    "el_1j51v0i1mw"
+   ],
+   "approx": "In Unreal it counts from StageBegin and asks the stage to close by its own path; in the score only Attracting and Surrounding have a wait with a timeout.",
+   "stale": null,
+   "diff": -85
+  },
+  {
+   "knob": "Res_Explorar",
+   "stage": null,
+   "da": 25,
+   "score": 25,
+   "els": [
+    "el_44hknu1myt"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Res_Cortafuegos",
+   "stage": null,
+   "da": 30,
+   "score": 30,
+   "els": [
+    "el_1e5ld7nuoe"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Comp_Nado",
+   "stage": null,
+   "da": 4,
+   "score": 4,
+   "els": [
+    "el_m54w191sqo"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Comp_Lejos",
+   "stage": null,
+   "da": 3,
+   "score": 3,
+   "els": [
+    "el_1yiixgf176"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Const_AlmaLlega",
+   "stage": null,
+   "da": 5,
+   "score": 5,
+   "els": [
+    "el_1kzav6lubu"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Const_Voz35",
+   "stage": null,
+   "da": 8,
+   "score": 8,
+   "els": [
+    "el_15plm7q1mk"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Creditos_Dur",
+   "stage": null,
+   "da": 60,
+   "score": 60,
+   "els": [
+    "el_1dz2k36151"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": 0
+  },
+  {
+   "knob": "Fundido_Dur",
+   "stage": null,
+   "da": 3.5,
+   "score": 3,
+   "els": [
+    "el_1i6zufpjsx"
+   ],
+   "approx": null,
+   "stale": null,
+   "diff": -0.5
+  }
+ ]
+}

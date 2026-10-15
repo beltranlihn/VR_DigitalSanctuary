@@ -116,10 +116,310 @@
 - **Validación fuera del navegador** (D12).
 - **Perillas legibles por máquina** (D13).
 
+## Estado del lote 1 (2026-10-02, noche): hecho
+
+Todo verificado con tres pruebas automáticas y en el navegador.
+
+**Pruebas automáticas:**
+- `node tools/score/edits_test.mjs`: 23 casos de esta auditoría contra la partitura real.
+- `python tools/editor/server_test.py`: 13 reglas de guardado, sobre una copia temporal.
+- `node tools/score/golden_test.mjs`: 665/665.
+
+**Borrar** (A1, B3, +B1, +C1, +D3):
+- Antes de elegir, la tarjeta muestra lo que hace de verdad cada opción: cuántos ítems se mueven, cuánto cambia el total, qué deja de ser ayuda y cuántos elementos borra.
+- Los momentos se re-anclan y nunca se borran.
+- La reparación se calcula siempre con el usuario típico.
+- Hay una postcondición: nada queda colgando.
+- Si un momento queda colgando, cae al final del anterior, nunca a 0:00.
+
+**Guardar** (A2, A3, B11, C7, D3, +D4):
+- El PUT lleva la revisión y el hash base. Si alguien guardó antes, el servidor responde 409 y el editor ofrece tres opciones: guardar una copia y abrir lo del otro, guardar una copia y seguir, o sobrescribir.
+- La escritura es atómica: temporal único, fsync y reemplazo con reintentos.
+- El historial se copia, no se mueve, con nombres únicos.
+- Las escrituras van una por vez.
+- El servidor valida las referencias.
+- Si un borrador hecho sobre otra versión aparece al abrir, se guarda como copia en `obra/score/copias/`: no se restaura encima y no se pierde.
+- Una edición hecha durante el guardado queda sin guardar.
+- La pestaña 3D es de solo lectura.
+
+**Con una tarjeta abierta (A4):** el editor espera; el teclado, el deshacer y las ediciones no tocan nada debajo.
+
+**Validación:**
+- Los números se rechazan si no son números, si quedan antes de 0:00, si el timeout no es mayor que lo esperado, o si pasan de 1 h (A8, B13).
+- Import valida y calcula antes de reemplazar, y pide confirmación (A9, +B3).
+- El candado vale para todos los caminos, se guarda y deja el inspector en solo lectura (A10, B10, +C2).
+- Los WAV llevan un nombre único y se guardan en la bandeja por id del elemento, así que renombrar o deshacer no toca el disco. No se pisan sin `overwrite` (A11, B12, D9).
+
+**Usuario simulado** (+A1, C12): la duración esperada de una espera solo se cambia con el típico. Huecos y solapes se miden siempre con el típico.
+
+**Ctrl "solo"** (A7, +B4):
+- Compensa también los momentos y los anclajes por `end`.
+- Un clip que dura "hasta" un evento sigue terminando con su evento, y el arrastre muestra su nuevo largo.
+- La integridad revisa solo lo que de verdad se mueve.
+
+**Solapes (+A2):** lo que una edición deja encima de otro clip pasa a la pista libre más cercana, y se avisa.
+
+## Estado del lote 2 (2026-10-02): hecho
+
+Verificado con `node tools/score/integrity_test.mjs` (todo ok) y en el navegador.
+
+**La integridad juzga el efecto, no la intención** (A5, +D1): revisa solo los elementos que de verdad cambiaron de tiempo respecto de su momento o de duración. Mover una VO "solo" ya no abre una tarjeta por arrastrar a su familia.
+
+**Ripple visible** (C2): toda edición que corre lo que sigue lo dice en la tarjeta o en un aviso breve: "435 later items shift −26.6 s · total 16:24". Por debajo de 30 s muestra la diferencia en segundos. Mientras se arrastra, se ve el efecto antes de soltar.
+
+**Huella con valor** (A6, B5, +D2): la regla de los 15:00 lleva el total en tramos de 30 s; aceptar un total no acepta el siguiente. Cada aceptación guarda su historial (quién, por qué, cuándo) por elemento y regla.
+
+**VO** (B2, B8, C3):
+- Moverla es informativo si conserva el orden; avisa si cambia el orden, de momento o se pisa con otra.
+- Las VO nuevas no son "wired".
+- Cambiar el texto de una VO grabada no cambia su largo; solo las nuevas se re-estiman.
+- La tarjeta habla de lo que pasa en el visor; el código de regla va en chico.
+- Enter nunca acepta y el botón por defecto es Cancel.
+
+**"≠ APK" derivado, no guardado** (B6, C6, D11): se calcula en cada cambio contra la línea base. Deshacer lo limpia solo; reabrir deja rastro. La barra de estado dice "211 of 592 checked · N edited · K ≠ APK".
+
+**Reglas C2 nuevas** (B7): espera sin ayuda, ayuda que nunca suena, timeout que no coincide, espera donde Unreal no espera, destellos de menos de 0,3 s, textos en español, Alma habla antes de aparecer, dos voces a la vez (las alternativas que empiezan juntas no cuentan).
+
+**Contrato ampliado** (B1): títulos, velos, espera de SHARE y cortafuegos de etapa por la Partitura; cues 34, pacer horneado y tomas de fantasmas.
+
+**Ciclos de 2.R4 y 5.R4** (A12, D6): Problems ▸ "Fix the loop…" ofrece las dos salidas con su efecto antes de elegir. En 2.R4: "como hoy" no mueve nada; "como lee el guion" lleva 2.R5 de 6:13.1 a 6:55.3 y el total de 16:58 a 17:40.
+
+**Problems con acciones** (C8, adelantado del lote 4): cada fila tiene su acción (Match Unreal, Add a help line, Fix the loop…, Show, Reopen).
+
+**Alt+flechas** se juntan en una sola edición: un chequeo y un paso de deshacer.
+
+## Estado del lote 3 (2026-10-02): hecho
+
+**El 3D reproduce esta partitura** (B9, C5):
+- Cada momento y cada clip recibe su tiempo de la partitura como edición absoluta, solo en memoria: los archivos del prototipo y su timeline guardado no se tocan.
+- Verificado: los 592 clips empiezan y terminan exactamente donde dice la partitura (diferencia 0); el total del 3D es el del editor.
+- Sigue al usuario simulado elegido (con el rápido: 16:29 en los dos) y a cada edición y deshacer (VO_10 +3 s y vuelta).
+- La interacción en el 3D es simulada: las esperas duran lo que dice la partitura, como en la línea de tiempo.
+- Lo borrado de la partitura queda en silencio en el 3D; lo nuevo todavía no tiene 3D y el aviso lo cuenta.
+
+**Play no se congela** (+C3): si el 3D se detiene antes (su final, un hueco), el reloj del editor sigue.
+
+**Audio real** (C4):
+- El servidor sirve, en solo lectura, las grabaciones de `Recursos/Soul Charger - Escritorio 2026-10/Audio` (carpeta local, fuera de git; se cambia con `VVR_MEDIA`): `GET /api/media` y `GET /media/<ruta>`. No sirve nada fuera de esa carpeta.
+- Primero la mezcla final (60 voces); donde no hay mezcla, la toma anterior en mp3 (13 voces).
+- Botón **Sound** en la barra del 3D (se recuerda). Decodifica las 73 voces en unos 2 s, dentro del 3D.
+- Verificado: el contexto de audio corre, suena la grabación real de VO_10 desde el punto justo y se corta al pausar.
+- En el inspector de cada voz: su grabación, **Listen**, y su largo real.
+- ~~Falta: los FX reales.~~ Hecho el 2026-10-05 (resto del lote 3): ver "Efectos y ambientes reales en el 3D" más abajo.
+
+**Efectos y ambientes reales en el 3D** (2026-10-05):
+- `obra/audio/media_map.json` (versionado, lo mantiene la web) dice qué archivo suena para cada id. Regla: el archivo que Unreal toca hoy en ese momento, o el placeholder importado con el nombre del id. La evidencia está en cada entrada (`why`): los trackers, los sonidos que nombra cada Blueprint (búsqueda en los `.uasset`, solo lectura) y el origen y MD5 que guarda cada SoundWave (todos coinciden con el archivo elegido).
+- 39 de los 89 ids de sonido de la partitura tienen archivo (9 ambientes, el pad de Attracting, puertas, pasos, timbre, cargas, la ida y vuelta del alma, los 10 placeholders de `Obra/Audio/Placeholder`…) y 4 marcas propias del prototipo (latido y las tres fases del pacer). Los otros 50 tienen su motivo en `unmapped`: casi todos no tienen sonido en Unreal todavía (guion V5 §10.2).
+- `Carga/Charge1.wav` y `Carga/ChargeFinal.wav` son las versiones viejas (14 s); Unreal usa las nuevas (`Charge1New.wav`, `ChargefinalNew.wav`), cuya copia de 16 bits está junto al asset en `Plugins/SC_Base/Content/Audio/`: el mapa apunta a esa. `Pacer/` son las fuentes de `SND_PacerPad*` y `SND_PacerPluck*` (el mapa usa las copias de `Plugins/SC_Breath`).
+- El servidor solo sirve lo que el mapa nombra (`/api/media/fx/<ID>`), dentro de la carpeta de grabaciones, `VR_Test/` (`unreal:`) o `Recursos/` (`recursos:`). Una voz nunca se mapea.
+- Con **Sound**, las voces y los efectos se cargan una vez (un archivo repetido, como Charge1 en cuatro cargas, se decodifica una sola vez). Los ambientes pesan 30-50 MB cada uno: quedan cargados solo el que suena y el siguiente, y se sueltan al apagar el sonido. Se aplica el volumen de Unreal (ambientes 0,38, puertas 0,8, pasos 0,6).
+- Regla de Beltrán: un archivo nunca cambia un tiempo. Verificado en el navegador con todos los archivos cargados: los 592 clips del 3D siguen exactamente en los tiempos de la partitura, el total no cambia, un instantáneo sigue durando 0 s aunque su archivo dure 168 s, y la fila "Use the recordings…" sigue contando solo voces (57).
+- Arreglado de paso: el primer play después de encender **Sound** arrancaba sin ambiente (el prototipo crea su contexto de audio con la primera voz y el ambiente se salta un play sin contexto).
+- Inspector de un efecto o ambiente: su archivo y su largo, **Listen**, la evidencia, o "no file yet" con el motivo.
+- Pruebas: `node tools/score/media_test.mjs` (25 casos) y 11 casos nuevos en `server_test.py` (28 en total).
+
+**Duraciones de VO reales** (D5, B4). Hallazgo: los largos de la partitura eran estimaciones por texto, y 57 de 70 voces no coinciden con la mezcla final (VO_02: 19,9 s en la partitura, 7,3 s grabada). En Unreal una voz dura lo que dura su grabación y la pausa que sigue es su propia perilla (`Alma_TrasVoz`, `Despedida_TrasVoz`, `Salida_TrasVoz`), así que el largo correcto es el de la grabación, sin cola.
+- Problems tiene una fila para todas: "57 voices last differently here than in the final mix. With the recordings the piece runs 16:24, not 16:58", con **Use the recordings…**.
+- En el inspector: "Here it lasts 19.9 s; in Unreal it lasts its recording · Use 7.3 s".
+- La tarjeta muestra el efecto antes de elegir: 435 ítems se corren, el total pasa de 16:58 a 16:24.
+- La línea base de "≠ APK" se mueve exactamente lo que mueve ese cambio, porque se había medido con las estimaciones. Queda registro en `golden.voices`. Probado: 0 marcas "≠ APK" después de aplicarlo; deshacer lo devuelve todo.
+- **No lo apliqué:** cambia el largo de la obra. Es un clic en Problems.
+
+**Pruebas:** `python tools/editor/server_test.py` suma 4 casos de audio (17 en total: la mezcla gana a la toma, el largo sale de la cabecera WAV, el archivo se sirve tal cual y nada fuera de la carpeta, ni en otra unidad). `edits_test`, `integrity_test` y `golden_test` (665/665) siguen en verde.
+
+**Límite de la verificación:** en el panel de navegador de esta sesión el reloj de animación no avanza con el panel oculto, así que el play continuo con sonido no lo vi correr en tiempo real. Lo comprobé por partes: tiempos exactos, arranque y corte de la voz al saltar dentro de ella con play activo, y el reloj de respaldo del editor.
+
+## Estado del lote 4 (2026-10-05): hecho
+
+Verificado con pruebas de lógica pura en Node (`transport_test.mjs`, `view_test.mjs` y los casos nuevos de `edits_test.mjs`) y en el navegador, con los manejadores reales. Cada edición de prueba se deshizo y la página se recargó sin dejar borrador. El detalle de uso está en el README de la app.
+
+**Cambiar el ancla** (C9, +B1):
+- En el inspector, el chip del ancla de un elemento o de un momento tiene un menú (el mismo del clic derecho del clip y del momento): **Anchor to…** (se elige en el timeline con un aviso al pie; Esc cancela), **Detach** y **Start of… / End of…**.
+- Conserva siempre el tiempo con el usuario típico (`Edits.reanchor`, también para el ancla de `end`). Rechaza con el motivo lo que haría un ciclo: anclarse a sí mismo, a lo que cuelga de él o al final de su propio momento.
+- Los otros usuarios simulados sí pueden correrse (si entre el ancla vieja y la nueva hay una espera): el aviso dice cuánto.
+- Mientras se elige, nada más edita. Es una edición más: se deshace, respeta el candado y no funciona en la pestaña 3D.
+- Un ancla perdida (`C1.ANCHOR.MISSING`) se repara desde Problems con **Detach (keeps its time)**, solo la que se perdió.
+
+**Verbos de NLE** (C10):
+- **Transporte** (`js/transport.js`): J/K/L (hasta 4×; hacia atrás sin sonido; con K apretada, J y L dan pasos de 0,1 s), I/O con rango (Play arranca en la entrada y se detiene en la salida), Shift+I y Shift+O, Alt+X, ↑/↓ al momento anterior o siguiente, = y - para el zoom, \ para ver la obra entera y S para el imán.
+- **Alt+arrastrar duplica**, como en Premiere y Resolve. El imán ya no se apaga con Alt.
+- **Selección de varios:** Ctrl+clic, Shift+clic, recuadro en un espacio vacío de una pista y Ctrl+A (los grupos con candado quedan fuera). Mover varios es una sola edición (`Edits.moveMany`): cada uno queda exactamente ese tiempo más tarde con el usuario típico, sin moverse dos veces si cuelga de otro seleccionado. Borrar varios usa la tarjeta de siempre.
+- **Copiar, pegar y duplicar** (Ctrl+C, Ctrl+V, Ctrl+D): una copia es un elemento nuevo (id nuevo, `isNew`, sin `legacy`). El contrato no la mira y el inspector dice "not in Unreal yet". Las anclas dentro de lo copiado pasan a las copias; cualquier otra va al inicio del momento de destino. Es una edición tranquila que se deshace.
+- **Help ▸ Keyboard shortcuts** (o la tecla ?): la lista completa, con lo que hacen Premiere o Resolve donde difieren.
+
+**Un timeline legible** (C11):
+- Una tarjeta aparece al instante al pasar el puntero sobre un clip o un momento: qué es, cuándo empieza, cuánto dura, su ancla en palabras, su pista y si tiene un problema abierto.
+- En lo que no es voz y tiene una key técnica (HALL_LOAD, G_SENSOR), el título muestra primero el label.
+- Zoom: **Moment**, **Act** y **Piece** en la barra del timeline, doble clic en un momento y Ctrl+rueda. La altura de las pistas es compacta o cómoda.
+- **Ctrl+F** busca clips y momentos (por key, label o las palabras de una voz), sin mover el cabezal ni la partitura.
+- La barra del timeline ya no tapa el código de tiempo a 1280×720.
+
+**Marcadores y notas** (C13): los marcadores se renombran con doble clic, se arrastran por la regla y se borran con clic derecho. Las notas se editan, se resuelven (se atenúan y dejan de contar) y se borran. Todo pasa por la partitura y se deshace con Ctrl+Z.
+
+**Foco y "unsaved"** (C14): después de cambiar un desplegable o un campo numérico, el teclado vuelve al editor. "unsaved" compara con la última versión guardada: si se deshace todo, desaparece, el navegador no pregunta al cerrar y no queda borrador.
+
+**Límites:**
+- El rango I/O es de este equipo (preferencias del navegador): no se guarda en la partitura ni se deshace.
+- Con el panel de navegador oculto el reloj de animación no avanza (igual que en el lote 3), así que la reproducción continua a 2× y 4× y J hacia atrás se comprobaron por partes (las reglas de `transport.js` y el estado tras cada tecla), no corriendo en tiempo real.
+- Los labels y los momentos siguen en español, porque así están en la partitura: traducirlos es cambiar su contenido, y eso lo decide el dueño.
+
+## Estado del lote 5 (2026-10-14): construido y verificado, nada aplicado
+
+Diseño en los anexos [19](19-lote5-diseno-unreal.md) (parte A, Unreal) y [20](20-lote5-diseno-partitura.md) (parte B, la partitura); decisión de arquitectura en el [ADR-001](../ADR-001-partitura-y-unreal.md). La lógica delicada es pura (módulos UMD con pruebas en Node) y toda operación que cambia la partitura es un **botón del dueño**: se construyó, se probó en el navegador y se deshizo.
+
+**La partitura real sigue en schema 2, rev 2, sin borrador, y `obra/score/score.json` conserva sus bytes y su fecha.** Tampoco se tocó lo que escribe el Director (`partitura.json`, `perillas.json`, `traza.json`, `LEEME.md`) ni se escribió `partitura_propuesta.json`.
+
+**Los botones del dueño** (ninguno se aprieta solo; cada uno es una sola edición que se deshace con Ctrl+Z y se guarda con Ctrl+S):
+- **Problems ▸ Upgrade…** pasa la partitura a schema 3.
+- **Experience ▸ Bind to Unreal…** le agrega las marcas y los `bind` (solo en schema 3).
+- **Problems ▸ Match Unreal**, en la fila de `VO_11h` (Entering).
+- **File ▸ Check guion.js for changes…** compara con `guion.js` y toma lo que se elija (solo en schema 3).
+- Los de antes: **Problems ▸ Use the recordings…** y **Fix the loop…**.
+
+**Copias congeladas y extracción** (D4, A13, D2):
+- `tools/score/fixtures/f0-score.json` y `f0-expect.json` congelan la extracción F0 y lo que da el motor del prototipo para los cuatro usuarios (total, ayudas, ciclos y los 665 tiempos de cada uno). Las pruebas corren sobre la copia, no sobre la partitura viva, así que editar la obra ya no las rompe (con `--live` corren sobre la viva).
+- `extract_v1.mjs` ya no puede pisar la obra: escribe `obra/score/score.extracted.json` (ignorado por git) y rechaza con código 2 cualquier ruta que sea la partitura (con otra grafía, `..` o un enlace), una carpeta ajena o un archivo que no sea una extracción anterior. No hay `--force`.
+- La referencia de "≠ APK" se queda dentro de la partitura (ADR-001, decisión 6): `baseline` en schema 3, `golden` en schema 2. Lo que gobierna una perilla lo juzga `C3.PARTITURA` y no se cuenta dos veces. *Use the recordings…* mueve la referencia con `Edits.shiftBaseline` (o `shiftGolden`) en la misma edición.
+
+**Motor v3** (D7, D8): `ScoreEngine.resolve(score, { persona, branch })` entiende ramas, anclas alternativas (`alt`), esperas que no bloquean y anclas de reacción, y devuelve además `off`, `react`, `reactive`, `crossBranch` y `branch`.
+- Con una partitura de schema 2 da lo mismo que antes, bit a bit: 0 diferencias en 3.208 corridas (los cuatro usuarios sobre F0 más 400 mutaciones al azar, con bucles y anclas colgando), y los cuatro usuarios coinciden con el prototipo en los 665 tiempos.
+- Se calcula en el orden de siempre: en un prototipo, una sola llamada fuera de orden movió 2.264 tiempos. La prueba de paridad de los cuatro usuarios lo vigila.
+
+**Mejora a schema 3: Problems ▸ Upgrade…** (D2, D4, D7, D8, D11):
+- Mientras la partitura sea schema 2, Problems muestra una fila informativa `C1.SCHEMA`. La tarjeta trae los números medidos en ese momento y un botón, **Upgrade (you can undo it)**.
+- Qué hace (`Edits.migrate3`, pura): ramas SHARE / DON'T SHARE (16 elementos: 11 y 5; `VO_37` con su ancla propia en DON'T SHARE), `blocking` en las diez esperas (lo decide el contrato), `baseline` a partir de `golden`, `uidMap` con los 592 elementos y 73 momentos, y los problemas aceptados en su forma nueva.
+- **Nada se mueve para el usuario típico** (665 de 665 tiempos, con la rama por defecto y con todas), y la mejora lo comprueba por dentro: si algo falla, no devuelve nada que aplicar. También comprueba que ningún ancla cruza de lado ni apunta a la nada, que "≠ APK" da el mismo conjunto y que la partitura nueva pasa las reglas del servidor.
+- Para los otros usuarios: el rápido (16:28,8) y el típico (16:58,0) no cambian; el lento pasa de 18:05,3 a 17:56,6 y el inactivo de 19:36,3 a 19:08,6, porque cuatro esperas corren con el reloj de la etapa (466 elementos y momentos empiezan en otro lugar para esos dos). DON'T SHARE dura 3,25 s menos que SHARE. "≠ APK" da 0 antes y después.
+- Se niega, con el motivo y sin adivinar, ante un `when` o una espera que no conoce, un clip de un lado anclado al otro, un momento que hoy termina con un clip de DON'T SHARE (SHARE lo acortaría y se moverían tiempos), una partitura sin contrato o sin `golden`, o una que ya es schema 3. Respeta los grupos con candado.
+- Después de la mejora, editar sigue siendo guardable (lo encontró la revisión): todo lo que una edición saca de la partitura queda en el `uidMap` como `deleted-here`, en el mismo paso de deshacer, y las anclas `alt` cuentan como dependientes, así que borrar `VO_35c` reancla `VO_37` en los dos lados.
+- El servidor acepta schema 2 y 3, revisa las referencias de schema 3 y **el schema solo sube**: un editor de una pestaña vieja que guarda schema 2 sobre un schema 3 recibe `409 schema-down`, también con `X-Force`.
+
+**SHARE y DON'T SHARE** (D7):
+- El selector **Branch** del transporte elige Auto, SHARE o DON'T SHARE. Por defecto es SHARE, así que los números de siempre no cambian; es una preferencia y no se guarda en la partitura.
+- Los clips del otro lado se ven atenuados y rayados, y se siguen editando. El 3D muestra exactamente el lado elegido (`SC.S.share`, solo en memoria) y la pestaña 3D lo sigue.
+- La integridad juzga cada lado en su pasada: una fila dice "… in DON'T SHARE" si solo está allí. Reglas nuevas de bloqueo: `C1.BRANCH.ANCHOR` (un elemento cuelga de algo que no suena en ese lado) y `C1.BRANCH.FIELD`. Las voces de lados distintos nunca se solapan (en schema 2, `VO_35c` y `VO_37` se leían como solape).
+- En el inspector: *Branch* (ambos lados, solo SHARE, solo DON'T SHARE) y *Anchor in DON'T SHARE*. Copiar, pegar, duplicar y mover varios conservan el lugar de cada clip en los dos lados.
+
+**Esperas como en Unreal** (D8): cada espera dice si detiene la etapa o corre con el reloj de la etapa (la casilla *Waits for the user (as in Unreal)* del inspector, solo en schema 3).
+- Una espera que corre con el reloj se dibuja con su reloj para todos; lo que hace el usuario simulado es una cola rayada ("the slow user acts here · the stage does not wait"), y la ayuda suena solo si llega antes de que actúe.
+- Reglas: `C2.WAIT.WHERE` lee la marca; la nueva `C3.BLOCKING` avisa si no coincide con el contrato; `C3.NOTBLOCKING` ya no sale en schema 3.
+- Hecho medido: pasar `G_BREATH` a "espera al usuario" alarga **la espera** 19,0 s para el inactivo, pero su **total** sube 18,2 s (el momento ya corría 0,8 s más allá del reloj). El diseño decía "+19,0" para el total.
+- En el 3D, las ayudas de una espera que corre con el reloj usan la hora en que actúa el usuario en pantalla.
+
+**Entering: Match Unreal** (D8): en Unreal, `VO_11h` suena `HelpAfter` (4 s) después de que termina `VO_11b`; la partitura la cuelga de `G_BREATH` + 12 s.
+- La regla `C3.KNOB.OFFSET` (aviso, hoy una fila) ofrece **Match Unreal**: una edición con deshacer que mueve solo `VO_11h` (3:50,1 a 3:57,1 con el típico), la deja en el momento de `VO_11b` y mueve la referencia de "≠ APK" solo para ella.
+- Los totales no cambian. El lento deja de oírla (actúa a los 15,5 s; la línea llega a los 19,0 s) y el inactivo la sigue oyendo.
+- Se apoya en una entrada nueva del contrato (`help.after`) que dice, con `pending`, que `HelpAfter` cuenta desde el **fin** de `VO_11b`: es la lectura del tracker y falta la confirmación del Director.
+
+**Aceptado vale para un valor** (D11): una huella es `regla|elemento|param` y cada registro de `accepted` guarda el valor al que se aceptó (`value`, `state`, `rev`, `unreal`, `verb`, `history`).
+- Un problema está aceptado solo si hay un registro con ese valor. Con otro queda abierto y dice "Reopened: accepted at 30 s by B ("…"), now 300 s".
+- La tarjeta baja un ítem a nota solo con valor exacto y rellena el motivo anterior; Enter nunca acepta.
+- **Reopen** nunca borra. **Clean up accepted** (cabecera de Problems) quita solo los registros de elementos que ya no están.
+- Dejó de existir la búsqueda por la que cualquier registro C3 de un elemento ocultaba su "≠ APK" para siempre.
+
+**Reglas al guardar** (D12): `js/check.js` (`Check.invariants`), `tools/score/check.mjs` y el servidor dan el mismo veredicto.
+- Solo se rechaza lo **nuevo** respecto de lo que hay en disco: los dos ciclos conocidos (2.R4 y 5.R4) se listan como heredados y lo único que se prohíbe es agregar otro. Códigos: `S.STRUCT`, `S.IDS.DUP`, `S.ANCHOR.MISSING`, `S.CYCLE.NEW`, `S.SCHEMA.DOWN`, `S.BRANCH.FIELD`, `S.BIND.FIELD`, `S.BRANCH.CROSS.NEW`, `S.UIDMAP` y `S.TOTAL`. Avisan sin rechazar: `W.CONTRACT`, `W.ACCEPTED.ORPHAN` y `W.BASELINE.STALE`.
+- El servidor ejecuta `check.mjs` con `node` dentro de su bloqueo de escritura, después del `409` y antes de escribir. Una regla rota da `422` y no escribe nada (ni `score.json` ni `history/`, tampoco con `X-Force`); el editor ofrece **Save a copy of my version** y **Show me the first one**. Si la comprobación no puede correr (sin `node`, `VVR_CHECK=off`, 20 s sin respuesta, un error interno), el guardado sigue y lo dice (`check: 'structural-only'` o `'failed'`).
+- Casi siempre el navegador se adelanta: `save()` y File ▸ Import corren el mismo `Check.invariants` antes de enviar.
+- `integrity.js` corre ahora en Node sin `window`, y la decisión de cada edición vive en `js/policy.js` (`Policy.QUIET`, `decide`, `acceptRecords`, `reopen`), con una prueba que la compara con cómo decidía `commit()` antes de separarla.
+
+**Contrato y perillas por id** (D10): `node tools/score/bind_ids.mjs` genera los ids de `contract.json` y de `partitura_binding.json` (nunca escribe la partitura): 178 pares sobre 175 elementos, y 31 enlaces con 81 ids de etapa.
+- Renombrar un elemento ya no lo saca de lo que Unreal conoce: cambia solo `key` y `label` (nunca `sound` ni `bind.asset`), se juzga con `on.rename` y deja `C3.CONTRACT.RULE` ("T_INTRO was T_IN"). Notas nuevas: `C3.CONTRACT.ORPHAN` y `C3.BINDING.STALE`.
+- Correcciones pendientes del visto bueno del Director: `vo.unused` (las 10 voces que `BP_Obra_SC` ya no llama) y `vo.noasset` (VO_12b, VO_17b y VO_21, sin grabación). `vo.wired` pasa de 68 a 56 elementos.
+
+**Alcance frente a Unreal, enlace y compilador** (D1):
+- `tools/score/idmap.mjs` recorre `VR_Test/Content` y los plugins (solo lee) y dice qué asset es cada sonido: 185 assets, 1 ambiguo (`VO_12c`) y, de los 159 sonidos de la partitura, 76 exactos, 19 por alias, 1 ambiguo y 63 sin asset.
+- `js/reach.js` dice de cada elemento si llega a Unreal por una perilla, si Unreal lo decide solo, si podría ser un cue o si es solo previs. Se calcula siempre y no se guarda. La barra de estado dice hoy `69 reach Unreal (timing) · 71 wired · 452 preview` (el diseño medía 70 · 82 · 428 con otro contrato: la diferencia son las 12 voces documentadas) y el inspector da el motivo de cada elemento.
+- **Experience ▸ Bind to Unreal…** (`Edits.bindUnreal`) agrega `beats[].marks` (de la semilla `obra/score/seed/marks-v1.json`, todavía "proposed, pending owner review") y `elements[].bind` en 378 de los 592 elementos. Comprueba por dentro que solo se agregaron esos campos, que la partitura es válida y que **ningún tiempo cambia** (cuatro usuarios en cuatro vistas de la decisión: 16 corridas, diferencia 0). Después quedan 18 elementos cue-ready (barra: `69 · 80 · 18 · 425`): los 12 sonidos del diseño y 6 movimientos de Alma que `BP_Obra_SC` ya hace con su propio grafo.
+- Borrar un clip del que cuelga una marca de Unreal (`ENV_SWAP` es `S1.OPEN`…) se lleva la marca en la misma edición, y la tarjeta de borrado lo dice antes.
+- `tools/score/compile.mjs` es un compilador de ensayo: lee, rechaza e imprime el manifiesto. Nunca escribe nada de Unreal y se niega a escribir dentro de `VR_Test/`, `obra/unreal/`, `obra/score/`, el prototipo y las copias congeladas. Rechaza ciclos, anclas a la nada, marcas inexistentes, repetidas o desordenadas y assets ambiguos; hoy sale con código 2 por los ciclos de 2.R4 y 5.R4. Mientras `BP_ScorePlayer_SC` no exista, todo cue sale con estado `no-player`.
+
+**Perillas que lee una máquina** (D13): `node tools/score/knobs.mjs` genera `obra/unreal/knobs.json` (1.317 perillas: 60 de la Partitura con su valor vivo, que son las únicas que se pueden proponer; 50 de instancias, 4 literales y 1.203 de las clases). El inspector de perillas de un rol lo lee y, si falta o está viejo, usa `roles.json`. La decisión de reconciliación quedó escrita en el ADR-001.
+
+**La última corrida de Unreal** (traza): la pista **Unreal run**, debajo de los momentos, compara la partitura con `traza.json`, alineadas en el inicio del Hall.
+- Con el usuario típico mide un desfase de 19,82 s y, por sección: Hall +1,0, Entering +15,6, Recognizing −94,2 (los ciclos), Loving −3,1, Attracting +33,4 y Surrounding −12,5 (los dos con la mecánica simulada a 90 s), Final +35,1. En total, la partitura es 24,7 s más corta.
+- Problems suma `C3.TRACE.*`. Nunca cambia la partitura (decisión D-4 del dueño). Los umbrales (3 s por etapa, 1 s por segmento) están en `js/calib.js` y suben solos con el ruido de dos corridas.
+
+**`guion.js` como fuente de importación** (D2): **File ▸ Check guion.js for changes…** (o `node tools/score/import_report.mjs`) pide al servidor que lea `guion.js` (`POST /api/guion/scan`, que escribe solo `score.extracted.json`) y compara por id y por firma.
+- Muestra solo lo que `guion.js` cambió desde que la partitura lo tomó: clips y momentos nuevos, nombres cambiados, textos y tiempos cambiados, lo que ya no está.
+- Texto, nombres y agregados vienen marcados por defecto; **tomar el tiempo nunca** (lo manda `DA_Partitura_Obra`). Todo lo elegido es una sola edición con deshacer. En schema 2 es solo un informe.
+- Con el `guion.js` de hoy dice "No changes since the score took it". Se probó con cuatro variantes del prototipo (copias en una carpeta temporal): un cue extra, una clave renombrada, un texto y un tiempo cambiados, y un momento renumerado (1.7 a 1.7a).
+
+**Lo que la revisión de cada paso encontró y corrigió** (cada paso lo revisó otro agente que intentó romperlo):
+- *Mejora a schema 3:* borrar cualquier elemento dejaba su nombre vivo en el `uidMap` y Ctrl+S habría dado `422`; y borrar `VO_35c` dejaba colgando el ancla `alt` de `VO_37`.
+- *SHARE y DON'T SHARE:* pegar o duplicar `VO_37` copiaba su `alt` y el total de DON'T SHARE bajaba 58 s; mover varios con DON'T SHARE en pantalla editaba el ancla de SHARE; el desfase de un lado no tenía las protecciones de "antes de 0:00"; y la fila *Starts* del inspector nombraba un ancla que no estaba en ese lado.
+- *Enlace:* borrar un clip del que cuelga una marca dejaba la partitura sin poder guardarse; y una semilla vacía "enlazaba" sin marcas.
+- *Importación:* **Dismiss** sobre una fila cuyo nombre `#n` se había corrido no hacía nada; y el informe de schema 2 se leía como "cambios" cuando no puede saber de qué lado cambió.
+- *Lo aceptado:* borrar un elemento con un problema aceptado abría una tarjeta falsa.
+- El contrato por id, las esperas, la corrida de Unreal, el alcance y las reglas al guardar pasaron la revisión sin cambios.
+
+**Pruebas:** 23 pruebas de Node (`tools/score/*_test.mjs`) y `tools/editor/server_test.py`, más de 1.600 casos en total, todas en verde (se volvieron a correr todas el 2026-10-14). `golden_test.mjs`: 665 de 665 tiempos para los cuatro usuarios. Nuevas en este lote: `engine_test`, `check_test`, `migrate3_test`, `waits_test`, `accepted_test`, `knob_offset_test`, `bind_ids_test`, `bind_unreal_test`, `reach_test`, `idmap_test`, `knobs_test`, `compile_test`, `import_test`, `calib_test`, `marks_test`, `fixture_test` y `policy_test`; `edits_test`, `integrity_test`, `golden_test` y `server_test.py` crecieron.
+
+**Verificado en el navegador:** con los manejadores reales (`Act.*`) sobre la partitura viva en memoria: la mejora a schema 3, el enlace, Match Unreal, el selector de rama, las esperas, el borrado con marcas y la importación (con un prototipo modificado, en un segundo servidor temporal en el puerto 8768, ya apagado). Cada edición se deshizo, la página se recargó y no quedó borrador (schema 2, rev 2, sin cambios sin guardar). El único 404 de la consola es el esperado, `partitura_propuesta.json`.
+
+**Límites** (lo que no se construyó o no se pudo comprobar):
+- **Unreal:** nada de esto se probó contra el editor de Unreal ni llegó a él. No existe `BP_ScorePlayer_SC`. No se volvió a generar `partitura_drift.json`. `deps.py` solo lee `/Game`, así que los assets de plugins cuentan como "llamados por Unreal" (cinco elementos `unsure`), del lado seguro. Las perillas de instancia siguen siendo de solo lectura, con los valores que alguien anotó en `roles.json`.
+- **Ramas:** las divergencias del final de la rama (`VO_36c` y `VO_36d`, `VO_37`) no se ofrecen todavía como filas **Match Unreal**; tampoco `VO_27h`, `VO_32h` ni el `SayGap` de `VO_11b`. **Proceed anyway** sobre `C1.BRANCH.ANCHOR` deja seguir, pero Ctrl+S rechaza un ancla nueva que cruza de lado y hay que arreglarla antes con *Anchor in…* (la tarjeta aún no lo dice). Las comprobaciones de solape de pista usan solo el lado por defecto.
+- **Motor:** un momento anclado al final de una espera que no bloquea empieza cuando ese usuario actúa, o sea que la pieza espera al usuario ahí (hoy no hay ninguno; falta un aviso de integridad). Un elemento de reacción nunca alarga su momento. Los elementos de reacción son 12 (el diseño decía 16).
+- **Interfaz:** con el panel de navegador oculto no se juzgaron a tamaño real el color y la legibilidad de la cola rayada de las esperas, ni las filas *Reopened*, *You accepted this before* y *Clean up accepted*. El inspector ofrece el campo de nombre solo para sonidos nuevos: renombrar un elemento existente se probó por `Act.rename`. No hay un panel con el manifiesto del compilador en la app.
+- **Importación:** solo se guarda la firma de cada elemento, no la base de cada campo: cuando un elemento se editó en los dos lados, el panel muestra los dos valores, dice *edited here too* y no marca nada. No mueve momentos de un acto a otro ni toma dos verbos del mismo elemento en una tanda.
+- **Fotos que se envejecen:** `idmap.json` y `knobs.json` se rehacen a mano (`--check` dice cuándo están viejos), y la semilla de marcas sigue en revisión.
+
 ## Decisiones que necesito de Beltrán
-1. **Ciclos de 2.R4 y 5.R4.** ¿Cuál es el ancla correcta de cada uno? Hoy empiezan junto con el momento anterior.
-2. **Fuente de verdad.** ¿Desde ya manda `score.json` y `guion.js` queda solo de lectura, como dice el plan para cuando F1 esté en uso? Así re-extraer deja de ser un riesgo.
-3. **Mover una VO.** Mi recomendación es que sea un aviso informativo, no una tarjeta, salvo que cambie el orden de las voces o cruce su ancla en Unreal.
+
+Una sola lista, en el orden en que cada decisión desbloquea a la siguiente. De cada una: lo que se pregunta, lo que recomiendo y **dónde se decide** (el botón o el archivo). Las cuatro primeras son las de antes, actualizadas; las demás salen de los diseños del lote 5 (partes A y B) y de la construcción. Las que dicen "construidas como se recomendó" (13, 14 y 17) ya están en la app: si no convencen, se cambian. Lo que tiene que contestar el Director está aparte, en [PEDIDOS-AL-DIRECTOR.md](../PEDIDOS-AL-DIRECTOR.md).
+
+1. **Ciclos de 2.R4 y 5.R4.** ¿Cuál es el ancla correcta de cada uno? Hoy 2.R5 y 5.R5 empiezan junto con el momento anterior: en la corrida de Unreal eso es −94,2 s en Recognizing, y `compile.mjs` sale con rechazo mientras existan.
+   - **Recomendación:** la salida "como lee el guion" (2.R5 después de 2.R4). En 2.R4 lleva 2.R5 de 6:13,1 a 6:55,3 y el total de 16:58 a 17:40; "como hoy" no mueve nada.
+   - **Dónde:** Problems ▸ **Fix the loop…**, que muestra el efecto de cada salida antes de elegir.
+2. **Fuente de verdad y ADR-001.** Con el Director quedó acordado que `DA_Partitura_Obra` manda los tiempos y `guion.js` es referencia visual. Falta decidir que `score.json` manda sobre `guion.js`, y el lote 5 ya lo construyó: re-extraer no puede pisar nada, `guion.js` se importa con **Check guion.js for changes…**, la referencia de "≠ APK" vive dentro de la partitura y el servidor comprueba con `node`.
+   - **Recomendación:** aprobar el [ADR-001](../ADR-001-partitura-y-unreal.md).
+   - **Dónde:** no hay botón: se lee el ADR y se dice; su estado pasa a "aprobado".
+3. **Mover o renombrar una VO.** Quedó como lo recomendé: mover una VO es un aviso informativo, salvo que cambie el orden, de momento o se pise con otra. Renombrar una voz que Unreal reproduce por su nombre de archivo avisa con un clic ("Unreal plays this voice by its file name"), porque el nombre de la partitura no renombra la grabación.
+   - **Recomendación:** dejarlo así.
+   - **Dónde:** no hay botón: son reglas de `contract.json` (`on.move`, `on.rename`).
+4. **Voces con su largo real.** Es lo que hace Unreal: la obra pasa de 16:58 a 16:24. Se puede aplicar antes o después de la mejora a schema 3 (la referencia de "≠ APK" se mueve igual en los dos casos).
+   - **Recomendación:** aplicarlo.
+   - **Dónde:** Problems ▸ **Use the recordings…**; Ctrl+Z lo deshace.
+5. **Cuándo mejorar a schema 3.**
+   - **Recomendación:** después de resolver la 1 y la 6 (los ciclos se arreglan como una edición normal y la semilla se revisa antes de enlazar), con ninguna otra pestaña del editor abierta y **antes de editar el texto o los tiempos de elementos que vienen de `guion.js`** (la mejora siembra las firmas con lo que la partitura tiene en ese momento: si se edita antes, el primer análisis de `guion.js` verá esas ediciones como cambios). La mejora respeta los candados: con el grupo Voice bloqueado se niega. Después, Ctrl+S y recargar las otras pestañas.
+   - **Dónde:** Problems ▸ **Upgrade…** ▸ **Upgrade (you can undo it)**.
+6. **Las marcas de Unreal por momento (la semilla).** Los 73 momentos se atan a una marca de `BP_Obra_SC` según la tabla del diseño (anexo 19, §2). La semilla dice "proposed, pending owner review" y lista cuatro preguntas: (a) `S2.BEGIN`, el arranque de la mecánica de Loving, está en `CELL_IN`, el inicio de 3.R3, así que `S2.INTRO` dura 0 s en la partitura (en Unreal, `Instr_Dur[2]` = 6 s); (b) los tres momentos "R3 Capas" son solo previs; (c) `S<K>.INTRO` está en el inicio de R4 y la corrida lo mide en `ALMA_MOVE`, 1 a 2 s antes; (d) `V<K>` marca en `ENV_SWAP`.
+   - **Recomendación:** aprobar la tabla, partir 3.R3 en "intro" (6 s) y "calma" (una edición del dueño, no de la mejora) y dejar las capas como previs.
+   - **Dónde:** el archivo `obra/score/seed/marks-v1.json` (se corrige a mano o se pide), **antes** de Experience ▸ **Bind to Unreal…**: una vez enlazada, cambiar la semilla obliga a deshacer, corregirla y enlazar de nuevo.
+7. **Enlazar con Unreal.** No mueve ningún tiempo (lo comprueba) y solo existe en schema 3. Quedan 18 elementos cue-ready y no 12: los 12 sonidos del diseño más 6 movimientos de Alma (`ALMA_GONE`, `ALMA_BACK`) que un reproductor de cues repetiría, porque `BP_Obra_SC` ya los hace con su propio grafo. Si el Director lo confirma, una entrada `wired` del contrato (`alma.verbs`, generada con `bind_ids.mjs`) los saca y vuelven a ser 12. El comando está en **Experience** porque no existe un menú "Score".
+   - **Recomendación:** enlazar después de la 5 y la 6, y dejar el comando en Experience (un menú nuevo para un solo comando cambia la barra de ISP).
+   - **Dónde:** Experience ▸ **Bind to Unreal…** ▸ **Bind (you can undo it)**.
+8. **Voces que Unreal ya no usa o que no tienen grabación.** `vo.unused` (VO_01d, VO_01h, VO_04b, VO_06a, VO_24, VO_34c, VO_35c, VO_36, VO_36c, VO_36d) y `vo.noasset` (VO_12b, VO_17b, VO_21). ¿Quedan en la partitura como "no está en Unreal" o se borran?
+   - **Recomendación:** dejarlas, marcadas. Borrarlas es una edición del dueño.
+   - **Dónde:** Supr en el timeline (con su tarjeta), si se decide borrar. Las dos entradas esperan el visto bueno del Director.
+9. **Entering: la ayuda `VO_11h`.** Falta que el Director confirme que `HelpAfter` cuenta desde el **fin** de `VO_11b`. Con eso, un clic la deja como Unreal: 3:50,1 a 3:57,1 con el típico, el lento deja de oírla (actúa a los 15,5 s; la línea llega a los 19,0 s) y nada más se mueve.
+   - **Recomendación:** aplicarlo después de la confirmación, como paso aparte y no dentro de la mejora.
+   - **Dónde:** Problems ▸ fila `C3.KNOB.OFFSET` de `VO_11h` ▸ **Match Unreal**.
+10. **El final de la rama de SHARE.** Unreal ya no reproduce `VO_36c` ni `VO_36d`; en DON'T SHARE no suena `VO_35c` y `VO_37` va en PT 8; en SHARE, `VO_37` va en `VO_35b` + 0,6 s. La partitura todavía tiene las elecciones del prototipo.
+    - **Recomendación:** ofrecerlas más adelante como filas "Match Unreal", como la de Entering, cuando el Director las confirme. No se mezclan con la mejora.
+    - **Dónde:** todavía no hay botón (no está construido).
+11. **La felicitación de Alma, antes o después de la carga.** Unreal reproduce `VO_13`, `VO_18`, `VO_23b` y `VO_29` en el outro, antes de la carga; la partitura las tiene en R8, después. Es la mayor diferencia estructural entre las dos (OUTRO 2,0 s contra 3,2 a 6,8 s; la despedida, 4,6 a 7,5 s más larga).
+    - **Recomendación:** la obra es la de Unreal: mover esas cuatro voces a R5x en la partitura.
+    - **Dónde:** una edición en el timeline. La pista **Unreal run** muestra la diferencia antes y después.
+12. **Corrida de Unreal: umbrales y "igualar".** Umbrales propuestos: 3 s por etapa y 1 s por segmento, que se afinan con dos corridas (lo pide el Director). ¿Un verbo "Match the score to the Unreal run"?
+    - **Recomendación:** dejar los umbrales. Ese verbo, por ahora no; más adelante solo para lo que fijan perillas o largos de clips (OPEN, CHARGE, BYE), nunca para las mecánicas simuladas.
+    - **Dónde:** las constantes `X_STAGE` y `X_SEG` al inicio de `js/calib.js`. No hay botón.
+13. **Ramas y esperas, construidas como se recomendó.** (a) El selector Branch abre en SHARE y no en Auto (cambiarlo es una línea). (b) Lo que cuelga del final de una espera que no bloquea (fantasmas, `BIO_ON`, hápticos de colocación) sigue al usuario simulado y nunca alarga su momento: son 12 elementos y no 16, porque los cuatro `FX_GHOSTAPPEAR` cuelgan del inicio del fantasma. (c) Una espera nueva nace bloqueante y `C2.WAIT.WHERE` avisa si queda dentro de una etapa. (d) La casilla *Waits for the user (as in Unreal)* solo existe en schema 3.
+    - **Recomendación:** confirmar.
+    - **Dónde:** el selector **Branch** del transporte (también en Experience) y la sección Wait del inspector.
+14. **Reglas al guardar, construidas como se recomendó.** El servidor llama a `node` y falla abierta si no puede. Solo se rechaza lo nuevo, también para `S.UIDMAP` y `S.IDS.DUP` (un paso más tolerante que el diseño), y sin una base los ciclos son solo avisos. El total máximo es 60:00 y la espera del comprobador, 20 s. Lo que gobierna una perilla no se marca "≠ APK" (lo dice `C3.PARTITURA`). Una partitura de schema 2 con estructuras de schema 3 se rechaza.
+    - **Recomendación:** confirmar. Los límites son constantes fáciles de cambiar.
+    - **Dónde:** no hay botón: `js/check.js` y `tools/editor/serve_editor.py` (`VVR_CHECK=off` la apaga a propósito).
+15. **Quién firma lo aceptado.** Hoy el autor de una aceptación es el interruptor B/S local.
+    - **Recomendación:** que firme el servidor (`git config user.name`) en un lote posterior. Importa para la regla de F4 "lo C3 aceptado necesita la firma de Beltrán".
+    - **Dónde:** todavía no hay botón.
+16. **Los 17 edits del artifact viejo (v78).** Nunca se importaron.
+    - **Recomendación:** descartarlos: la partitura es la fuente de los tiempos desde F0 y nadie los pidió. Si se recuerda alguno, entra como una edición normal.
+    - **Dónde:** no hay nada que apretar.
+17. **Importar desde `guion.js`, construido como se recomendó.** Tomar el tiempo de `guion.js` nunca viene marcado por defecto (lo manda `DA_Partitura_Obra`). Descartar (**Dismiss**) un clip o un momento nuevo es permanente. Y el panel solo toma algo en schema 3.
+    - **Recomendación:** confirmar.
+    - **Dónde:** File ▸ **Check guion.js for changes…**.
 
 ---
 
@@ -1223,3 +1523,66 @@ El mismo borrado produce partituras distintas según una preferencia de la vista
 **Arreglo:** - En ?view=3d, desactivar los verbos de edición, o reenviarlos por BroadcastChannel como {op} a la pestaña dueña para que los aplique con commit().
 - Usar una clave LS_DRAFT propia de la pestaña dueña.
 - Mostrar en la pestaña 3D 'read-only view'.
+
+## Aplicado a la partitura con las respuestas del Director (2026-10-15)
+
+Beltrán pidió alinear la partitura con Unreal. El Director respondió las preguntas de `PEDIDOS-AL-DIRECTOR.md` a partir de los trackers y de los `.uasset` en disco. Todo se aplicó con los verbos de la app, pasando por la integridad, y se guardó.
+
+**Rev 3 · alineada con Unreal**
+- **Schema 3:** upgrade sin mover tiempos del usuario típico.
+- **Voces con su largo real** (mezcla final). La línea base del APK se corrió con ellas.
+- **Ciclos de 2.R4 y 5.R4:** "como lee el guion". La mecánica corre hasta su final y recién ahí empieza el outro (fase 6 → `CallOutro`).
+- **Cierre de cada etapa:**
+  - la felicitación (`VO_13`, `VO_18`, `VO_23b`, `VO_29`) pasa al outro, antes de la carga;
+  - Alma se va 0,6 s después de la felicitación;
+  - la despedida (`VO_14`, `VO_19`, `VO_25`, `VO_30`) suena a 0,9 s en el regreso de Alma.
+  Es lo que hacen `AlmaCharge` y `FlowBye`.
+- **Final:** en SHARE, `VO_37` va 0,6 s después de `VO_35b`; en DON'T SHARE, a PT 8.
+- **Voces borradas,** porque Unreal no las tiene o no las reproduce: `VO_12b`, `VO_17b`, `VO_21`, `VO_24`, `VO_34c`, `VO_35c`, `VO_36c`, `VO_36d`. Lo que dependía de ellas conserva su tiempo.
+- **Esperas:** `G_SENSOR` 20 s y `G_CHOOSE` 25 s. `VO_11h` suena `HelpAfter` (4 s) después del final de `VO_11b`.
+- **Partitura:** "Match the score to Unreal timing" resolvió las 64 diferencias en 21 perillas.
+- **Resultado:** 18:10 con el usuario típico, sin ciclos, sin voces superpuestas y 0 marcas "≠ APK". La pista "Unreal run" muestra lo que queda: Hall −19,7 s, por las pausas del `HallDirector`, y Recognizing −59 s, por el largo de la mecánica, que depende del usuario.
+
+**Rev 4 · todo en inglés**
+- **Partitura:** se tradujeron 585 textos (actos, títulos y descripciones de momentos, rótulos, notas y ayudas). Solo cambian textos.
+- **Perillas:** las descripciones en inglés viven en `obra/unreal/partitura_def_en.json`, propio del editor. `sync_partitura.py` las mezcla al sincronizar y guarda el texto original del Director como `docUnreal`.
+- **Vista 3D:** muestra las ayudas de la partitura, no las de `guion.js`.
+
+**Pruebas:** dejaron de depender de la partitura real. Usan copias congeladas F0 de la partitura, del contrato y de los enlaces (`tools/score/fixtures/*-f0.json`), y `--live` corre sobre los datos reales.
+
+**Pendiente del Director:**
+- si `VO_01h` y `VO_04b` siguen sonando en el Hall;
+- si `VO_35b` y `VO_37` van en 2D o las dice Alma.
+
+## Revisión de punta a punta (2026-10-15)
+
+Se recorrió la app dos veces, como montajista en modo Simple y como desarrollador, y se arreglaron los errores reales. La partitura (`score.json`, rev 4, schema 3) no se tocó: todas las pruebas de edición corrieron sobre la memoria de la página o sobre una copia temporal.
+
+**Cómo se probó.** A mano en el navegador a 1280×720, 1920×1080 y 1024×600; y con unos 2.000 pasos de edición al azar (mover, recortar, pegar, duplicar, borrar con sus tarjetas, deshacer y rehacer, cambiar de usuario simulado y de rama, bloquear grupos, escribir valores absurdos en los campos del inspector). Después de cada paso: la partitura sigue siendo válida (`Edits.validate`), ningún tiempo es negativo ni infinito, y los tiempos del 3D (`App.SC`) coinciden con `App.sched.t` en los 581 elementos que están en la partitura, con los 4 usuarios y los selectores SHARE, DON'T SHARE y Auto. Deshacer todo deja la partitura igual que la guardada. Medidas: `compute()` ≈ 20 ms, `renderAll()` ≈ 50 ms, `renderTimeline()` de 25 a 65 ms (65 ms con 11.000 nodos, a 80 px/s); nada pasa de 100 ms.
+
+**Arreglado** (cada uno con su causa):
+- **Alto.** Borrar `G_SHARE` (la espera que decide SHARE / DON'T SHARE) se aplicaba sin tarjeta y dejaba una partitura que el guardado rechaza (`S.BRANCH.FIELD`) y un borrador que ya no se puede abrir. Ahora `Act.remove` lo rechaza con su motivo, la opción "borrarlo y lo que cuelga" se desactiva cuando arrastraría esa espera (`Edits.planDelete` ▸ `gates`) y `commit()` rechaza cualquier edición que deje una decisión sin su espera (`Edits.wouldBreak`).
+- **Medio.** Un número absurdo en Duration, Timeout, Expected o el Offset de un momento (por ejemplo 1e9) hacía lanzar `Invalid string length` a `renderTimeline` y la app dejaba de redibujarse. `wouldBreak` rechaza lo que pase de una hora de total (la misma cifra que `S.TOTAL` en el guardado), `Act.setGate` pone el tope de una hora a sus campos y el ruler no dibuja más de 10 h de marcas.
+- **Medio.** `Window ▸ Timeline` en una ventana más baja que las pistas: el timeline crecía hasta su contenido y las últimas pistas quedaban fuera de la ventana, sin forma de llegar. `min-height: 0` en `.mode-tl .timeline`.
+- **Medio.** Una espera nueva se trataba como un sonido: "Drop a WAV here" y "Goes to Obra/Audio/Placeholder/G_NEW" en el inspector, una fila en Library ▸ Sounds y "new sound" en la barra de estado. Ahora solo voces, sonidos, ambientes y hápticos tienen archivo (`View.hasAudio`); lo mismo para la copia de un objeto.
+- **Medio.** Un valor guardado en las preferencias que la app no conoce (un usuario simulado o un `who` que no existe, un zoom que no es un número) dejaba la página en blanco al abrir, sin mensaje. `View.cleanPref` lo cambia por el valor por defecto. Lo mismo para `partitura_def.json` o `partitura_binding.json` con otra forma: se tratan como ausentes y se avisa.
+- **Bajo.** El Offset de un momento aceptaba un valor negativo (el primer momento quedaba antes de 0:00), igual que una copia soltada muy a la izquierda. `wouldBreak` también lo rechaza ("would start before 0:00").
+- **Bajo.** El popup de Shift+A se salía por abajo a 1280×720: la lista y el pie quedaban cortados. Ahora se acomoda dentro de la ventana.
+- **Bajo.** Un grupo bloqueado dejaba crear, renombrar y borrar pistas. Ahora no.
+- **Bajo.** "Add a help line" (Problems) y Add dejaban el clip nuevo fuera de la vista, sobre todo con el cabezal lejos o el grupo plegado: ahora lo seleccionan y lo muestran (`UI.goto`).
+- **Bajo.** Listen no decía que estaba sonando ni cómo pararlo: dice **Stop** mientras suena.
+- **Bajo.** En la vista 3D la barra de estado seguía diciendo "drag to move · Del deletes". Ahora dice que esa vista solo reproduce.
+- **Bajo.** La tarjeta de Import decía "18.17 min" (minutos decimales) donde todo lo demás dice 18:10, y "1 element differ". El aviso de las voces decía "runs 18:10, not 18:10".
+- **Bajo.** "Proceed anyway" ante un bucle de anclas nuevo o un ancla entre las dos ramas deja una partitura que el guardado rechaza: la tarjeta ahora lo dice antes ("It cannot be saved until it is fixed").
+- **Bajo.** En Simple, los menús Experience y Window mostraban `DA_Partitura_Obra` y `obra/unreal/traza.json` al lado de sus entradas: solo se ven en Advanced.
+- **Servidor.** `GET /obra/…` comprobaba el prefijo del texto (`startswith`), no la carpeta: una carpeta vecina como `obra-old/` habría pasado. Ahora usa `inside()`. Y `partitura_propuesta.json` sin enviar daba `404` cada 20 s y con cada foco (un error rojo en la consola cada vez): ahora da `200` con `null`.
+
+**Pruebas nuevas** (todas pasan junto con las demás): `edits_test.mjs` (`branchGates`, `branchError`, `wouldBreak`: la espera de SHARE, un momento o un clip antes de 0:00, 1e9 s y un tope que pasa quien llama, y que no se culpa de nuevo lo que ya venía así), `view_test.mjs` (`hasAudio`, `cleanPref`) y `server_test.py` (la carpeta vecina y el `200 null`).
+
+**No se cambió** (decisión de producto o más grande):
+- En Simple todavía aparecen "APK" y el texto técnico de Unreal en los mensajes de Problems y en las tarjetas de impacto (solo los títulos y los chips están en palabras comunes), y las pestañas Timing y Roles de la biblioteca siguen visibles.
+- "Proceed anyway" deja pasar una edición que el guardado después rechaza (los dos casos de arriba): solo se avisa antes, no se impide.
+- Un borrador restaurado queda sin historial de deshacer: la única vuelta atrás es `File ▸ Reload from disk`.
+- Si Unreal publica un archivo mientras se escribe en un campo del inspector, el redibujado puede borrar lo escrito (poco probable).
+- La consola muestra `Ciclo de anclas en 2.R4` y `5.R4`: vienen del prototipo (solo lectura), la deuda conocida de los dos bucles.
+- A 1280×720 con Problems abierto, la biblioteca queda en una fila y media: es el tamaño de diseño de ISP.

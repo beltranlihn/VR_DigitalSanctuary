@@ -1,0 +1,25 @@
+{
+ "note": "Which Unreal asset a sound id of the score means, when the names differ (score id → asset name, as the scan of tools/score/idmap.mjs names it). Kept by hand; the Director reviews it. An id that is not here is looked up by its own name. FX_CHARGE_1..4 are all Charge1: Unreal plays one charge sound for the four stages.",
+ "reviewed": null,
+ "aliases": {
+  "FX_BELLRING": "Bell",
+  "FX_WALK": "Pasos",
+  "FX_DOOROPEN": "DoorOpen",
+  "FX_PROTOSELECT": "ProtoSelect",
+  "FX_CHARGE_1": "Charge1",
+  "FX_CHARGE_2": "Charge1",
+  "FX_CHARGE_3": "Charge1",
+  "FX_CHARGE_4": "Charge1",
+  "FX_CHARGEFINAL": "ChargeFinal",
+  "AMB_01": "Ambient_Clip_1_-_Intro",
+  "AMB_02": "Ambient_Clip_2_-_Start",
+  "AMB_03": "Ambient_Clip_3_-_Hall",
+  "AMB_04": "Ambient_Clip_4_-_Breath",
+  "AMB_05": "Ambient_Clip_5_-_Heart",
+  "AMB_06": "Ambient_Clip_6_-_Mind",
+  "AMB_07": "Ambient_Clip_7_-_Surrounding",
+  "AMB_08": "Ambient_Clip_8_-_Salida",
+  "AMB_09": "Ambient_Clip_9_-_Credits",
+  "PAD_M1": "PadM1"
+ }
+}

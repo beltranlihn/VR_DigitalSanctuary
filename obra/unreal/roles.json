@@ -185,14 +185,14 @@
   },
   "Stage · Entering": {
    "icon": "logic",
-   "actor": "Entering_Stage · Test_Entering",
+   "actor": "Entering_Stage · Test_Breath",
    "used": [
     "Stage 1 · Entering"
    ],
    "sounds": [],
    "groups": [
     {
-     "owner": "Entering_Stage · Test_Entering",
+     "owner": "Entering_Stage · Test_Breath",
      "scope": "instance",
      "rows": [
       [
@@ -267,7 +267,7 @@
   },
   "Pacer": {
    "icon": "obj",
-   "actor": "Entering_Pacer · Test_Entering",
+   "actor": "Entering_Pacer · Test_Breath",
    "used": [
     "S0.BEGIN Entering"
    ],
@@ -286,7 +286,7 @@
    ],
    "groups": [
     {
-     "owner": "Entering_Pacer · Test_Entering",
+     "owner": "Entering_Pacer · Test_Breath",
      "scope": "instance",
      "rows": [
       [
@@ -392,14 +392,14 @@
   },
   "Metaball": {
    "icon": "obj",
-   "actor": "Entering_Blob · Test_Entering",
+   "actor": "Entering_Blob · Test_Breath",
    "used": [
     "S0.INTRO Entering"
    ],
    "sounds": [],
    "groups": [
     {
-     "owner": "Entering_Blob · Test_Entering",
+     "owner": "Entering_Blob · Test_Breath",
      "scope": "instance",
      "rows": [
       [
@@ -676,14 +676,14 @@
   },
   "Loving cell": {
    "icon": "obj",
-   "actor": "LovingCell · Test_Fluid",
+   "actor": "LovingCell · Test_Mind",
    "used": [
     "Stage 3 · Loving"
    ],
    "sounds": [],
    "groups": [
     {
-     "owner": "LovingCell · Test_Fluid",
+     "owner": "LovingCell · Test_Mind",
      "scope": "instance",
      "rows": [
       [

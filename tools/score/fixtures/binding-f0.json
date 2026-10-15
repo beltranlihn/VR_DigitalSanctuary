@@ -1,0 +1,56 @@
+{
+ "note": "DRAFT 2026-10-02 (web editor session), pending review by the director: which elements of obra/score/score.json each knob of DA_Partitura_Obra governs, and how to measure it on the score. Measures: dur = element duration; start/end = element start/end minus the origin; gap = b minus a; fw = wait timeout. {open}/{alma}/{charge}/{bye}/{veilClose} = the moment of stage K. '@beat' = start of the moment; '@firstVO'/'@lastVO' = first/last voice in the moment.",
+ "verified": false,
+ "idsFrom": { "score": "rev 2 sha12 2679e4d33ec1", "at": "2026-10-07" },
+ "stageBeats": {
+  "open": ["3.1", "V1", "V2", "V3", "V4"],
+  "alma": ["1.R2", "2.R2", "3.R2", "4.R2", "5.R2"],
+  "charge": ["1.R6", "2.R6", "3.R6", "4.R6", "5.R6"],
+  "bye": ["1.R8", "2.R8", "3.R8", "4.R8", null],
+  "veilClose": ["V1", "V2", "V3", "V4", null]
+ },
+ "origins": {
+  "hall": { "beat": "1.1", "el": "@beat", "edge": "start", "what": "phase 9 (Hall) PT = 0: the Hall starts after the disclaimer" },
+  "phase0": { "beat": "{open}", "el": { "0": "@beat", "*": "ENV_SWAP" }, "edge": "start", "what": "phase 0 of stage K (T = 0): the new environment is already in, under the veil", "ids": { "1": "el_1nqujpep0m", "2": "el_1glh4nl67p", "3": "el_8cuxto1o3n", "4": "el_4upzezyw9c" } },
+  "consts": { "beat": "9.7", "el": "@beat", "edge": "start", "what": "phase 14 (constellation) PT = 0" }
+ },
+ "binds": [
+  { "knob": "Aviso_Dur", "m": { "kind": "dur", "beat": "0", "el": "DISCLAIMER" }, "ids": { "*": "el_7cci4f2bjn" } },
+  { "knob": "Hall_VeloAbreIni", "m": { "kind": "start", "beat": "1.1", "el": "FOG_IN", "from": "hall" }, "ids": { "*": "el_c8d8mg1yz2" } },
+  { "knob": "Hall_VeloAbreFin", "m": { "kind": "end", "beat": "1.1", "el": "FOG_IN", "from": "hall" }, "ids": { "*": "el_c8d8mg1yz2" } },
+  { "knob": "Titulo_RevelaIni", "m": { "kind": "start", "beat": "1.2", "el": "TITLE_IN", "from": "hall" }, "ids": { "*": "el_19albupmjd" } },
+  { "knob": "Titulo_RevelaFin", "m": { "kind": "end", "beat": "1.2", "el": "TITLE_IN", "from": "hall" }, "ids": { "*": "el_19albupmjd" } },
+  { "knob": "Bajada_RevelaIni", "m": { "kind": "start", "beat": "1.2", "el": "SUB_IN", "from": "hall" }, "ids": { "*": "el_5a1nvxslag" } },
+  { "knob": "Bajada_RevelaFin", "m": { "kind": "end", "beat": "1.2", "el": "SUB_IN", "from": "hall" }, "ids": { "*": "el_5a1nvxslag" } },
+  { "knob": "Titulo_SaleIni", "m": { "kind": "start", "beat": "1.4", "el": "TITLE_OUT", "from": "hall" }, "ids": { "*": "el_fwrhhcjy1q" } },
+  { "knob": "Titulo_SaleFin", "m": { "kind": "end", "beat": "1.4", "el": "TITLE_OUT", "from": "hall" }, "ids": { "*": "el_fwrhhcjy1q" } },
+
+  { "knob": "Etapa_VeloAbreIni", "perStage": true, "m": { "kind": "start", "beat": "{open}", "el": { "0": "VEIL1_IN", "*": "VEIL_OPEN" }, "from": "phase0" }, "ids": { "0": "el_13m1rsj1e0", "1": "el_6v9hoizv15", "2": "el_q9tu53khop", "3": "el_1136fmk5r5", "4": "el_zi7n0h80l4" } },
+  { "knob": "Etapa_VeloAbreFin", "perStage": true, "m": { "kind": "end", "beat": "{open}", "el": { "0": "VEIL1_IN", "*": "VEIL_OPEN" }, "from": "phase0" }, "ids": { "0": "el_13m1rsj1e0", "1": "el_6v9hoizv15", "2": "el_q9tu53khop", "3": "el_1136fmk5r5", "4": "el_zi7n0h80l4" } },
+  { "knob": "Etapa_TituloRevelaIni", "perStage": true, "m": { "kind": "start", "beat": "{open}", "el": { "0": "T1_IN", "*": "T_IN" }, "from": "phase0" }, "ids": { "0": "el_16857iv1bj", "1": "el_27jjfv1dtr", "2": "el_12oj6dg1t3", "3": "el_1krovqpmga", "4": "el_55hncy1s2y" } },
+  { "knob": "Etapa_TituloRevelaFin", "perStage": true, "m": { "kind": "end", "beat": "{open}", "el": { "0": "T1_IN", "*": "T_IN" }, "from": "phase0" }, "ids": { "0": "el_16857iv1bj", "1": "el_27jjfv1dtr", "2": "el_12oj6dg1t3", "3": "el_1krovqpmga", "4": "el_55hncy1s2y" } },
+  { "knob": "Etapa_TituloSaleIni", "perStage": true, "m": { "kind": "start", "beat": "{open}", "el": { "0": "T1_OUT", "*": "T_OUT" }, "from": "phase0" }, "ids": { "0": "el_82t7i41weh", "1": "el_1svblco1r1", "2": "el_13mlzg15qi", "3": "el_d31xterpev", "4": "el_1tum4jf4cv" } },
+  { "knob": "Etapa_TituloSaleFin", "perStage": true, "m": { "kind": "end", "beat": "{open}", "el": { "0": "T1_OUT", "*": "T_OUT" }, "from": "phase0" }, "ids": { "0": "el_82t7i41weh", "1": "el_1svblco1r1", "2": "el_13mlzg15qi", "3": "el_d31xterpev", "4": "el_1tum4jf4cv" } },
+  { "knob": "Alma_Entra", "perStage": true, "m": { "kind": "start", "beat": "{alma}", "el": "ALMA_IN", "from": "phase0" }, "ids": { "0": "el_6wapsy1lvo", "1": "el_3cziyh8mum", "2": "el_rygbx01jpl", "3": "el_t3fxk31b66", "4": "el_1k79i3i1xo" } },
+  { "knob": "Alma_VozRetardo", "perStage": true, "m": { "kind": "gap", "beat": "{alma}", "a": ["ALMA_IN", "start"], "b": ["@firstVO", "start"] }, "ids": { "0": ["el_6wapsy1lvo", "el_1o0409k7xx"], "1": ["el_3cziyh8mum", "el_1tkedf0eyu"], "2": ["el_rygbx01jpl", "el_9ef5911roj"], "3": ["el_t3fxk31b66", "el_lg1w7kjwwa"], "4": ["el_1k79i3i1xo", "el_101bk0hnyv"] } },
+  { "knob": "Alma_TrasVoz", "perStage": true, "m": { "kind": "gap", "beat": "{alma}", "a": ["@firstVO", "end"], "b": ["ALMA_MOVE", "start"] }, "ids": { "0": ["el_1o0409k7xx", "el_1h7axk02hs"], "1": ["el_1tkedf0eyu", "el_1sx67sz1x2"], "2": ["el_9ef5911roj", "el_yptd46144n"], "3": ["el_lg1w7kjwwa", "el_x23cqh1sxz"], "4": ["el_101bk0hnyv", "el_1xfuhhw90z"] } },
+  { "knob": "Carga_Dur", "perStage": true, "m": { "kind": "dur", "beat": "{charge}", "el": "CHARGE" }, "ids": { "0": "el_vlt7cz1g6q", "1": "el_1mtl0nqci9", "2": "el_twqx9h13jo", "3": "el_qnrll4sw8q", "4": "el_14nq3gfw93" } },
+  { "knob": "Despedida_Retardo", "perStage": true, "m": { "kind": "gap", "beat": "{bye}", "a": ["ALMA_BACK", "start"], "b": ["@firstVO", "start"] }, "ids": { "0": ["el_14jjvp01et", "el_4auyvrd3lk"], "1": ["el_vmwpur8507", "el_vuf7il54dh"], "2": ["el_1iey2aaw8o", "el_1wqn4y3p63"], "3": ["el_1ojxj9l1r0", "el_jnuh53sf7l"] } },
+  { "knob": "Despedida_TrasVoz", "perStage": true, "m": { "kind": "gap", "beat": "{bye}", "a": ["@lastVO", "end"], "b": ["ALMA_OUT", "start"] }, "ids": { "0": ["el_3gw5su17oq", "el_307ncd1vna"], "1": ["el_vkfltm12zs", "el_1rmaf06bzb"], "2": ["el_1wgnj941n1", "el_ujva1b1k3j"], "3": ["el_itytk5tr0l", "el_11174261l2"] } },
+  { "knob": "Velo_CierreDur", "perStage": true, "m": { "kind": "dur", "beat": "{veilClose}", "el": "VEIL_CLOSE" }, "ids": { "0": "el_t39nxi1w3y", "1": "el_105d7f5c8o", "2": "el_1jai8wwq89", "3": "el_1oid3nvby8" } },
+  { "knob": "Etapa_Tope", "perStage": true, "approx": "In Unreal it counts from StageBegin and asks the stage to close by its own path; in the score only Attracting and Surrounding have a wait with a timeout.", "m": { "kind": "fw", "beat": { "3": "4.R5", "4": "5.R5" }, "el": { "3": "G_SAVE4", "4": "G_SAVE5" } }, "ids": { "3": "el_16c0a1kq17", "4": "el_1j51v0i1mw" } },
+
+  { "knob": "Res_Explorar", "m": { "kind": "dur", "beat": "9.4", "el": "EXPLORA" }, "ids": { "*": "el_44hknu1myt" } },
+  { "knob": "Res_Cortafuegos", "m": { "kind": "fw", "beat": "9.5", "el": "G_SHARE" }, "ids": { "*": "el_1e5ld7nuoe" } },
+  { "knob": "Comp_Nado", "m": { "kind": "dur", "beat": "9.5b", "el": "FISH_DOOR" }, "ids": { "*": "el_m54w191sqo" } },
+  { "knob": "Comp_Lejos", "m": { "kind": "dur", "beat": "9.5b", "el": "FISH_AWAY" }, "ids": { "*": "el_1yiixgf176" } },
+  { "knob": "Const_AlmaLlega", "m": { "kind": "start", "beat": "9.7", "el": "SOUL_UP", "from": "consts" }, "ids": { "*": "el_1kzav6lubu" } },
+  { "knob": "Const_Voz35", "m": { "kind": "start", "beat": "9.7", "el": "VO_35b", "from": "consts" }, "ids": { "*": "el_15plm7q1mk" } },
+  { "knob": "Creditos_Dur", "m": { "kind": "dur", "beat": "9.7", "el": "QUEDA" }, "ids": { "*": "el_1dz2k36151" } },
+  { "knob": "Fundido_Dur", "m": { "kind": "dur", "beat": "9.7", "el": "NEGRO_FIN" }, "ids": { "*": "el_1i6zufpjsx" } }
+ ],
+ "unbound": {
+  "reason": "No clear counterpart in the prototype score, or the phase semantics need the director: bind them together with the trace (obra/unreal/traza.json).",
+  "knobs": ["Titulo_Aparece", "Logos_RevelaIni", "Logos_RevelaFin", "Titulo_Fin", "Hall_IntroA", "HUD_EEGRetardo", "Etapa_TituloOculto", "Instr_Dur", "Instr_EsperaMax", "Corte_Espera", "Salida_Dur", "Salida_TrasVoz", "Carga_Minima", "Sim_EtapaMax", "Final_NegroRampa", "Regreso_HallA", "Regreso_VeloIni", "Regreso_VeloFin", "Regreso_PezA", "Res_AlmaA", "Res_PezMin", "Res_PezMax", "Res_GusanoA", "Res_InvitaRecorte", "Res_BotonesVoz", "Res_SalidaRetardo", "Res_Tope", "Salida_HallA", "Const_Voz37TrasVoz"]
+ }
+}
