@@ -136,6 +136,28 @@
     return Math.max(0, x0 - m);
   }
 
-  const api = { titleOf, hasAudio, cleanPref, anchorPhrase, beatAnchor, findMatches, findStep, fitRange, revealPps, revealScroll, norm, clockWait, waitReaction, waitUsers };
+  /* a number typed in a field of the inspector. "6,5" and "6.5" are 6.5 (a comma is how many keyboards write the point); with both marks
+     the later one is the point and the other groups thousands ("1,000.5" and "1.000,5" are a thousand and a half); several of the same
+     mark group thousands ("1.000.000"). "1e3", "0x10", "12abc" and "∞" are not numbers: parseFloat read them as 1000, 0 and 12.
+     What an editor types for a time works too: "1:30" and "1:02:03.5" (the timecode the app prints), "90s", "5 s", "5 sec", and the minus sign
+     the app itself prints (\u2212, U+2212; the en dash too). NaN when it is not a plain number */
+  function parseNum(s) {
+    s = String(s == null ? '' : s).trim().replace(/[\s\u00a0]/g, '').replace(/^[\u2212\u2013\u2012]/, '-');
+    const un = /^(.+?)(?:seconds?|secs?|s)$/i.exec(s); if (un && /^[+-]?[\d.,:]+$/.test(un[1])) s = un[1];   // "90s", "5sec": a time in seconds
+    const tc = /^([+-]?)(?:(\d+):)?(\d+):(\d{1,2}(?:[.,]\d+)?)$/.exec(s);   // m:ss, m:ss.f, h:mm:ss, h:mm:ss.f
+    if (tc) {
+      const h = tc[2] == null ? 0 : +tc[2], m = +tc[3], sec = +tc[4].replace(',', '.');
+      if (sec >= 60 || (tc[2] != null && m >= 60)) return NaN;   // 1:75 is not a time
+      return (tc[1] === '-' ? -1 : 1) * (h * 3600 + m * 60 + sec);
+    }
+    if (/^[+-]?(\d+([.,]\d*)?|[.,]\d+)$/.test(s)) return +s.replace(',', '.');
+    const m = /^([+-]?)(\d{1,3}(?:([.,])\d{3})+)(?:([.,])(\d+))?$/.exec(s);   // groups of three digits, then maybe the point
+    if (!m) return NaN;
+    const g = m[3], int = m[2].split(g).join('');
+    if (/\D/.test(int) || (m[4] && m[4] === g)) return NaN;   // two different marks inside the groups, or the point written as the group mark
+    return +(m[1] + int + (m[5] ? '.' + m[5] : ''));
+  }
+
+  const api = { parseNum, titleOf, hasAudio, cleanPref, anchorPhrase, beatAnchor, findMatches, findStep, fitRange, revealPps, revealScroll, norm, clockWait, waitReaction, waitUsers };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.View = api;
 })(typeof window !== 'undefined' ? window : globalThis);

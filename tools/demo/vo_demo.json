@@ -1,0 +1,124 @@
+[
+ {
+  "id": "VO_D01b",
+  "uso": "menu, Breath elegido: bienvenida mientras se avanza",
+  "text": "Welcome to Soul Charger. For the next three minutes, you'll slow down and breathe with a guide. While you do, we'll gently listen to your body: your breath, your heart, and your mind."
+ },
+ {
+  "id": "VO_D01d",
+  "uso": "menu, Draw elegido: bienvenida mientras se avanza",
+  "text": "Welcome to Soul Charger. For the next three minutes, you'll draw with light in the space around you. While you do, we'll gently listen to your heart and your mind."
+ },
+ {
+  "id": "VO_D02",
+  "uso": "menu: el HUD termino de instalarse",
+  "text": "Your signals are with you now. You're ready."
+ },
+ {
+  "id": "VO_DB1",
+  "uso": "Breath: aparece el metaball",
+  "text": "This light moves with your breath. Breathe slowly, and watch it follow you."
+ },
+ {
+  "id": "VO_DB2",
+  "uso": "Breath: arranca el pacer",
+  "text": "Now follow the guide. Let it set the rhythm."
+ },
+ {
+  "id": "VO_DB3",
+  "uso": "Breath: final, antes de los resultados",
+  "text": "Beautifully done. Let's see what your body shared with us."
+ },
+ {
+  "id": "VO_DD1",
+  "uso": "Draw: se fue el trazo de practica",
+  "text": "Good. The space is yours now. Draw until the time or the ink runs out."
+ },
+ {
+  "id": "VO_DD2",
+  "uso": "Draw: final, antes de los resultados",
+  "text": "Well done. This is what you created, and what your body was saying while you drew."
+ },
+ {
+  "id": "VO_D03",
+  "uso": "menu: el HUD termino de instalarse, explica lo que se mide (pedido de Beltran 20-10)",
+  "text": "During this experience, we'll be measuring your neural activity, your heart activity, and a calm index."
+ },
+ {
+  "id": "VO_IB1",
+  "uso": "Breath, instrucciones pagina 1 (lee el texto del panel; pedido de Beltran 20-10)",
+  "text": "Pick up the sensor in front of you with your dominant hand."
+ },
+ {
+  "id": "VO_IB2",
+  "uso": "Breath, instrucciones pagina 2 (lee el texto del panel; pedido de Beltran 20-10)",
+  "text": "Rest the sensor on your belly, just below your ribs. Breathe normally."
+ },
+ {
+  "id": "VO_IB3",
+  "uso": "Breath, instrucciones pagina 3 (lee el texto del panel; pedido de Beltran 20-10)",
+  "text": "Breathe in and out slowly. The circle follows your belly."
+ },
+ {
+  "id": "VO_IB4",
+  "uso": "Breath, instrucciones pagina 4 (lee el texto del panel; pedido de Beltran 20-10) 20-10 tarde: sin START, solo la instruccion",
+  "text": "You'll breathe in a steady cycle: inhale, hold, exhale. Follow the guide without forcing it."
+ },
+ {
+  "id": "VO_ID1",
+  "uso": "Draw, instrucciones pagina 1 (lee el texto del panel; pedido de Beltran 20-10)",
+  "text": "Pick up the brush with your dominant hand."
+ },
+ {
+  "id": "VO_ID2",
+  "uso": "Draw, instrucciones pagina 2 (lee el texto del panel; pedido de Beltran 20-10)",
+  "text": "Your palette is in your other hand. Point at a color to choose it, and hold the trigger to draw. Try a first stroke. The experience begins after your first stroke."
+ },
+ {
+  "id": "VO_D01h",
+  "uso": "menu, Heart elegido: bienvenida mientras se avanza (pedido de Beltran 20-10: tercera experiencia)",
+  "text": "Welcome to Soul Charger. For the next three minutes, you'll listen to your heart. While you do, we'll gently listen to your body: your heart, and your mind."
+ },
+ {
+  "id": "VO_IH1",
+  "uso": "Heart, instrucciones pagina 1 (pedido de Beltran 20-10: tercera experiencia)",
+  "text": "Pick up the sensor in front of you with your dominant hand."
+ },
+ {
+  "id": "VO_IH2",
+  "uso": "Heart, instrucciones pagina 2 (pedido de Beltran 20-10: tercera experiencia)",
+  "text": "Place the sensor on your heart, on the left side of your chest. Then stay still for a moment."
+ },
+ {
+  "id": "VO_IH3",
+  "uso": "Heart, instrucciones pagina 3 (pedido de Beltran 20-10: tercera experiencia) (20-10 tarde: SIN USO, Heart quedo en dos paginas)",
+  "text": "Each heartbeat becomes a pulse of light around you. Keep the sensor on your heart, and listen."
+ },
+ {
+  "id": "VO_DH1",
+  "uso": "Heart: primer pulso en el umbral (VO_17a del guion) (pedido de Beltran 20-10: tercera experiencia)",
+  "text": "Can you hear your heartbeat? Can you feel its rhythm?"
+ },
+ {
+  "id": "VO_DH2",
+  "uso": "Heart: empieza la vuelta del mar (VO_17c del guion) (pedido de Beltran 20-10: tercera experiencia)",
+  "text": "Does gratitude flow through your heartbeat?"
+ },
+ {
+  "id": "VO_DH3",
+  "uso": "Heart: final, antes de los resultados (pedido de Beltran 20-10: tercera experiencia)",
+  "text": "Beautifully done. Let's see what your heart shared with us."
+ },
+ {
+  "id": "HINT_START",
+  "uso": "menu: pista sin audio (subtitulo) para el boton START (20-10 tarde)",
+  "hint": true,
+  "text": "Point the button and press trigger"
+ },
+ {
+  "id": "HINT_PICK",
+  "uso": "menu: pista sin audio (subtitulo) para elegir experiencia (20-10 tarde)",
+  "hint": true,
+  "text": "Point the experience of your choice and press trigger"
+ }
+]

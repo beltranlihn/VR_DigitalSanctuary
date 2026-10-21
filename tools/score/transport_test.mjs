@@ -24,12 +24,25 @@ console.log('J/K/L shuttle');
   check('L at 1×: 2×, then 4×, then stays 4×', T.shuttle(st(true, 1), 1).rate === 2 && T.shuttle(st(true, 2), 1).rate === 4 && T.shuttle(st(true, 4), 1).rate === 4);
   check('J stopped: backwards 1×', T.shuttle(st(false, 1), -1).rate === -1);
   check('J backwards: −2×, then −4×, then stays', T.shuttle(st(true, -1), -1).rate === -2 && T.shuttle(st(true, -2), -1).rate === -4 && T.shuttle(st(true, -4), -1).rate === -4);
-  check('L while going backwards: forward 1× (not faster)', T.shuttle(st(true, -4), 1).rate === 1);
-  check('J while going forward at 4×: backwards 1×', T.shuttle(st(true, 4), -1).rate === -1);
+  // the other key while going faster than 1× slows down, the same way (Premiere and Resolve): only from 1× does it turn round
+  check('L while going backwards at −4×: −2×, then −1×, and only then forward 1×', T.shuttle(st(true, -4), 1).rate === -2 && T.shuttle(st(true, -2), 1).rate === -1 && T.shuttle(st(true, -1), 1).rate === 1);
+  check('J while going forward at 4×: 2×, then 1×, and only then backwards 1×', T.shuttle(st(true, 4), -1).rate === 2 && T.shuttle(st(true, 2), -1).rate === 1 && T.shuttle(st(true, 1), -1).rate === -1);
+  check('L L L then J J J: 4× → 2× → 1× → −1× (never skips straight to reverse)', (() => { let r = 0, pl = false; const k = d => { r = T.shuttle(st(pl, r || 1), d).rate; pl = true; return r; }; return [k(1), k(1), k(1), k(-1), k(-1), k(-1)].join() === '1,2,4,2,1,-1'; })());
   check('stopped with a leftover rate: L starts at 1×', T.shuttle(st(false, 4), 1).rate === 1);
   const a = T.shuttle(st(true, 2, true), 1), b = T.shuttle(st(false, 1, true), -1);
   check('K held + L / J: a step of 0.1 s, no rate', near(a.step, .1) && a.rate == null && near(b.step, -.1) && b.rate == null);
   check('rate label: nothing at 1×; 2×, 4×, −1×, −4× otherwise', T.rateLabel(1) === '' && T.rateLabel(2) === '2×' && T.rateLabel(4) === '4×' && T.rateLabel(-1) === '−1×' && T.rateLabel(-4) === '−4×');
+}
+
+console.log('is the 3D clock lagging behind the wall clock');
+{
+  const L = T.lagging;
+  check('real time: not lagging', !L({ wall: 0, t: 10 }, { wall: 5000, t: 15 }, 1));
+  check('under the minimum time it never says so', !L({ wall: 0, t: 10 }, { wall: 2000, t: 10.2 }, 1));
+  check('0.9 s of the piece in 5 s of wall time: lagging', L({ wall: 0, t: 10 }, { wall: 5000, t: 10.9 }, 1));
+  check('at 2×, real time means twice the wall time', !L({ wall: 0, t: 0 }, { wall: 5000, t: 10 }, 2) && L({ wall: 0, t: 0 }, { wall: 5000, t: 5 }, 2));
+  check('a small drift is not worth saying (90% of real time)', !L({ wall: 0, t: 0 }, { wall: 10000, t: 9 }, 1));
+  check('backwards is the own clock of the editor: never lagging', !L({ wall: 0, t: 10 }, { wall: 5000, t: 9 }, -1));
 }
 
 console.log('I / O');

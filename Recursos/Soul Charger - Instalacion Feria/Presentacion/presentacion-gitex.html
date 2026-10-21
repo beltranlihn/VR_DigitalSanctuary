@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Digital Sanctuaries · GITEX Booth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400&family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Dos láminas verticales (1240 × 1754, proporción A) con la estética de Digital Sanctuaries: negro, títulos espaciados, rótulos en mono, planos en línea blanca sobre el mismo negro. */
+:root{
+  --bg:#0B0C10; --ink:#ECEAE5; --soft:#C3C7D0; --muted:#878D99; --accent:#A9C4FF; --rule:#262932;
+  --display:'Montserrat', Arial, sans-serif; --text:'IBM Plex Sans', Arial, sans-serif; --mono:'IBM Plex Mono', 'Courier New', monospace;
+  --k:120px; /* escala común de planta y corte: 120 px por metro */
+  color-scheme:dark;
+}
+@page{size:1240px 1754px;margin:0}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#1A1C22}
+body{font-family:var(--text);color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{width:1240px;height:1754px;background:var(--bg);padding:64px 72px 56px;display:flex;flex-direction:column;gap:30px;overflow:hidden;margin:0 auto 40px;page-break-after:always;break-after:page}
+@media print{html,body{background:var(--bg)}.page{margin:0}}
+.top{display:flex;justify-content:space-between;align-items:baseline}
+.eyebrow,.label{font-family:var(--mono);text-transform:uppercase;letter-spacing:.24em}
+.eyebrow{font-size:15px;color:var(--accent)}
+.num{font-family:var(--mono);font-size:15px;letter-spacing:.24em;color:var(--muted)}
+h1,h2{font-family:var(--display);font-weight:300;text-transform:uppercase;letter-spacing:.08em;line-height:1.08}
+h1{font-size:60px}
+h2{font-size:62px}
+.brand{display:flex;align-items:center;gap:30px}
+.brand .mark{width:96px;height:auto;display:block}
+.brand-text{display:flex;flex-direction:column;gap:14px}
+.by{display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:15px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase}
+.by img{height:30px;width:auto;display:block}
+.intro{font-size:21px;font-weight:300;line-height:1.55;color:var(--soft);max-width:920px}
+.lead{display:flex;flex-direction:column;gap:22px}
+.hero{width:100%;height:500px;object-fit:cover;display:block}
+.plans{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;border-top:1px solid var(--rule);padding-top:22px}
+.plan{display:flex;flex-direction:column;gap:14px}
+.plan .label{font-size:13px;color:var(--muted);letter-spacing:.2em}
+.plan img{display:block}
+.plan-090{width:calc(var(--k) * 3.74);height:calc(var(--k) * 1.803)}
+.section{width:calc(var(--k) * 1.803);height:calc(var(--k) * 2.394)}
+.exploded{width:350px;height:262px;object-fit:contain}
+.scale{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--muted)}
+.scale i{display:block;width:var(--k);height:6px;border:1px solid var(--soft);border-top:none}
+.specs{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule)}
+.spec{padding:15px 18px 17px 0;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:7px}
+.spec .label{font-size:12px;color:var(--muted);letter-spacing:.2em}
+.spec .val{font-size:18px;line-height:1.35}
+.spec.wide{grid-column:span 2}
+.tech-title{font-size:13px;color:var(--accent);letter-spacing:.24em;margin-bottom:-14px}
+.foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:12px;letter-spacing:.24em;color:var(--muted);text-transform:uppercase}
+.foot img{height:22px;width:auto;display:block;opacity:.85}
+.flow{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--rule)}
+.step{padding:14px 16px;border-left:1px solid var(--rule);display:flex;flex-direction:column;gap:6px}
+.step:first-child{border-left:none}
+.step .label{font-size:12px;color:var(--accent);letter-spacing:.2em}
+.step .val{font-size:17px;line-height:1.3}
+.exp{display:flex;flex-direction:column;gap:22px}
+.exp img{width:100%;height:340px;object-fit:cover;display:block}
+.exp-body{display:grid;grid-template-columns:1.45fr 1fr;gap:44px}
+.exp-body .eyebrow{margin-bottom:12px}
+h3{font-family:var(--display);font-weight:400;font-size:34px;letter-spacing:.06em;text-transform:uppercase;line-height:1.1;margin-bottom:14px}
+.exp-body p{font-size:18px;font-weight:300;line-height:1.55;color:var(--soft)}
+.facts{display:flex;flex-direction:column;border-top:1px solid var(--rule)}
+.fact{padding:13px 0;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:6px}
+.fact .label{font-size:12px;color:var(--muted);letter-spacing:.2em}
+.fact .val{font-size:17px;line-height:1.4}
+</style>
+</head>
+<body>
+
+<section class="page" id="p1">
+  <div class="top"><span class="eyebrow">GITEX · Booth proposal</span><span class="num">01 / 02</span></div>
+  <div class="lead">
+    <div class="brand">
+      <img class="mark" src="img/logo-ds.png" alt="Digital Sanctuaries symbol">
+      <div class="brand-text">
+        <h1>Digital Sanctuaries</h1>
+        <div class="by"><span>by</span><img src="img/logo-alma.png" alt="Alma Digital Studio"></div>
+      </div>
+    </div>
+    <p class="intro">A sanctuary inside the fair: a half dome of light for two people. Visitors recline in two seats facing the hall while a central circular screen shows their brain activity live, and a reception point welcomes the queue. Designed specifically for GITEX.</p>
+  </div>
+  <img class="hero" src="img/render-front-people.png" alt="Render of the booth: a white half dome lit in soft blue with two reclined visitors in VR headsets, a central circular screen and a reception totem beside it">
+  <div class="plans">
+    <div class="plan"><span class="label">Plan · cut at 0.90 m</span><img class="plan-090" src="img/plan-090.svg" alt="Floor plan of the dome cut at 0.90 m, with two seats turned 45 degrees and the central totem and table"></div>
+    <div class="plan"><span class="label">Section</span><img class="section" src="img/section.svg" alt="Side section through the centre of the dome showing the ring profile, a seat, the table and the totem"></div>
+    <div class="plan"><span class="label">Exploded</span><img class="exploded" src="img/exploded.svg" alt="Exploded axonometric: five plywood rings split into halves, the inner skin, the front arch and the back cap"></div>
+  </div>
+  <div class="scale"><i></i><span>1 M · PLAN AND SECTION</span></div>
+  <div class="specs">
+    <div class="spec"><span class="label">Footprint</span><span class="val">4.7 × 4.3 m, reception included</span></div>
+    <div class="spec"><span class="label">Dome</span><span class="val">3.8 m wide · 2.35 m high</span></div>
+    <div class="spec"><span class="label">Visitors</span><span class="val">2 at a time · 3-minute sessions</span></div>
+    <div class="spec"><span class="label">Structure</span><span class="val">5 CNC-cut plywood rings, white front arch</span></div>
+    <div class="spec"><span class="label">Interior</span><span class="val">Bent 3 mm plywood skin, matte white</span></div>
+    <div class="spec"><span class="label">Light</span><span class="val">Hidden LED strips, soft blue wash</span></div>
+  </div>
+  <p class="label tech-title">Technical requirements</p>
+  <div class="specs">
+    <div class="spec wide"><span class="label">Computers</span><span class="val">2 high-performance PCs behind the dome: one runs the experiences, one on standby as backup</span></div>
+    <div class="spec"><span class="label">Tablet · Network</span><span class="val">1 standard iPad at reception · wired Ethernet on a local network</span></div>
+  </div>
+  <div class="foot"><span>Digital Sanctuaries</span><img src="img/logo-alma.png" alt="Alma Digital Studio"></div>
+</section>
+
+<section class="page" id="p2">
+  <div class="top"><span class="eyebrow">The experiences</span><span class="num">02 / 02</span></div>
+  <div class="lead">
+    <h2>Two practices.<br>Three minutes.</h2>
+    <p class="intro">Each visitor chooses one practice. A headset carries them inside, an EEG headband reads their brain activity the whole time to measure their state of calm and relaxation, and the circular screen shows it live to the people waiting. At the end, every visitor receives a result with simplified data and a personalised artwork. It stays private: no data is kept beyond the live experience.</p>
+  </div>
+  <div class="flow">
+    <div class="step"><span class="label">01</span><span class="val">Reception</span></div>
+    <div class="step"><span class="label">02</span><span class="val">Headset + EEG</span></div>
+    <div class="step"><span class="label">03</span><span class="val">3-minute session</span></div>
+    <div class="step"><span class="label">04</span><span class="val">Live on the screen</span></div>
+    <div class="step"><span class="label">05</span><span class="val">Private result</span></div>
+  </div>
+  <div class="exp">
+    <img src="img/still-breath.png" alt="Inside the breathing experience: a soft lilac horizon, a breathing ring and a floating form">
+    <div class="exp-body">
+      <div><p class="eyebrow">01 · VR Breathwork · 3 min</p><h3>Breathe with the light</h3><p>A guided breathing practice. A pacing ring sets the rhythm, and the light rises and falls with every inhale and exhale. In three minutes the breath slows and the body settles.</p></div>
+      <div class="facts">
+        <div class="fact"><span class="label">Measures</span><span class="val">Brain activity (EEG) and breathing rhythm</span></div>
+        <div class="fact"><span class="label">Result</span><span class="val">Their state of calm and relaxation in simplified data, plus a personalised artwork from the session</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="exp">
+    <img src="img/still-draw.png" alt="Inside the drawing experience: strokes of light painted in the air over a green sea, with the colour palette in hand">
+    <div class="exp-body">
+      <div><p class="eyebrow">02 · VR Painting · 3 min</p><h3>Draw in light</h3><p>Drawing in the air. The visitor paints around themselves with a brush of light, choosing colours from a palette held in the other hand. The mark is made, and then it goes.</p></div>
+      <div class="facts">
+        <div class="fact"><span class="label">Measures</span><span class="val">Brain activity (EEG) while creating</span></div>
+        <div class="fact"><span class="label">Result</span><span class="val">Their state of calm and relaxation in simplified data, plus a personalised artwork from the drawing</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Digital Sanctuaries</span><img src="img/logo-alma.png" alt="Alma Digital Studio"></div>
+</section>
+
+</body>
+</html>

@@ -58,6 +58,57 @@ console.log('validate (A9, +B3)');
 const bad = [{ schema: 2, elements: {} }, Object.assign(JSON.parse(JSON.stringify(score)), { acts: [{ id: 'x', beats: ['nope'] }] })];
 for (const [i, s] of bad.entries()) { let threw = false; try { X.validate(s, E); } catch (e) { threw = true; } check(`broken score ${i + 1} is rejected`, threw); }
 { let ok = true; try { X.validate(score, E); } catch (e) { ok = false; console.log(e.message); } check('the score validates', ok); }
+{
+  const said = s => { try { X.validate(s, E); return ''; } catch (e) { return X.invalidWords(e.message); } };
+  check('a file with no acts says it is not a whole score, not "acts is missing"', said({ schema: 2, elements: {}, beats: {}, lanes: {}, groups: [] }) === 'it is not a whole score: it has no acts', said({ schema: 2, elements: {}, beats: {}, lanes: {}, groups: [] }));
+  check('...and names beats as moments (the word of the editor)', X.invalidWords('beats is missing') === 'it is not a whole score: it has no moments');
+  check('any other message stays as it is', X.invalidWords('act a1 points to a missing moment b9') === 'act a1 points to a missing moment b9' && X.invalidWords('not a schema 2 or 3 score') === 'not a schema 2 or 3 score');
+  // the field names of the file (`at`, `end`) are not words of the editor: a score whose anchor points at nothing says "its anchor"
+  { const s = JSON.parse(JSON.stringify(score)), id = idOf('VO_02') || Object.keys(s.elements)[0]; s.elements[id].at = { ref: 'nope', edge: 'end', off: 0 };
+    const w = said(s); check('an anchor that points at nothing says "its anchor", not the field name `at`', w === `${s.elements[id].key}: its anchor points to something that does not exist`, w);
+    s.elements[id].at = { ref: s.elements[id].beat, edge: 'start', off: 0 }; s.elements[id].end = { ref: 'nope', edge: 'end', off: 0 };
+    const w2 = said(s); check('...and the end of a clip: "its end anchor"', w2 === `${s.elements[id].key}: its end anchor points to something that does not exist`, w2); }
+}
+
+console.log('what a draft from an earlier session is (restoreDraft decides from this: a copy is never opened over theirs)');
+{
+  const here = { score, baseRev: 5, diskHash: 'aaa' }, mine = JSON.parse(JSON.stringify(score)); mine.markers = Object.assign({}, mine.markers, { mk_x: { t: 3, name: 'Bookmark X' } });
+  const fate = (d, h, valid) => X.draftFate(d, h || here, valid !== false);
+  check('no draft: none; one with nothing unsaved in it: same', fate(null) === 'none' && fate({}) === 'none' && fate({ score, baseRev: 5, baseHash: 'aaa' }) === 'same');
+  check('work made on this very score: restore', fate({ score: mine, baseRev: 5, baseHash: 'aaa' }) === 'restore' && fate({ score: mine, baseRev: 5 }) === 'restore');
+  check('work made on an older revision, or on another file of the same number: a copy (old-base), never opened over theirs', fate({ score: mine, baseRev: 4, baseHash: 'aaa' }) === 'old-base' && fate({ score: mine, baseRev: 5, baseHash: 'bbb' }) === 'old-base');
+  check('a draft that no longer computes: broken (also a copy), whatever its base', fate({ score: mine, baseRev: 5, baseHash: 'aaa' }, here, false) === 'broken' && fate({ score: mine, baseRev: 1 }, here, false) === 'broken');
+}
+
+console.log('the changes waiting for Unreal: taking the last one away leaves no trace (tidyPropuestas)');
+{
+  const clone = o => JSON.parse(JSON.stringify(o)), same = (a, b) => X.sameScore(a, b);
+  const saved = clone(score); delete saved.propuestas;
+  const added = clone(saved); added.propuestas = { valores: {}, motivos: {}, base: 'abc' };   // proposed and taken away again: only the empty shape (and its base) is left
+  check('before: that is a difference from the saved score (the "Unsaved" with nothing to see)', !same(added, saved));
+  X.tidyPropuestas(added, saved); check('a saved score with no propuestas: the key goes, the score is the saved one again', same(added, saved) && !('propuestas' in added));
+  const savedEmpty = clone(saved); savedEmpty.propuestas = { valores: {}, motivos: {} };   // what a send leaves
+  const added2 = clone(savedEmpty); added2.propuestas.base = 'abc';
+  X.tidyPropuestas(added2, savedEmpty); check('a saved score with the empty one a send leaves: it is that one again (no base)', same(added2, savedEmpty));
+  const savedWait = clone(saved); savedWait.propuestas = { valores: { Aviso_Dur: 5 }, motivos: { Aviso_Dur: { motivo: 'x' } }, base: 'abc' };
+  const taken = clone(savedWait); delete taken.propuestas.valores.Aviso_Dur; delete taken.propuestas.motivos.Aviso_Dur;
+  X.tidyPropuestas(taken, savedWait); check('the saved score had one waiting and it was removed here: empty, not gone, and not equal to the saved score (that IS an edit)', JSON.stringify(taken.propuestas) === '{"valores":{},"motivos":{}}' && !same(taken, savedWait));
+  const still = clone(saved); still.propuestas = { valores: { Aviso_Dur: 7 }, motivos: { Aviso_Dur: {} }, base: 'abc' }; const before = JSON.stringify(still);
+  X.tidyPropuestas(still, saved); check('while something still waits, nothing is touched', JSON.stringify(still) === before);
+  const none = clone(saved); X.tidyPropuestas(none, saved); check('a score with no propuestas stays as it is', same(none, saved));
+}
+
+console.log('a locked group protects its elements from being changed, taken out or put in (commit, import)');
+{
+  const clone = o => JSON.parse(JSON.stringify(o)), gid = score.elements[idOf('VO_05')].group, locked = { [gid]: true };
+  check('nothing changed: none', X.lockedChange(score, clone(score), locked) === null);
+  const ch = clone(score); ch.elements[idOf('VO_05')].text = 'other words'; check('an element of the group changed: it', X.lockedChange(score, ch, locked) && X.lockedChange(score, ch, locked).key === 'VO_05' && X.lockedChange(score, ch, {}) === null);
+  const add = clone(score); add.elements.el_newx = Object.assign(clone(score.elements[idOf('VO_05')]), { key: 'VO_NEW_X' }); const a = X.lockedChange(score, add, locked);
+  check('an element put into the group (Add, Shift+A, the library, a help line): refused too, and it says which', !!a && a.key === 'VO_NEW_X');
+  const del = clone(score); delete del.elements[idOf('VO_05')]; check('an element taken out of it: it', X.lockedChange(score, del, locked).key === 'VO_05');
+  const other = Object.keys(score.elements).find(i => score.elements[i].group !== gid), add2 = clone(score); add2.elements.el_newy = Object.assign(clone(score.elements[other]), { key: 'FX_NEW_Y' });
+  check('an element put into ANOTHER group: not a matter for the lock', X.lockedChange(score, add2, locked) === null);
+}
 
 console.log('change the anchor (C9)');
 { const before = JSON.stringify(score), all = s => Object.keys(s.elements).concat(Object.keys(s.beats));
@@ -719,6 +770,35 @@ else {
   check('wouldBreak: 8 s is fine; a score that was already over an hour is not blamed again', X.wouldBreak(s3, ok, E) === null && X.wouldBreak(huge, clone(huge), E) === null);
   const lim = T0.total + 100, longer = clone(s3); longer.elements[bo].dur = { mode: 'fixed', value: 300 };
   check("wouldBreak: the limit is the caller's (o.maxTotal): 300 s over a limit 100 s above the total is refused, 8 s is not", /longer than an hour/.test(X.wouldBreak(s3, longer, E, { maxTotal: lim }) || '') && X.wouldBreak(s3, ok, E, { maxTotal: lim }) === null);
+}
+
+console.log('the WAV of a copy, and notes that go with their clip (found by a film editor, 10-15)');
+{
+  const clone = o => JSON.parse(JSON.stringify(o)), vo5 = idOf('VO_05'), vo6 = idOf('VO_06a') || idOf('VO_06');
+  let seq = 0; const opts = { who: 'B', at: '2026-10-05T00:00:00Z', now: () => 1e12, rand: () => ((seq++ * 7) % 36) / 36, addLane };
+  // a sound made here with a WAV loaded: waits in the inbox under ITS id; a duplicate has its own file (the same bytes, sent by the editor), not the original's
+  const s1 = clone(score), x = s1.elements[vo5];
+  Object.assign(x, { isNew: true, sound: x.key, audio: { file: 'a.wav', dur: 1, sr: 48000, ch: 1, bits: 16, pcm: true, hash: 'abc123abc123', inbox: 'obra/audio/inbox/' + vo5 + '.wav' } });
+  const d = X.planPaste(s1, X.clipOf(s1, [vo5], E), { after: true }, E, opts), c = d.ok && d.next.elements[d.ids[0]];
+  check('duplicate of a loaded sound: its own inbox path (by its id), the same hash, its own name as the sound', d.ok && c.audio.inbox === 'obra/audio/inbox/' + d.ids[0] + '.wav' && c.audio.hash === 'abc123abc123' && c.audio.file === 'a.wav' && c.sound === c.key && c.sound !== x.key, c && JSON.stringify(c.audio));
+  check('  the original keeps its file and its name', d.ok && JSON.stringify(d.next.elements[vo5].audio) === JSON.stringify(x.audio) && d.next.elements[vo5].sound === x.key);
+  // a recording of the final mix (or a file the score never loaded) belongs to the original: no format to show, no inbox file, nothing to hear in the copy
+  const s2 = clone(score); s2.elements[vo6].audio = { dur: 3, file: '03_VO_06.wav', src: 'mix' };
+  const m = X.planPaste(s2, X.clipOf(s2, [vo6], E), { after: true }, E, opts), mc = m.ok && m.next.elements[m.ids[0]];
+  check('duplicate of a voice with a recording from the final mix: the copy has no audio of its own (it would show "NaN kHz · undefined ch")', m.ok && mc.audio === undefined && mc.dur && mc.dur.mode === score.elements[vo6].dur.mode, m.ok ? String(mc.audio) : m.why);
+  const s3 = clone(score); s3.elements[vo6].audio = { dur: 3, file: 'old.wav', inbox: 'obra/audio/inbox/' + vo6 + '.wav' };
+  const o = X.planPaste(s3, X.clipOf(s3, [vo6], E), { after: true }, E, opts), oc = o.ok && o.next.elements[o.ids[0]];
+  check('…and one loaded before the files had a hash: the copy does not claim the original\'s file either', o.ok && oc.audio === undefined);
+
+  // notes: about a clip, they keep their distance from its start and go where it goes; a bookmark or a note about nothing stays
+  const s4 = clone(score), T = E.resolve(s4, { persona: 'typical' }).t, vo = vo5, t0 = T[vo][0];
+  s4.notes = { nt_a: { t: +(t0 + 1.79).toFixed(2), off: 1.79, el: vo, text: 'about the clip' }, nt_b: { t: 100, el: vo, text: 'from before off existed' }, nt_c: { t: 50, el: null, text: 'about nothing', off: 4 }, nt_d: { t: 7, el: 'el_gone', off: 1, text: 'its clip was deleted' } };
+  s4.markers = { mk_a: { t: 120, name: 'Bookmark 1' } };
+  check('followNotes: nothing moved yet, nothing changes', X.followNotes(s4, T) === 0);
+  const moved = X.move(s4, vo, 8, {}, E.dependents(s4)), T2 = E.resolve(moved, { persona: 'typical' }).t, n4 = clone(moved), k = X.followNotes(n4, T2);
+  check('followNotes: the clip moves 8 s: the note about it moves with it, keeping its place inside the clip', k === 1 && Math.abs(n4.notes.nt_a.t - (T2[vo][0] + 1.79)) < .006 && Math.abs(T2[vo][0] - t0 - 8) < 1e-6, String(n4.notes.nt_a.t));
+  check('  a note from before `off` existed, one about nothing, one whose clip is gone and a bookmark stay where they were', n4.notes.nt_b.t === 100 && n4.notes.nt_c.t === 50 && n4.notes.nt_d.t === 7 && n4.markers.mk_a.t === 120);
+  check('  it is what the next step does again: no change the second time', X.followNotes(n4, T2) === 0);
 }
 
 console.log(fails ? `\n${fails} FAILED` : '\nall ok');

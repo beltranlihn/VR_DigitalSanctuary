@@ -82,3 +82,8 @@ Gotcha: con trigger Pressed, usá Started para "press", Triggered para continuo,
 
 ## Fuentes
 Enhanced Input (5.8): https://dev.epicgames.com/documentation/en-us/unreal-engine/enhanced-input-in-unreal-engine · Triggers/Modifiers: https://unrealdirective.com/articles/enhanced-input-what-you-need-to-know/ · OpenXR input (grip/aim, profiles): https://dev.epicgames.com/documentation/en-us/unreal-engine/openxr-input-in-unreal-engine · Motion Controller setup: https://dev.epicgames.com/documentation/unreal-engine/motion-controller-component-setup-in-unreal-engine · VR Template: https://dev.epicgames.com/documentation/en-us/unreal-engine/vr-template-in-unreal-engine
+
+## Varios actores escuchando la misma acción (verificado en el motor 5.8, 2026-10-19)
+- **No se la "comen" entre sí**: `UEnhancedPlayerInput::EvaluateInputComponentDelegates` solo saltea una acción por teclas consumidas si el componente tiene `bShouldCheckForLegacyKeyConsumption` (false por defecto) y corta la pila solo con `bBlockInput` (false por defecto). Un actor más escuchando `IA_Shoot_*` no le quita el gatillo al rig ni al menú.
+- `IA_Menu_Toggle_Left` (Menú ☰ del mando izquierdo, en `IMC_Default`, que agrega el pawn) tiene trigger **Pressed**: un `Triggered` por toque, no sirve para "mantener N s". Ojo: `IMC_Default` le mapea **también `OculusTouch_Left_Y_Click`**. La salida del operador de la demo usa **cinco toques** (`BP_DemoExit_SC`).
+- Leer botones del visor para mandarlos por red: **eventos** (`IA_Shoot_*` Triggered/Completed → variable), nunca `IsInputKeyDown`/`GetInputAnalogKeyState` (dan 0 con teclas XR). Ejemplo: `BP_MirrorLink_SC.BuildInput`.

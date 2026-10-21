@@ -64,6 +64,26 @@ console.log('voices (B2, B8)');
 { const n = clone(score); const id = 'el_new1'; n.elements[id] = Object.assign(clone(score.elements[idOf('VO_10')]), { key: 'VO_NEW', isNew: true });
   check('a voice made in the editor has no contract', I.contractFor(id, n.elements[id], contract).length === 0); }
 
+console.log('a sound made here with no WAV (found by a film editor, 10-15)');
+{
+  const wav = { file: 'a.wav', dur: 1, hash: 'abc123' };
+  const mk = (n, over) => { const e = Object.assign(clone(score.elements[idOf('FX_BELLRING')]), { isNew: true, legacy: null, bind: undefined, key: 'FX_NEW_SOUND' }, over || {}); n.elements['el_nsx'] = e; return n; };
+  const rule = n => I.staticProblems(n, E.resolve(n, { persona: 'typical' }), contract).filter(p => p.rule === 'C2.SOUND.NOFILE');
+  check('the piece as it is has none', !P0.some(p => p.rule === 'C2.SOUND.NOFILE'));
+  const empty = mk(clone(score), { sound: null }), r = rule(empty);
+  check('an empty new sound: a warning that names it and says Unreal gets nothing', r.length === 1 && r[0].sv === 'warn' && r[0].el === 'el_nsx' && /FX_NEW_SOUND has no WAV yet/.test(r[0].msg), r.map(p => p.msg).join('|'));
+  check('...a rule of the piece, so it comes up in Problems with a plain title', I.soundNoFile(empty, empty.elements.el_nsx) === true && /^C2./.test(r[0].rule));
+  const loaded = mk(clone(score), { audio: wav }); check('one with its WAV loaded: nothing', rule(loaded).length === 0 && I.soundNoFile(loaded, loaded.elements.el_nsx) === false);
+  const real = clone(score), re = real.elements[idOf('FX_BELLRING')]; check('a real sound of the piece (not new): nothing', rule(real).length === 0 && !I.soundNoFile(real, re));
+  const cp = mk(clone(score), { sound: null }); cp.elements.el_ncp = Object.assign(clone(cp.elements.el_nsx), { key: 'FX_NEW_SOUND_2', copyOf: 'el_nsx' });
+  check('a copy of an empty new sound is as empty as it is', rule(cp).length === 2);
+  const cr = clone(score); cr.elements.el_ncr = Object.assign(clone(re), { key: 'FX_BELLRING_2', isNew: true, copyOf: idOf('FX_BELLRING'), legacy: null, bind: undefined }); delete cr.elements.el_ncr.audio;
+  check('a copy of a real sound is a stand-in for it: not asked for a WAV', rule(cr).length === 0);
+  const vo = clone(score); vo.elements.el_nvo = Object.assign(clone(score.elements[idOf('VO_10')]), { key: 'VO_NEW_9', isNew: true, legacy: null }); check('a new voice line (text now, audio later) is fine without one', rule(vo).length === 0);
+  // Add is a quiet edit: the new warning goes to Problems and a toast, never a card in the middle of the work
+  const j = judge({ type: 'add', ids: ['el_nsx'] }, empty); check('adding it opens no card', P_.decide({ type: 'add', ids: ['el_nsx'] }, j.items, {}).mode === 'quiet');
+}
+
 console.log('fingerprints (A6, B5, +D2)');
 { const n = clone(score); n.beats[Object.keys(n.beats).find(b => n.beats[b].key === '1.2')].at.off += 60;
   const P1 = I.staticProblems(n, E.resolve(n, { persona: 'typical' }), contract);
@@ -391,6 +411,10 @@ else {
     check('  a score with no branches has no sides, and the line is what it always was', I.effect(score, X.move(score, idOf('VO_10'), 2, {}, E.dependents(score)), E).sides.length === 0); }
   check('the typical numbers are the same with or without the other run (the default run decides what is written)', Math.abs(P3.find(p => p.rule === 'C2.TOTAL.GOAL').fp.length - PD.find(p => p.rule === 'C2.TOTAL.GOAL').fp.length) === 0 && probs(n3).length === P3.length);
 }
+
+// an accepted problem says WHAT it was accepted at in words; the value it keeps (25|26.5) is not for people (found by a film editor reading Problems ▸ Accepted)
+check('valueWords: a help line after the timeout reads "help at 26.5 s, after the 25 s timeout", not 25|26.5', I.valueWords('C2.HELP.LATE', '25|26.5') === 'help at 26.5 s, after the 25 s timeout', I.valueWords('C2.HELP.LATE', '25|26.5'));
+check('valueWords: a value it does not know is kept as it is, never lost', I.valueWords('C2.HELP.LATE', 'x') === 'x' && I.valueWords('C9.NEW', '1|2') === '1|2');
 
 console.log(fails ? `\n${fails} FAILED` : '\nall ok');
 process.exit(fails ? 1 : 0);

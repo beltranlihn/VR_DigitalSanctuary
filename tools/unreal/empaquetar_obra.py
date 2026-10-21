@@ -1,17 +1,35 @@
-"""empaquetar_obra.py - arma el APK de la Obra (Quest 3, Development) y lo copia a Recursos.
+"""empaquetar_obra.py - arma el APK de la Obra o de la Demo (Quest 3, Development) y lo copia a Recursos.
 
   python tools/unreal/empaquetar_obra.py                 # paquete com.almadigital.soulcharger  "Soul Charger"
   python tools/unreal/empaquetar_obra.py --variante v2   # paquete com.almadigital.soulchargerv2 "Soul Charger V2" (convive con el otro)
+  python tools/unreal/empaquetar_obra.py --variante demo # paquete com.almadigital.soulchargerdemo "Soul Charger Demo" (app aparte: menu + Breath + Draw)
+  python tools/unreal/empaquetar_obra.py --variante demo --en-seco   # muestra variante, mapas, comando UAT y cambios al ini; no escribe ni cocina
+  python tools/unreal/empaquetar_obra.py --variante demo --nombre Demo_BDW   # la demo con otro nombre en el visor y en la copia
 
 Antes de empaquetar:
   1. Guardar todo en el editor (Ctrl+Shift+S). Mientras cocina, NO guardar assets.
   2. Correr la prueba de humo: python tools/unreal/smoke_obra.py  (tiene que dar OK).
   3. Revisar el checklist de build de publico en docs/GUIA-DE-DIRECCION.md (bSimulated, DebugStart, Speed...).
-Cocina SOLO la Obra y sus 6 celdas (las mismas que lista DefaultGame.ini). Archivo en
-VR_Test/Saved/Packaged/Android_Obra[V2]; copia en Recursos/Soul Charger - Escritorio 2026-10/APK/<nombre> <fecha>.
-Para instalar en el visor: tools/unreal/instalar_quest.ps1 [-Variante v2].
+
+Cada variante define en VARIANTES su paquete, nombre, carpeta de archivo, MAPS (lo que se pasa a UAT como -map=) y su
+mapa de arranque (GameDefaultMap, que se reescribe en DefaultEngine.ini mientras corre UAT y se restaura al final):
+  obra / v2: la Obra y sus 6 celdas (las mismas que lista DefaultGame.ini); arranca en L_SoulCharger_Obra.
+  demo:      L_Demo_Menu, L_Demo_Breath, L_Demo_Draw y L_Demo_Heart (Content/SoulCharger/Demo/Maps); arranca en L_Demo_Menu. El menu abre las
+             otras dos con OpenLevel, que por nombre no asegura que el .umap entre al paquete: los 3 tienen que ir en MAPS (y
+             cualquier otro nivel que la demo cargue por LoadLevelInstance o por nombre, tambien).
+Archivo en VR_Test/Saved/Packaged/<carpeta> (Android_Obra, Android_ObraV2, Android_Demo); copia en
+Recursos/Soul Charger - Escritorio 2026-10/APK/<nombre> <fecha>.
+Para instalar en el visor: tools/unreal/instalar_quest.ps1 [-Variante v2|demo].
+
+DefaultGame.ini NO se toca para ninguna variante (verificado en el motor 5.8, Engine/Source/Editor/UnrealEd/Private):
+  - UAT pasa -map= al CookCommandlet como -Map= (AutomationUtils/CommandletUtils.cs) y CollectFilesToCook hace
+    bFoundMapsToCook = CookMaps.Num() > 0 (CookOnTheFlyServer.cpp): con -map= la lista +MapsToCook se IGNORA, asi que la
+    Obra y sus celdas listadas ahi no se suman al cocinado de la demo.
+  - DirectoriesToAlwaysCook (/NNEDenoiser) si se suma siempre, pero es un plugin del motor: no mete contenido del juego.
+  - Se cocinan siempre, como dependencias de los defaults, GameDefaultMap, GlobalDefaultGameMode y GameInstanceClass
+    (DefaultEngine.ini: BP_SoulState). Para la demo eso significa que BP_SoulState (y lo que referencia) viaja en el paquete.
 """
-import argparse, glob, os, re, shutil, subprocess, sys, time
+import argparse, difflib, glob, os, re, shutil, subprocess, sys, time
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 UPROJECT = os.path.join(ROOT, "VR_Test", "VR_Test.uproject")
@@ -20,8 +38,12 @@ INI = os.path.join(ROOT, "VR_Test", "Config", "DefaultEngine.ini")
 USERINI = os.path.join(ROOT, "VR_Test", "Saved", "Config", "WindowsEditor", "EditorPerProjectUserSettings.ini")
 MAPS = ["/Game/SoulCharger/Obra/L_SoulCharger_Obra", "/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath", "/Game/SoulCharger/Mechanics/Heart/Maps/Test_Heart", "/Game/SoulCharger/Mechanics/Mind/Maps/Test_Mind",
         "/Game/SoulCharger/Mechanics/Sequencer/Maps/Test_Sequencer", "/Game/SoulCharger/Mechanics/Draw/Maps/Test_Draw", "/Game/SoulCharger/Hall/Maps/Test_Hall"]
-VARIANTES = {"obra": ("com.almadigital.soulcharger", "Soul Charger", "Android_Obra"),
-             "v2": ("com.almadigital.soulchargerv2", "Soul Charger V2", "Android_ObraV2")}
+MAPA_OBRA = "/Game/SoulCharger/Obra/L_SoulCharger_Obra.L_SoulCharger_Obra"
+DEMO = "/Game/SoulCharger/Demo/Maps/"
+VARIANTES = {"obra": dict(pkg="com.almadigital.soulcharger", nombre="Soul Charger", carpeta="Android_Obra", maps=MAPS, mapa_inicio=MAPA_OBRA),
+             "v2": dict(pkg="com.almadigital.soulchargerv2", nombre="Soul Charger V2", carpeta="Android_ObraV2", maps=MAPS, mapa_inicio=MAPA_OBRA),
+             "demo": dict(pkg="com.almadigital.soulchargerdemo", nombre="Soul Charger Demo", carpeta="Android_Demo",
+                          maps=[DEMO + "L_Demo_Menu", DEMO + "L_Demo_Breath", DEMO + "L_Demo_Draw", DEMO + "L_Demo_Heart"], mapa_inicio=DEMO + "L_Demo_Menu.L_Demo_Menu")}
 
 def fix_mcp_autostart():
     # el cocinado arranca con bAutoStartServer=False para no pelear el puerto 8000 con el editor; si esa
@@ -35,35 +57,67 @@ def fix_mcp_autostart():
         open(USERINI, "w", encoding="utf-8", errors="surrogateescape").write(s)
         print("config del MCP restaurada (bAutoStartServer=True)")
 
+def ini_para(v, ini0):
+    # DefaultEngine.ini con el paquete, el nombre y el mapa de arranque de la variante (no escribe nada)
+    ini = re.sub(r"^PackageName=.*$", "PackageName=" + v["pkg"], ini0, flags=re.M)
+    ini = re.sub(r"^ApplicationDisplayName=.*$", "ApplicationDisplayName=" + v["nombre"], ini, flags=re.M)
+    ini = re.sub(r"^GameDefaultMap=.*$", "GameDefaultMap=" + v["mapa_inicio"], ini, flags=re.M)
+    # un re.sub sin coincidencia no avisa: sin esta linea el APK arrancaria en otro mapa (o en uno que no cocino)
+    for k in ("PackageName=" + v["pkg"], "ApplicationDisplayName=" + v["nombre"], "GameDefaultMap=" + v["mapa_inicio"]):
+        if not re.search("^" + re.escape(k) + "$", ini, flags=re.M):
+            sys.exit("DefaultEngine.ini no tiene la linea '%s' para reescribir: no cocino." % k.split("=")[0])
+    return ini
+
+def comando_uat(v, arch):
+    return [os.path.join(ENGINE, "Engine", "Build", "BatchFiles", "RunUAT.bat"), "BuildCookRun",
+            "-project=" + UPROJECT, "-unrealexe=" + os.path.join(ENGINE, "Engine", "Binaries", "Win64", "UnrealEditor-Cmd.exe"),
+            "-platform=Android", "-cookflavor=ASTC", "-clientconfig=Development", "-cook", "-map=" + "+".join(v["maps"]),
+            "-skipbuildeditor", "-nocompileeditor",
+            "-AdditionalCookerOptions=-ini:EditorPerProjectUserSettings:[/Script/ModelContextProtocolEngine.ModelContextProtocolSettings]:bAutoStartServer=False",
+            "-build", "-stage", "-pak", "-iostore", "-compressed", "-package", "-archive", "-archivedirectory=" + arch,
+            "-prereqs", "-utf8output", "-nop4"]
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--variante", choices=sorted(VARIANTES), default="obra")
     ap.add_argument("--sin-copia", action="store_true")
+    ap.add_argument("--en-seco", action="store_true", help="muestra lo que haria (mapas, comando, cambios al ini) sin escribir ni cocinar")
+    ap.add_argument("--nombre", help="nombre de la app en el visor, de la copia en Recursos y del .apk copiado (p. ej. Demo_BDW); el paquete no cambia")
     a = ap.parse_args()
-    pkg, nombre, carpeta = VARIANTES[a.variante]
+    v = dict(VARIANTES[a.variante])
+    if a.nombre:
+        v["nombre"] = a.nombre
+    pkg, nombre, carpeta = v["pkg"], v["nombre"], v["carpeta"]
     arch = os.path.join(ROOT, "VR_Test", "Saved", "Packaged", carpeta)
-    ini0 = open(INI, encoding="utf-8").read()
-    ini = re.sub(r"^PackageName=.*$", "PackageName=" + pkg, ini0, flags=re.M)
-    ini = re.sub(r"^ApplicationDisplayName=.*$", "ApplicationDisplayName=" + nombre, ini, flags=re.M)
-    ini = re.sub(r"^GameDefaultMap=.*$", "GameDefaultMap=/Game/SoulCharger/Obra/L_SoulCharger_Obra.L_SoulCharger_Obra", ini, flags=re.M)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import ini_respaldo
+    ini0 = ini_respaldo.ini_limpio(INI)
+    ini = ini_para(v, ini0)
+    cmd = comando_uat(v, arch)
+    if a.variante == "demo":
+        # la demo no se cocina con las perillas de prueba encendidas (autopiloto, senal falsa, reloj corto): ver tools/demo/verificar_perillas.py
+        sys.path.insert(0, os.path.join(ROOT, "tools", "demo"))
+        import verificar_perillas
+        verificar_perillas.main()
+    if a.en_seco:
+        print("variante %s: %s (%s)  archivo: %s" % (a.variante, nombre, pkg, arch))
+        print("GameDefaultMap: " + v["mapa_inicio"])
+        print("MAPS (-map=):\n  " + "\n  ".join(v["maps"]))
+        print("cambios a DefaultEngine.ini (temporales):")
+        print("\n".join(difflib.unified_diff(ini0.splitlines(), ini.splitlines(), "DefaultEngine.ini", "DefaultEngine.ini (UAT)", lineterm="", n=0)) or "  (ninguno)")
+        print("comando UAT:\n  " + " ".join(cmd))
+        return
     shutil.rmtree(arch, ignore_errors=True)
     log = os.path.join(ROOT, "VR_Test", "Saved", "Logs", "empaquetar_%s_%s.log" % (a.variante, time.strftime("%Y%m%d-%H%M%S")))
-    cmd = [os.path.join(ENGINE, "Engine", "Build", "BatchFiles", "RunUAT.bat"), "BuildCookRun",
-           "-project=" + UPROJECT, "-unrealexe=" + os.path.join(ENGINE, "Engine", "Binaries", "Win64", "UnrealEditor-Cmd.exe"),
-           "-platform=Android", "-cookflavor=ASTC", "-clientconfig=Development", "-cook", "-map=" + "+".join(MAPS),
-           "-skipbuildeditor", "-nocompileeditor",
-           "-AdditionalCookerOptions=-ini:EditorPerProjectUserSettings:[/Script/ModelContextProtocolEngine.ModelContextProtocolSettings]:bAutoStartServer=False",
-           "-build", "-stage", "-pak", "-iostore", "-compressed", "-package", "-archive", "-archivedirectory=" + arch,
-           "-prereqs", "-utf8output", "-nop4"]
     t0 = time.time()
     print("cocinando %s (%s)... log: %s" % (nombre, pkg, log), flush=True)
     try:
         if ini != ini0:
-            open(INI, "w", encoding="utf-8").write(ini)
+            ini_respaldo.escribir_temporal(INI, ini)
         with open(log, "w", encoding="utf-8", errors="ignore") as f:
             rc = subprocess.call(cmd, stdout=f, stderr=subprocess.STDOUT, cwd=ROOT)
     finally:
-        open(INI, "w", encoding="utf-8").write(ini0)
+        ini_respaldo.restaurar(INI, ini0)
         fix_mcp_autostart()
         import mcp_config; mcp_config.asegurar_autostart()
     print("UAT termino con codigo %d en %d min" % (rc, (time.time() - t0) / 60))
@@ -78,6 +132,12 @@ def main():
     if not a.sin_copia:
         dest = os.path.join(ROOT, "Recursos", "Soul Charger - Escritorio 2026-10", "APK", "%s APK %s" % (nombre, time.strftime("%Y-%m-%d %H%M")))
         shutil.copytree(os.path.dirname(apk), dest)
+        if a.nombre:
+            # el .apk con el nombre pedido (el OBB conserva el suyo: el sistema lo busca por nombre de paquete)
+            os.rename(os.path.join(dest, os.path.basename(apk)), os.path.join(dest, a.nombre + ".apk"))
+            for bat in glob.glob(os.path.join(dest, "Install_*.bat")):     # el .bat de instalar a mano busca el nombre viejo
+                t = open(bat, encoding="utf-8", errors="ignore").read().replace(os.path.basename(apk), a.nombre + ".apk")
+                open(bat, "w", encoding="utf-8").write(t)
         print("copia: " + dest)
 
 if __name__ == "__main__":

@@ -37,6 +37,7 @@ def main():
     ap.add_argument("mapa", help="nombre corto (Test_Breath) o ruta del nivel")
     ap.add_argument("--segundos", type=int, default=150)
     ap.add_argument("--filtro", default=r"ENSAYO|BREATH|HEART|LOVING|SEQ:|TB:|HALL|OBRA")
+    ap.add_argument("--extra", default="", help='argumentos extra para el juego, ej. "-MirrorRole=-1" (la demo sin el espejo)')
     a = ap.parse_args()
     m = a.mapa.replace("\\", "/")
     if "/Game/" in m and not m.startswith("/Game/"):
@@ -48,7 +49,7 @@ def main():
     tag = time.strftime("%Y%m%d-%H%M%S")
     logp = os.path.join(OUTDIR, "nivel_%s_%s.log" % (a.mapa.strip("/").replace("/", "_"), tag))
     cmd = [EDITOR, UPROJECT, a.mapa, "-game", "-nohmd", "-windowed", "-ResX=960", "-ResY=540",
-           "-log", "-abslog=" + logp, "-nosplash", "-unattended"]
+           "-log", "-abslog=" + logp, "-nosplash", "-unattended"] + a.extra.split()
     print("lanzando %s por %d s..." % (a.mapa, a.segundos), flush=True)
     p = subprocess.Popen(cmd)
     t0 = time.time()

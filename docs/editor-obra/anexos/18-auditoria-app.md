@@ -1586,3 +1586,61 @@ Se recorrió la app dos veces, como montajista en modo Simple y como desarrollad
 - Si Unreal publica un archivo mientras se escribe en un campo del inspector, el redibujado puede borrar lo escrito (poco probable).
 - La consola muestra `Ciclo de anclas en 2.R4` y `5.R4`: vienen del prototipo (solo lectura), la deuda conocida de los dos bucles.
 - A 1280×720 con Problems abierto, la biblioteca queda en una fila y media: es el tamaño de diseño de ISP.
+
+## Prueba de una sesión de trabajo (2026-10-15)
+
+Dos rondas de trabajo realista de montajista sobre una **copia** de `obra/` (servidor aparte en el puerto 8768, `VVR_OBRA`). En cada ronda: cargar, reemplazar y borrar WAVs; mover, recortar, duplicar, pegar y deshacer; guardar con un compañero guardando al mismo tiempo; recargar desde el disco; borradores viejos; grupos bloqueados y plegados; atajos de Premiere; campos de tiempo. Después vienen el arreglo y una verificación que repite cada caso con teclas y clics reales. La partitura real (`score.json` rev 4) no se tocó: sigue igual a `HEAD` y al punto de restauración.
+
+**Ronda 1: 24 hallazgos** (3 altos, 8 medios, 13 bajos), arreglados en dos pasadas. Los altos:
+- **Ctrl+S mientras se escribe en un campo** guardaba sin lo escrito y decía "Saved". Ahora Ctrl+S, deshacer, rehacer y cerrar la pestaña convierten primero en edición lo que está a medias (`flushPending`): el campo con foco, un empujón con Alt+flecha, un nombre a medio renombrar.
+- **Deshacer Load WAV o Replace WAV no tocaba el archivo**: la partitura, el archivo en `obra/audio/inbox` y lo que suena con ▶ no coincidían. Ahora deshacer y rehacer devuelven también el archivo.
+- **Una subida de WAV que fallaba se tragaba el error** y la partitura decía "file loaded" sin archivo. Ahora avisa y no hace el cambio.
+
+Los medios:
+- un WAV en una voz no tomaba su largo;
+- borrar un sonido dejaba su WAV en el inbox;
+- soltar un WAV fuera del inspector hacía que el navegador abriera el archivo;
+- la copia de un sonido decía "NaN kHz" y apuntaba al archivo del original;
+- el primer clic después de editar un campo se perdía;
+- se aceptaban WAVs rotos;
+- Ctrl+S sin cambios creaba una revisión.
+
+**Ronda 2: 22 hallazgos** (6 medios, 16 bajos), arreglados. Los medios:
+- un borrador viejo se borraba y se informaba "guardado en una copia" aunque la copia no se pudo escribir: ahora queda en el navegador (`sc-editor-held-v1`) con una tarjeta y "Try to keep them again";
+- la tarjeta de cambios de `guion.js` cortaba los textos a 120 caracteres: ahora corta alrededor de la diferencia;
+- Esc en un campo aplicaba en vez de cancelar;
+- Esc no cancelaba un arrastre;
+- Add metía elementos en un grupo bloqueado;
+- los WAVs de la sesión quedaban huérfanos al descartar el trabajo sin guardar (también el residual de la ronda 1, después de restaurar un borrador).
+
+Los bajos:
+- campos de tiempo que aceptan `1:30`, `90s`, `5 s` y el signo menos que la app imprime;
+- Ctrl+X, J/K/L como en Premiere, y M dos veces renombra el marcador;
+- un grupo plegado no se edita sin verse;
+- textos técnicos en Simple;
+- aviso del límite de 80 pasos de deshacer;
+- 1024×600 sin desborde horizontal;
+- un solo aviso en Reload from disk.
+
+**Después de la verificación** se cerraron tres detalles que quedaban:
+- El aviso "The 3D preview is running slowly" saltaba en falso al volver de otra pestaña. Un salto de más de 250 ms sin cuadros vuelve a medir desde ahí. El control positivo (un 3D que de verdad va lento) lo sigue dando.
+- Un segundo borrador que no se pudo copiar pisaba al primero en el navegador. `sc-editor-held-v1` es ahora una lista: lo que se copia sale y lo que no, queda.
+- En Simple, el inspector de sonido mostraba rutas (`Obra/Audio/Placeholder/…`, `obra/audio/inbox/…`). Ahora dice "Goes to: Unreal, as <nombre>", y las rutas quedan para Advanced.
+
+- **Reportado por Beltrán:** al arrastrar el borde del timeline o de un panel, el arrastre se congelaba y después seguía pegado al mouse aunque ya se hubiera soltado. La causa es el 3D: es un iframe, otra página. Con el mouse encima, el editor dejaba de recibir el movimiento y nunca se enteraba de que se soltó el botón. Ahora, mientras se arrastra cualquier cosa, el 3D no toma el mouse (`shield` en ui.js, `.dragging-ui iframe`). Además, un movimiento sin botón apretado termina el arrastre, y salir de la ventana a mitad de un arrastre lo termina. El borde del timeline se agarra en 11 px en vez de 5. Se probó con el mouse real: el timeline pasó de 402 a 740 px sobre el 3D y quedó suelto al soltar; el borde de la biblioteca, igual. El control, con la protección desactivada, reprodujo el error: no se movía y quedaba enganchado.
+
+- **Reportado por Beltrán:** el ▶ del inspector decía que no había archivo en 57 voces. Al tomar el largo de la mezcla final ("Use the recordings"), cada voz guarda una nota de su grabación (`audio: {dur, file, src: 'mix'}`). El inspector la confundía con un WAV cargado en el editor y su ▶ buscaba ese archivo, que nunca se cargó. Ahora una nota `src: 'mix'` no cuenta como archivo cargado: la voz muestra "final mix · N s · Listen" y suena desde la carpeta de la mezcla. Además, `playNew` usa el archivo propio del elemento antes de decir que no hay. Se probó con un clic real: las 62 voces tienen Listen (57 de la mezcla final, 5 tomas anteriores) y VO_01a suena. Los 96 efectos que dicen "no file yet" no tienen archivo porque Unreal todavía no tiene sonido para ellos (guion V5 §10.2, `obra/audio/media_map.json` ▸ `unmapped`): no es un error.
+
+**Pruebas:** `node --check` en los 21 módulos, los 26 `tools/score/*_test.mjs` y `server_test.py` pasan. Hay pruebas nuevas para `draftFate`, `parseNum` (timecode y unidades), el recorte de textos de la importación, `C2.SOUND.NOFILE`, J/L y la copia a una carpeta que no se puede escribir.
+
+**Queda como decisión de producto** (no son errores):
+- Los marcadores guardan segundos absolutos, como los marcadores de secuencia de Premiere; las notas sí siguen a su clip.
+- No hay forma, desde el inspector, de hacer que una voz existente sea la ayuda de una espera; solo Problems ▸ Add a help line.
+- Un Offset enorme (por ejemplo 1000 s) se aplica con un aviso, sin tarjeta.
+- El cabezal sigue al reloj del 3D. En un equipo que dibuja el 3D a menos de unos 20 fps el timecode va más lento que el reloj (ahora se avisa).
+- Dos pestañas de timeline comparten un borrador; se avisa.
+- Los WAVs huérfanos de sesiones viejas no se borran solos: haría falta una herramienta que los liste y los borre con confirmación.
+- Soltar un `.json` en la ventana remite a File ▸ Import score; no importa.
+- Las pistas del menú Bind to Unreal siguen técnicas en Simple.
+- Las rutas de las copias guardadas se muestran también en Simple, a propósito.
+- La consola muestra dos avisos `Ciclo de anclas` al cargar; vienen del prototipo, que es de solo lectura.

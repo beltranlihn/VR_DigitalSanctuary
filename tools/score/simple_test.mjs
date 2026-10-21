@@ -116,5 +116,16 @@ console.log('Quick start');
   check('no string literal with "APK" survives plainWords (' + lits.length + ' checked)', !left.length, left.slice(0, 3).join(' | '));
 }
 
+// the notes about a rule of the contract carry its code in Advanced; Simple says them in plain words (a film editor read "the rule of 'vo.wired'")
+{
+  const pairs = [["VO_NEW matches the rule of 'vo.wired' but Unreal does not know it.", 'VO_NEW looks like something Unreal plays, but Unreal does not know it yet.'],
+    ["VO_10x no longer matches the rule of 'vo.wired', but Unreal still treats it as before.", 'VO_10x was changed here, but Unreal still treats it as before.'],
+    ["FX_BELL_2 no longer matches the rule of 'fx.bell': it stays not in Unreal (preview only).", 'FX_BELL_2 was changed here: it stays out of Unreal (preview only).'],
+    ['VO_NEW has no help line.', 'VO_NEW has no help line.']];
+  const bad = pairs.filter(([a, b]) => S.plainMsg(a) !== b);
+  check('plainMsg: the rule codes of the contract notes are gone in Simple, other messages are untouched', !bad.length, bad.map(([a]) => S.plainMsg(a)).join(' | '));
+  check('plainMsg: not a text → as it is', S.plainMsg(undefined) === undefined && S.plainMsg(null) === null);
+}
+
 console.log('\n' + (fails ? fails + ' FAILED' : 'all ok'));
 process.exit(fails ? 1 : 0);

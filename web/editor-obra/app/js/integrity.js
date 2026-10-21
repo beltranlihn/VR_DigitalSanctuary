@@ -125,6 +125,7 @@
       return (p.join(', ') || 'the same as') + ' than the APK';
     }
     if (rule === 'C2.VO.REAL') return num(q[0]) ? `${q[0]} voice${+q[0] === 1 ? '' : 's'}` : v;
+    if (rule === 'C2.HELP.LATE') return num(q[0]) && num(q[1]) ? `help at ${s1(q[1])} s, after the ${s1(q[0])} s timeout` : v;   // "25|26.5" read as numbers in a row on an accepted problem
     if (rule === 'C2.TOTAL.GOAL') return num(v) ? 'a total over ' + fmt(+v * 30) : v;
     if (rule === 'C2.ALMA.EARLY' || rule === 'C2.FLASH') return num(v) ? s1(v) + ' s' : v;
     if (rule === 'C3.TRACE.STAGE') return num(v) ? sgn1(v) + ' s' : v;
@@ -351,6 +352,15 @@
     return (gaps || []).length + '|' + (h >>> 0).toString(36);
   }
 
+  /* a sound made here that has no file of its own: nothing for Unreal to import (a sound has to be a WAV loaded into it, Add ▸ Empty sound…). A copy of a
+     real sound of the piece is a stand-in for it in the editor and is not asked for one; a copy of an empty new sound is as empty as it is */
+  function soundNoFile(score, e) {
+    if (!e || e.type !== 'sound' || !e.isNew || e.audio) return false;
+    let r = e; const seen = new Set();
+    while (r.copyOf && score.elements[r.copyOf] && !seen.has(r.copyOf)) { seen.add(r.copyOf); r = score.elements[r.copyOf]; }
+    return r === e || (!!r.isNew && !r.audio);
+  }
+
   /* sched: the typical user with the default option of every decision (what is checked); alts: the other options of every
      decision, one run each ([{ sel, sched }] = Engine.altRuns(score)): without them the branch-sensitive rules judge only sched.
      ctx (optional): { knob(name) → the live value of an Unreal knob } for the rules that compare a time with one (C3.KNOB.OFFSET) */
@@ -409,6 +419,7 @@
       // an APPEARANCE shorter than 0.3 s reads as a glitch; the charge choreography's _OUT/_GAP/_WARN steps are transitions
       if (e.dur && e.dur.mode === 'fixed' && e.dur.value > 0 && e.dur.value < .3 && /^(object|world|instruction)$/.test(e.type) && !/_(OUT|GAP|WARN)\d*$/.test(e.key)) add('warn', 'C2', 'C2.FLASH', `${e.key} is on for ${e.dur.value} s: less than 0.3 s reads as a glitch in the headset.`, id, null, e.dur.value);
       if (e.type === 'vo' && e.text && lang.test(e.text)) add('warn', 'C2', 'C2.LANG', `${e.key}: in-headset texts go in English.`, id);
+      if (soundNoFile(score, e)) add('warn', 'C2', 'C2.SOUND.NOFILE', `${e.key} has no WAV yet: Unreal gets nothing from it until one is loaded (Replace WAV… in its inspector).`, id);
       for (const c of contractFor(id, e, contract)) {
         if (c.kind === 'knob' && c.knob && e.gate && e.gate.fw !== c.knob.value)
           add('warn', 'C3', 'C3.DRIFT', `${e.key} timeout is ${e.gate.fw} s here but ${c.knob.name} is ${c.knob.value} s in Unreal.`, id, c.owner, e.gate.fw + '|' + c.knob.value);
@@ -552,7 +563,7 @@
       // comes back at exactly the value it was accepted at is only a note (judge() reads it accepted); at another value it asks again
       for (const p of after.problems) if (!p.ghost && !fpB.has(p.fp) && p.ly !== 'C3' && p.sv !== 'info' && p.rule !== 'C2.TOTAL.GOAL')
         // the item carries the fingerprint of its problem: "Proceed anyway" records exactly this one (rule + element, and its value)
-        items.push(Object.assign({ sv: p.st === 'accepted' ? 'info' : p.sv, ly: p.ly, rule: p.rule, title: { 'C1.ANCHOR.MISSING': 'Anchor lost', 'C2.HELP.LATE': 'Help would never play', 'C1.ANCHOR.CYCLE': 'Anchor loop', 'C2.VO.OVERLAP': 'Two voices at once', 'C2.ALMA.EARLY': 'Alma speaks before she appears', 'C2.FLASH': 'Too short to see', 'C2.WAIT.WHERE': 'A wait where Unreal does not wait', 'C2.LANG': 'Not in English', 'C1.BRANCH.ANCHOR': 'Anchor across branches', 'C1.BRANCH.FIELD': 'Malformed branch' }[p.rule] || 'Rule of the piece', body: p.msg, ev: 'rule ' + p.rule, el: p.el, fp: p.fp }, beforeOf(accepted, fpParts(p.fp).base, p.rule) ? { before: beforeOf(accepted, fpParts(p.fp).base, p.rule) } : {}));
+        items.push(Object.assign({ sv: p.st === 'accepted' ? 'info' : p.sv, ly: p.ly, rule: p.rule, title: { 'C1.ANCHOR.MISSING': 'Anchor lost', 'C2.HELP.LATE': 'Help would never play', 'C1.ANCHOR.CYCLE': 'Anchor loop', 'C2.VO.OVERLAP': 'Two voices at once', 'C2.ALMA.EARLY': 'Alma speaks before she appears', 'C2.FLASH': 'Too short to see', 'C2.WAIT.WHERE': 'A wait where Unreal does not wait', 'C2.LANG': 'Not in English', 'C2.SOUND.NOFILE': 'A sound with no file', 'C1.BRANCH.ANCHOR': 'Anchor across branches', 'C1.BRANCH.FIELD': 'Malformed branch' }[p.rule] || 'Rule of the piece', body: p.msg, ev: 'rule ' + p.rule, el: p.el, fp: p.fp }, beforeOf(accepted, fpParts(p.fp).base, p.rule) ? { before: beforeOf(accepted, fpParts(p.fp).base, p.rule) } : {}));
     }
     return { items, repairs, ripple: rippleLine(eff), effect: eff };
   }
@@ -585,6 +596,6 @@
   }
 
   const api = { contractFor, knownKey, ruleMatches, blocks, blockingClash, verbsOf, acceptedFor, fpParts, recordOf, decisionsOf, judge, settle, ghostRows, beforeOf, valueWords, reopenedText, isGone,
-    knobOffset, knobOffsetText, divergeInfo, divergeProblems, voiceRealParam, staticProblems, opItems, effect, rippleLine, divergent, baselineOf, relOf, editedSince, fmt, clock, branchText, branchKey };
+    knobOffset, knobOffsetText, divergeInfo, divergeProblems, voiceRealParam, soundNoFile, staticProblems, opItems, effect, rippleLine, divergent, baselineOf, relOf, editedSince, fmt, clock, branchText, branchKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Integrity = api;
 })(typeof window !== 'undefined' ? window : globalThis);

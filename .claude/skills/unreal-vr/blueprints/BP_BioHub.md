@@ -212,3 +212,19 @@ Las tres direcciones llegan y los valores **se mueven** — no es un dato pegado
 el servidor se crea con `ListenIP` + `Port` en `BeginPlay` (`CreateOSCServer` → `AssignOnOscMessageReceived`
 → `HandleOsc`). Si no llega nada, el orden de sospecha es: firewall de Windows / red del Quest → puerto →
 tipo del argumento → dirección exacta.
+
+## 2026-10-20 (noche) — la señal simulada es RESPALDO (demo BDW)
+- Pedido: el APK de la demo con señal simulada (sin sensor se veía todo plano), pero mañana puede conectarse la app del sensor. Con `bFakeSignal` true las dos entraban mezcladas por `Ingest`.
+- Variables nuevas (Default): `RealAge` (float, 1000) · `FakeHold` (float, 2,0, editable; menor que `ConnTimeout` 3 para que `bConnected` no caiga al pasar de real a simulado).
+- `HandleOsc` (solo lo llama el servidor OSC = mensajes reales): un `/muse/calm`, o un `/muse/heart_rate` > 20, pone `RealAge` en 0 (log "BIO: Muse real (el simulado se apaga)" al cambiar). Mientras manda el simulado, los mensajes reales que no son calma/latido válido se descartan (un `sensor_active` 0 no hace titilar `bSensorOn`).
+- `MaybeFake`: `RealAge` += delta (tope 1000); `FakeTick` solo si `bFakeSignal` y `RealAge` >= `FakeHold` (log "BIO: sin Muse, vuelve el simulado" al cambiar).
+- Con `bFakeSignal` false (la Obra) es idéntico a antes. Fuente: `VR_Test/Saved/ClaudeScripts/Demo2/biohub_fallback_dsl.py`. Prueba: `tools/demo/muse_falso.py` (manda /muse/* a UDP 10000): en `-game` de `L_Demo_Breath`, "Muse real" al llegar y "sin Muse, vuelve el simulado" 2 s después de cortar; 0 errores.
+- Pendiente aceptado: una sola edad para calma y latido (si la app manda calma pero todavía no BPM, el latido queda en el último simulado); las casillas de resultados mezclan tramos simulados y reales si el sensor se corta.
+
+## 2026-10-20 (noche, 4.ª tanda) — ÍNDICE DE CALMA de Muse Integration 0.3
+- Pedido de Beltrán: la app del sensor manda un **índice de calma** (% con signo respecto de la calibración de la persona; combina EEG α/β, ruido muscular, pulso, movimiento y parpadeo; fórmula v1 acordada con la sesión de la app). El gráfico del HUD sigue siendo la **actividad neuronal** (`/muse/alpha`).
+- Contrato 0.3 de la app (60 Hz, a la IP del Quest, UDP 10000): `/muse/alpha` f · `/muse/heart_rate` f · `/muse/sensor_active` i · **`/muse/calm_index` f (−100..+100 %)** · **`/muse/calm_quality` f (0-1)** · `/muse/calm/{eeg,muscle,heart,movement,blink}` (no se leen). Ya **no** manda `/muse/calm`: en los 4 niveles demo `AddrCalm` = `/muse/alpha` (instancia; el CDO sigue en `/muse/calm` para la Obra). `verificar_perillas.py` exige `/muse/alpha` en cada `.umap` de la demo.
+- Variables nuevas (Default): `CalmIdx`, `CalmIdxQ` (float) · `bCalmIdxSeen`, `bCalmIdxReal` (bool) · `AddrCalmIdx` "/muse/calm_index" · `AddrCalmQ` "/muse/calm_quality".
+- Funciones nuevas: `SetCalmIndex(V)` (clamp ±100 + `bCalmIdxSeen`), `ClearCalmIndex()`, `FakeCalmIdx()` (simulado: 0 → ~+22 % en 150 s con vaivén; nunca pisa un índice real ya recibido). `CalmIndexOut` quedó vacía (el MCP no creó su salida): los demás leen **`GetCalmIdx`/`GetCalmIdxSeen` directo** (cross-class se ven).
+- `HandleOsc`: las dos direcciones nuevas van **fuera de `Ingest`** (no a las casillas). Con calidad 0 (la app antes de terminar su calibración) el índice se ignora. Al pasar de simulado a real se borra el índice simulado (`bCalmIdxSeen` false) hasta que llegue el real. `MaybeFake` llama `FakeCalmIdx` después de `FakeTick`.
+- Fuente: `VR_Test/Saved/ClaudeScripts/Demo2/biohub_calmidx_dsl.py` (cadena elif ANIDADA). Prueba: `tools/demo/muse_falso.py` (contrato 0.3; `--viejo` = el anterior).

@@ -9,7 +9,7 @@ Dos (o más) devs trabajando el mismo proyecto Unreal, cada uno en **su stage**.
 2. **Ensayar la etapa sola** en su nivel de test (los ensayos leen la misma Partitura que la Obra), o `python tools/unreal/probar_nivel.py Test_Heart --segundos 120` sin abrir el visor.
 3. **Prueba de humo de la Obra entera:** `python tools/unreal/smoke_obra.py` (≈9 min a velocidad 4; con `--speed 1 --traza` deja además la traza para el editor web). OK = todas las marcas en orden y 0 errores de Blueprint.
 4. **Commit del hito** (Save All antes).
-5. **APK cuando haga falta verlo en el visor:** `python tools/unreal/empaquetar_obra.py` (deja el build en `Recursos/Soul Charger - Escritorio 2026-10/APK/`) y `powershell -File tools/unreal/instalar_quest.ps1` (instala, sube el OBB con reintento, abre la app y confirma que llega al Hall). Para un build de público: la checklist de la guía §6.
+5. **APK cuando haga falta verlo en el visor:** `python tools/unreal/empaquetar_obra.py` (deja el build en `Recursos/Soul Charger - Escritorio 2026-10/APK/`; `--variante v2|demo` arma una app aparte, ver §6) y `powershell -File tools/unreal/instalar_quest.ps1` (instala, sube el OBB con reintento, abre la app y confirma que llega al Hall). Para un build de público: la checklist de la guía §6.
 
 ## Decisiones pendientes (para Beltrán)
 - **Llevar `core/esqueleto` a `main`.** `main` está 314 commits atrás y no tiene nada propio, así que el merge es un avance directo, sin conflictos. Mientras no se haga, la rama de trabajo real es `core/esqueleto` y quien clone `main` recibe un proyecto viejo.
@@ -73,8 +73,21 @@ Git no lo mergea. Opciones:
 ## 6. Deploy (empaquetar APK)
 - **Cuándo:** cuando una mecánica está lista para probar en el device real (no en cada cambio).
 - **Cómo:** empaquetar en **Development** (no Shipping) para trabajo y captura de datos — Shipping recorta logs y cambia rutas de guardado. Ver `skills/unreal-vr/references/packaging-pso.md` y las memorias de packaging.
-- Antes de empaquetar: que el stage compile limpio y que el nivel esté en `MapsToCook` (`DefaultGame.ini`).
+- Antes de empaquetar: que el stage compile limpio y que el nivel esté en `MapsToCook` (`DefaultGame.ini`). (Vale para la Obra; las variantes de abajo cocinan por `-map=` y no usan esa lista.)
 - El build final de la obra (Shipping) es un paso aparte, coordinado.
+- **Variantes del paquete** (`python tools/unreal/empaquetar_obra.py --variante <x>` y `powershell -File tools/unreal/instalar_quest.ps1 -Variante <x>`). Cada una es una app **aparte** en el visor (otro `PackageName`, otra carpeta de archivo, otro OBB): instalar una no pisa a las otras.
+
+  | Variante | Paquete | Nombre en el visor | Carpeta (`VR_Test/Saved/Packaged/`) | Mapas cocinados (`-map=`) | Arranca en (`GameDefaultMap`) |
+  |---|---|---|---|---|---|
+  | `obra` (default) | `com.almadigital.soulcharger` | Soul Charger | `Android_Obra` | la Obra + sus 6 celdas | `L_SoulCharger_Obra` |
+  | `v2` | `com.almadigital.soulchargerv2` | Soul Charger V2 | `Android_ObraV2` | igual que `obra` | `L_SoulCharger_Obra` |
+  | `demo` (Barcelona Design Week, 2026-10-21) | `com.almadigital.soulchargerdemo` | Soul Charger Demo | `Android_Demo` | `Demo/Maps/L_Demo_Menu`, `L_Demo_Breath`, `L_Demo_Draw` | `L_Demo_Menu` |
+
+  - El script reescribe `DefaultEngine.ini` (paquete, nombre y `GameDefaultMap`) **sólo mientras corre UAT** y lo restaura en el `finally`. `DefaultGame.ini` no se toca: con `-map=` el cooker **ignora** `+MapsToCook` (`CookOnTheFlyServer.cpp`, `bFoundMapsToCook = CookMaps.Num() > 0`), así que la Obra no se cuela en la demo. `DirectoriesToAlwaysCook` (`/NNEDenoiser`) sí se suma siempre, pero es un plugin del motor. Se cocinan también `GameInstanceClass` (`BP_SoulState`) y el modo de juego por defecto.
+  - **Todo nivel de la demo que se abra por nombre (`OpenLevel`) o con `LoadLevelInstance` tiene que estar en la lista `maps` de la variante en `empaquetar_obra.py`**, o no entra al paquete y el fallo es silencioso (el nivel no abre). Hoy son los 3 de la demo.
+  - Ver qué haría, sin escribir ni cocinar: `python tools/unreal/empaquetar_obra.py --variante demo --en-seco` (muestra mapas, cambios al ini y el comando de UAT). Del lado del visor: `instalar_quest.ps1 -Variante demo -Simular` (paquete, APK, OBB y destino; no toca adb).
+  - `instalar_quest.ps1 -Variante demo` da por "llegó" cuando el logcat muestra que terminó de cargar `L_Demo_Menu` (en vez del Hall); si el menú imprime una línea propia (p. ej. `DEMO: menu listo`), se pasa con `-Marcador 'DEMO: menu listo'`. Con una variante que no existe o sin APK/OBB en la carpeta, el script corta antes de tocar el visor.
+  - Mientras cocina, no guardar assets en el editor. El puerto 8000 del MCP lo resuelve el script (el cooker corre con `bAutoStartServer=False` y se repone al terminar).
 
 ## 7. Conocimiento compartido — que no se pierda
 El aprendizaje del equipo vive en el **repo**, no en la cabeza ni en la memoria local de Claude de cada uno:
@@ -106,7 +119,7 @@ Salida: `VR_Test/Saved/Packaged/Android_Development/VR_Test-arm64.apk` + `main.1
 1. **Proyecto sin código**: sin `-unrealexe=...UnrealEditor-Cmd.exe` + `-skipbuildeditor`, UAT busca `Binaries/Win64/VR_TestEditor.target` y muere (`DirectoryNotFoundException`).
 2. **GameFeatures está ON** (lo arrastra el plugin `GameFeaturesToolset` del MCP) → hace falta la regla `PrimaryAssetTypesToScan` de `GameFeatureData` en `DefaultGame.ini` (ya está). Sin ella: `Error: Asset manager settings do not include a rule for GameFeatureData` y el cook sale con 1.
 3. **Con el editor abierto, el cook intenta abrir el puerto 8000 del MCP** → `Error: HttpListener unable to bind` y el cook sale con 1. El `-AdditionalCookerOptions="-ini:...bAutoStartServer=False"` lo apaga **sólo para el commandlet**; el MCP del editor sigue vivo.
-El mapa de arranque del APK es `GameDefaultMap` en `DefaultEngine.ini` (hoy `/Game/SoulCharger/Obra/L_SoulCharger_Obra`). 🟢 **Desde 2026-10-02 todo esto lo hace `tools/unreal/empaquetar_obra.py`** (cambia y restaura el ini, corre UAT por PowerShell, repone `bAutoStartServer` del MCP y copia el build a Recursos); la receta queda como referencia.
+El mapa de arranque del APK es `GameDefaultMap` en `DefaultEngine.ini` (hoy `/Game/SoulCharger/Obra/L_SoulCharger_Obra`). 🟢 **Desde 2026-10-02 todo esto lo hace `tools/unreal/empaquetar_obra.py`** (cambia y restaura el ini, corre UAT por PowerShell, repone `bAutoStartServer` del MCP y copia el build a Recursos); la receta queda como referencia. Desde 2026-10-19 el ini se respalda en `VR_Test/Saved/DefaultEngine.ini.antes_de_empaquetar` mientras corre UAT (`tools/unreal/ini_respaldo.py`): si una corrida se corta, la siguiente lo restaura sola antes de empezar. Antes de commitear, `git diff VR_Test/Config/DefaultEngine.ini` no debería mostrar `GameDefaultMap` de la demo ni líneas `PCD3D_ES31`.
 
 ### 🏷️ Que el paquete se llame **SoulCharger** y no **VR_Test** (2026-08-28)
 UAT nombra los artefactos con el **nombre del `.uproject`** (`VR_Test-arm64.apk`, `Install_VR_Test-arm64.bat`).

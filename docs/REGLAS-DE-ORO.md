@@ -18,6 +18,7 @@
 9. **Actores: colocar sí, sacar se pregunta.** Antes y después de cada tanda de scripts se cuentan los actores del nivel y se guarda con rutas explícitas: un script que falla puede disparar un Undo que se lleva trabajo.
 10. **Toda etapa cumple el contrato**: `StageIntro`, `StageBegin`, `StageRequestEnd` y `StageOutro`, más la bandera `bStageDone`. `StageRequestEnd` **siempre** termina en `bStageDone = true`, haya hecho algo el usuario o no. Una etapa que no cierra deja la obra colgada (guía §4).
 11. **Textos dentro del visor, en inglés.** Documentos y comentarios, en español neutro.
+    **Y como textura, no como `TextRender`** (Beltrán, 2026-10-21: "se ve mal"). Texto fijo: textura `TC_EditorIcon` con mips (títulos). Texto que cambia (números, resultados): `Canvas|DrawText` con la fuente de la obra (Quicksand, `Core/Font`) en un render target a 2× que se reduce 2:1 a ~1,5× la densidad del visor (ejemplo: `BP_DemoResults_SC`). El `TextRender` recorta con el alfa del campo de distancia y en el Quest queda dentado o tramado.
 
 ## C. Después de tocar
 12. **Compilar sin errores → guardar → `python tools/unreal/smoke_obra.py` OK → commit.** La prueba de humo recorre la obra entera sin visor y falla si falta una marca o aparece un error de Blueprint. Si no pasa, el cambio no está terminado.

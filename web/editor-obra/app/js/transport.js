@@ -8,13 +8,25 @@
   const r3 = x => Math.round(x * 1000) / 1000;
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 
-  /* J (dir −1) or L (dir +1). With K held: one step of 0.1 s that way, paused. Stopped, or going the other way: 1× that
-     way. The same way again: twice as fast, up to 4×. Returns { rate } to play at, or { step } to move the playhead by. */
+  /* J (dir −1) or L (dir +1). With K held: one step of 0.1 s that way, paused. Stopped: 1× that way. The same way again: twice as
+     fast, up to 4×. The other way while going faster than 1×: half as fast, still the same way (L L L, then J: 4× → 2× → 1×, as in
+     Premiere and Resolve); only from 1× does it turn round, at 1×. Returns { rate } to play at, or { step } to move the playhead by. */
   function shuttle(st, dir) {
     if (st.kHeld) return { step: dir * STEP };
     const cur = st.playing ? st.rate : 0;
-    if (!cur || Math.sign(cur) !== dir) return { rate: dir };
+    if (!cur) return { rate: dir };
+    if (Math.sign(cur) !== dir) return Math.abs(cur) > 1 ? { rate: cur / 2 } : { rate: dir };
     return { rate: dir * Math.min(MAX, Math.abs(cur) * 2) };
+  }
+
+  /* is the 3D clock, the one the playhead follows, running behind the wall clock? a = { wall (ms), t } when it started to be watched, b = the same now,
+     rate = the speed. True when over at least o.min seconds (3) of wall time the piece advanced less than o.ratio (0.8) of what the speed says: a
+     computer that draws the 3D under ~20 fps (the prototype takes at most 50 ms of piece per frame), where the timecode runs slow while a sound plays
+     in real time. Backwards is the editor's own clock, which is never behind */
+  function lagging(a, b, rate, o) {
+    o = o || {}; const wall = (b.wall - a.wall) / 1000;
+    if (!(rate > 0) || !(wall >= (o.min != null ? o.min : 3))) return false;
+    return b.t - a.t < wall * rate * (o.ratio != null ? o.ratio : .8);
   }
 
   /* I and O at t. One that lands on the wrong side of the other clears the other (as in Premiere), and says so (cleared) */
@@ -83,6 +95,6 @@
     return { on, rate };
   }
 
-  const api = { MAX, STEP, shuttle, markIn, markOut, bounds, startAt, advance, momentStep, rateLabel, follow };
+  const api = { MAX, STEP, shuttle, lagging, markIn, markOut, bounds, startAt, advance, momentStep, rateLabel, follow };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Transport = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -132,6 +132,19 @@ console.log('the preferences read back from localStorage (review of the editor, 
   check('cleanPref: never changes what it gets', JSON.stringify(good) === before);
 }
 
+console.log('a number typed in a field (found by a film editor, 10-15)');
+{
+  const n = (t, v) => check(`parseNum(${JSON.stringify(t)}) = ${v}`, Object.is(V.parseNum(t), v) || V.parseNum(t) === v, String(V.parseNum(t)));
+  n('6.5', 6.5); n('6,5', 6.5); n(' 12 ', 12); n('-0,3', -0.3); n('+2', 2); n('.5', 0.5); n('5.', 5); n('0', 0); n('1 000', 1000);
+  n('1,000.5', 1000.5); n('1.000,5', 1000.5); n('1,000,000', 1000000); n('1.000.000', 1000000);
+  // what an editor types for a time, and what the app itself prints (the minus of its toasts is U+2212)
+  n('1:30', 90); n('0:05', 5); n('05:10.0', 310); n('1:02:03.5', 3723.5); n('-1:30', -90); n('3:5', 185); n('1:30,5', 90.5);
+  n('90s', 90); n('5 s', 5); n('5sec', 5); n('5 seconds', 5); n('12,5 s', 12.5); n('-5s', -5); n('1:30 s', 90);
+  n('−5', -5); n('−0,1', -0.1); n('–.5', -0.5);
+  for (const t of ['1:75', '1:60', '1:02:75', '1:75:03', '1:2:3:4', ':30', '1:', '1e3s', '12abc', 's', 'sec', '5m', '5 ms', '−5x', '1:30:']) check(`parseNum(${JSON.stringify(t)}) is not a number`, Number.isNaN(V.parseNum(t)), String(V.parseNum(t)));
+  for (const t of ['1e3', '1E3', '0x10', '12abc', 'abc', '', '   ', '.', ',', '-', '--1', '1..2', '1,000.000,5', '1,00,000', '1.000.5.5', '∞', 'Infinity', 'NaN', '1/2', null, undefined]) check(`parseNum(${JSON.stringify(t)}) is not a number`, Number.isNaN(V.parseNum(t)), String(V.parseNum(t)));
+}
+
 check('nothing here writes the score', JSON.stringify(score) === before);
 console.log(fails ? `\n${fails} FAILED` : '\nall ok');
 process.exit(fails ? 1 : 0);

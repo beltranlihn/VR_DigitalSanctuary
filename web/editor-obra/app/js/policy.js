@@ -3,7 +3,9 @@
    card, the toasts, the render) and asks here.
    decide(): quiet (applied; its new warnings go to Problems), apply (nothing to review) or card (the impact card first).
    acceptRecords() / reopen() / cleanRecords(): what "Proceed anyway", Reopen and "Clean up accepted" do to score.accepted: one record per
-   rule and element, with the value it was accepted at, every decision kept, nothing removed but by an explicit clean-up. */
+   rule and element, with the value it was accepted at, every decision kept, nothing removed but by an explicit clean-up.
+   newWarnings() / warnToast() / fixedToast() / doneToast(): the words of the toasts, including the "Fix it" of an edit that left a warning and
+   what a suggested fix (js/fixes.js) fixed. */
 (function (root) {
   'use strict';
   // edits that never open a card: they add or arrange what Unreal does not know yet, or record something decided elsewhere.
@@ -35,8 +37,20 @@
     if (!shown.length) return { mode: 'apply', shown, needReason: false, breaks: false, toast: null };
     return { mode: 'card', shown, needReason: needsReason(items), breaks: breaks(items), toast: null };
   }
-  /* the toast once the card is decided (cancel says nothing) */
-  const doneToast = (decision, ripple) => (decision === 'anyway' ? 'Done · accepted and recorded in Problems' : 'Done') + (ripple ? ' · ' + ripple : '');
+  /* the toast once the card is decided (cancel says nothing). `fixed`: the labels of the suggested fixes applied with the edit (js/fixes.js) */
+  const doneToast = (decision, ripple, fixed) => (decision === 'anyway' ? 'Done · accepted and recorded in Problems' : 'Done') + (fixed && fixed.length ? ' · fixed: ' + fixed.join(' · ') : '') + (ripple ? ' · ' + ripple : '');
+  /* an edit that went ahead with no card (a quiet one, or one that only had notes) can still leave new warnings in Problems: the ones that appeared
+     with it, from the whole list. The total, the difference from the headset build and the Unreal run are not what an edit "breaks" */
+  const SKIP_NEW = /^(C2\.TOTAL\.GOAL|C3\.DIVERGE|C3\.TRACE\.)/;
+  const needsLook = p => !p.ghost && p.st !== 'accepted' && (p.sv === 'warn' || p.sv === 'block');
+  function newWarnings(before, after) {
+    const was = new Set((before || []).filter(needsLook).map(p => p.fp));   // one that was a note, or accepted, and now asks, is new
+    return (after || []).filter(p => needsLook(p) && !was.has(p.fp) && !SKIP_NEW.test(p.rule));
+  }
+  /* what the toast says about them (the action "Fix it" is the app's: it only goes there when a fix is proposed) */
+  const warnToast = (said, n) => `${said} · ${n} new warning${n > 1 ? 's' : ''} in Problems (F8)`;
+  /* the toast of an edit that was applied together with a suggested fix */
+  const fixedToast = (label, fixed, ripple) => `${label} · fixed: ${fixed.join(' · ')}${ripple ? ' · ' + ripple : ''}`;
 
   /* ---------- the records (lote 5 design B §9, audit D11): accepted means "this value" ----------
      "Proceed anyway": one record per rule and element (fp = rule|el, the fpBase), with the VALUE it was accepted at (`value`: the
@@ -107,6 +121,6 @@
     return { next, removed };
   }
 
-  const api = { QUIET, decide, doneToast, needsReason, breaks, acceptRecords, reopen, cleanRecords };
+  const api = { QUIET, decide, doneToast, newWarnings, warnToast, fixedToast, needsReason, breaks, acceptRecords, reopen, cleanRecords };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Policy = api;
 })(typeof window !== 'undefined' ? window : globalThis);

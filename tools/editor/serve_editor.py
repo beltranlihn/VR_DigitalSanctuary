@@ -30,9 +30,16 @@ drive the prototype's 3D view) and the score files in obra/:
                              and where it goes are not up to the request. 503 without node, 500 when the extraction fails
                              (the answer says why). VVR_PROTO = a COPY of web/prototipo-narrativo to read instead (tests only).
   POST /api/score/copy?who=B&why=…   keep a score as obra/score/copias/score-<who>-<why>-<time>.json (conflicts, old drafts)
-  POST /api/audio?name=ID    save an uploaded WAV to obra/audio/inbox/<ID>.wav (ID = the element id; 409 if it exists
-                             unless &overwrite=1). Imported into Unreal later, in the queue.
+  POST /api/audio?name=ID    save an uploaded WAV to obra/audio/inbox/<ID>.wav (ID = the element id, nothing else; 409 if it exists
+                             unless &overwrite=1; 400 if it is not a PCM WAV with sound in it, as the editor also checks).
+                             Imported into Unreal later, in the queue.
   POST /api/audio/rename?from=A&to=B   rename a WAV waiting in the inbox (the sound was renamed in the editor)
+  GET  /api/audio/inbox      what the inbox holds: {files: {<name>: {bytes, hash}}}, hash = the first 12 hex digits of the SHA-1 of
+                             the file (what the score says in audio.hash). The editor asks before every save and after every undo
+                             to make the inbox agree with the score (js/inbox.js).
+  DELETE /api/audio?name=el_ID   take the WAV of an element out of the inbox (only element ids, never a voice, an effect or an
+                             ambience: the sound was deleted, or its load undone, and the saved score no longer names the file).
+                             Idempotent: a file that is not there answers ok too.
   PUT  /api/partitura/propuesta   save obra/unreal/partitura_propuesta.json: timing changes for DA_Partitura_Obra that a
                              session with Unreal open applies (the editor never writes .uasset)
 
@@ -56,7 +63,8 @@ from urllib.parse import parse_qs, urlparse
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 WEB = os.path.join(ROOT, 'web')
-OBRA = os.path.join(ROOT, 'obra')
+# VVR_OBRA = another copy of obra/ (a sandbox to try the editor end to end: save, load WAVs, import) without touching the real one
+OBRA = os.path.abspath(os.environ['VVR_OBRA']) if os.environ.get('VVR_OBRA') else os.path.join(ROOT, 'obra')
 SCORE = os.path.join(OBRA, 'score', 'score.json')
 HISTORY = os.path.join(OBRA, 'score', 'history')
 INBOX = os.path.join(OBRA, 'audio', 'inbox')
@@ -197,6 +205,63 @@ def urllib_quote(x):
 
 def sha12(data):
     return hashlib.sha1(data).hexdigest()[:12]
+
+
+_inbox_seen = {}   # path -> ((size, mtime), hash): a 20 MB WAV is read once, not at every question
+
+
+def inbox_listing():
+    # every WAV in the inbox with the hash of its bytes (the editor compares it with audio.hash of the score); read at call time (tests move INBOX)
+    out = {}
+    if not os.path.isdir(INBOX):
+        return out
+    for fn in sorted(os.listdir(INBOX)):
+        if not fn.lower().endswith('.wav'):
+            continue
+        full = os.path.join(INBOX, fn)
+        try:
+            st = os.stat(full)
+            key = (st.st_size, st.st_mtime_ns)
+            seen = _inbox_seen.get(full)
+            if not seen or seen[0] != key:
+                h = hashlib.sha1()
+                with open(full, 'rb') as f:
+                    for chunk in iter(lambda: f.read(1 << 20), b''):
+                        h.update(chunk)
+                seen = _inbox_seen[full] = (key, h.hexdigest()[:12])
+        except OSError:   # taken out (or being replaced) while it was read: it is not there
+            continue
+        out[fn[:-4]] = {'bytes': st.st_size, 'hash': seen[1]}
+    return out
+
+
+def wav_problem(data):
+    # what the editor's own check (js/inbox.js) also asks, for any other client: Unreal imports a PCM WAV with sound in it, nothing else.
+    # None = fine, else the reason (the header is read, nothing is decoded)
+    n = len(data)
+    if n < 12 or data[:4] != b'RIFF' or data[8:12] != b'WAVE':
+        return 'not a WAV file'
+    tag = size = None
+    o = 12
+    while o + 8 <= n:
+        cid, sz = data[o:o + 4], int.from_bytes(data[o + 4:o + 8], 'little')
+        if cid == b'fmt ' and sz >= 16 and o + 8 + sz <= n:
+            tag = int.from_bytes(data[o + 8:o + 10], 'little')
+            if tag == 0xFFFE and sz >= 40:   # WAVE_FORMAT_EXTENSIBLE: the real format is the first word of its sub-format
+                tag = int.from_bytes(data[o + 32:o + 34], 'little')
+        elif cid == b'data':
+            size = sz
+            break
+        o += 8 + sz + (sz & 1)
+    if tag is None:
+        return 'not a complete WAV: its format chunk is missing'
+    if size is None:
+        return 'not a complete WAV: it has no sound data'
+    if tag != 1:
+        return 'not PCM (format %d): Unreal needs a PCM WAV' % tag
+    if size == 0:
+        return 'no sound in it (0 s)'
+    return None
 
 
 def atomic_write(path, data):
@@ -423,7 +488,10 @@ class Handler(SimpleHTTPRequestHandler):
         super().__init__(*a, directory=WEB, **kw)
 
     def end_headers(self):
-        self.send_header('Cache-Control', 'no-store')
+        # everything is read fresh (the score, the code), except a sound file, which says its own: a 38 MB ambience is not downloaded
+        # again each time the playhead comes back to it (it asks if it changed, ETag: _send_audio)
+        if not any(h[:14].lower() == b'cache-control:' for h in getattr(self, '_headers_buffer', [])):
+            self.send_header('Cache-Control', 'no-store')
         super().end_headers()
 
     def log_message(self, fmt, *args):  # quiet: only errors and writes
@@ -439,10 +507,20 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def _send_audio(self, full):
-        # streamed: an ambience is 30-50 MB
+        # streamed: an ambience is 30-50 MB. The browser keeps it and asks if it changed (ETag from its size and time: a 304 has no body)
+        st = os.stat(full)
+        etag = '"%x-%x"' % (st.st_size, st.st_mtime_ns)
+        if self.headers.get('If-None-Match') == etag:
+            self.send_response(304)
+            self.send_header('ETag', etag)
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            return
         self.send_response(200)
         self.send_header('Content-Type', AUDIO_TYPE[os.path.splitext(full)[1].lower()])
-        self.send_header('Content-Length', str(os.path.getsize(full)))
+        self.send_header('Content-Length', str(st.st_size))
+        self.send_header('ETag', etag)
+        self.send_header('Cache-Control', 'no-cache')
         self.end_headers()
         try:
             with open(full, 'rb') as f:
@@ -461,6 +539,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_header('Location', '/editor-obra/app/')
             self.end_headers()
             return
+        if path == '/api/audio/inbox':
+            return self._json(200, {'files': inbox_listing()})
         if path == '/api/media':
             items = media_index()
             return self._json(200, {'root': MEDIA, 'items': items, 'unmapped': _media['unmapped'], 'mapError': _media['error']})
@@ -487,7 +567,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json(404, {'error': 'not found', 'path': path})
             data = open(full, 'rb').read()
             self.send_response(200)
-            self.send_header('Content-Type', 'application/json' if full.endswith('.json') else 'application/octet-stream')
+            self.send_header('Content-Type', 'application/json' if full.endswith('.json') else 'audio/wav' if full.lower().endswith('.wav') else 'application/octet-stream')   # a WAV of the inbox plays in the editor (▶)
             self.send_header('Content-Length', str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -582,6 +662,29 @@ class Handler(SimpleHTTPRequestHandler):
             ans['checkWhy'] = why   # saved without the full check: the editor says so
         return self._json(200, ans)
 
+    def do_DELETE(self):
+        u = urlparse(self.path)
+        if u.path != '/api/audio':
+            return self._json(404, {'error': 'unknown endpoint'})
+        name = (parse_qs(u.query).get('name') or [''])[0]
+        if not ELEM_ID.fullmatch(name):   # only what the editor itself puts there, by element id
+            return self._json(400, {'error': 'bad name (an element id el_…): only the WAV of an element can be taken out'})
+        dest = os.path.join(INBOX, name + '.wav')
+        gone = not os.path.isfile(dest)
+        if not gone:
+            for i in range(6):   # retried: Windows Defender/indexer may hold it for a moment
+                try:
+                    os.remove(dest)
+                    break
+                except FileNotFoundError:
+                    break
+                except PermissionError:
+                    if i == 5:
+                        return self._json(500, {'error': 'could not take %s.wav out of the inbox (it is in use)' % name})
+                    time.sleep(0.1 * (i + 1))
+            _inbox_seen.pop(dest, None)
+        return self._json(200, {'ok': True, 'gone': gone})
+
     def do_POST(self):
         u = urlparse(self.path)
         if u.path == '/api/guion/scan':
@@ -598,7 +701,10 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:
                 return self._json(400, {'error': 'not a score: %s' % e})
             dest = os.path.join(COPIES, 'score-%s-%s-%s.json' % (who, why, stamp()))
-            atomic_write(dest, json.dumps(sc, ensure_ascii=False, indent=1).encode('utf-8'))
+            try:
+                atomic_write(dest, json.dumps(sc, ensure_ascii=False, indent=1).encode('utf-8'))
+            except OSError as e:  # a full disk, a folder that is not there: the editor keeps the work itself and says why
+                return self._json(500, {'error': 'the copy could not be written to obra/score/copias (%s)' % (e.strerror or e.__class__.__name__)})
             return self._json(200, {'ok': True, 'path': os.path.relpath(dest, ROOT).replace(os.sep, '/')})
         if u.path == '/api/audio/rename':
             q = parse_qs(u.query)
@@ -616,11 +722,12 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(404, {'error': 'unknown endpoint'})
         q = parse_qs(u.query)
         name = (q.get('name') or [''])[0]
-        if not (SOUND_ID.fullmatch(name) or ELEM_ID.fullmatch(name)):
-            return self._json(400, {'error': 'bad name (an element id el_…, or FX_/VO_/AMB_ + letters, digits, _)'})
+        if not ELEM_ID.fullmatch(name):   # only what the editor itself puts there, by element id: a file named like a voice or an effect could replace a real one on import
+            return self._json(400, {'error': 'bad name (an element id el_…)'})
         data = self._body()
-        if data[:4] != b'RIFF' or data[8:12] != b'WAVE':
-            return self._json(400, {'error': 'not a WAV file'})
+        why = wav_problem(data)
+        if why:
+            return self._json(400, {'error': why})
         dest = os.path.join(INBOX, name + '.wav')
         if os.path.exists(dest) and (q.get('overwrite') or ['0'])[0] != '1':
             return self._json(409, {'error': name + '.wav is already in the inbox'})

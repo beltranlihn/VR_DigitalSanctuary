@@ -255,13 +255,26 @@
     return `${a.edge === 'start' ? 'start' : 'end'} of ${nameOf(a.ref)}${off}`;
   }
   const clip = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
-  function wordsOf(field, v) {
+  /* a long text of one side of a change, cut to n characters AROUND where it first differs from `other` (the same stretch on both sides, from a
+     word a little before the difference): the beginning of two long texts that only differ at the end reads as the same text twice, and the
+     row is the decision. With no `other`, or a difference near the start, it is the beginning, as ever */
+  function clipAround(s, other, n) {
+    if (s.length <= n) return s;
+    let p = 0; const o = other == null ? null : String(other);
+    if (o != null) while (p < s.length && p < o.length && s.charCodeAt(p) === o.charCodeAt(p)) p++;
+    if (o == null || p < n - 30) return clip(s, n);
+    let from = Math.max(0, p - 40); const sp = s.lastIndexOf(' ', from); if (sp >= 0 && from - sp < 20) from = sp + 1;
+    const cut = s.slice(from, from + n - 2);
+    return (from > 0 ? '…' : '') + cut + (from + n - 2 < s.length ? '…' : '');
+  }
+  /* `other` (optional): the value on the other side of the change, so that a long text is cut where the two differ */
+  function wordsOf(field, v, other) {
     if (v == null || v === '') return '(none)';
     if (field === 'at' || field === 'end') return anchorWords(v);
     if (field === 'dur') return `${v.mode === 'audio' ? 'the recording' : v.mode} ${num(v.value)} s`;
     if (field === 'gate') return `expected ${num(v.expected)} s, timeout ${num(v.fw)} s`;
     if (field === 'help') return nameOf(v);
-    if (field === 'text' || field === 'label' || field === 'hint' || field === 'note' || field === 'title' || field === 'desc') return '“' + clip(String(v), 120) + '”';
+    if (field === 'text' || field === 'label' || field === 'hint' || field === 'note' || field === 'title' || field === 'desc') return '“' + clipAround(String(v), other, 120) + '”';
     return String(v);
   }
   /* one line per row (the CLI; the panel builds its own markup from the same pieces) */

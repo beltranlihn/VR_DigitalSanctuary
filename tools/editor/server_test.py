@@ -74,6 +74,16 @@ check('history keeps every previous version with its own name', len(hist) == len
 # copies
 st, j = req('POST', '/api/score/copy?who=B&why=conflict', json.dumps(score).encode())
 check('a copy is kept in obra/score/copias/', st == 200 and os.path.isfile(os.path.join(tmp, j.get('path', ''))), j.get('path', ''))
+# a copy that cannot be written (a full disk, a folder that is not there: here a plain file where the folder goes) answers with the reason, as JSON: the
+# editor keeps the unsaved work in the browser and says so, instead of telling the user it is "kept in a copy"
+os.rename(S.COPIES, S.COPIES + '_real'); open(S.COPIES, 'w').write('not a folder')
+try:
+    st, j = req('POST', '/api/score/copy?who=B&why=draft-old-base', json.dumps(score).encode())
+    check('a copy that cannot be written is a 500 with the reason, never a path', st == 500 and not j.get('path') and 'copias' in j.get('error', ''), '%s %s' % (st, j.get('error', '')))
+finally:
+    os.remove(S.COPIES); os.rename(S.COPIES + '_real', S.COPIES)
+st, j = req('POST', '/api/score/copy?who=B&why=draft-old-base', json.dumps(score).encode())
+check('...and once the folder is back the next copy is written', st == 200 and os.path.isfile(os.path.join(tmp, j.get('path', ''))))
 # GET /obra/ serves what is under obra/ and nothing else: a folder NEXT to it shares its prefix (obra-old/), which a startswith test lets through
 os.makedirs(os.path.join(tmp, 'obra-old'))
 with open(os.path.join(tmp, 'obra-old', 'secret.json'), 'w') as f:
@@ -441,10 +451,43 @@ else:
     print('  info  node was not found: the guion.js scan was not offered to the server')
 
 # WAV in the inbox by element id; no silent overwrite
-wav = b'RIFF' + b'\0' * 4 + b'WAVE' + b'\0' * 32
+def mkwav(tag=1, n=100, ext=False, with_fmt=True, with_data=True):
+    # a header by hand: 16-bit mono 48 kHz (tag 3 = float), n bytes of silence; ext = WAVE_FORMAT_EXTENSIBLE with `tag` as its sub-format
+    fmt = (0xFFFE if ext else tag).to_bytes(2, 'little') + (1).to_bytes(2, 'little') + (48000).to_bytes(4, 'little') + (96000).to_bytes(4, 'little') + (2).to_bytes(2, 'little') + (16).to_bytes(2, 'little')
+    if ext:
+        fmt += (22).to_bytes(2, 'little') + (16).to_bytes(2, 'little') + (4).to_bytes(4, 'little') + tag.to_bytes(2, 'little') + b'\0' * 14
+    body = b'WAVE' + (b'fmt ' + len(fmt).to_bytes(4, 'little') + fmt if with_fmt else b'') + (b'data' + n.to_bytes(4, 'little') + b'\0' * n if with_data else b'')
+    return b'RIFF' + len(body).to_bytes(4, 'little') + body
+wav = mkwav()
 check('WAV saved by element id', req('POST', '/api/audio?name=el_test123', wav)[0] == 200)
 check('a second WAV with the same name is refused', req('POST', '/api/audio?name=el_test123', wav)[0] == 409)
 check('...unless overwrite=1 (same element loads a new file)', req('POST', '/api/audio?name=el_test123&overwrite=1', wav)[0] == 200)
+
+# what the inbox takes (the editor checks it too; any other client gets the same answer): an element id, and a PCM WAV with sound in it
+check('a float WAV is refused with the reason (Unreal imports PCM)', (lambda r: r[0] == 400 and 'not PCM' in r[1].get('error', ''))(req('POST', '/api/audio?name=el_float1', mkwav(tag=3))))
+check('WAVE_FORMAT_EXTENSIBLE with a float sub-format is refused, with a PCM one it is taken (what a DAW exports for 24-bit)', req('POST', '/api/audio?name=el_ext1', mkwav(tag=3, ext=True))[0] == 400 and req('POST', '/api/audio?name=el_ext1', mkwav(tag=1, ext=True))[0] == 200)
+req('DELETE', '/api/audio?name=el_ext1')
+check('a WAV with no sound (0 bytes of data), no format or no data is refused', all(req('POST', '/api/audio?name=el_bad1', b)[0] == 400 for b in (mkwav(n=0), mkwav(with_fmt=False), mkwav(with_data=False))))
+check('something that is not a WAV is refused', req('POST', '/api/audio?name=el_bad1', b'ID3' + b'\0' * 60)[0] == 400)
+check('a name that is a voice, an effect or an ambience is refused: it could replace a real one on import', all(req('POST', '/api/audio?name=' + n, wav)[0] == 400 for n in ('VO_10', 'FX_blip', 'AMB_wind', '..%2Fscore%2Fscore', 'el_')))
+check('...and nothing of all that reached the inbox', sorted(req('GET', '/api/audio/inbox')[1]['files']) == ['el_test123'])
+
+# the inbox follows the score: the editor asks what is in it (with the hash of each file) and takes out what nothing names any more
+wav2 = wav + b'\1' * 10
+st, j = req('GET', '/api/audio/inbox')
+f = j.get('files', {})
+check('GET /api/audio/inbox lists the files with the hash of their bytes', st == 200 and f.get('el_test123', {}).get('hash') == S.sha12(wav) and f['el_test123']['bytes'] == len(wav), str(f))
+req('POST', '/api/audio?name=el_test123&overwrite=1', wav2)
+check('...and a replaced file shows its new hash (the cache looks at size and time)', req('GET', '/api/audio/inbox')[1]['files']['el_test123']['hash'] == S.sha12(wav2))
+req('POST', '/api/audio?name=el_other456', wav)
+check('DELETE /api/audio?name=el_… takes the file out', req('DELETE', '/api/audio?name=el_other456')[0] == 200 and not os.path.exists(os.path.join(S.INBOX, 'el_other456.wav')) and 'el_other456' not in req('GET', '/api/audio/inbox')[1]['files'])
+check('...and a file that is not there answers ok too (idempotent)', req('DELETE', '/api/audio?name=el_other456')[1].get('gone') is True)
+open(os.path.join(S.INBOX, 'VO_real.wav'), 'wb').write(wav)
+check('DELETE takes out only the WAV of an element: never a voice, an effect, a path or something else', all(req('DELETE', '/api/audio?name=' + n)[0] == 400 for n in ('VO_real', 'FX_x', '..%2Fscore%2Fscore', 'el_', '')) and os.path.exists(os.path.join(S.INBOX, 'VO_real.wav')))
+check('DELETE on another endpoint is nothing', req('DELETE', '/api/score')[0] == 404)
+os.remove(os.path.join(S.INBOX, 'VO_real.wav'))
+req('DELETE', '/api/audio?name=el_test123')
+check('the inbox is empty again', req('GET', '/api/audio/inbox')[1]['files'] == {})
 
 # the recordings are read-only: the final mix wins over an earlier take, nothing outside the folder is served
 S.MEDIA = os.path.join(tmp, 'media'); S._media.update(at=0, index={})
@@ -473,6 +516,26 @@ def raw_get(path):
 
 st, body = raw_get(it['VO_99a']['url'])
 check('a recording is served as is', st == 200 and body == hdr + pcm, str(st))
+
+
+def head_get(path, headers=None):
+    r = urllib.request.Request(BASE + path, headers=headers or {})
+    try:
+        with urllib.request.urlopen(r) as f:
+            return f.status, dict(f.headers), f.read()
+    except urllib.error.HTTPError as e:
+        return e.code, dict(e.headers), e.read()
+
+
+st, hd, body = head_get(it['VO_99a']['url'])
+check('a sound file is kept by the browser and asked about, not forbidden (a 38 MB ambience is not downloaded at every seek)', hd.get('Cache-Control') == 'no-cache' and hd.get('ETag'), str(hd.get('Cache-Control')))
+st, hd2, body = head_get(it['VO_99a']['url'], {'If-None-Match': hd['ETag']})
+check('...and answers 304, with no body, when it did not change', st == 304 and body == b'', str(st))
+check('...but the score and the code are still never cached', head_get('/obra/score/score.json')[1].get('Cache-Control') == 'no-store' and head_get('/editor-obra/app/index.html')[1].get('Cache-Control') == 'no-store')
+os.makedirs(S.INBOX, exist_ok=True)
+open(os.path.join(S.INBOX, 'el_play789.wav'), 'wb').write(hdr + pcm)
+check('a WAV of the inbox is served as audio/wav (the play button works after a reload)', head_get('/obra/audio/inbox/el_play789.wav')[1].get('Content-Type') == 'audio/wav')
+os.remove(os.path.join(S.INBOX, 'el_play789.wav'))
 check('nothing outside the media folder is served', raw_get('/media/%2e%2e/outside.wav')[0] == 404 and raw_get('/media/..%2F..%2Fobra%2Fscore%2Fscore.json')[0] == 404 and raw_get('/media/D:%2Fx.wav')[0] == 404)
 
 # sound effects: only the files obra/audio/media_map.json names, inside the media root or a fixed root ('unreal:', 'recursos:')

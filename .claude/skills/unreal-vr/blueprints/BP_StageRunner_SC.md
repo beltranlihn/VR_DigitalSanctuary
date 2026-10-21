@@ -10,6 +10,15 @@
 - Variable nueva `VOEntrada` (SoundBase[5], la VO de bienvenida de cada etapa): `CurrentVO` era un int y no servía para medir.
 - `LevelName` se usa en `OpenLevel(byName)` cuando `Loop` reinicia el ensayo: tiene que coincidir con el nombre del nivel.
 
+## 🎪 2026-10-16 — modo DEMO (Barcelona Design Week), apagado por defecto: la Obra no cambia
+- **`Partitura`** pasó a instance-editable: la demo usa `/Game/SoulCharger/Demo/Data/DA_Partitura_Demo` (Etapa_Tope Breath 170 / Draw 150, `Instr_Dur` 9999 en K 0 y 4 = el ensayo espera al panel, `Corte_Espera` 20).
+- **`bDemo`** (bool, Ensayo, instance-editable, default false). Dos cirugías:
+  - `RAlmaIn`: con `bDemo` **no aparece Alma ni su VO de bienvenida**; `AlmaTime` = 0,5 y log `ENSAYO: modo demo, sin Alma` (solo log). Sin `bDemo`, igual que siempre.
+  - `RStep` fase 5: la despedida (fase 6, VO de la luz + invitación a la sala siguiente) solo si `StageK < 4 AND NOT bDemo`.
+- Con `Instr_Dur` 9999 la fase 2 no avanza sola: `BP_DemoInstr_SC` escribe `PT = InstrTime` al terminar el panel → `StageBegin`.
+- Instancias de la demo: `L_Demo_Breath` y `L_Demo_Draw` (`bDemo` ✔, `Partitura` demo, `LevelName` `L_Demo_Menu`, `Loop` ✔ → al cerrar vuelve al menú).
+- ✅ `probar_nivel.py` (proceso -game): menú → Breath → panel → StageBegin → fin propio → menú → otra vez; 0 errores de Blueprint.
+
 ## Status
 🟢 **Probado en PIE en Test_Breath (2026-09-30 18:00), sin errores y con reinicio en bucle**: StageEnv → Alma recibe (VO_10, envelope activo) → StageIntro (Alma al costado) → StageBegin → cuenta + pacer, 5 ciclos → StageOutro por fin propio → vista previa del anillo → despedida (VO_13 + VO_14) → velo cierra → `OpenLevel` → arranca de nuevo.
 🟢 **Test_Sequencer (2026-10-01 00:06)**: PIE hasta StageBegin sin errores (Alma a 5,5 s, StageIntro a ~15 s, StageBegin a ~21 s).

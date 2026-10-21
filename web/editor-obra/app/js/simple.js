@@ -64,7 +64,7 @@
     'C1.SCHEMA': 'The score format can be upgraded',
     'C2.TOTAL.GOAL': 'Longer than the goal', 'C2.WAIT.NOHELP': 'A wait with no help line', 'C2.WAIT.FW': 'Timeout not longer than expected', 'C2.WAIT.WHERE': 'A wait where Unreal does not wait',
     'C2.HELP.LATE': 'Help would never play', 'C2.ALMA.EARLY': 'Alma speaks before she appears', 'C2.VO.OVERLAP': 'Two voices at once', 'C2.VO.REAL': 'Voices last differently in the final mix',
-    'C2.FLASH': 'Too short to see', 'C2.LANG': 'Not in English',
+    'C2.FLASH': 'Too short to see', 'C2.LANG': 'Not in English', 'C2.SOUND.NOFILE': 'A sound with no file',
     'C3.DRIFT': 'Timeout differs from Unreal', 'C3.BLOCKING': 'Waits differently from Unreal', 'C3.NOTBLOCKING': 'Different in Unreal', 'C3.KNOB.OFFSET': 'Starts at another time than in Unreal',
     'C3.DIVERGE': 'Differs from the headset build', 'C3.PARTITURA': 'Timing differs from Unreal', 'C3.BINDING.STALE': 'The link to Unreal is out of date',
     'C3.CONTRACT.ORPHAN': 'Gone here, still in Unreal', 'C3.CONTRACT.RULE': 'Not what Unreal expects', 'C3.SCOPE': 'What is checked against Unreal', 'C3.UNREADABLE': 'A file could not be read',
@@ -129,6 +129,13 @@
   ];
   const plainWords = s => typeof s !== 'string' || s.indexOf('APK') < 0 ? s : PLAIN.reduce((t, [re, w]) => t.replace(re, w), s);
 
-  const api = { plainWords, GOAL, COLLAPSED, collapsedFor, REACH_WORD, KIND_WORD, plainWhy, REACH_HELP, reachText, reachTitle, statusParts, statusTip, TITLE, titleOf, sevWord, isTrace, needsLook, review, fold, groupLabel, filters, filterFor, QUICK_START };
+  /* the notes about a rule of the contract name its code ("matches the rule of 'vo.wired'"): Simple says the same without it, the code stays in Advanced and
+     in the tooltip */
+  const plainMsg = s => typeof s !== 'string' ? s : s
+    .replace(/ matches the rule of '[^']*' but Unreal does not know it\./, ' looks like something Unreal plays, but Unreal does not know it yet.')
+    .replace(/ no longer matches the rule of '[^']*', but Unreal still treats it as before\./, ' was changed here, but Unreal still treats it as before.')
+    .replace(/ no longer matches the rule of '[^']*': it stays not in Unreal \(preview only\)\./, ' was changed here: it stays out of Unreal (preview only).');
+
+  const api = { plainMsg, plainWords, GOAL, COLLAPSED, collapsedFor, REACH_WORD, KIND_WORD, plainWhy, REACH_HELP, reachText, reachTitle, statusParts, statusTip, TITLE, titleOf, sevWord, isTrace, needsLook, review, fold, groupLabel, filters, filterFor, QUICK_START };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Simple = api;
 })(typeof window !== 'undefined' ? window : globalThis);

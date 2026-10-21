@@ -36,6 +36,20 @@ const protoFiles = ['guion.js', 'timeline.js', 'world.js', 'ensayo.js'];
 const protoBefore = protoFiles.map(f => sha(path.join(PROTO, f)));
 const liveBefore = fs.existsSync(LIVE) ? sha(LIVE) : null;
 
+// a long text that only changes at its end: each side of a row is cut where the two differ, so the row shows the change (found by a film editor, 10-15)
+{
+  console.log('the words of a long text in a row of "Changes in guion.js" show where it changes');
+  const head = 'Hi… welcome … Here, your body speaks… and there is nothing to do but listen to it, slowly, with all the time in the world, and let it say what it has to say, and', was = head + ' this place listens.', now = head + ' this place listens closely.';
+  const a = D.wordsOf('text', was, now), b = D.wordsOf('text', now, was), old = D.wordsOf('text', was), plain = D.wordsOf('text', head.slice(0, 50), now);
+  check('before (no other side): the beginning of both, the same text twice (the bug)', D.wordsOf('text', was) === D.wordsOf('text', now));
+  check('with the other side: the two read differently', a !== b, a + '  →  ' + b);
+  check('...and the change is in the part that is shown ("closely" on the new side)', /closely/.test(b) && !/closely/.test(a) && /listens.”$/.test(a));
+  check('...both sides start at the same place, a few words before the change, with an ellipsis', a.startsWith('“…') && b.startsWith('“…') && a.slice(2, 12) === b.slice(2, 12));
+  check('a text that fits, or that differs near its start, is shown as it always was (the beginning)', D.wordsOf('text', 'short', 'shorter') === '“short”' && D.wordsOf('text', now, 'Hello, ' + now.slice(7)).startsWith('“Hi… welcome') && /…”$/.test(D.wordsOf('text', now, 'Hello, ' + now.slice(7))));
+  check('never more than 120 characters of the text, whichever side', [a, b].every(s => s.length - 2 <= 122));
+  check('a field that is not a text is untouched by the other side', D.wordsOf('dur', { mode: 'fixed', value: 2 }, { mode: 'fixed', value: 3 }) === 'fixed 2 s' && D.wordsOf('text', null, was) === '(none)');
+}
+
 try {
   // ---- the scenarios: a copy of the prototype each, one line of guion.js changed ----
   console.log('the four scenarios of design B §1.5, extracted from copies of guion.js in ' + TMP);

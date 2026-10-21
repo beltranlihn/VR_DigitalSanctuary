@@ -54,5 +54,10 @@
 - **`bDemoPress`** (categoría Test, false): SOLO prueba. Con el botón entero, hover a 0,6 s y press a 1,8 s (`DemoStep`, llamado después de `IdleCheck`). Encendido solo en las 2 instancias de `Test_Results`.
 - ✅ PIE (Test_Results): hover +1 mm, press → OnConfirmed → Vanish, y al final todo en reposo y dormido. ⬜ Visor: si el hundido de 4 mm se lee a 1,9 m.
 
+## 2026-10-16 — dos perillas para la demo (defaults = comportamiento de siempre)
+- **`TopShare`** ahora es instance-editable (la etiqueta de la placa por instancia: START, BACK, cuadros, páginas).
+- **`bStay`** (bool, Timing, instance-editable, default false). En `StepPress`, después de `CallOnConfirmed`: con `bStay` → **`Rearm()`** (nueva: `Pressed`/`Confirmed` false, `PressK` 0, `WakeTicks`) y el botón queda listo para otro clic; sin `bStay` → `AppearLuz.Vanish` como siempre. Lo usa el panel de instrucciones de la demo (cambia de página en cada clic).
+- 🔴 **Editar componentes por instancia NO persiste** en este BP (el Construction Script los reconstruye: `StaticMesh`/`OverrideMaterials`/`BoxExtent` vuelven al template). Para variantes de malla/color usar el hijo [`BP_DemoCard_SC`](BP_DemoCard_SC.md), que lo hace por variables en su CS.
+
 ## Pendientes
 - [ ] Visor: tamaño y legibilidad a 2 m.

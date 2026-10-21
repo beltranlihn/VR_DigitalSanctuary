@@ -426,6 +426,16 @@ const isObj = o => !!o && typeof o === 'object' && !Array.isArray(o);
     const r = typical(Engine, s); if (!(r.total >= 0)) err('the timeline does not compute');
     return r;
   }
+  /* what validate says when a file is not a whole score (written for the checks: "acts is missing"), in the words of someone who opened the
+     wrong file. The other messages already read as sentences and stay as they are */
+  const PARTS = { acts: 'acts', groups: 'groups', beats: 'moments', lanes: 'lanes', elements: 'elements' };
+  function invalidWords(msg) {
+    const m = /^(acts|groups|beats|lanes|elements) is missing$/.exec(String(msg));
+    if (m) return `it is not a whole score: it has no ${PARTS[m[1]]}`;
+    // "VO_02: at points to something that does not exist": `at` and `end` are the file's names for the anchor, not words of the editor
+    const a = /^(.*): (at|end) points to something that does not exist$/.exec(String(msg));
+    return a ? `${a[1]}: its ${a[2] === 'end' ? 'end anchor' : 'anchor'} points to something that does not exist` : String(msg);
+  }
 
   /* ---------- an anchor loop (a moment whose end depends on a later moment): two honest ways out ----------
      keep  = the next moment starts with this one, as it does today (and in the prototype): nothing moves
@@ -813,7 +823,12 @@ const isObj = o => !!o && typeof o === 'object' && !Array.isArray(o);
       x.help = x.help && map[x.help] ? map[x.help] : null;
       x.key = uniqueKey(taken, keyBase(score, it.el)); taken.add(x.key);
       if (it.el.label === it.el.key) x.label = x.key;
+      if (it.el.isNew && it.el.sound != null) x.sound = x.key;   // a sound made here is named by its key until Unreal imports it (renameEl): its copy is another sound, not the same one used twice
       delete x.neAPK; delete x.bind;   // a copy is not what Unreal has: it carries nothing of the original's action, target or asset
+      // its WAV: a loaded file waits in the inbox under the id of the element it was loaded for (obra/audio/inbox/<id>.wav), so the copy has a file of
+      // its own: the same bytes under its own id (the editor sends them: js/inbox.js). A recording of the final mix, or a file the score did not
+      // load, belongs to the original: the copy has none
+      if (x.audio) { if (x.audio.hash) x.audio = Object.assign({}, x.audio, { inbox: 'obra/audio/inbox/' + id + '.wav' }); else delete x.audio; }
       Object.assign(x, { isNew: true, legacy: null, copyOf: it.id, by: opts.who || null, created: at });
       n.elements[id] = x; ids.push(id);
     }
@@ -885,6 +900,33 @@ const isObj = o => !!o && typeof o === 'object' && !Array.isArray(o);
     if (!a || !b) return a === b;
     const ka = Object.keys(a).filter(k => !VOLATILE.has(k)), kb = Object.keys(b).filter(k => !VOLATILE.has(k));
     return ka.length === kb.length && ka.every(k => has(b, k) && same(a[k], b[k]));
+  }
+  /* what a draft left by an earlier session is, against the score on screen (here = { score, baseRev, diskHash }; valid: it still computes):
+     'none' (no draft), 'same' (nothing unsaved in it), 'restore' (work made on THIS score), 'old-base' (made on a score somebody saved over
+     since: it has to be kept as a copy, never opened over theirs) or 'broken' (it does not compute any more: a copy too) */
+  function draftFate(d, here, valid) {
+    if (!d || !d.score) return 'none';
+    if (sameScore(d.score, here.score)) return 'same';
+    const sameBase = d.baseRev === here.baseRev && (!d.baseHash || !here.diskHash || d.baseHash === here.diskHash);
+    return !valid ? 'broken' : sameBase ? 'restore' : 'old-base';
+  }
+  /* a locked group (locked = { group id: true }) protects its elements from edits: the first element of one that `to` changes, takes out or puts in, against
+     `from` (an element that moves out of a locked group counts too); null when none */
+  function lockedChange(from, to, locked) {
+    for (const id of new Set([...Object.keys(from.elements), ...Object.keys(to.elements)])) {
+      const a = from.elements[id], b = to.elements[id];
+      if ((locked[a && a.group] || locked[b && b.group]) && JSON.stringify(a) !== JSON.stringify(b)) return a || b;
+    }
+    return null;
+  }
+  /* the changes waiting for Unreal (score.propuestas) after the last one was taken away: the score goes back to what the saved one has
+     (no propuestas, or the empty one a send leaves), so adding a change and removing it again is no edit at all and leaves nothing to save.
+     Changes only `next`; does nothing while something still waits */
+  function tidyPropuestas(next, saved) {
+    const P = next.propuestas; if (!P || Object.keys(objOf(P.valores)).length) return;
+    const S = saved && saved.propuestas, none = o => !Object.keys(objOf(o.valores)).length && !Object.keys(objOf(o.motivos)).length;
+    if (!S || typeof S !== 'object') delete next.propuestas;
+    else next.propuestas = none(S) ? JSON.parse(JSON.stringify(S)) : { valores: {}, motivos: {} };
   }
 
   /* ---------- what an import replaces, not only the elements (review of lote 5 step 1) ----------
@@ -980,6 +1022,19 @@ const isObj = o => !!o && typeof o === 'object' && !Array.isArray(o);
      the inbox is named by the element id) is named by its key until it is imported, as before. Mutates the element it gets
      (commit()'s copy) */
   function renameEl(x, name) { x.key = name; x.label = name; if (x.isNew) x.sound = name; return x; }
+
+  /* a note written about a clip goes with it: it keeps its distance from the start of the clip (off, set when it is written), so an edit that moves the clip
+     moves the note, and the time it keeps (t) is always the one with the typical user. A note that is not about a clip, one from before `off` existed and a
+     bookmark stay where they are: they are a time of the piece, not of a clip (Premiere's sequence markers). T = the typical timeline. Returns how many moved */
+  function followNotes(score, T) {
+    let n = 0;
+    for (const x of Object.values(score.notes || {})) {
+      if (!x || !x.el || !Number.isFinite(x.off) || !T[x.el]) continue;
+      const t = +(T[x.el][0] + x.off).toFixed(2);
+      if (Math.abs(t - x.t) > 1e-6) { x.t = t; n++; }
+    }
+    return n;
+  }
 
   /* ---------- the "≠ APK" reference moves with what the APK does (lote 5 design B §4.3) ----------
      The score is compared with what the APK is assumed to do. When an edit IS what the APK already does (Unreal plays the
@@ -1306,7 +1361,7 @@ const isObj = o => !!o && typeof o === 'object' && !Array.isArray(o);
     return { next, report };
   }
 
-  const api = { planDelete, reconcileUidMap, runsOf, runOf, altKeyOf, move, moveMany, fixOverlaps, lanesOverlap, validate, validateBranches, validateBind, bindError, branchError, branchGates, wouldBreak, marksOf, marksLost, settleMarks, marksWords, planLoop, homeAnchor, anchorOf, hangingFrom, reanchor, reanchorAlt, branchAnchors, setBranch, optionLabel, lostAnchors, detachLost,
-    uniqueKey, newId, clipOf, planPaste, sameScore, importDiff, keepOwn, importWords, renameEl, shiftBaseline, shiftGolden, matchKnobAnchor, migrate3, MIGRATE3, bindUnreal, bindState, roleOf, BIND_ACTIONS, MARK_RELS };
+  const api = { followNotes, planDelete, reconcileUidMap, runsOf, runOf, altKeyOf, move, moveMany, fixOverlaps, lanesOverlap, validate, invalidWords, validateBranches, validateBind, bindError, branchError, branchGates, wouldBreak, marksOf, marksLost, settleMarks, marksWords, planLoop, homeAnchor, anchorOf, hangingFrom, reanchor, reanchorAlt, branchAnchors, setBranch, optionLabel, lostAnchors, detachLost,
+    uniqueKey, newId, addLaneTo, clipOf, planPaste, sameScore, draftFate, tidyPropuestas, lockedChange, importDiff, keepOwn, importWords, renameEl, shiftBaseline, shiftGolden, matchKnobAnchor, migrate3, MIGRATE3, bindUnreal, bindState, roleOf, BIND_ACTIONS, MARK_RELS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Edits = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -4,9 +4,9 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const fmtS = v => (Math.round(v * 10) / 10).toFixed(1);
-function tc(t) { t = Math.max(0, t); const m = Math.floor(t / 60), r = t - m * 60; return String(m).padStart(2, '0') + ':' + (r < 10 ? '0' : '') + r.toFixed(1); }
+function tc(t) { const q = Math.round(Math.max(0, t) * 10), m = Math.floor(q / 600), r = (q - m * 600) / 10; return String(m).padStart(2, '0') + ':' + (r < 10 ? '0' : '') + r.toFixed(1); }   // in tenths: 309.99999 is 05:10.0, not 05:010.0
 function voDur(text) { text = String(text || ''); return 1 + text.split(/\s+/).filter(Boolean).length / 2.4 + (text.match(/…/g) || []).length * .5; }   // same estimate as the prototype (world.js:154)
-const LS_DRAFT = 'sc-editor-draft-v1', LS_PREF = 'sc-editor-pref-v1';
+const LS_DRAFT = 'sc-editor-draft-v1', LS_PREF = 'sc-editor-pref-v1', LS_HELD = 'sc-editor-held-v1';
 const lsGet = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (_) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} };
 
@@ -31,7 +31,7 @@ async function boot() {
   const get = async u => { const r = await fetch(u, { cache: 'no-store' }); if (!r.ok) throw new Error(u + ' → ' + r.status); return r.json(); };
   try {
     const st = await fetch('/obra/score/score.json', { cache: 'no-store' }); if (!st.ok) throw new Error('/obra/score/score.json → ' + st.status);
-    const txt = await st.text(); App.score = JSON.parse(txt); App.diskHash = await sha12(txt); App.savedScore = JSON.parse(txt);   // what is on disk now: saving checks it did not change
+    const txt = await st.text(); App.score = JSON.parse(txt); App.diskHash = await sha12(txt); App.savedScore = JSON.parse(txt); seedMine(App.savedScore);   // what is on disk now: saving checks it did not change
     [App.roles, App.contract] = await Promise.all([get('/obra/unreal/roles.json'), get('/obra/unreal/contract.json')]);
   } catch (e) { document.body.innerHTML = `<div style="padding:40px;color:#E0E0E0;font:13px Geist,system-ui"><b>Veation VR Studio</b> could not load the score: ${esc(e.message)}.<br>Open it with tools/editor/abrir-editor.bat, or run <b>python tools/editor/serve_editor.py --app</b></div>`; return; }
   // Unreal side (the director's DA_Partitura_Obra and knob dump): optional, the editor works without them
@@ -61,18 +61,19 @@ async function boot() {
   // a preference from an older version, or one edited by hand, never stops the editor from opening (View.cleanPref: what it cannot read is the default)
   const cp = View.cleanPref(pref, ScoreEngine.PERSONAS);
   Object.assign(App, { persona: cp.persona, pps: cp.pps, who: cp.who, collapsed: cp.collapsed, follow: pref.follow !== false, locked: cp.locked, sound: !!pref.sound,
-    inT: tnum(pref.inT), outT: tnum(pref.outT), snap: pref.snap !== false, laneSize: pref.lanes === 'comfortable' ? 'comfortable' : 'compact',
+    inT: tnum(pref.inT), outT: tnum(pref.outT), snap: pref.snap !== false, laneSize: pref.lanes === 'comfortable' ? 'comfortable' : 'compact', laneScale: Number.isFinite(+pref.laneScale) && +pref.laneScale >= 0.6 && +pref.laneScale <= 3 ? +pref.laneScale : 1,
     runLane: pref.runLane !== false, runAlign: pref.runAlign === 'hall' ? 'hall' : 'mark',
     adv: pref.adv === true, insDetails: pref.details === true, traceOpen: pref.traceOpen === true, qsSeen: pref.qsSeen === true,
     branchView: pref.branchView && typeof pref.branchView === 'object' && !Array.isArray(pref.branchView) ? pref.branchView : {} });
   App.showAnchors = App.adv;   // Simple starts with the anchor curves off (A turns them on); Advanced as always
   if (App.view !== '3d') await restoreDraft();
   if (App.view === '3d') App.mode = 'v3d';
-  fitScale(); compute(); applyMode(); UI.renderAll(); initViewer(); initKeys(); initChannel();
+  fitScale(); compute(); applyMode(); UI.renderAll(); initViewer(); initKeys(); initDrops(); initChannel();
   addEventListener('focus', () => refreshUnreal(undefined, true)); setInterval(() => { if (!document.hidden) refreshUnreal(); }, 20000);
-  let rz = 0; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { fitScale(); UI.renderTimelineSelection(); UI.fitTransport(); protoResize(); }, 100); });
+  let rz = 0; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { fitScale(); UI.renderTimelineSelection(); UI.fitTransport(); UI.refitOverlays(); protoResize(); }, 100); });
   const first = App.score.acts[1]; if (first) App.openActs.add(first.id);
   UI.renderLibrary();
+  setTimeout(checkInbox, 4000);   // after the toasts of the opening (the draft that was restored says so first)
   // the first launch: Help ▸ Quick start opens by itself, once (opening it sets the flag, so it never comes back by itself)
   if (App.view !== '3d' && !App.qsSeen) setTimeout(() => { if (!App.cardOpen && !document.querySelector('.ov')) UI.quickStart(); }, 800);
   const bad = Object.keys(App.unreadable); if (bad.length) setTimeout(() => toast(`${bad.join(', ')} could not be read: the editor works without it (Problems says so)`), 900);
@@ -92,22 +93,57 @@ function noteUnreadable(u, bad) {
   if (bad) App.unreadable[f] = true; else delete App.unreadable[f];
   return was !== !!bad;
 }
-async function sha12(text) {
-  try { const b = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(text)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 12); } catch (_) { return null; }
+async function sha12(data) {   // text or bytes (an ArrayBuffer): the first 12 hex digits of its SHA-1, the same the server gives for a file
+  try { const b = await crypto.subtle.digest('SHA-1', typeof data === 'string' ? new TextEncoder().encode(data) : data); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 12); } catch (_) { return null; }
 }
-/* unsaved work from a previous session: restored only if it was made on THIS score; otherwise it is kept as a copy, never lost */
+/* unsaved work from a previous session: restored only if it was made on THIS score; otherwise it is kept as a copy, never lost.
+   A copy that could not be written (a full disk, a folder that is not there) leaves the work in this browser (LS_HELD) and says so: the
+   editor tries again each time it opens, and the draft of the work being done now never takes its place. Either way a card says where
+   the work went: it is not in the score on screen, and a toast of three seconds is easy to miss */
 async function restoreDraft() {
-  const d = lsGet(LS_DRAFT); if (!d || !d.score) return;
-  if (Edits.sameScore(d.score, App.score)) { try { localStorage.removeItem(LS_DRAFT); } catch (_) {} return; }   // nothing unsaved in it
-  const sameBase = d.baseRev === App.baseRev && (!d.baseHash || !App.diskHash || d.baseHash === App.diskHash);
-  let ok = true; try { Edits.validate(d.score, ScoreEngine); } catch (e) { ok = false; }
-  if (sameBase && ok) { App.score = d.score; App.dirty = true; App.edited = true; setTimeout(() => toast('Restored your unsaved changes · File ▸ Reload from disk discards them'), 400); return; }
-  const path = await saveCopy(d.score, ok ? 'draft-old-base' : 'draft-broken');
+  const kept = await keepHeld();   // work set aside by an earlier session whose copy could not be written: tried again now
+  if (kept) setTimeout(() => UI.chooseCard('Your unsaved changes were kept apart', `Changes from an earlier session that could not be put in a copy then are kept now in ${kept}. They are not in the score you see.`, [], () => {}, 'Got it'), 500);
+  const d = lsGet(LS_DRAFT), valid = !!(d && d.score) && (() => { try { Edits.validate(d.score, ScoreEngine); return true; } catch (_) { return false; } })();
+  const fate = Edits.draftFate(d, { score: App.score, baseRev: App.baseRev, diskHash: App.diskHash }, valid);
+  if (fate === 'none') return;
+  if (fate === 'same') { try { localStorage.removeItem(LS_DRAFT); } catch (_) {} return; }   // nothing unsaved in it
+  if (fate === 'restore') { App.score = d.score; App.dirty = true; App.edited = true; App.restored = true; seedMine(d.score); setTimeout(() => toast('Restored your unsaved changes · File ▸ Reload from disk discards them'), 400); return; }
+  const why = fate === 'old-base' ? 'draft-old-base' : 'draft-broken', path = await saveCopy(d.score, why);
   try { localStorage.removeItem(LS_DRAFT); } catch (_) {}
-  setTimeout(() => toast(ok ? `Your unsaved changes were made on an older score (rev ${d.baseRev}); someone saved after. They are kept in ${path || 'a copy'}` : `Your unsaved changes could not be opened; they are kept in ${path || 'a copy'}`), 600);
+  const what = fate === 'old-base' ? `Your unsaved changes were made on an older score (rev ${d.baseRev}); someone saved after, so they are not in the score you see.` : 'Your unsaved changes could not be opened, so they are not in the score you see.';
+  if (path) { setTimeout(() => UI.chooseCard('Your unsaved changes were kept apart', `${what} They are kept in ${path}.`, [], () => {}, 'Got it'), 600); return; }
+  // nothing was written anywhere: the work stays in this browser until a copy can be made
+  const at = Date.now();   // added next to work held from before (a second failed copy never takes the place of the first)
+  lsSet(LS_HELD, { items: heldList().concat([{ score: d.score, why, baseRev: d.baseRev, at }]) });
+  if (!heldList().some(h => h.at === at)) lsSet(LS_DRAFT, d);   // not even the browser could hold it apart: it stays where it was
+  setTimeout(() => UI.chooseCard('Your unsaved changes could not be kept', `${what} They could NOT be written to a copy: ${App.copyErr || 'the server did not answer'}. So they stay in this browser, and the editor tries again each time it opens. Do not clear this browser's site data until they are kept.`,
+    [{ id: 'retry', primary: true, label: 'Try to keep them again', detail: 'Writes them to obra/score/copias/ if the folder works now.' }], async c => {
+      if (c !== 'retry') return;
+      const p = await keepHeld(); toast(p ? `Your unsaved changes are kept in ${p}` : `Still could not keep them: ${App.copyErr || 'the server did not answer'}. They stay in this browser`);
+    }, 'Later'), 600);
 }
+/* work set aside in this browser (LS_HELD) because its copy could not be written: a list, one per failed copy (the old single
+   entry is read as a list of one) */
+const heldList = () => { const h = lsGet(LS_HELD); return !h ? [] : Array.isArray(h.items) ? h.items.filter(x => x && x.score) : h.score ? [h] : []; };
+/* tried again: what is copied leaves the browser, what is not stays. The paths of the copies, or null */
+async function keepHeld() {
+  const list = heldList(); if (!list.length) return null;
+  const left = [], paths = [];
+  for (const h of list) { const p = await saveCopy(h.score, h.why || 'draft-old-base'); if (p) paths.push(p); else left.push(h); }
+  if (!left.length) { try { localStorage.removeItem(LS_HELD); } catch (_) {} }
+  else if (paths.length) lsSet(LS_HELD, { items: left });
+  return paths.length ? paths.join(', ') : null;
+}
+/* the path of the copy written to obra/score/copias/, or null (App.copyErr says why) */
 async function saveCopy(score, why) {
-  try { const r = await fetch('/api/score/copy?who=' + encodeURIComponent(App.who) + '&why=' + encodeURIComponent(why), { method: 'POST', body: JSON.stringify(score) }); const j = await r.json(); return r.ok ? j.path : null; } catch (_) { return null; }
+  App.copyErr = null;
+  try {
+    const r = await fetch('/api/score/copy?who=' + encodeURIComponent(App.who) + '&why=' + encodeURIComponent(why), { method: 'POST', body: JSON.stringify(score) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.path) return j.path;
+    App.copyErr = j.error || `the server answered ${r.status}`;
+  } catch (_) { App.copyErr = "the editor's server did not answer"; }
+  return null;
 }
 /* ISP is designed at 1:1 for 1280×720 and up; below that the whole app scales down instead of breaking (App.k) */
 function fitScale() {
@@ -116,6 +152,14 @@ function fitScale() {
   else Object.assign(a.style, { transform: '', width: '', height: '' });
   // ISP rule: the timeline is 402 px, or 45% of the window when it is short (unless the user dragged it)
   if (!App.tlhUser) document.documentElement.style.setProperty('--tlh', Math.round(Math.min(402, innerHeight / k * .45)) + 'px');
+  fitDrawer();
+}
+/* the Problems drawer sits under the timeline and takes its height from the 3D above: in a window as short as the design's minimum (1280 × 720) it was 85 px
+   tall. The drawer gives up height down to 70 px of list before the 3D has less than 190 px */
+function fitDrawer() {
+  const root = document.documentElement, H = innerHeight / (App.k || 1), chrome = ['#top', '#transport', '#status'].reduce((n, s) => n + (($(s) || {}).offsetHeight || 0), 0) || 90;
+  const tlh = parseFloat(root.style.getPropertyValue('--tlh')) || 402;
+  root.style.setProperty('--drawh', clamp(Math.round(H - chrome - tlh - 190), 70, 160) + 'px');
 }
 function compute() {
   pruneSel();   // an undo, a delete or a reload can take selected clips away
@@ -230,8 +274,10 @@ function computePartitura(extra) {
   for (const [k, rows] of Object.entries(by)) {
     const st5 = rows[0].stage == null ? '' : ' in ' + rows.length + ' stage' + (rows.length > 1 ? 's' : '');
     const sig = rows.map(r => (r.stage == null ? '' : r.stage + ':') + r.score).join(',');
-    const p = { fp: 'C3.PARTITURA|' + k + '|' + sig, knob: k, sv: 'warn', ly: 'C3', rule: 'C3.PARTITURA', el: rows[0].els[rows[0].els.length - 1] || null, own: 'DA_Partitura_Obra › ' + k,
-      msg: `${k} is ${fmtV(rows[0].da)} s in Unreal; the score does ${[...new Set(rows.map(r => fmtV(r.score)))].join(' / ')} s${st5}.` };
+    // a change for this knob that is already waiting to be sent, and is what the score does, is decided: it only needs Send to Unreal (a note, not a warning)
+    const wait = rows.every(r => Fixes.waiting(App.score, r));
+    const p = { fp: 'C3.PARTITURA|' + k + '|' + sig, knob: k, sv: wait ? 'info' : 'warn', ly: 'C3', rule: 'C3.PARTITURA', el: rows[0].els[rows[0].els.length - 1] || null, own: 'DA_Partitura_Obra › ' + k,
+      msg: `${k} is ${fmtV(rows[0].da)} s in Unreal; the score does ${[...new Set(rows.map(r => fmtV(r.score)))].join(' / ')} s${st5}${wait ? ': the change is waiting to be sent (Send to Unreal)' : ''}.` };
     extra.push(p);
   }
 }
@@ -280,13 +326,15 @@ const fmtV = v => Array.isArray(v) ? v.map(x => +(+x).toFixed(2)).join(' · ') :
 const knobBind = name => App.pbind && App.pbind.binds.find(b => b.knob === name);
 const knobDef = name => App.pdef && App.pdef.knobs.find(k => k.name === name);
 const knobLive = name => { const L = window.Partitura && Partitura.liveValues(App.plive); return L && name in L ? L[name] : (knobDef(name) || {}).initial; };
-function savePref() { lsSet(LS_PREF, { persona: App.persona, pps: App.pps, who: App.who, collapsed: App.collapsed, follow: App.follow, locked: App.locked, sound: !!App.sound, inT: App.inT, outT: App.outT, snap: App.snap, lanes: App.laneSize, runLane: App.runLane, runAlign: App.runAlign, branchView: App.branchView,
+function savePref() { lsSet(LS_PREF, { persona: App.persona, pps: App.pps, who: App.who, collapsed: App.collapsed, follow: App.follow, locked: App.locked, sound: !!App.sound, inT: App.inT, outT: App.outT, snap: App.snap, lanes: App.laneSize, laneScale: App.laneScale || 1, runLane: App.runLane, runAlign: App.runAlign, branchView: App.branchView,
   adv: !!App.adv, details: !!App.insDetails, traceOpen: !!App.traceOpen, qsSeen: !!App.qsSeen }); }
 /* Simple (the default) or Advanced: only what is drawn changes, never the score, the checks or a verb. A group the user opened or closed
    keeps that choice in both; the ones Simple starts collapsed (Simple.COLLAPSED) are collapsed only until then */
 const groupCollapsed = gid => Simple.collapsedFor(App.collapsed, gid, App.adv);
 function setAdvanced(on) {
-  App.adv = !!on; App.showAnchors = App.adv; savePref(); UI.renderAll();
+  App.adv = !!on; App.showAnchors = App.adv; savePref();
+  for (const g of Simple.COLLAPSED) if (groupCollapsed(g)) deselectGroup(g);   // Simple starts those groups folded: what is hidden is not selected
+  UI.renderAll();
   toast(App.adv ? 'Technical details on · Window ▸ Show technical details turns them off' : 'Simple view · Window ▸ Show technical details brings the Unreal details back');
 }
 
@@ -298,12 +346,14 @@ function setAdvanced(on) {
 const view3d = () => App.view === '3d' || App.mode === 'v3d';
 const FINISHES = new Set(['sent', 'audio']);
 const readOnly3d = () => toast(App.view === '3d' ? 'This tab only shows the 3D view: edit in the timeline tab' : 'The 3D view only plays the piece: Window ▸ All-in-one or Timeline to edit');
-function commit(label, op, mutate) {
+function commit(label, op, mutate, o) {
   if (App.view === '3d' || (App.mode === 'v3d' && !FINISHES.has(op.type))) { readOnly3d(); return false; }
   if (App.cardOpen) { toast('Finish the open decision first'); return false; }
+  o = o || {};   // o.fixes: suggested fixes (js/fixes.js) the owner accepted for this edit: applied on top of it, in this same step. o.lone: a fix on its own (nothing else to apply)
   const beforeStr = JSON.stringify(App.score);
   const next = JSON.parse(beforeStr);
   if (mutate(next) === false) return false;
+  for (const f of o.fixes || []) if (f.apply(next) === false) { toast('That fix does not fit any more: nothing changed'); return false; }
   // schema 3: whatever this edit took out of the score stays in the uidMap as deleted-here (same step, same undo): a live name
   // that points to nothing is a score the server refuses to save. Any verb that deletes goes through here, so none can forget it
   Edits.reconcileUidMap(App.score, next);
@@ -317,40 +367,96 @@ function commit(label, op, mutate) {
   // it: S.BRANCH.FIELD), a moment starts before 0:00, the piece runs over an hour (S.TOTAL; a typed 1e9 stopped the timeline from drawing)
   const brk = Edits.wouldBreak(App.score, next, ScoreEngine, { maxTotal: window.Check ? Check.MAX_TOTAL : 3600 });
   if (brk) { toast(brk); UI.renderInspector(); return false; }
-  // a locked group cannot change, whoever asks (mouse, keyboard, inspector, menus)
-  const hit = Object.keys(App.score.elements).find(id => App.locked[App.score.elements[id].group] && JSON.stringify(App.score.elements[id]) !== JSON.stringify(next.elements[id]));
-  if (hit) { const e = App.score.elements[hit]; toast(`${e.key} is in the locked group ${(App.score.groups.find(g => g.id === e.group) || {}).name}: unlock it first`); UI.renderInspector(); return false; }
+  // a locked group cannot change, whoever asks (mouse, keyboard, inspector, menus): nothing in it is changed, taken out or put in
+  const hit = lockedChange(App.score, next);
+  if (hit) { toast(`${hit.key} is in the locked group ${groupName(hit.group)}: unlock it first`); UI.renderInspector(); return false; }
   // nothing lands on top of another clip: what an edit pushes onto an occupied lane goes to the nearest free one
   const relocated = Edits.fixOverlaps(App.score, next, ScoreEngine, addLane);
   const schedT = ScoreEngine.resolve(next, { persona: 'typical' });
+  Edits.followNotes(next, schedT.t);   // a note written about a clip goes where the clip goes (this same step and undo)
   const after = { problems: Integrity.staticProblems(next, schedT, App.contract, ScoreEngine.altRuns(next), knobCtx()) };
   const opx = Object.assign({ prevScore: App.score }, op);
   const op3 = Integrity.opItems(opx, next, { problems: App.problems }, after, App.contract, ScoreEngine, { gov: App.gov });
   const { items, repairs } = op3, ripple = [op3.ripple, Edits.marksWords(lostMarks)].filter(Boolean).join(' · ');
+  // finish() says what it toasted (a relocation, the ripple) so the toast of an edit that left a fixable warning can say it too
   const finish = extra => {
-    if (JSON.stringify(App.score) !== beforeStr) { toast('The score changed while deciding: nothing applied, try again'); return; }
-    App.undo.push(beforeStr); if (App.undo.length > 80) App.undo.shift(); App.redo = [];
+    if (JSON.stringify(App.score) !== beforeStr) { toast('The score changed while deciding: nothing applied, try again'); return null; }
+    App.undo.push(beforeStr); App.redo = [];
+    if (App.undo.length > 80) { App.undo.shift(); if (!App.undoCapped) { App.undoCapped = true; setTimeout(() => toast('Undo keeps the last 80 steps: the oldest one has gone'), 2400); } }   // said once, after the toast of the edit itself
     if (extra) extra(next);
     App.score = next; markDirty(); compute(); UI.renderAll();
-    if (relocated.length) toast(`${relocated.map(m => next.elements[m.id].key).join(', ')} moved to a free lane (it would have landed on another clip)`);
-    else if (ripple && !op.quietRipple) { App.lastRipple = ripple; toast(`${label} · ${ripple}`); }
+    let said = null;
+    if (relocated.length) said = `${relocated.map(m => next.elements[m.id].key).join(', ')} moved to a free lane (it would have landed on another clip)`;
+    else if (ripple && !op.quietRipple) { App.lastRipple = ripple; said = `${label} · ${ripple}`; }
+    if (said) toast(said);
+    return said;
   };
   const pol = Policy.decide(op, items, { label, relocated, ripple });
-  if (pol.mode !== 'card') { finish(); if (pol.toast) toast(pol.toast); return true; }
+  const fixed = (o.fixes || []).map(f => f.label);
+  if (pol.mode !== 'card') {
+    const was = App.problems, said = finish();
+    if (fixed.length) toast(o.lone ? `Fixed · ${fixed[0]}${ripple ? ' · ' + ripple : ''}` : Policy.fixedToast(label, fixed, ripple));
+    else offerFix(op, label, pol.toast, said, was);
+    return true;
+  }
   App.cardOpen = true;
-  UI.impactCard(label, items, repairs, (decision, reason) => {
+  // a suggested fix for what the card says, proposed on the score the edit leaves and checked there (js/fixes.js)
+  let fx = { list: [], why: '' };
+  try { fx = Fixes.suggest(items.filter(i => i.sv !== 'info'), fixCtx({ score: next, before: App.score, beforeProblems: App.problems, op, sched: schedT, problems: after.problems, items })); } catch (_) {}
+  UI.impactCard(label, items, repairs, (decision, reason, rep, fix) => {
     App.cardOpen = false;
     if (decision === 'cancel') { UI.renderInspector(); UI.renderTimeline(); if (op.afterCard) op.afterCard(decision); return; }   // inputs go back to the value that stayed
+    if (decision === 'fix' && fix) {
+      // the edit and the fix, ONE step: integrity runs again on the result, and the card comes back if something is left (with what is left)
+      const lone = !fix.keepsEdit && Policy.QUIET.has(fix.op.type);   // Match Unreal replaces the edit and is judged as always: quiet
+      const again = commit(label, lone ? Object.assign({ afterCard: op.afterCard }, fix.op) : op, mutate, { fixes: (o.fixes || []).concat(fix) });
+      if (!again) { UI.renderInspector(); UI.renderTimeline(); if (op.afterCard) op.afterCard('cancel'); }
+      else if (!App.cardOpen && op.afterCard) op.afterCard('fix');
+      return;
+    }
     finish(n => { if (decision === 'anyway') n.accepted = Policy.acceptRecords(n.accepted, items, { who: App.who, reason, at: new Date().toISOString(), rev: App.baseRev }); });
-    toast(Policy.doneToast(decision, ripple));
+    toast(Policy.doneToast(decision, ripple, fixed));
     if (op.afterCard) op.afterCard(decision);   // the panel that asked comes back on what is left (op.afterCard: Changes in guion.js)
-  }, ripple);
+  }, ripple, fx);
   return true;
+}
+/* the first element of a locked group that `to` changes, takes out or puts in, against `from` (what the lock protects the group from); null when none */
+const lockedChange = (from, to) => Edits.lockedChange(from, to, App.locked);
+const groupName = gid => (App.score.groups.find(g => g.id === gid) || {}).name || gid;
+/* what js/fixes.js needs to know: the score a problem is in (the one on screen unless said), the one before the edit, and Unreal's side */
+function fixCtx(o) {
+  o = o || {}; const score = o.score || App.score;
+  return Object.assign({ score, before: null, op: null, sched: score === App.score ? App.schedT : undefined, problems: score === App.score ? App.problems : undefined, contract: App.contract, gov: App.gov, pdef: App.pdef, plive: App.plive, pbind: App.pbind,
+    knob: knobValue, Engine: ScoreEngine, Edits, Integrity, Partitura: window.Partitura, who: App.who, now: new Date().toISOString() }, o);
+}
+/* an edit that went ahead with no card can leave a new warning in Problems (an overlap from a paste, a knob of Unreal the score no longer agrees
+   with): when one of them has a fix, the toast offers it. "Fix it" opens the choice; nothing is applied until the owner accepts one */
+function offerFix(op, label, said, shown, was) {
+  const fresh = Policy.newWarnings(was, App.problems); let pick = null;
+  for (const p of fresh) {
+    if (!Fixes.handles(p)) continue;
+    let r; try { r = Fixes.analyze(p, fixCtx(p.rule === 'C3.PARTITURA' ? { knobs: fresh.filter(q => q.rule === 'C3.PARTITURA').map(q => q.knob) } : {})); } catch (_) { continue; }
+    if (r.fixes.length) { pick = { p, fixes: r.fixes }; break; }
+  }
+  if (!pick) { if (said) toast(said); return; }
+  toast(said || Policy.warnToast(shown || label, fresh.length), { label: 'Fix it', fn: () => Act.fixProblem(pick.p, pick.fixes) });
 }
 /* a decision card is open: the rest of the editor waits (A4) */
 const busy = () => { if (App.cardOpen) { toast('Finish the open decision first'); return true; } if (view3d()) { readOnly3d(); return true; } return false; };
-function undo() { if (busy()) return; if (!App.undo.length) return toast('Nothing to undo'); App.redo.push(JSON.stringify(App.score)); App.score = JSON.parse(App.undo.pop()); markDirty(); compute(); UI.renderAll(); }
-function redo() { if (busy()) return; if (!App.redo.length) return toast('Nothing to redo'); App.undo.push(JSON.stringify(App.score)); App.score = JSON.parse(App.redo.pop()); markDirty(); compute(); UI.renderAll(); }
+/* what is half done when the editor is asked to undo, save or leave: words still being typed in a field of the inspector (they commit when the field loses
+   focus, which a shortcut does not cause), a lane or bookmark being renamed, and an Alt+arrow nudge waiting for the key to come up. Each becomes its own edit first,
+   so a save has what is on screen and an undo takes back the last thing done, not the one before it */
+function flushPending() { try { UI.flushTyped(); } catch (_) {} flushNudge(); }
+function undo() {
+  if (busy()) return; flushPending(); if (App.cardOpen) return toast('Finish the open decision first');
+  if (!App.undo.length) return toast(!App.dirty ? 'Nothing to undo' : App.undoCapped ? 'Nothing more to undo: the editor keeps the last 80 steps · File ▸ Reload from disk discards the unsaved changes' : App.restored ? 'Nothing to undo in this session: the changes restored from before come back as one piece · File ▸ Reload from disk discards them' : 'Nothing to undo');
+  App.redo.push(JSON.stringify(App.score)); App.score = JSON.parse(App.undo.pop()); markDirty(); compute(); UI.renderAll(); syncSoon();
+}
+function redo() {
+  if (busy()) return; flushPending(); if (App.cardOpen) return toast('Finish the open decision first');
+  if (!App.redo.length) return toast('Nothing to redo');
+  App.undo.push(JSON.stringify(App.score)); App.score = JSON.parse(App.redo.pop()); markDirty(); compute(); UI.renderAll(); syncSoon();
+}
 
 /* ---------- edit verbs ---------- */
 const Act = {
@@ -392,6 +498,19 @@ const Act = {
     App.clipboard = Edits.clipOf(App.score, ids, ScoreEngine);
     try { const j = JSON.stringify({ veation: 'clips', rev: App.baseRev, items: App.clipboard.items }); navigator.clipboard.writeText(j).catch(() => {}); } catch (_) {}
     toast(`Copied ${keysText(App.clipboard.items.map(i => i.el.key))} · Ctrl+V pastes at the playhead`);
+    return true;
+  },
+  // Ctrl+X (Premiere, Resolve): copy, then delete. The delete is the usual one (it asks what hangs from the clips); if it is cancelled the copy stays
+  cut(ids) {
+    if (busy()) return false;
+    ids = (ids || selIds()).filter(id => App.score.elements[id]);
+    if (!ids.length) { toast('Select one or more clips to cut'); return false; }
+    const lk = ids.map(id => App.score.elements[id]).find(e => App.locked[e.group]);
+    if (lk) { toast(`${lk.key} is in a locked group: unlock it first`); return false; }   // nothing is copied from what cannot be taken out
+    if (!Act.copy(ids)) return false;
+    const keys = keysText(ids.map(id => App.score.elements[id].key));
+    Act.remove(ids);
+    if (!ids.some(id => App.score.elements[id])) toast(`Cut ${keys} · Ctrl+V pastes at the playhead, Ctrl+Z brings it back`);   // gone: said (a card first, when something hangs from it)
     return true;
   },
   // C10: Ctrl+V, at the playhead, into the moment under it (its offset measured on the timeline you are looking at, like Add)
@@ -473,7 +592,7 @@ const Act = {
     }
   },
   setText(id, text) {
-    const e = App.score.elements[id]; if (!e) return;
+    const e = App.score.elements[id]; if (!e || (e.text || '') === text) return;   // the same words: no edit, no step to undo
     // a recorded voice keeps its length (the APK plays the recording); only a new line is re-estimated from its words
     commit(`Text · ${e.key}`, { type: 'text', ids: [id] }, n => { const x = n.elements[id]; x.text = text; if (x.type === 'vo' && x.isNew && !(x.audio && x.audio.dur)) x.dur = { mode: 'audio', value: +voDur(text).toFixed(4) }; });
   },
@@ -497,12 +616,14 @@ const Act = {
       const removed = {}; variant.ids.forEach(id => removed[id] = App.score.elements[id]);
       commit(label, { type: 'delete', ids: variant.ids, removed, repaired: true }, n => { for (const k of Object.keys(n)) delete n[k]; Object.assign(n, JSON.parse(JSON.stringify(variant.next))); });
       if (!App.score.elements[App.sel]) select(null);
+      syncSoon();   // the WAV of a sound that goes (and that no saved score names) leaves the inbox
     };
     if (!plan) {   // nothing hangs from it
       const del = () => {
         const removed = {}; ids.forEach(id => removed[id] = App.score.elements[id]);
         commit(`Delete · ${keys}`, { type: 'delete', ids, removed }, n => { ids.forEach(id => delete n.elements[id]); });
         if (!App.score.elements[App.sel]) select(null);
+        syncSoon();
       };
       // a bound score: the Unreal mark of a moment can be the edge of this very clip (ENV_SWAP is S1.OPEN): it goes with the clip, so say it BEFORE
       const lost = Edits.marksOf(App.score, ids);
@@ -513,7 +634,9 @@ const Act = {
     }
     // something hangs from it: show what each way really does, BEFORE choosing (B3)
     const S = App.score, nm = id => S.beats[id] ? 'moment ' + S.beats[id].key : (S.elements[id] || {}).key;
-    const tot = (a, b) => { const d = b - a; return Math.abs(d) < .05 ? 'The total does not change.' : `The piece gets ${d > 0 ? 'longer' : 'shorter'}: ${d > 0 ? '+' : ''}${d.toFixed(1)} s.`; };
+    // what each choice does, in the words of the toast that follows it (the same line, on what the choice leaves): the card said 465 items move and the toast
+    // 419 shift, because the card also counted moments and the toast only clips
+    const rip = v => { const r = v.ok && v.next ? Integrity.rippleLine(Integrity.effect(S, v.next, ScoreEngine)) : ''; return r ? r + '.' : 'Nothing else moves and the total does not change.'; };
     const pl = (n, one, many) => n + ' ' + (n === 1 ? one : many);
     const A = plan.reanchor, B = plan.family, helps = Object.keys(S.elements).filter(k => ids.includes(S.elements[k].help));
     const list = plan.direct.slice(0, 5).map(nm).join(', ') + (plan.direct.length > 5 ? '…' : ''), one = plan.direct.length === 1;
@@ -524,12 +647,12 @@ const Act = {
       : `${hang} and keep their place relative to what is left: ${keysText(drift.map(nm))} ${drift.length === 1 ? 'moves' : 'move'} too, the rest stay where they are`;
     const opts = [
       { id: 'reanchor', primary: true, disabled: !A.ok, label: many ? `Delete only these ${ids.length}` : 'Delete only it',
-        detail: A.ok ? `${stays}. ${A.moved ? pl(A.moved, 'item moves', 'items move') + ' because a moment gets shorter or longer. ' : ''}${tot(A.total0, A.total1)}${helps.length ? ' ' + helps.map(nm).join(', ') + (helps.length > 1 ? ' stop being help lines.' : ' stops being a help line.') : ''}${A.marks.length ? ' ' + Edits.marksWords(A.marks) + '.' : ''}`
+        detail: A.ok ? `${stays}. ${rip(A)}${helps.length ? ' ' + helps.map(nm).join(', ') + (helps.length > 1 ? ' stop being help lines.' : ' stops being a help line.') : ''}${A.marks.length ? ' ' + Edits.marksWords(A.marks) + '.' : ''}`
           : 'Not possible: something would be left without an anchor.' },
     ];
     if (B.deleted > ids.length) opts.push({ id: 'family', danger: true, disabled: !B.ok, label: `Delete ${many ? 'them' : 'it'} and ${pl(B.deleted - ids.length, 'element', 'elements')} that ${B.deleted - ids.length === 1 ? 'hangs' : 'hang'} from ${many ? 'them' : 'it'}`,
       detail: B.gates.length ? `Not possible: it would also delete ${B.gates[0].key}, the wait that decides "${B.gates[0].name}".`
-        : `Deletes ${pl(B.deleted, 'element', 'elements')} in all.${plan.anchoredMoments.length ? ' ' + plan.anchoredMoments.map(nm).join(', ') + (plan.anchoredMoments.length > 1 ? ' stay' : ' stays') + ' (a moment is never deleted).' : ''} ${tot(B.total0, B.total1)}${B.marks.length ? ' ' + Edits.marksWords(B.marks) + '.' : ''}` });
+        : `Deletes ${pl(B.deleted, 'element', 'elements')} in all.${plan.anchoredMoments.length ? ' ' + plan.anchoredMoments.map(nm).join(', ') + (plan.anchoredMoments.length > 1 ? ' stay' : ' stays') + ' (a moment is never deleted).' : ''} ${rip(B)}${B.marks.length ? ' ' + Edits.marksWords(B.marks) + '.' : ''}` });
     UI.chooseCard(`Delete · ${keys}`, `Something hangs from ${many ? 'them' : 'it'}. Choose what happens to it; the next step still warns about Unreal.`, opts, choice => {
       if (choice === 'reanchor') go(A, `Delete · ${keys}`);
       else if (choice === 'family') go(B, `Delete · ${keys} and ${B.deleted - ids.length} more`);
@@ -565,6 +688,8 @@ const Act = {
       wait: { group: 'int', type: 'wait', key: uniqueKey('G_NEW'), label: 'New wait', isNew: true, gate: Object.assign({ expected: 6, fw: 25 }, App.score.schema >= 3 ? { blocking: true } : {}), dur: { mode: 'elastic', value: 6 } },
     }[kind];
     if (!spec) return;
+    // a locked group protects its lanes and what is in them from edits: nothing is added to it either (the lock names it before anything is made)
+    if (App.locked[spec.group] && !App.cardOpen && !view3d()) return toast(`${groupName(spec.group)} is locked: unlock it first`);
     const len = spec.gate ? spec.gate.expected : spec.dur.value || .05;
     const lane = freeLane(spec.group, t, t + Math.max(len, .05));
     const id = 'el_n' + Date.now().toString(36);
@@ -616,27 +741,32 @@ const Act = {
       for (const b of App.pbind.binds) { const r = Partitura.apply(n, ScoreEngine, App.pbind, b, knobLive(b.knob), null); n0 += r.changed.length; sk += r.skipped.length; }
       if (!n0) return false;
     });
-    toast(n0 ? `${n0} values now match DA_Partitura_Obra${sk ? ` · ${sk} have no counterpart in the score` : ''}` : 'The score already matches Unreal');
+    toast(n0 ? `${n0} values now match ${App.adv ? 'DA_Partitura_Obra' : "Unreal's timing"}${sk ? ` · ${sk} have no counterpart in the score` : ''}` : 'The score already matches Unreal');
   },
   // a change for Unreal WAITS in the score (undoable, saved with Ctrl+S). Nothing reaches Unreal until "Send to Unreal".
   propose(name, stage, value, reason) {
     const d = knobDef(name); if (!d || !isFinite(value) || value < 0) return toast('Not a valid value');
     if (String(reason || '').trim().length < 12) return toast('Write why (12+ characters): it travels with the change');
-    const live = knobLive(name), v = +(+value).toFixed(3);
-    commit(`For Unreal · ${name}`, { type: 'propose', ids: [] }, n => {
+    const live = knobLive(name), v = +(+value).toFixed(3), waiting = pendingVals()[name], why = String(reason).trim();
+    const at = `${name}${d.type === 'a5' && stage != null ? ' [' + App.pdef.stages[stage] + ']' : ''}`;
+    let nv = v;
+    if (d.type === 'a5') { nv = (waiting || live).slice(); if (stage == null) nv = nv.map(() => v); else nv[stage] = v; }
+    const isLive = JSON.stringify(nv) === JSON.stringify(live);
+    // what Unreal already has is nothing to send: no edit, no step to undo (unless a change for it is waiting: then this takes it back)
+    if (isLive && !waiting) return toast(`${at} is already ${v} s in Unreal: nothing to send`);
+    if (!isLive && waiting && JSON.stringify(waiting) === JSON.stringify(nv) && ((App.score.propuestas.motivos[name] || {}).motivo || '') === why) return toast(`${at} = ${v} s is already waiting to be sent`);
+    if (commit(`For Unreal · ${name}`, { type: 'propose', ids: [] }, n => {
       const P = n.propuestas = n.propuestas || { valores: {}, motivos: {} };
       if (!P.base && App.plive) P.base = App.plive.hash;   // the Unreal export these changes were prepared on
-      let nv = v;
-      if (d.type === 'a5') { nv = (P.valores[name] || live).slice(); if (stage == null) nv = nv.map(() => v); else nv[stage] = v; }
-      if (JSON.stringify(nv) === JSON.stringify(live)) { delete P.valores[name]; delete P.motivos[name]; return; }
+      if (isLive) { delete P.valores[name]; delete P.motivos[name]; Edits.tidyPropuestas(n, App.savedScore); return; }
       P.valores[name] = nv;
-      P.motivos[name] = { por: App.who, motivo: String(reason).trim(), antes: live, cuando: new Date().toISOString() };
-    });
-    toast(`${name}${d.type === 'a5' && stage != null ? ' [' + App.pdef.stages[stage] + ']' : ''} = ${v} s · waiting to be sent (Send to Unreal)`);
+      P.motivos[name] = { por: App.who, motivo: why, antes: live, cuando: new Date().toISOString() };
+    }) === false) return;
+    toast(isLive ? `${at} is back to ${v} s, what Unreal has: it is no longer waiting to be sent` : `${at} = ${v} s · waiting to be sent (Send to Unreal)`);
   },
   unpropose(name) {
     if (!pendingVals()[name]) return;
-    commit(`For Unreal · remove ${name}`, { type: 'propose', ids: [] }, n => { delete n.propuestas.valores[name]; delete n.propuestas.motivos[name]; });
+    commit(`For Unreal · remove ${name}`, { type: 'propose', ids: [] }, n => { delete n.propuestas.valores[name]; delete n.propuestas.motivos[name]; Edits.tidyPropuestas(n, App.savedScore); });
   },
   // the ONLY door to Unreal: a review card first; the file is written only if you confirm
   sendToUnreal() {
@@ -728,19 +858,33 @@ const Act = {
     });
     return true;
   },
-  // C2.WAIT.NOHELP: a help line the slow user hears before the timeout (a new line: words now, recording later)
+  // C2.WAIT.NOHELP: a help line the slow user hears before the timeout (a new line: words now, recording later). Fixes.addHelpLine makes it
+  // (the suggested fix of the same problem uses the same one)
   addHelp(waitId) {
     const w = App.score.elements[waitId]; if (!w || !w.gate) return;
-    const off = +Math.max(1, Math.min(w.gate.fw - 4, w.gate.expected + 4)).toFixed(2), id = 'el_n' + Date.now().toString(36);
-    const T = App.schedT.t, s0 = T[waitId][0] + off, lane = freeLane('vo', s0, s0 + 3);
-    const ok = commit(`Help line · ${w.key}`, { type: 'add', ids: [id] }, n => {
-      const ln = lane || addLane(n, 'vo');
-      n.elements[id] = { key: uniqueKey(w.key.replace(/^G_/, 'VO_') + '_HELP'), type: 'vo', group: 'vo', beat: w.beat, lane: ln, at: { ref: waitId, edge: 'start', off }, end: null,
-        dur: { mode: 'audio', value: +voDur('Help line for this wait…').toFixed(4) }, label: 'Help line', text: 'Help line for this wait…', help: waitId, isNew: true, by: App.who, created: new Date().toISOString(),
-        sound: null, note: null, gate: null, simOnly: false, when: null, hint: null, ghost: null, legacy: null };
-    });
+    const id = Fixes.helpId(App.score);
+    const ok = commit(`Help line · ${w.key}`, { type: 'add', ids: [id] }, n => { if (!Fixes.addHelpLine(Edits, ScoreEngine, n, waitId, { id, who: App.who })) return false; });
     if (!ok || !App.score.elements[id]) return;   // refused (a card is open, the 3D view)
-    UI.goto(id); toast(`Help line ${off} s after ${w.key} starts (before its ${w.gate.fw} s timeout) · write its words in the inspector`);   // shown: it is far from the playhead and from the Problems list that asked
+    UI.goto(id); toast(`Help line ${App.score.elements[id].at.off} s after ${w.key} starts (before its ${w.gate.fw} s timeout) · write its words in the inspector`);   // shown: it is far from the playhead and from the Problems list that asked
+  },
+  /* ---------- suggested fixes (js/fixes.js) ----------
+     A fix is only ever applied when the owner accepts it: from the impact card of an edit ("Apply with this fix": the edit and the fix are ONE
+     step, see commit), from a row of Problems ("Fix: …", or its menu), or from the toast of an edit that left a warning ("Fix it"). Alone, a fix
+     is an edit like any other: it goes through commit (so integrity judges it again and one Ctrl+Z takes it back), and nothing is saved or sent */
+  applyFix(fix) {
+    const was = new Set(Object.keys(App.score.elements)), ok = commit(fix.label, Object.assign({}, fix.op), () => {}, { fixes: [fix], lone: true });
+    // a fix that adds a clip (a help line) shows it, as Add a help line always did: it is far from the playhead and from the list that asked
+    const born = ok && !App.cardOpen && Object.keys(App.score.elements).find(id => !was.has(id));
+    if (born) { UI.goto(born); toast(`Fixed · ${fix.label} · ${App.score.elements[born].key} is selected: write its words in the inspector`); }
+    return ok;
+  },
+  // the choice of fixes for one problem, with what each one does (the toast's "Fix it")
+  fixProblem(p, fixes) {
+    if (busy()) return;
+    fixes = fixes || Fixes.propose(p, fixCtx());
+    if (!fixes.length) return toast('No automatic fix for this one: Problems has the details');
+    const pw = t => (App.adv ? t : Simple.plainWords(t));
+    UI.chooseCard(`Fix · ${pw(App.adv ? p.rule : Simple.titleOf(p) || p.rule)}`, pw(p.msg), fixes.map((f, i) => ({ id: String(i), primary: !i, label: pw(f.label), detail: pw(f.detail) })), c => Act.applyFix(fixes[+c]), 'Leave it');
   },
   // C1.ANCHOR.CYCLE: two honest ways out, with their effect, before choosing
   breakLoop(beatId) {
@@ -813,7 +957,8 @@ const Act = {
     if (busy()) return;
     const S = App.score, st = Act.bindStatus();
     if (!st.can) return toast(st.hint === 'Upgrade to schema 3 first' ? 'Upgrade the score to schema 3 first (Problems ▸ Upgrade…): only then can it carry marks and assets'
-      : st.hint === 'Already bound' ? 'This score is already bound to Unreal' : st.hint === 'No marks seed' ? 'obra/score/seed/marks-v1.json is not there: it says which Unreal mark each moment corresponds to' : 'obra/unreal/idmap.json is not there: make it with node tools/score/idmap.mjs');
+      : st.hint === 'Already bound' ? 'This score is already bound to Unreal' : st.hint === 'No marks seed' ? (App.adv ? 'obra/score/seed/marks-v1.json is not there: it says which Unreal mark each moment corresponds to' : 'The list of Unreal marks is not here, so there is nothing to bind to yet: ask whoever works in Unreal')
+        : (App.adv ? 'obra/unreal/idmap.json is not there: make it with node tools/score/idmap.mjs' : 'The list of Unreal assets is not here, so there is nothing to bind to yet: ask whoever works in Unreal'));
     const ctx = () => ({ gov: App.gov, Engine: ScoreEngine }), r = Edits.bindUnreal(S, App.markSeed, App.idmap, App.contract, App.roles, ctx());
     if (!r.next) {
       UI.chooseCard('The score cannot be bound yet', `Binding changes no time and guesses nothing, so it stopped:\n${r.report.refusals.map(x => '• ' + x.msg).join('\n')}`, [], () => {}, 'Close');
@@ -824,14 +969,16 @@ const Act = {
     if (lockedHit.length) { const e = S.elements[lockedHit[0]]; return toast(`${e.key} is in the locked group ${(S.groups.find(g => g.id === e.group) || {}).name}: unlock it first (binding changes ${lockedHit.length} element${lockedHit.length > 1 ? 's' : ''} there)`); }
     const rep = r.report, b = rep.beats, s = rep.sounds, cues = rep.reach.cues, rc = rep.reach.after, moves = cues.filter(c => c.action === 'appear' || c.action === 'disappear').length;
     const n = (k, one, many) => `${k} ${k === 1 ? one : many || one + 's'}`;
-    const amb = s.ambiguous.length ? ` · ${s.ambiguous.length} ambiguous (${[...new Set(s.ambiguous.map(a => a.asset))].join(', ')}: two files with that name, left unlinked)` : '';
+    const amb = !s.ambiguous.length ? '' : App.adv ? ` · ${s.ambiguous.length} ambiguous (${[...new Set(s.ambiguous.map(a => a.asset))].join(', ')}: two files with that name, left unlinked)` : ` · ${s.ambiguous.length} left unlinked (Unreal has two files with the same name)`;
     const body = [`Every moment gets the Unreal mark it corresponds to and every sound its Unreal asset. No time changes: the typical user stays at ${Integrity.fmt(rep.totals.typical)}, and so do the other simulated users.`,
       `${n(b.total, 'moment')}: ${b.onMark} on an Unreal mark, ${b.inside} inside one, ${b.preview} preview only${b.unmarked.length ? `, ${b.unmarked.length} without a mark` : ''}.`,
       `${n(s.linked, 'sound')} linked to Unreal assets${amb} · ${s.missing + s.haptics} not in Unreal (${s.missing} not in Content yet, ${n(s.haptics, 'haptic')}).`,
       `${n(rep.elements.bound, 'element')} now say${rep.elements.bound === 1 ? 's' : ''} what ${rep.elements.bound === 1 ? 'it is' : 'they are'} in Unreal (action, target, asset)${rep.elements.noUnreal ? `; the ${rep.elements.noUnreal} the contract says Unreal does not play get no action` : ''}.`]
-      .concat(rep.seed.pending ? [`The marks come from obra/score/seed/marks-v1.json, which is still ${rep.seed.status}${rep.seed.review ? ` (${n(rep.seed.review, 'open question')}, such as where S2.BEGIN falls)` : ''}. Binding does not make them final: Ctrl+Z takes them out again.`] : [])
-      .concat([`${n(rc.cue, 'element')} become${rc.cue === 1 ? 's' : ''} cue-ready: a cue could fire ${rc.cue === 1 ? 'it' : 'them'} from an Unreal mark${rc.wired > rep.reach.before.wired ? `. ${rc.wired - rep.reach.before.wired} more count as wired: Unreal already calls their asset` : ''}. There is no cue player in Unreal yet (BP_ScorePlayer_SC), so nothing changes in the APK.`
-        + (moves ? ` ${moves} of the cue-ready are Alma's appear and disappear: BP_Obra_SC already does them with its own graph, so ask the Director before a player relies on them.` : '')])
+      .concat(rep.seed.pending ? [App.adv ? `The marks come from obra/score/seed/marks-v1.json, which is still ${rep.seed.status}${rep.seed.review ? ` (${n(rep.seed.review, 'open question')}, such as where S2.BEGIN falls)` : ''}. Binding does not make them final: Ctrl+Z takes them out again.`
+        : `The marks are still a proposal waiting for the director's review${rep.seed.review ? ` (${n(rep.seed.review, 'open question')})` : ''}. Binding does not make them final: Ctrl+Z takes them out again.`] : [])
+      .concat([App.adv ? `${n(rc.cue, 'element')} become${rc.cue === 1 ? 's' : ''} cue-ready: a cue could fire ${rc.cue === 1 ? 'it' : 'them'} from an Unreal mark${rc.wired > rep.reach.before.wired ? `. ${rc.wired - rep.reach.before.wired} more count as wired: Unreal already calls their asset` : ''}. There is no cue player in Unreal yet (BP_ScorePlayer_SC), so nothing changes in the APK.`
+        + (moves ? ` ${moves} of the cue-ready are Alma's appear and disappear: BP_Obra_SC already does them with its own graph, so ask the Director before a player relies on them.` : '')
+        : `${n(rc.cue, 'element')} could later be fired from an Unreal mark. Unreal has no player for that yet, so nothing changes in the headset build.` + (moves ? ` ${moves} of them are Alma appearing and disappearing, which Unreal already does its own way: ask the director before anything relies on them.` : '')])
       .concat(rep.notes.map(t => 'Note: ' + t)).join('\n\n');
     UI.chooseCard('Bind the score to Unreal', body, [
       { id: 'go', primary: true, label: 'Bind (you can undo it)', detail: 'Ctrl+Z returns the score exactly as it is now. Nothing is sent to Unreal and nothing is saved until you press Ctrl+S.' },
@@ -983,7 +1130,9 @@ const Act = {
   // notes for the team (audit C13): add, edit, resolve or reopen, delete. Quiet edits, undoable like any other
   addNote(text) {
     text = String(text || '').trim(); if (!text) return false;
-    return commit('Note', { type: 'note', ids: [] }, n => { n.notes = n.notes || {}; n.notes['nt_' + Date.now().toString(36)] = { t: +App.ph.toFixed(2), who: App.who, text, at: new Date().toISOString(), el: App.selKind === 'el' ? App.sel : null }; });
+    // about a clip: it also keeps how far into the clip it was written (off), so it moves with it (Edits.followNotes); about nothing in particular, a time
+    const el = App.selKind === 'el' && App.score.elements[App.sel] ? App.sel : null, t = +App.ph.toFixed(2), T = el && App.schedT.t[el];
+    return commit('Note', { type: 'note', ids: [] }, n => { n.notes = n.notes || {}; n.notes['nt_' + Date.now().toString(36)] = Object.assign({ t, who: App.who, text, at: new Date().toISOString(), el }, T ? { off: +(t - T[0]).toFixed(4) } : {}); });
   },
   editNote(nid, text) {
     const x = (App.score.notes || {})[nid]; text = String(text || '').trim(); if (!x) return false;
@@ -1001,6 +1150,9 @@ const Act = {
   },
   // bookmarks (score.markers): a named point in time; rename, move along the ruler, delete (audit C13)
   bookmark() {
+    // a second M where one already is edits that bookmark (as in Premiere) instead of stacking another on top of it
+    const here = Object.entries(App.score.markers || {}).find(([, m]) => Math.abs(m.t - App.ph) < .03);
+    if (here) { if (busy()) return; UI.revealTime(App.ph); UI.renameMarker(here[0]); return toast(`There is a bookmark here already: type its new name · Enter keeps it, Esc cancels`); }
     const ok = commit('Bookmark', { type: 'marker', ids: [] }, n => {
       n.markers = n.markers || {}; const taken = new Set(Object.values(n.markers).map(m => m.name)); let k = Object.keys(n.markers).length + 1;
       while (taken.has('Bookmark ' + k)) k++;   // a deleted or renamed one never leaves two with the same name
@@ -1052,6 +1204,7 @@ function pasteClips(c, target, verb, where, lanes) {
   const label = `${verb} · ${keysText(plan.keys)}`, seq = App.toastSeq;
   if (!commit(label, { type: 'paste', ids: plan.ids }, n => { for (const k of Object.keys(n)) delete n[k]; Object.assign(n, JSON.parse(JSON.stringify(plan.next))); })) return false;
   setSelection(plan.ids, plan.ids[0]);
+  syncSoon();   // a copy of a loaded sound has its own file in the inbox (the same bytes)
   if (App.toastSeq === seq) toast(`${label} · ${where} · new: not in Unreal yet${plan.newLanes.length ? ` · ${plan.newLanes.length} new lane${plan.newLanes.length > 1 ? 's' : ''}` : ''}`);
   return true;
 }
@@ -1088,13 +1241,20 @@ function setSelection(ids, primary) {
 /* Ctrl+click: in or out of the selection · Shift+click: in */
 function toggleSel(id) { const cur = selIds(); if (!cur.includes(id)) return setSelection(cur.concat(id), id); const rest = cur.filter(x => x !== id); setSelection(rest, id === App.sel ? rest[rest.length - 1] : App.sel); }
 function addSel(id) { setSelection(selIds().concat(id), id); }
-/* Ctrl+A: every element of the moment at the playhead (locked groups stay out, as locked tracks in Premiere) */
+/* Ctrl+A: every element of the moment at the playhead (locked groups stay out, as locked tracks in Premiere; so do the collapsed ones: what
+   cannot be seen is not edited by a key) */
 function selectMoment() {
   const b = beatAt(App.ph), T = App.sched.t, own = Object.keys(App.score.elements).filter(id => App.score.elements[id].beat === b).sort((x, y) => T[x][0] - T[y][0]);
-  const ids = own.filter(id => !App.locked[App.score.elements[id].group]), out = own.length - ids.length;
-  if (!ids.length) return toast(own.length ? `Every element of moment ${App.score.beats[b].key} is in a locked group` : `Moment ${App.score.beats[b].key} has no elements`);
+  const gr = id => App.score.elements[id].group, ids = own.filter(id => !App.locked[gr(id)] && !groupCollapsed(gr(id)));
+  const locked = own.filter(id => App.locked[gr(id)]).length, hidden = own.filter(id => !App.locked[gr(id)] && groupCollapsed(gr(id))).length;
+  if (!ids.length) return toast(own.length ? `Every element of moment ${App.score.beats[b].key} is in a ${locked && hidden ? 'locked or collapsed' : locked ? 'locked' : 'collapsed'} group` : `Moment ${App.score.beats[b].key} has no elements`);
   setSelection(ids, ids[0]);
-  toast(`${ids.length} element${ids.length > 1 ? 's' : ''} of moment ${App.score.beats[b].key} selected${out ? ` · ${out} in locked groups left out` : ''} · Esc clears`);
+  toast(`${ids.length} element${ids.length > 1 ? 's' : ''} of moment ${App.score.beats[b].key} selected${locked ? ` · ${locked} in locked groups left out` : ''}${hidden ? ` · ${hidden} in collapsed groups left out` : ''} · Esc clears`);
+}
+/* a group that is collapsed hides its clips: they leave the selection, so no key edits what is not on screen */
+function deselectGroup(gid) {
+  const cur = selIds(), keep = cur.filter(id => App.score.elements[id].group !== gid);
+  if (keep.length !== cur.length) setSelection(keep, keep.includes(App.sel) ? App.sel : keep[0]);
 }
 /* what no longer exists leaves the selection; the primary passes to another selected clip */
 function pruneSel() {
@@ -1119,14 +1279,14 @@ function applyMode() {
 }
 function setMode(m) { App.mode = m; applyMode(); UI.renderAll(); if (App.SC) { seekProto(App.ph, true); protoResize(); } }
 function seek(t, fromChannel) {
-  App.ph = clamp(t, 0, App.sched.total);
+  App.ph = clamp(t, 0, App.sched.total); _lagFrom = null;   // a jump is not lag
   seekProto(App.ph); UI.movePlayhead();
   if (App.sound) ambSoon();
   if (!fromChannel) post({ t: App.ph, playing: App.playing, rate: App.rate });   // the speed travels with it: a seek never resets the other tab to 1×
 }
 let _sp = 0;
 function seekProto(t, now) { if (!App.SC) return; if (now) { try { App.SC.seek(t); } catch (_) {} return; } if (_sp) return; _sp = requestAnimationFrame(() => { _sp = 0; try { App.SC.seek(App.ph); } catch (_) {} }); }
-let _last = 0, _ticking = false, _lastPost = 0, _lastAmb = 0;
+let _last = 0, _ticking = false, _lastPost = 0, _lastAmb = 0, _lagFrom = null;
 /* transport (audit C10). App.rate is the signed speed: 1, 2, 4 forward (the 3D plays at that speed, with its sound) or
    −1, −2, −4 backwards (the editor's clock drives and the 3D is sought every frame, silent). Stopping goes back to 1×.
    With an In/Out range, playback starts at In when the playhead is outside it and stops at Out (Transport.startAt/advance) */
@@ -1135,7 +1295,7 @@ function play(on, fromChannel, rate) {
   const was = App.playing, wasR = App.rate, r = on ? (rate || (was ? App.rate : 1)) : 1;
   // a new start (or a change of direction) enters the range; the other tab only follows
   if (on && !fromChannel && (!was || Math.sign(r) !== Math.sign(wasR))) { const t = Transport.startAt(App.ph, r, playBounds(), App.sched.total); if (Math.abs(t - App.ph) > 1e-6) seek(t, true); }
-  App.playing = on; App.rate = r; _last = performance.now();
+  App.playing = on; App.rate = r; _last = performance.now(); _lagFrom = null;
   // the 3D starts from the playhead itself (a jump to In is not left to the next frame), at the speed, with its sound
   if (App.SC && (was !== on || wasR !== r)) { try { if (on && !(was && wasR > 0)) App.SC.seek(App.ph); App.SC.S.speed = r > 0 ? r : 1; App.SC.setPlaying(on && r > 0); } catch (_) {} }
   if (on && !_ticking) { _ticking = true; requestAnimationFrame(tick); }
@@ -1147,8 +1307,8 @@ function tick(now) {
   if (!App.playing) { _ticking = false; return; }
   // forward, the 3D clock leads while it plays (at the same speed); if it stops first (its end, a gap), or backwards,
   // the editor's own clock carries on
-  const ps = App.SC && App.SC.S, r = App.rate, prev = App.ph;
-  const next = r > 0 && ps && ps.playing && Math.abs(ps.t - prev) < Math.max(1, r) ? ps.t : prev + (now - _last) / 1000 * r;
+  const ps = App.SC && App.SC.S, r = App.rate, prev = App.ph, lead = r > 0 && ps && ps.playing && Math.abs(ps.t - prev) < Math.max(1, r);
+  const next = lead ? ps.t : prev + (now - _last) / 1000 * r, gap = now - _last > 250;   // a gap: the tab was hidden, the page got no frames
   _last = now;
   const st = Transport.advance(prev, next, r, playBounds(), App.sched.total);
   App.ph = st.t;
@@ -1158,6 +1318,11 @@ function tick(now) {
   if (now - _lastPost > 1000) { _lastPost = now; post({ t: App.ph, playing: App.playing, rate: App.rate }); }
   // the next ambience is decoded before the playhead reaches it
   if (App.sound && now - _lastAmb > 2000) { _lastAmb = now; ambSoon(); }
+  // the playhead follows the 3D clock, which takes at most 50 ms of piece per frame: on a computer that draws it under ~20 fps the timecode runs slower
+  // than the wall clock (and a sound goes on at its own pace). Said once, never changed: the 3D is the prototype's, and what it plays is what it plays
+  if (!lead || gap) _lagFrom = lead ? { wall: now, t: App.ph } : null;   // time with no frames is not a slow 3D: measured again from here
+  else if (!_lagFrom) _lagFrom = { wall: now, t: prev };
+  else if (!App.lagSaid && Transport.lagging(_lagFrom, { wall: now, t: App.ph }, r)) { App.lagSaid = true; toast('The 3D preview is running slowly on this computer and the timecode follows it, so it runs slower than the clock on the wall. Sound off, or fewer open tabs, helps'); }
   UI.movePlayhead(true); requestAnimationFrame(tick);
 }
 /* J (−1) / L (+1): faster each press, up to 4×; K held: a step of 0.1 s, paused */
@@ -1210,6 +1375,11 @@ function initViewer() {
         w.addEventListener('keydown', ev => { onKey(ev); ev.stopImmediatePropagation(); }, true);
         w.addEventListener('keyup', ev => { onKeyUp(ev); ev.stopImmediatePropagation(); }, true);   // K released, Alt released
         w.addEventListener('mousedown', () => document.querySelectorAll('.menu.ov,.qa.ov').forEach(n => n.remove()), true);
+        // a file dropped on the 3D would open in the frame, in place of the preview
+        w.addEventListener('dragover', ev => { if (hasFiles(ev)) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'none'; } });
+        w.addEventListener('drop', ev => onDropFile(ev, true));
+        // the prototype warns (in Spanish) about an anchor loop of ITS OWN schedule on every push of the score; the editor says its own, in Problems
+        try { const warn = w.console.warn.bind(w.console); w.console.warn = (...a) => { if (!/^Ciclo de anclas/.test(String(a[0]))) warn(...a); }; } catch (_) {}
         try { f.blur(); window.focus(); } catch (_) {}
         // the editor drives: interaction is simulated (waits last what the score says), voices play with their subtitles
         try { w.SC.S.live = false; w.SC.S.voMode = 'both'; for (const k in w.SC.GL) delete w.SC.GL[k]; for (const k in w.SC.CUT) delete w.SC.CUT[k]; } catch (_) {}
@@ -1372,7 +1542,7 @@ async function doSend(merged, prevWaiting) {
   } catch (e) { return toast('Not sent: ' + e.message); }
   App.prop = doc;
   commit('Sent to Unreal', { type: 'sent', ids: [] }, n => { n.propuestas = { valores: {}, motivos: {} }; });   // what was sent now lives in the file
-  toast(`Sent to Unreal: ${Object.keys(merged).length} change${Object.keys(merged).length > 1 ? 's' : ''} · obra/unreal/partitura_propuesta.json · Save (Ctrl+S) to keep the score`);
+  toast(`Sent to Unreal: ${Object.keys(merged).length} change${Object.keys(merged).length > 1 ? 's' : ''}${App.adv ? ' · obra/unreal/partitura_propuesta.json' : ''} · Save (Ctrl+S) to keep the score`);
 }
 /* Unreal publishes new values (partitura.json), the fate of what was sent (partitura_propuesta.json) and a new run
    (traza.json); the seed of the marks may be corrected by hand: look again when the window gets focus and every 20 s.
@@ -1429,28 +1599,42 @@ function markDirty() {
   if (!App.dirty) { try { localStorage.removeItem(LS_DRAFT); } catch (_) {} }
   _draftT = setTimeout(() => { if (App.dirty) lsSet(LS_DRAFT, { baseRev: App.baseRev, baseHash: App.diskHash, savedAt: Date.now(), score: App.score }); post({ score: App.score }); }, 400);
 }
-async function save(force) {
+/* diskRev: the revision somebody else saved after this one was opened (the conflict card's overwrite): the new one comes after THEIRS, never the same number */
+async function save(force, diskRev) {
   if (App.view === '3d') return toast('Save from the timeline tab.');
-  if (App.saving) return; if (App.cardOpen) return toast('Finish the open decision first');
-  const next = JSON.parse(JSON.stringify(App.score)); next.rev = (App.baseRev || 1) + 1; next.savedBy = App.who; next.savedAt = new Date().toISOString();
+  if (App.saving) return;
+  flushPending();   // words still being typed are part of what is saved
+  if (App.cardOpen) return toast('Finish the open decision first');
+  if (!App.dirty && !force) return toast(`Nothing to save: rev ${App.baseRev} on disk is what you see`);   // every save is a revision and a copy of the one it replaces (the last 40 are kept)
+  // "Save mine as a copy and keep working" was chosen and nothing was edited since: the same card again would ask the same question about the same work
+  const kc = App.keptCopy;
+  if (kc && !force && kc.seq === (App.editSeq || 0)) return toast(`Nothing new to save: your version is already in ${kc.path} and rev ${kc.rev} (theirs) is on disk`, { label: 'Choose again', fn: () => { App.keptCopy = null; save(); } });
+  const next = JSON.parse(JSON.stringify(App.score)); next.rev = Math.max(App.baseRev || 1, diskRev || 0) + 1; next.savedBy = App.who; next.savedAt = new Date().toISOString();
   // the rules of the piece first (js/check.js: the same module the server runs with node, tools/score/check.mjs): a score that
   // breaks one is not even sent. Not even with force: that only skips the conflict, never the rules
   const rules = checkScore(next, App.savedScore);
   if (rules && !rules.ok) return ruleCard(rules.errors);
   const seq = App.editSeq || 0; App.saving = true;
+  let P = null, landed = false;
   try {
+    // the sound files the score names are in the inbox before the score that names them is written (the ones the saved score names are overwritten
+    // only here: if the save then does not land, they are put back)
+    try { P = await syncInbox(next, true); } catch (e) { App.saving = false; return toast(`Not saved: a sound file could not be put in the inbox (${e.message}). Nothing was written.`); }
+    if (P.missing.length) { App.saving = false; return missingCard(P.missing); }
     const r = await fetch('/api/score', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Base-Rev': String(App.baseRev || 0), 'X-Base-Hash': App.diskHash || '', 'X-Force': force ? '1' : '0' }, body: JSON.stringify(next) });
     const j = await r.json();
-    if (r.status === 409 && j.code !== 'schema-down') { App.saving = false; return conflict(j); }
-    if (r.status === 422 && j.code === 'invariants') { App.saving = false; return ruleCard(j.errors); }   // the server found one the editor did not (another base)
+    if (r.status === 409 && j.code !== 'schema-down') { App.saving = false; restoreInbox(P).catch(() => {}); return conflict(j); }
+    if (r.status === 422 && j.code === 'invariants') { App.saving = false; restoreInbox(P).catch(() => {}); return ruleCard(j.errors); }   // the server found one the editor did not (another base)
     if (!r.ok) throw new Error(j.error || r.status);
+    landed = true; App.keptCopy = null;
     App.score.rev = next.rev; App.score.savedBy = next.savedBy; App.score.savedAt = next.savedAt;
     App.baseRev = next.rev; App.diskHash = j.hash || null; App.savedAt = j.saved; App.savedScore = JSON.parse(JSON.stringify(next));
+    seedMine(next); syncSoon();   // the saved score is the one the inbox follows now: a file only the earlier one named goes
     if ((App.editSeq || 0) === seq) { App.dirty = false; try { localStorage.removeItem(LS_DRAFT); } catch (_) {} }   // an edit made while saving stays unsaved
     else markDirty();
     // saved, but the server could not run the full check (no node, VVR_CHECK=off, a timeout): said, never silent
-    UI.renderTop(); UI.renderStatus(); toast(j.check && j.check !== 'full' ? `Saved without the full check (${j.checkWhy || j.check}) · rev ${next.rev}` : 'Saved · rev ' + next.rev + ' · obra/score/score.json');
-  } catch (e) { toast('Could not save: ' + e.message); }
+    UI.renderTop(); UI.renderStatus(); toast(j.check && j.check !== 'full' ? `Saved without the full check (${j.checkWhy || j.check}) · rev ${next.rev}` : (App.adv ? 'Saved · rev ' + next.rev + ' · obra/score/score.json' : 'Saved · revision ' + next.rev));
+  } catch (e) { if (!landed) restoreInbox(P).catch(() => {}); toast('Could not save: ' + e.message); }
   App.saving = false;
 }
 /* the invariants of a score against the one it replaces (js/check.js); null when the check itself could not run: the server
@@ -1473,32 +1657,49 @@ function ruleCard(errors) {
     toast(path ? 'Your version is safe in ' + path : 'Could not save the copy: nothing was changed');
   });
 }
+/* an ISO time (UTC, as the score keeps it) in this computer's clock, like the status bar: "2026-10-15 13:34" */
+function localStamp(iso) {
+  const d = new Date(iso); if (isNaN(d)) return String(iso).replace('T', ' ').slice(0, 16);
+  const z = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+}
 /* someone saved after you opened it: say who, and let you choose (A2) */
 function conflict(j) {
-  const who = j.savedBy ? ` by ${j.savedBy}` : '', when = j.savedAt ? ' at ' + String(j.savedAt).replace('T', ' ').slice(0, 16) : '';
+  const who = j.savedBy ? ` by ${j.savedBy}` : '', when = j.savedAt ? ' at ' + localStamp(j.savedAt) : '';
   UI.chooseCard('Someone saved after you', `obra/score/score.json is now rev ${j.rev}${who}${when}. You opened rev ${App.baseRev}. Saving now would erase their work.`, [
     { id: 'copy', primary: true, label: 'Keep both: save mine as a copy and open theirs', detail: 'Your version goes to obra/score/copias/; you can compare and bring over what you need.' },
     { id: 'mine', label: 'Save mine as a copy and keep working on it', detail: 'Nothing is overwritten; the score on disk stays theirs.' },
     { id: 'force', danger: true, label: 'Overwrite theirs with mine', detail: 'Their version stays only in obra/score/history/.' },
   ], async c => {
-    if (c === 'force') return save(true);
+    if (c === 'force') return save(true, j.rev);
     const path = await saveCopy(App.score, 'conflict');
     if (!path) return toast('Could not save the copy: nothing was changed');
     if (c === 'copy') { App.dirty = false; try { localStorage.removeItem(LS_DRAFT); } catch (_) {} toast('Your version: ' + path + ' · opening theirs'); setTimeout(() => location.reload(), 900); }
-    else toast('Your version is safe in ' + path);
+    else { App.keptCopy = { seq: App.editSeq || 0, path, rev: j.rev }; toast('Your version is safe in ' + path); }
   });
 }
-async function reloadFromDisk() { try { localStorage.removeItem(LS_DRAFT); } catch (_) {} location.reload(); }
+/* File ▸ Reload from disk, already confirmed by the menu when there was unsaved work: the browser does not ask again (App.leaving), the draft goes, and so do the
+   WAV files this page put in the inbox for sounds no saved score names (the work they belonged to is let go; Inbox.plan only takes out what this page put there) */
+async function reloadFromDisk() {
+  App.leaving = true; clearTimeout(_draftT);
+  try { localStorage.removeItem(LS_DRAFT); } catch (_) {}
+  try { await syncInbox(App.savedScore); } catch (_) {}
+  location.reload();
+}
 function exportScore() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(App.score, null, 1)], { type: 'application/json' })); a.download = 'score-rev' + App.baseRev + '.json'; a.click(); }
 function importScore(file) {
   if (busy()) return;
   file.text().then(t => {
+    if (!t.trim()) return toast(`${file.name} is empty: there is no score in it. Nothing was imported`);
     const s = JSON.parse(t); const r = Edits.validate(s, ScoreEngine);   // never assign something that does not compute (A9); schema 2 and 3
     // the schema only goes up (the server refuses an older score over a newer one): an older file would be refused at the first save
     if (s.schema < App.score.schema) return toast(`${file.name} is a schema ${s.schema} score and this one is schema ${App.score.schema}: an older score can't replace it. Nothing was imported`);
     // the same rules the save will ask (js/check.js), against the score it would replace: a file that breaks one could never be saved
     const rules = checkScore(s, App.score);
     if (rules && !rules.ok) return toast(`${file.name} breaks a rule: ${rules.errors[0].msg}${rules.errors.length > 1 ? ` (and ${rules.errors.length - 1} more)` : ''} Nothing was imported`);
+    // and the lock: commit() refuses what changes, takes out or puts in an element of a locked group, so say so before a card asks for a decision it cannot carry out
+    const lk = lockedChange(App.score, s);
+    if (lk) return toast(`${file.name} would change ${lk.key}, which is in the locked group ${groupName(lk.group)}: unlock it first. Nothing was imported`);
     // the card names everything the import replaces, not only the elements; the bookmarks, notes, accepted problems and
     // values waiting for Unreal that the file does not have are the team's, and can stay (logic and tests: js/edits.js)
     const d = Edits.importDiff(App.score, s), w = Edits.importWords(d);
@@ -1515,37 +1716,177 @@ function importScore(file) {
       const src = c === 'keep' ? Edits.keepOwn(App.score, s) : s;
       commit('Import ' + file.name, { type: 'import', ids: [] }, n => { for (const k of Object.keys(n)) delete n[k]; Object.assign(n, src, { rev: App.score.rev }); });
     });
-  }).catch(e => toast('Could not import: ' + e.message));
+  }).catch(e => toast(`Could not import ${file.name}: ` + (e instanceof SyntaxError ? 'it is not a score file (it is not valid JSON)' : Edits.invalidWords(e.message)) + '. Nothing was imported'));
 }
 
-/* ---------- WAV for a new sound ---------- */
-function wavHeader(buf) { try { const d = new DataView(buf); if (d.getUint32(0, false) !== 0x52494646 || d.getUint32(8, false) !== 0x57415645) return null; let o = 12; while (o + 8 <= d.byteLength) { const id = d.getUint32(o, false), sz = d.getUint32(o + 4, true); if (id === 0x666d7420) return { fmt: d.getUint16(o + 8, true), ch: d.getUint16(o + 10, true), sr: d.getUint32(o + 12, true), bits: d.getUint16(o + 22, true) }; o += 8 + sz + (sz & 1); } } catch (_) {} return null; }
-const BLOBS = {};
-async function loadWav(id, file) {
-  const e = App.score.elements[id]; if (!e) return;
-  const buf = await file.arrayBuffer(); const hdr = wavHeader(buf);
-  if (!hdr) return toast('Not a WAV file: Unreal needs a PCM WAV.');
-  let dur = 0; try { const ac = new (window.AudioContext || window.webkitAudioContext)(); const ab = await ac.decodeAudioData(buf.slice(0)); dur = ab.duration; ac.close(); } catch (_) {}
-  BLOBS[id] = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
-  let name = e.key;
-  if (/^FX_NEW_SOUND/.test(name)) {   // a new name must not be another element's, nor a real sound of the piece (A11)
-    const taken = new Set(Object.entries(App.score.elements).filter(([k]) => k !== id).flatMap(([, x]) => [x.key, x.sound]).filter(Boolean));
-    name = cleanId(file.name); let i = 2; const base = name; while (taken.has(name)) name = base + '_' + (i++);
-  }
-  let uploaded = null;
-  try { const r = await fetch('/api/audio?name=' + encodeURIComponent(id) + '&overwrite=1', { method: 'POST', body: buf }); const j = await r.json(); if (r.ok) uploaded = j.path; else toast('Upload: ' + j.error); } catch (_) {}
-  commit(`Load WAV · ${name}`, { type: 'audio', ids: [id] }, n => { const x = n.elements[id]; x.key = name; x.label = name; x.sound = name; x.audio = { file: file.name, dur: +dur.toFixed(3), sr: hdr.sr, ch: hdr.ch, bits: hdr.bits, pcm: hdr.fmt === 1, inbox: uploaded }; });
-  if (uploaded) toast('WAV saved to ' + uploaded + ' · imported into Unreal on the next push');
+/* ---------- WAV for a new sound ----------
+   A WAV loaded into a new sound waits in obra/audio/inbox/<element id>.wav until Unreal imports it. The score names the file by its hash
+   (audio.hash) and the inbox has to hold exactly that file, whatever happens to the sound: replace it, undo, delete it, copy it. So the
+   files are not sent once and forgotten: syncInbox (js/inbox.js says what to do) runs after the load, after every undo and redo, and
+   before every save, and a score is never written while a file it names is not there. FILES keeps the bytes this page was given, so
+   an undo can send an earlier file again; MINE is the ids whose file the editor put there (or the saved score names): the only ones it
+   ever takes out.
+   The file the SAVED score names for a sound is never overwritten or taken out before a save says otherwise: Replace WAV on a saved sound
+   waits in FILES and goes to the inbox with the save (Inbox.plan `defer`); and a file a score still names (the saved one, the screen, any step
+   of undo or redo) is read into FILES before anything overwrites or deletes it (keepInboxFile): a page that was reloaded was never given
+   its bytes, and an undo of Replace WAV would otherwise find it gone. */
+const FILES = {};
+const MINE = new Set();
+const seedMine = score => { for (const id of Object.keys(Inbox.wanted(score))) MINE.add(id); };
+async function inboxCall(method, path, body) {
+  let r, j; try { r = await fetch(path, { method, body, cache: 'no-store' }); } catch (_) { throw new Error("the editor's server did not answer"); }
+  try { j = await r.json(); } catch (_) { j = {}; }
+  if (!r.ok) throw new Error(j.error || 'the server answered ' + r.status);
+  return j;
 }
-function cleanId(v) { v = String(v || '').trim().replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9_]+/g, '_').replace(/^_+|_+$/g, ''); if (/^hap_/i.test(v)) v = v.slice(4); const m = v.match(/^(fx|vo|amb)_/i); return m ? m[1].toUpperCase() + v.slice(m[1].length) : 'FX_' + (v || 'NEW_SOUND'); }
+const inboxPut = (id, blob) => inboxCall('POST', '/api/audio?name=' + encodeURIComponent(id) + '&overwrite=1', blob);
+/* what the inbox holds now: { element id: hash } */
+async function inboxListing() {
+  const files = (await inboxCall('GET', '/api/audio/inbox')).files || {}, listing = {};
+  for (const k of Object.keys(files)) listing[k] = files[k].hash;
+  return listing;
+}
+/* the file the inbox holds for `id` (its hash is `hash`) is about to be overwritten or taken out: when a score still names it (the saved one, the
+   screen, any step of undo or redo), its bytes are kept in FILES first. A page that was reloaded was never given them, and the undo of a Replace WAV
+   would find the earlier file gone ("a sound file is missing" although one is there: another). A file nobody names is not worth a read */
+async function keepInboxFile(id, hash, score) {
+  if (!hash || FILES[hash]) return;
+  const named = [App.savedScore, App.score, score].some(s => s && Inbox.wanted(s)[id] === hash) || App.undo.concat(App.redo).some(s => s.includes(hash));
+  if (!named) return;
+  let r = null; try { r = await fetch('/obra/audio/inbox/' + id + '.wav', { cache: 'no-store' }); } catch (_) {}
+  if (!r) throw new Error('the file it replaces could not be read first');
+  if (!r.ok) return;   // not there any more: nothing to keep
+  const blob = await r.blob();
+  if (await sha12(await blob.arrayBuffer()) === hash) FILES[hash] = { blob, name: id + '.wav' };   // a file somebody changed meanwhile is another one: not kept under this hash
+}
+let _inboxQ = Promise.resolve();
+/* one at a time, each on the score it is given (the one on screen unless said): two syncs never interleave. final = a save: the files the saved
+   score names may be overwritten now. Resolves to the plan: `missing` lists the files nobody has the bytes of any more (the page was reloaded
+   after the file was gone or replaced), `over` the saved files this sync overwrote (restoreInbox puts them back if the save fails) */
+function syncInbox(score, final) {
+  const run = () => inboxSync(score || App.score, final), p = _inboxQ.then(run, run);
+  _inboxQ = p.catch(() => {}); return p;
+}
+async function inboxSync(score, final) {
+  const listing = await inboxListing();
+  const P = Inbox.plan(score, listing, { held: h => !!FILES[h], mine: MINE, keep: [App.savedScore], final });
+  // the bytes of every file to send are in hand before anything is written (a duplicate reads the file it is a copy of)
+  const jobs = [];
+  for (const u of P.upload) {
+    let f = FILES[u.hash];
+    if (!f) {
+      let r = null; try { r = await fetch('/obra/audio/inbox/' + u.from + '.wav', { cache: 'no-store' }); } catch (_) {}
+      if (!r || !r.ok) { P.missing.push(u); continue; }
+      f = FILES[u.hash] = { blob: await r.blob(), name: u.id + '.wav' };
+    }
+    jobs.push([u, f.blob]);
+  }
+  // a save that is going to be refused for a missing file writes nothing: the files it would overwrite are the ones the saved score names
+  if (final && P.missing.length) { P.over = []; return P; }
+  // what is about to be overwritten or taken out is read first when something still names it (and the page does not have it)
+  for (const [u] of jobs) await keepInboxFile(u.id, u.was, score);
+  for (const id of P.remove) await keepInboxFile(id, listing[id], score);
+  const saved = Inbox.wanted(App.savedScore);
+  P.over = jobs.filter(([u]) => u.was && saved[u.id] === u.was).map(([u]) => ({ id: u.id, was: u.was }));
+  for (const [u, blob] of jobs) { await inboxPut(u.id, blob); MINE.add(u.id); }
+  for (const id of P.remove) { await inboxCall('DELETE', '/api/audio?name=' + encodeURIComponent(id)); MINE.delete(id); }
+  return P;
+}
+/* a save that did not land (a conflict, a rule, the network) after its files went: the files the saved score names are put back, so the inbox still
+   holds what is on disk (the next save sends the new ones again) */
+function restoreInbox(P) {
+  const run = async () => { for (const o of (P && P.over) || []) { const f = FILES[o.was]; if (f) await inboxPut(o.id, f.blob); } }, p = _inboxQ.then(run, run);
+  _inboxQ = p.catch(() => {}); return p;
+}
+/* after an undo or a redo: only when there is something for the inbox to do (an editor with no sounds of its own asks nothing) */
+function syncSoon() {
+  if (App.view === '3d' || !(MINE.size || Object.keys(Inbox.wanted(App.score)).length)) return;
+  syncInbox().catch(e => toast(`The WAV inbox could not be updated (${e.message}) · it is tried again when you save`));
+}
+/* a score names a file that is not in the inbox and this page no longer has it (a reload after the file was taken out or replaced): saving would
+   give Unreal a description of a file it will never get. `was` on a missing file: another file is there, not the one the score names */
+function missingCard(missing) {
+  const keys = keysText(missing.map(m => (App.score.elements[m.id] || {}).key || m.id)), first = missing.find(m => App.score.elements[m.id]);
+  const what = missing.every(m => m.was) ? 'is not the one in obra/audio/inbox (another file is there)' : missing.some(m => m.was) ? 'is not in obra/audio/inbox as the score says' : 'is not in obra/audio/inbox any more';
+  UI.chooseCard('A sound file is missing', `Nothing was saved. ${keys} ${missing.length > 1 ? 'name' : 'names'} a WAV that ${what} and this page does not have it. Load it again (Replace WAV…), or delete the sound.`,
+    first ? [{ id: 'show', primary: true, label: 'Show me the first one', detail: 'Selects it: Replace WAV… in its inspector loads the file again.' }] : [], c => { if (c === 'show' && first) UI.goto(first.id); }, 'Close');
+}
+/* on opening: the inbox has to hold the files the score on screen names. What left it otherwise (a file moved by hand, a version of the editor that
+   overwrote it before the save) is said now, not at the first save that is refused */
+async function checkInbox() {
+  if (App.view === '3d') return;
+  try {
+    const P = Inbox.plan(App.score, await inboxListing(), { final: true });
+    if (P.missing.length) toast(`${keysText(P.missing.map(m => (App.score.elements[m.id] || {}).key || m.id))} ${P.missing.length > 1 ? 'name' : 'names'} a WAV that ${P.missing.every(m => m.was) ? 'is not the one waiting' : 'is not'} in obra/audio/inbox: load it again (Replace WAV…) before you save`);
+  } catch (_) {}
+}
+async function loadWav(id, file) {
+  const e0 = App.score.elements[id]; if (!e0 || !file) return;
+  if (App.cardOpen) return toast('Finish the open decision first');
+  const gname = g => (App.score.groups.find(x => x.id === g) || {}).name || g;
+  if (App.locked[e0.group]) return toast(`${e0.key} is in the locked group ${gname(e0.group)}: unlock it first`);
+  // no decoding: the header gives the length, the format and whether Unreal can take it (a 20 MB file does not freeze the editor)
+  const buf = await file.arrayBuffer(), w = Inbox.check(buf);
+  if (!w.ok) return toast(`${file.name} ${w.why}`);
+  const hash = await sha12(buf);
+  if (!hash) return toast(`${file.name} could not be checked: open the editor at http://localhost (this browser only checks files on a secure page)`);
+  const f = FILES[hash] = FILES[hash] || { blob: new Blob([buf], { type: 'audio/wav' }), name: file.name };
+  // a new sound's file goes to the inbox before the score says it is there: a server that cannot take it is said now, and nothing is loaded.
+  // A sound the SAVED score gives a file to keeps that file until a save: the new one waits here (an undo, a reload or a closed tab before the
+  // save finds the piece as it was) and goes with the save
+  const later = !!Inbox.wanted(App.savedScore)[id];
+  try {
+    const here = await inboxListing();   // also says the server answers
+    if (!later) { await keepInboxFile(id, here[id]); await inboxPut(id, f.blob); MINE.add(id); }
+  } catch (err) { return toast(`${file.name} was NOT saved to the inbox (${err.message}): nothing was loaded`); }
+  // the sound may have been deleted while its file was read and sent (a 20 MB file takes a moment): the file goes out again, nothing is added
+  const e = App.score.elements[id];
+  if (!e) { syncSoon(); return toast(`${e0.key} was deleted while its file was loading: nothing was added`); }
+  let name = e.key;
+  if (e.type === 'sound' && /^FX_NEW_SOUND/.test(name)) {   // a new name must not be another element's, nor a real sound of the piece (A11)
+    const taken = new Set(Object.entries(App.score.elements).filter(([k]) => k !== id).flatMap(([, x]) => [x.key, x.sound]).filter(Boolean));
+    const base = Inbox.nameFor(file.name, e.type); name = base; let i = 2; while (taken.has(name)) name = base + '_' + (i++);
+  }
+  const audio = { file: file.name, dur: w.dur, sr: w.sr, ch: w.ch, bits: w.bits, pcm: true, hash, inbox: Inbox.pathOf(id) }, seq = App.toastSeq;
+  const ok = commit(`Load WAV · ${name}`, { type: 'audio', ids: [id] }, n => {
+    const x = n.elements[id]; if (!x) return false;
+    if (x.type === 'sound') { x.key = name; x.label = name; x.sound = name; }
+    x.audio = audio;
+    if (x.type === 'vo') x.dur = { mode: 'audio', value: +w.dur.toFixed(4) };   // a voice lasts what its recording lasts (as in Unreal): no longer the estimate from its words
+  });
+  if (!ok) { syncSoon(); return; }   // refused (it said why): the file the sound had before is sent again
+  const said = later ? (App.adv ? `WAV loaded · it goes to ${audio.inbox} when you save, and into Unreal on the next push` : 'WAV loaded · it goes with the next save, and into Unreal on the next push') : (App.adv ? `WAV saved to ${audio.inbox} · imported into Unreal on the next push` : 'WAV loaded · it goes into Unreal on the next push'), was = (document.querySelector('.toast') || {}).textContent;
+  toast(App.toastSeq === seq || !was ? said : `${was} · ${said}`);   // a voice that now lasts its recording says how much that moved: both are said
+}
+/* ▶ of a sound made here: the file this page was given, else the one in the inbox (after a reload), else the recording of the voice it is a copy of */
+let _newPlay = null;
+function playNew(id) {
+  const e = App.score.elements[id], a = e && e.audio; if (!a) return;
+  if (_newPlay) { const was = _newPlay; _newPlay = null; was.pause(); if (was._id === id) return; }   // ▶ again stops it
+  const start = (url, own) => {
+    const au = _newPlay = new Audio(url); au._id = id;
+    const end = () => { if (_newPlay === au) _newPlay = null; if (own) URL.revokeObjectURL(own); };
+    au.onended = end; au.play().catch(() => { toast('Could not play ' + a.file); end(); });
+  };
+  if (a.hash && FILES[a.hash]) { const own = URL.createObjectURL(FILES[a.hash].blob); return start(own, own); }
+  // after a reload: the file in the inbox, when it is the one the score names (a Replace WAV not saved yet lives only in the page that did it)
+  if (a.hash && a.inbox) return inboxListing().then(l => l[id] === a.hash ? start('/obra/audio/inbox/' + id + '.wav?h=' + a.hash) : toast(`${e.key} names a WAV that is not in the inbox (${a.file}): load it again with Replace WAV…`)).catch(() => toast('Could not play ' + a.file));
+  // its own recording in the voice folders or the effects map (a voice timed from the final mix only notes it: audio.src 'mix')
+  const own = Media.soundId(e); if (own && Media.fileOf(e, App.media)) return listen(own);
+  const o = e.copyOf && App.score.elements[e.copyOf], sid = o && Media.soundId(o); if (sid && App.media && App.media[sid]) return listen(sid); return toast('This sound has no file the editor can play');
+}
 
 /* ---------- two tabs: timeline + 3D view stay in sync ---------- */
 let BC = null;
 function initChannel() {
   try {
     BC = new BroadcastChannel('sc-editor');
+    if (App.view !== '3d') setTimeout(() => post({ hello: 'timeline' }), 1200);   // after the opening toasts: a timeline tab that is already open answers
     BC.onmessage = m => {
       const d = m.data || {}; if (d.from === App.tab) return;
+      // another timeline tab opened on the same score: each one writes its own unsaved work to the same draft and the second save meets a conflict
+      if (d.hello === 'timeline' && App.view !== '3d') post({ here: 'timeline' });
+      if (d.here === 'timeline' && App.view !== '3d' && !App.twinSaid) { App.twinSaid = true; toast('The timeline is already open in another tab: unsaved work from two tabs shares one draft and the second save finds a conflict. Close one, or use Window ▸ Open the 3D view in a new tab for a second window'); }
       // the 3D tab gets every edit, so its moment names and totals never go stale (it never saves)
       if (d.score && App.view === '3d') { App.score = d.score; App.edited = true; compute(); UI.renderTransport(); UI.renderViewerBar(); UI.renderStatus(); }
       if (d.branchView && App.view === '3d') { App.branchView = d.branchView; compute(); UI.renderTransport(); UI.renderViewerBar(); UI.renderStatus(); }   // the side of SHARE / DON'T SHARE on screen
@@ -1560,9 +1901,46 @@ function initChannel() {
 function post(m) { if (BC) try { BC.postMessage(Object.assign({ from: App.tab }, m)); } catch (_) {} }
 function openSecondTab() { window.open(location.pathname + '?view=3d', '_blank'); }
 
+/* ---------- files dropped on the window ----------
+   A file dropped anywhere would be opened by the browser, which leaves the editor for the file. It never is: a WAV dropped on the clip of a new sound
+   (or on the Sound box of its inspector) is loaded into it, and anywhere else the drop says where a WAV goes */
+const hasFiles = ev => !!(ev.dataTransfer && [...(ev.dataTransfer.types || [])].includes('Files'));
+function onDropFile(ev, inFrame) {
+  if (!hasFiles(ev)) return;
+  ev.preventDefault();
+  const f = ev.dataTransfer.files && ev.dataTransfer.files[0]; if (!f) return;
+  if (view3d()) return readOnly3d();
+  const t = inFrame ? null : ev.target, clip = t && t.closest && t.closest('.fld [data-id]'), zone = t && t.closest && t.closest('[data-drop],[data-wavzone]');
+  const id = clip ? clip.dataset.id : zone ? App.sel : null, e = id && App.score.elements[id];
+  if (!e && /.json$/i.test(f.name)) return toast(`${f.name} was not opened: a score file comes in with File ▸ Import score…`);
+  if (!e) return toast(`${f.name} was not opened: drop a WAV on the clip of a new sound (Add ▸ Sound) or on the Sound box of its inspector`);
+  if (!(e.isNew && View.hasAudio(e))) return toast(`${e.key} is a sound of the piece: only a sound made here (Add ▸ Sound, or a copy of one) takes a WAV`);
+  if (clip && App.sel !== id) select(id);
+  loadWav(id, f);
+}
+function initDrops() {
+  document.addEventListener('dragover', ev => {
+    if (!hasFiles(ev)) return;
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = ev.target.closest && ev.target.closest('[data-drop],[data-wavzone],.fld [data-id]') ? 'copy' : 'none';
+  });
+  document.addEventListener('drop', ev => onDropFile(ev, false));
+}
+
 /* ---------- toasts, keys ---------- */
 let _toastT = 0;
-function toast(msg) { App.toastSeq++; let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.style.display = 'block'; t.style.transform = `translateX(-50%) scale(${App.k || 1})`; clearTimeout(_toastT); _toastT = setTimeout(() => { t.style.display = 'none'; }, 3200); }
+/* act = { label, fn }: a link at the end of the toast ("… · Fix it"), kept on screen longer; it runs fn when clicked and the toast goes */
+function toast(msg, act) {
+  App.toastSeq++; let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.toggle('act', !!act);
+  if (act) {
+    t.append(' · ');
+    const a = document.createElement('a'); a.className = 'tact'; a.textContent = act.label; a.setAttribute('role', 'button'); a.tabIndex = 0;
+    a.addEventListener('click', ev => { ev.preventDefault(); clearTimeout(_toastT); t.style.display = 'none'; act.fn(); });
+    t.appendChild(a);
+  }
+  t.style.display = 'block'; t.style.transform = `translateX(-50%) scale(${App.k || 1})`; clearTimeout(_toastT); _toastT = setTimeout(() => { t.style.display = 'none'; }, act ? 9000 : 3200);
+}
 /* Alt+←/→ taps are gathered into one edit: one check, one undo step (audit B2); with several selected, all of them (C10) */
 let _nudge = null;
 function nudge(ids, dt) {
@@ -1595,7 +1973,12 @@ function onKey(e) {
     let typing = e.target && e.target.closest && e.target.closest('input,textarea,select,[contenteditable=true]');
     if (typing && typing.tagName === 'SELECT' && !SELECT_KEYS.has(e.key) && !typing.closest('.ov')) { e.preventDefault(); typing.blur(); typing = null; }
     const mod = e.ctrlKey || e.metaKey, k = (e.key || '').toLowerCase();
-    if (App.cardOpen && !typing) { if (e.key === 'Escape' && UI.closeOverlay) UI.closeOverlay(); else if (e.key !== 'Enter' && e.key !== 'Tab') e.preventDefault(); return; }
+    // a decision card holds the editor still: Esc closes it; a key that would have done something says why it does not (Ctrl+S saves nothing while it is open)
+    if (App.cardOpen && !typing) {
+      if (e.key === 'Escape' && UI.closeOverlay) UI.closeOverlay();
+      else if (e.key !== 'Enter' && e.key !== 'Tab') { e.preventDefault(); if (!e.repeat && ((mod && 'szyxvda'.includes(k) && k.length === 1) || e.key === 'Delete' || e.key === 'Backspace')) toast('Finish the open decision first'); }
+      return;
+    }
     // the list of shortcuts is open: Esc or ? closes it; Ctrl+S closes it and saves (never the browser's Save page);
     // any other key only scrolls it
     if (UI.helpOpen() && !typing) {
@@ -1607,6 +1990,7 @@ function onKey(e) {
     // C11: find in the timeline (never the browser's find); from any field too, except inside a decision card
     if (mod && k === 'f' && !e.altKey && !e.shiftKey) { e.preventDefault(); if (!App.cardOpen && !e.repeat) UI.openFind(); return; }
     if (App.pick && e.key === 'Escape') { e.preventDefault(); UI.endPick('Anchor not changed'); return; }   // picking an anchor in the timeline
+    if (e.key === 'Escape' && !typing && UI.cancelDrag && UI.cancelDrag()) { e.preventDefault(); return; }   // a drag in progress: Esc drops it and nothing moves
     if (typing) { if (e.key === 'Escape') e.target.blur(); return; }
     if (e.key === '?') { e.preventDefault(); UI.shortcuts(); return; }
     // while picking, nothing else edits: not the mouse (onTimelineDown) and not the keys (delete, nudge, undo/redo, add,
@@ -1623,6 +2007,7 @@ function onKey(e) {
     // C10: select all in the moment, copy, paste at the playhead, duplicate (Ctrl+C with nothing selected stays the browser's)
     if (mod && k === 'a' && !e.altKey) { e.preventDefault(); selectMoment(); return; }
     if (mod && k === 'c' && !e.altKey) { if (selIds().length) { e.preventDefault(); Act.copy(); } return; }
+    if (mod && k === 'x' && !e.altKey) { if (selIds().length) { e.preventDefault(); if (!e.repeat) Act.cut(); } return; }
     if (mod && k === 'v' && !e.altKey) { e.preventDefault(); if (!e.repeat) Act.paste(); return; }
     if (mod && k === 'd' && !e.altKey) { e.preventDefault(); if (!e.repeat) Act.duplicate(); return; }
     if (e.key === 'F8') { e.preventDefault(); App.drawer = App.drawer === 'problems' ? null : 'problems'; UI.renderDrawer(); UI.renderTransport(); return; }
@@ -1664,5 +2049,8 @@ function transportKey(e, k, mod) {
   return false;
 }
 window.App = App; window.Act = Act;
-window.addEventListener('beforeunload', e => { if (App.dirty && App.view !== '3d') { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => {
+  if (App.view !== '3d') try { flushPending(); } catch (_) {}   // words still being typed count as unsaved work, not as nothing
+  if (App.dirty && App.view !== '3d' && !App.leaving) { e.preventDefault(); e.returnValue = ''; }
+});
 document.addEventListener('DOMContentLoaded', boot);

@@ -5,7 +5,9 @@
   const HDR = 168;                                   // lane header width (ISP .trackhdr)
   // lane height (audit C11, a preference): compact is the dense default; comfortable gives each clip a second line
   const LANE_H = { compact: { vo: 36, fx: 22, amb: 22, hap: 22, def: 26 }, comfortable: { vo: 56, fx: 30, amb: 30, hap: 30, def: 40 } };
-  const laneH = g => { const L = LANE_H[App.laneSize] || LANE_H.compact; return L[g] || L.def; };
+  // Alt+wheel scales every lane on top of compact / comfortable (as in ISP: x1.1 a notch), between these bounds
+  const LANE_SCALE = { min: 0.6, max: 3 };
+  const laneH = g => { const L = LANE_H[App.laneSize] || LANE_H.compact; return Math.round((L[g] || L.def) * (App.laneScale || 1)); };
   const X = t => t * App.pps;
   const ICON = { wait: 'hourglass', vo: 'wave', sound: 'sound', ambience: 'sound', haptic: 'haptic', path: 'walk', world: 'world', object: 'obj', instruction: 'ghost', interaction: 'logic' };
   const KIND = { wait: 'Wait', vo: 'Voice', sound: 'Sound', ambience: 'Ambience', haptic: 'Haptic', path: 'Path', world: 'World', object: 'Object', instruction: 'Instruction', interaction: 'Interaction' };
@@ -24,7 +26,7 @@
   }
   let _plainQ = null;
   new MutationObserver(ms => {
-    if (App.adv) return;
+    if (typeof App === 'undefined' || App.adv) return;   // app.js is added to the page after this file: the first change the observer sees is that script tag
     for (const m of ms) { const t = m.type === 'characterData' ? m.target.parentElement : m.target; if (t && !t.closest('#tlc')) (_plainQ = _plainQ || new Set()).add(t); }
     if (_plainQ && !_plainQ._sched) { _plainQ._sched = true; queueMicrotask(() => { const q = _plainQ; _plainQ = null; for (const t of q) if (t.isConnected) plainPass(t); }); }
   }).observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title'] });
@@ -61,7 +63,7 @@
       <div class="well" title="Window layout">${[['all', 'All-in-one'], ['v3d', '3D view'], ['tl', 'Timeline']].map(([k, l]) => `<button data-win="${k}" class="${App.mode === k ? 'on' : ''}">${l}</button>`).join('')}</div>
       <button class="who" data-who title="Who edits on this computer: signs notes and accepted breaks · click to switch"><i style="background:${WHO[App.who].c}">${App.who}</i>${WHO[App.who].n}</button>
       ${syncPill()}
-      <span style="font-size:11px;font-weight:600;letter-spacing:-0.008em;color:var(--ink-2);white-space:nowrap;margin-left:6px;">Soul Charger · Experience</span>
+      <span class="ttl" style="font-size:11px;font-weight:600;letter-spacing:-0.008em;color:var(--ink-2);white-space:nowrap;margin-left:6px;">Soul Charger · Experience</span>
       <span class="tnum savest${App.dirty ? ' dirty' : ''}"${App.adv ? '' : ` title="Score revision ${App.baseRev}"`}>${App.adv ? `rev ${App.baseRev}${App.dirty ? ' · unsaved' : ''} · ` : App.dirty ? 'unsaved · ' : ''}${P.name.toLowerCase()}${sideText() ? ' ' + esc(sideText()) : ''} ${Integrity.fmt(App.sched.total)}</span>`;
   }
   function sentState() {
@@ -95,7 +97,7 @@
     if (name === 'Edit') return [
       ...(ro ? [{ head: 'The 3D view only plays: edit in the timeline' }] : []),
       ['Undo', 'Ctrl+Z', undo, { dis: ro || !App.undo.length }], ['Redo', 'Ctrl+Shift+Z', redo, { dis: ro || !App.redo.length }],
-      'sep', ['Copy', 'Ctrl+C', () => Act.copy(), { dis: ro || !sel }], ['Paste at the playhead', 'Ctrl+V', () => Act.paste(), { dis: ro || !App.clipboard }],
+      'sep', ['Cut', 'Ctrl+X', () => Act.cut(), { dis: ro || !sel }], ['Copy', 'Ctrl+C', () => Act.copy(), { dis: ro || !sel }], ['Paste at the playhead', 'Ctrl+V', () => Act.paste(), { dis: ro || !App.clipboard }],
       ['Duplicate', 'Ctrl+D', () => Act.duplicate(), { dis: ro || !sel }], ['Select all in this moment', 'Ctrl+A', () => selectMoment(), { dis: ro }],
       ['Find…', 'Ctrl+F', () => openFind(), { dis: App.view === '3d' }],
       'sep', ['Add at the playhead…', 'Shift+A', () => quickAdd(), { dis: ro }], ['New lane', 'Alt+T', () => Act.newLane(sel ? sel.group : 'fx'), { dis: ro }],
@@ -155,7 +157,7 @@
       if (it === 'sep') return '<div class="sep"></div>';
       if (it.head) return `<div class="mh">${esc(it.head)}</div>`;
       const [label, k, fn, o0] = it, o = o0 || {}; fns.push(fn);
-      return `<button data-mi="${fns.length - 1}" class="${o.on ? 'on' : ''}${o.danger ? ' danger' : ''}"${o.dis ? ' disabled' : ''}>${o.sw ? `<span class="sw" style="background:${o.sw}"></span>` : ''}${esc(label)}${k ? `<span class="k">${esc(k)}</span>` : ''}</button>`;
+      return `<button data-mi="${fns.length - 1}" class="${o.on ? 'on' : ''}${o.danger ? ' danger' : ''}"${o.dis ? ' disabled' : ''}${o.title ? ` title="${esc(o.title)}"` : ''}>${o.sw ? `<span class="sw" style="background:${o.sw}"></span>` : ''}${esc(label)}${k ? `<span class="k">${esc(k)}</span>` : ''}</button>`;
     }).join('');
     document.body.appendChild(m); scaleOv(m);
     const r = m.getBoundingClientRect();
@@ -633,8 +635,58 @@
 
   /* ================= problems drawer ================= */
   function toggleDrawer() { App.drawer = App.drawer === 'problems' ? null : 'problems'; renderDrawer(); renderTransport(); }
+  /* ---- suggested fixes in Problems (js/fixes.js) ----
+     Each row that has a fix shows it as its button, "Fix: <what it does>", with a small menu for the other ways; what it does is in its tooltip, and
+     nothing is applied until it is clicked. A fix is checked on a copy of the score, so they are worked out a row at a time after the drawer is
+     drawn (the row shows "Looking for a fix…" meanwhile) and kept for as long as the score and Unreal's files stay the same. A row Fixes has nothing for
+     keeps the action it always had (Show, Upgrade…, Use the recordings…) */
+  const FX = { key: null, map: new Map(), queue: [], run: 0 };
+  function fxFresh() {
+    const k = [App.score, App.plive, App.pdef, App.pbind, App.contract];
+    if (!FX.key || k.some((x, i) => x !== FX.key[i])) { FX.key = k; FX.map = new Map(); FX.queue = []; FX.run++; }
+  }
+  const fxWants = p => !!p && p.st !== 'accepted' && p.sv !== 'info' && !p.ghost && !!window.Fixes && Fixes.handles(p);
+  const fxPlain = t => (App.adv ? t : Simple.plainWords(t));
+  // the entries of the menu that are not fixes but the way the row was always solved by hand
+  function fxManual(p) {
+    if (p.rule === 'C1.BRANCH.ANCHOR' && p.el) { const q = p.fp.split('|'); return [['Pick the anchor yourself…', '', () => { select(p.el); pickAnchor(p.el, { k: q[2], field: q[3] === 'end' ? 'end' : 'at' }); }]]; }
+    return [];
+  }
+  function fxButtons(p, r) {
+    const f = r.fixes[0], more = r.fixes.length > 1 || fxManual(p).length;
+    return `<a class="pact pri" data-fixgo="${esc(p.fp)}" title="${esc(fxPlain(f.detail) + (App.adv ? ' · ' + p.rule : ''))}">Fix: ${esc(fxPlain(f.label))}</a>${more ? `<a class="pact fxm" data-fixmore="${esc(p.fp)}" title="Other ways to fix it" aria-label="Other ways to fix it">${ICO('chevDown', 10)}</a>` : ''}`;
+  }
+  // the rows of the list that still need their fixes: one at a time, so the drawer is never held up; each row is redrawn when its fix is known
+  function fxSchedule(list) {
+    fxFresh();
+    FX.queue = list.filter(p => fxWants(p) && !FX.map.has(p.fp));
+    if (!FX.queue.length) return;
+    const run = FX.run, step = () => {
+      if (run !== FX.run) return;
+      const p = FX.queue.shift(); if (!p) return;
+      let r; try { r = Fixes.analyze(p, fixCtx()); } catch (_) { r = { fixes: [], why: '' }; }
+      FX.map.set(p.fp, r);
+      document.querySelectorAll('#drawer .fxslot').forEach(n => { if (n.dataset.fp === p.fp) n.innerHTML = problemAction(p); });
+      if (FX.queue.length) setTimeout(step, 0);
+    };
+    setTimeout(step, 0);
+  }
+  function openFixMenu(a) {
+    const p = App.problems.find(x => x.fp === a.dataset.fixmore), r = p && FX.map.get(p.fp); if (!r) return;
+    const rc = a.getBoundingClientRect();
+    openMenu(rc.left, rc.bottom + 2, [{ head: 'Other ways to fix it' }]
+      .concat(r.fixes.slice(1).map(f => [fxPlain(f.label), '', () => Act.applyFix(f), { title: fxPlain(f.detail) }]), fxManual(p).map(([l, k, fn]) => [l, k, fn])), 300);
+  }
   function problemAction(p) {
     if (p.st === 'accepted') return `<a data-reopen="${esc(p.fp)}" class="pact">Reopen</a>`;
+    if (fxWants(p)) {
+      fxFresh(); const r = FX.map.get(p.fp);
+      if (!r) return `<span class="pact fxwait" title="Working out how it could be fixed">Looking for a fix…</span>`;
+      if (r.fixes.length) return fxButtons(p, r);
+    }
+    return legacyAction(p);
+  }
+  function legacyAction(p) {
     const e = p.el && El(p.el);
     if (p.rule === 'C3.DRIFT' && e) { const c = Integrity.contractFor(p.el, e, App.contract).find(x => x.kind === 'knob' && x.knob); return c ? `<a data-pfix="drift" data-id="${p.el}" class="pact pri">Match Unreal · ${c.knob.value} s</a>` : ''; }
     if (p.rule === 'C2.WAIT.NOHELP' && e) return `<a data-pfix="help" data-id="${p.el}" class="pact pri">Add a help line</a>`;
@@ -659,7 +711,7 @@
   function renderDrawer() {
     const d = $('#drawer'), tl = $('#timeline');
     if (App.drawer !== 'problems' || App.mode === 'v3d') { d.innerHTML = ''; tl.classList.remove('withdrawer'); return; }
-    tl.classList.add('withdrawer');
+    tl.classList.add('withdrawer'); fitDrawer();
     // "Unreal run" (lote 5): everything the last Unreal run says, the segment rows too (only here: alert fatigue, audit B2)
     // Simple opens on what needs a look (js/simple.js); the run's rows are folded under one row of their own, except in the run filter
     const k = pbCounts(), rv = Simple.review(App.problems), f = Simple.filterFor(App.pbFilter, App.adv, !!App.run), rank = { block: 0, inv: 0, warn: 1, info: 2 };
@@ -676,7 +728,7 @@
     // one problem: Advanced as always; Simple adds a plain headline (the rule code stays in the tooltips) before the message (not on the rows folded under the run: their row says it)
     const row = (p, sub) => {
       const t = App.adv || sub ? '' : Simple.titleOf(p), tip = esc(p.msg + (p.was ? ' · ' + Integrity.reopenedText(p) : '') + (p.own && p.own !== '—' ? ' · ' + p.own : '') + ' · ' + p.rule);
-      return `<div class="prw2${sub ? ' sub' : ''}"><span class="sv ${p.st === 'accepted' ? 'acc' : p.sv === 'inv' ? 'block' : p.sv}" title="${esc(App.adv ? p.ly + ' · ' + p.rule : Simple.sevWord(p) + ' · ' + p.ly + ' · ' + p.rule)}"></span><span class="m" title="${tip}">${t ? `<b class="pt">${esc(t)}</b> <span class="pd">${esc(p.msg)}</span>` : esc(p.msg)}${p.gone ? ' <i>(element deleted)</i>' : ''}${p.was ? ` <i class="reop">${esc(Integrity.reopenedText(p))}</i>` : ''}</span>${where(p)}<span>${problemAction(p)}</span><span class="st ${p.st === 'accepted' ? 'acc' : 'open'}" title="${esc(p.st === 'accepted' ? (p.value ? 'Accepted at ' + Integrity.valueWords(p.rule, p.value) + (p.reason ? ' · ' : '') : '') + (p.reason || '') : p.was ? Integrity.reopenedText(p) : '')}">${p.st === 'accepted' ? `Accepted · ${esc(p.who || '')}${p.value ? ' · ' + esc(Integrity.valueWords(p.rule, p.value)) : ''}${p.reason ? ' · "' + esc(p.reason) + '"' : ''}` : p.was ? 'Reopened' : 'Open'}</span></div>`;
+      return `<div class="prw2${sub ? ' sub' : ''}"><span class="sv ${p.st === 'accepted' ? 'acc' : p.sv === 'inv' ? 'block' : p.sv}" title="${esc(App.adv ? p.ly + ' · ' + p.rule : Simple.sevWord(p) + ' · ' + p.ly + ' · ' + p.rule)}"></span><span class="m" title="${tip}">${t ? `<b class="pt">${esc(t)}</b> <span class="pd">${esc(App.adv ? p.msg : Simple.plainMsg(p.msg))}</span>` : esc(App.adv ? p.msg : Simple.plainMsg(p.msg))}${p.gone ? ' <i>(element deleted)</i>' : ''}${p.was ? ` <i class="reop">${esc(Integrity.reopenedText(p))}</i>` : ''}</span>${where(p)}<span class="fxslot" data-fp="${esc(p.fp)}">${problemAction(p)}</span><span class="st ${p.st === 'accepted' ? 'acc' : 'open'}" title="${esc(p.st === 'accepted' ? (p.value ? 'Accepted at ' + Integrity.valueWords(p.rule, p.value) + (p.reason ? ' · ' : '') : '') + (p.reason || '') : p.was ? Integrity.reopenedText(p) : '')}">${p.st === 'accepted' ? `Accepted · ${esc(p.who || '')}${p.value ? ' · ' + esc(Integrity.valueWords(p.rule, p.value)) : ''}${p.reason ? ' · "' + esc(p.reason) + '"' : ''}` : p.was ? 'Reopened' : 'Open'}</span></div>`;
     };
     // Simple: everything the last Unreal run says is ONE row ("Compared with the last Unreal run · 7 stages differ") that opens to the rows
     const R = App.run, tot = R && R.comparable && R.total;
@@ -688,6 +740,7 @@
     d.innerHTML = `<div class="pdraw"><div class="ph2"><b>Problems</b><span>${App.adv ? `${k.b} blocking · ${k.w} warnings` : `${rv.count} to review`} · ${k.a} accepted</span><div class="well" style="margin-left:12px;">${filters.map(([v, l]) => `<button data-pf="${v}" class="${f === v ? 'on' : ''}">${l}</button>`).join('')}</div>${nClean ? `<a class="pact" data-pfix="clean" style="margin-left:12px;" title="Remove the accepted records of elements that were deleted (one undoable edit)">Clean up accepted · ${nClean}</a>` : ''}<div style="flex:1;"></div>${App.adv || f === 'run' ? `<span style="color:var(--ink-3);">${runNote} · checked with the typical user</span>` : `<span style="color:var(--ink-3);" title="${ed} edited since the last save · ${dv} differ from what the headset build does today">Checked with the typical user</span>`}<button class="ibtn flat" data-tr="problems" title="Close · F8">${ICO('chevDown')}</button></div>
       <div class="plist"><div class="prw2 hd"><span></span><span>What</span><span>Where</span><span>Do</span><span>State</span></div>
       ${body || `<div class="knote" style="padding:10px 0;">${f === 'attn' ? 'Nothing to review.' : 'Nothing here.'}</div>`}</div></div>`;
+    fxSchedule(list);
   }
 
 
@@ -826,7 +879,51 @@
     const P = App.pick, r = P.k ? Edits.reanchorAlt(App.score, P.id, P.k, tg, ScoreEngine, { others: false, field: P.field }) : Edits.reanchor(App.score, P.id, tg, ScoreEngine, { others: false }), to = anchorText(tg);
     h.textContent = r.ok ? `${to[0].toUpperCase() + to.slice(1)} · it keeps its time${P.k ? ' in ' + Edits.optionLabel(App.score, P.k) + ', and nothing changes in the other side' : ''}` : 'Not there: ' + r.why; h.classList.toggle('bad', !r.ok);
   }
+  /* A field of the inspector commits when it loses focus ('change'). Three things must never cost the words typed in it: a redraw (a click on
+     another clip, an undo, a refresh from Unreal: the field is replaced and the change never comes), a shortcut (Ctrl+S does not take the
+     focus away), and the click that takes the focus away (the redraw it causes would replace the button before the mouse comes up).
+     So: what the inspector was drawn for is remembered (insDraw), a field that was typed in is committed for THAT, before anything is drawn
+     over it (commitTyped), and a change that arrives while a mouse button is down waits until the click has been delivered (waiting). */
+  let insDraw = { id: null, ids: [] }, pressed = false, waiting = [];
+  const typedField = () => {
+    const a = document.activeElement, ins = $('#inspector');
+    return a && ins && ins.contains(a) && a.dataset && a.dataset.f && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && a.type === 'text')) && a.value !== a.defaultValue ? a : null;
+  };
+  /* what a field commits, for the selection the inspector was drawn for (d): an edit belongs to what it was typed for, even if the selection moved since */
+  function applyChange(t, d) {
+    const f = t.dataset.f; if (!f) return;
+    const id = d.id, num = View.parseNum(t.value), v = t.value, e = App.score.elements[id];
+    if (['off', 'dur', 'exp', 'fw', 'beatoff', 'mnudge', 'altoff'].includes(f) && !Number.isFinite(num)) { renderInspector(); return toast('Type a number of seconds (1:30 and 5 s work too)'); }
+    if (f === 'mnudge') { if (!Act.moveMany(d.ids, num, false)) renderInspector(); }   // done or refused: it shows 0 again
+    else if (f === 'off') Act.setOffset(id, num);
+    else if (f === 'altoff') Act.setOffset(id, num, t.dataset.k);
+    else if (f === 'branch') Act.setBranch([id], t.dataset.on, v === '' ? null : v);
+    else if (f === 'dur') Act.trim(id, num);
+    else if (f === 'exp') Act.setGate(id, 'expected', num);
+    else if (f === 'fw') Act.setGate(id, 'fw', num);
+    else if (f === 'blocking') Act.setBlocking(id, t.checked);
+    else if (f === 'lane') Act.setLane(id, v);
+    else if (f === 'text') Act.setText(id, v);
+    else if (f === 'name') Act.rename(id, Inbox.nameFor(v, e && e.type));
+    else if (f === 'beatoff') { const B = App.score.beats[id], cur = B && B.at ? B.at.off || 0 : 0; if (!Act.moveBeat(id, num - cur)) renderInspector(); }   // refused (or no change): the field shows the offset it has
+  }
+  function commitTyped() {
+    const t = typedField(); if (!t) return false;
+    // it is not waiting any more: the redraw this commit causes does not find it again, and the 'change' the browser still sends when the field is
+    // replaced (or loses the focus later) finds it done (_applied) instead of making the same edit twice
+    t.defaultValue = t.value; t._applied = t.value;
+    applyChange(t, insDraw);
+    return true;
+  }
+  const settle = () => { const w = waiting; waiting = []; for (const f of w) f(); };
+  /* for Ctrl+S, undo and leaving: the words still being typed become an edit now (the caret stays where it was: the redraw gives it back), a change that was waiting
+     for a click is applied, and a lane or a bookmark being renamed on the timeline is finished */
+  function flushTyped() {
+    settle(); commitTyped();
+    const a = document.activeElement; if (a && a.matches && a.matches('.mkin, [data-lanehdr] .nm[contenteditable=true]')) a.blur();
+  }
   function renderInspector() {
+    commitTyped();   // before anything is drawn over it
     const forKey = (App.sel || App.selRole || '') + App.insTab + (App.selMore.size ? '+' + App.selMore.size : '');
     const el = $('#inspector'), body = el.querySelector('.insbody'), st = body ? body.scrollTop : 0, same = el.dataset.for === forKey;
     let h = insTabs();
@@ -836,10 +933,13 @@
     else if (App.selKind === 'beat' && App.score.beats[App.sel]) h += beatHTML(App.sel);
     else if (App.selKind === 'el' && El(App.sel)) h += App.selMore.size ? multiHTML(selIds()) : elementHTML(App.sel);
     else h += `<div class="insbody"><div class="insEmpty">Select an item<br>in the timeline or the library</div></div>`;
-    // a note being written keeps the caret through a redraw (only notes: a field that commits on blur must not get it back)
-    const fa = document.activeElement, fq = fa && el.contains(fa) ? (fa.id === 'noteIn' ? '#noteIn' : fa.dataset.noteEdit ? `[data-note-edit="${fa.dataset.noteEdit}"]` : null) : null, fc = fq ? [fa.selectionStart, fa.selectionEnd] : null;
+    // a note being written keeps the caret through a redraw; so does a field of the same item that is still being typed in (a refresh from Unreal, Ctrl+S).
+    // One that lost the focus (Enter, a click elsewhere) does not get it back: that is what was asked
+    const fa = document.activeElement, fq = fa && el.contains(fa) ? (fa.id === 'noteIn' ? '#noteIn' : fa.dataset.noteEdit ? `[data-note-edit="${fa.dataset.noteEdit}"]`
+      : same && fa.dataset.f && fa.selectionStart != null && (fa.tagName === 'TEXTAREA' || fa.type === 'text') ? `[data-f="${fa.dataset.f}"]${fa.dataset.k ? `[data-k="${fa.dataset.k}"]` : ''}` : null) : null, fc = fq ? [fa.selectionStart, fa.selectionEnd] : null;
     el.innerHTML = h; el.dataset.for = forKey;
-    if (fq) { const n = el.querySelector(fq); if (n) { n.focus(); n.setSelectionRange(fc[0], fc[1]); } }
+    insDraw = { id: App.selKind === 'role' ? null : App.sel, ids: selIds() };   // what this draw is for
+    if (fq) { const n = el.querySelector(fq); if (n) { n.focus(); try { n.setSelectionRange(fc[0], fc[1]); } catch (_) {} } }
     const le = App.selKind === 'el' && !App.selMore.size && El(App.sel);
     if (le && App.locked[le.group]) {   // locked group: everything here is read-only
       el.querySelectorAll('.insbody input, .insbody select, .insbody textarea, [data-act=del], [data-act=wav], [data-ancmenu], [data-altmenu]').forEach(n => { n.disabled = true; n.title = 'Locked group: unlock it in the timeline'; });
@@ -893,8 +993,10 @@
       + (App.adv ? '' : details(marksHTML(b)))
       + '</div>';
   }
-  /* the recording of a voice: final mix, an earlier take, or none yet */
+  /* the recording of a voice: the WAV loaded into it here, the final mix, an earlier take, or none yet */
   function recordingHTML(id, e, dur) {
+    // a voice timed from the final mix keeps a note of it (audio.src 'mix'): not a file of its own, it plays from the mix below
+    if (e.audio && e.audio.src !== 'mix') return prowTxt('Recording', `${esc(e.audio.file)} · ${fmtS(e.audio.dur)} s <button class="mbtn" data-act="play" style="height:18px;padding:0 6px;font-size:10px;margin-left:6px;">▶</button>`);   // a voice made here with its WAV
     const sid = Media.soundId(e), m = App.media && App.media[sid];   // its recording: a rename keeps it
     if (!App.media) return prowTxt('Recording', '<span style="color:var(--ink-3)">not found · the server looks in Recursos/Soul Charger - Escritorio 2026-10/Audio</span>');
     if (!m) return prowTxt('Recording', '<span style="color:var(--auto-ovr)">none yet</span>');
@@ -992,7 +1094,7 @@
         + recordingHTML(id, e, dur)
         + prowTxt('From', 'Alma (2D)')
         + (e.help ? prowTxt('Helps', anchorChip({ ref: e.help, edge: 'start' })) : '')
-        + `<div class="knote">${e.isNew || !App.media || !App.media[Media.soundId(e)] ? 'Until it is recorded, changing the words re-estimates its length (1 s + words ÷ 2.4 + 0.5 s per ellipsis).' : 'The recording sets its length: changing the words here changes the subtitle, not the time.'}</div>`);
+        + `<div class="knote">${!e.audio && (e.isNew || !App.media || !App.media[Media.soundId(e)]) ? 'Until it is recorded, changing the words re-estimates its length (1 s + words ÷ 2.4 + 0.5 s per ellipsis).' : 'The recording sets its length: changing the words here changes the subtitle, not the time.'}</div>`);
     }
     // sound (a new or copied element that is not a sound has no file to load: C10; a new wait neither)
     if (e.isNew && hasAudio(e)) h += sec('sound', 'Sound', newSoundHTML(id, e));
@@ -1005,7 +1107,7 @@
     put(sec('unreal', 'Unreal', reachHTML(id) + (con.length ? con.map(c => `<div class="owner"><b>${esc(kindWord(c.kind))}</b><span class="sc">${esc(c.owner || '')}${c.graph ? ' › ' + esc(c.graph) : ''}</span></div><div class="knote">${esc(c.msg)}</div>`).join('')
       : e.copyOf || e.isNew || !App.reach ? `<div class="knote">${e.copyOf ? 'A copy made in the editor: Unreal does not have it, whatever the original is wired to. It reaches the APK only when it is wired in Unreal; the original stays as it is.' : e.isNew ? 'New: it reaches Content after the next import and the APK only when a cue uses it.' : 'No contract entry yet: this element is a preview of the narrative prototype until the score is wired to Unreal (phase F4).'}</div>` : '')));
     const mine = App.problems.filter(p => p.el === id);
-    if (mine.length) h += sec('pb', `Problems · ${mine.length}`, mine.map(p => `<div class="knote ${p.st === 'accepted' ? 'warn' : p.sv === 'info' ? '' : 'bad'}">${p.st === 'accepted' ? 'Accepted · ' : ''}${esc(p.msg)}${p.reason ? ` · "${esc(p.reason)}"` : ''}${p.was ? ` <i class="reop">${esc(Integrity.reopenedText(p))}</i>` : ''}</div>`).join(''));
+    if (mine.length) h += sec('pb', `Problems · ${mine.length}`, mine.map(p => `<div class="knote ${p.st === 'accepted' ? 'warn' : p.sv === 'info' ? '' : 'bad'}">${p.st === 'accepted' ? 'Accepted · ' : ''}${esc(App.adv ? p.msg : Simple.plainMsg(p.msg))}${p.reason ? ` · "${esc(p.reason)}"` : ''}${p.was ? ` <i class="reop">${esc(Integrity.reopenedText(p))}</i>` : ''}</div>`).join(''));
     const gv = (App.gov || {})[id];
     if (gv && gv.length) put(sec('ptime', 'Unreal timing', gv.map(g => { const r = App.pdrift && App.pdrift.rows.find(x => x.knob === g.knob && x.stage === g.stage); const lv = knobLive(g.knob); const v = Array.isArray(lv) ? lv[g.stage] : lv; const off = r && r.diff != null && Math.abs(r.diff) > .05;
       return `<div class="prow"><span class="val"><a data-knobgo="${g.knob}" style="cursor:pointer;color:var(--ink);">${esc(g.knob)}</a>${g.stage != null ? ' · ' + esc(App.pdef.stages[g.stage]) : ''}</span><span class="u2 tnum" style="color:${off ? 'var(--auto-ovr)' : 'var(--ink-3)'};">${fmtV(v)} s${off ? ' · score ' + fmtV(r.score) : ''}</span></div>`; }).join('')
@@ -1038,18 +1140,21 @@
     return h + '</div>';
   }
   function newSoundHTML(id, e) {
-    const a = e.audio;
+    const a = e.audio, noFile = Integrity.soundNoFile(App.score, e);
     let fmt = '';
-    if (a) fmt = `<div class="prow"><span class="lab">Format</span><span class="val wavinfo"><span class="${a.sr === 48000 ? 'ok' : 'warn'}">${(a.sr / 1000).toFixed(a.sr % 1000 ? 1 : 0)} kHz</span> · <span class="${a.ch === 1 ? 'ok' : 'warn'}">${a.ch === 1 ? 'mono' : a.ch + ' ch'}</span> · <span class="${a.pcm ? 'ok' : 'warn'}">${a.pcm ? 'PCM' : 'not PCM'} ${a.bits}-bit</span></span></div>`
+    if (a && a.sr > 0 && a.ch > 0 && a.bits > 0) fmt = `<div class="prow"><span class="lab">Format</span><span class="val wavinfo"><span class="${a.sr === 48000 ? 'ok' : 'warn'}">${(a.sr / 1000).toFixed(a.sr % 1000 ? 1 : 0)} kHz</span> · <span class="${a.ch === 1 ? 'ok' : 'warn'}">${a.ch === 1 ? 'mono' : a.ch + ' ch'}</span> · <span class="${a.pcm ? 'ok' : 'warn'}">${a.pcm ? 'PCM' : 'not PCM'} ${a.bits}-bit</span></span></div>`
       + (a.sr !== 48000 ? '<div class="knote warn">The project runs at 48 kHz: this file will be resampled.</div>' : '')
       + (a.ch > 1 ? '<div class="knote warn">Sounds placed on an object should be mono.</div>' : '');
-    return `<div class="prow"><span class="lab">Name</span><input class="nmin" data-f="name" value="${esc(e.key)}" spellcheck="false" aria-label="Sound name"></div>`
+    return `<div data-wavzone><div class="prow"><span class="lab">Name</span><input class="nmin" data-f="name" value="${esc(e.key)}" spellcheck="false" aria-label="Sound name"></div>`
       + (a ? prowTxt('File', `${esc(a.file)} · ${fmtS(a.dur)} s <button class="mbtn" data-act="play" style="height:18px;padding:0 6px;font-size:10px;margin-left:6px;">▶</button>`) + fmt
         + `<div class="prow"><span class="lab"></span><button class="mbtn" data-act="wav" style="height:20px;padding:0 8px;font-size:11px;">Replace WAV…</button></div>`
         : `<div class="drop" data-drop>${ICO('upload', 14)}<span>Drop a WAV here</span><button class="mbtn" data-act="wav" style="height:22px;padding:0 10px;">Load WAV…</button></div>`)
-      + prowTxt('Goes to', `Obra/Audio/Placeholder/${esc(e.key)}`)
-      + (a && a.inbox ? prowTxt('Waiting in', esc(a.inbox)) : '')
-      + `<div class="knote">On the next import it becomes a SoundWave with this name. Keep the source WAV: Unreal's auto-import deletes the asset if the file disappears.</div>`;
+      // Simple names no folders: where it lands in Unreal and the inbox file are for Advanced
+      + (a || !noFile ? prowTxt('Goes to', App.adv ? `Obra/Audio/Placeholder/${esc(e.key)}` : `Unreal, as ${esc(e.key)}`) : '')
+      + (a && a.inbox && App.adv ? prowTxt('Waiting in', esc(a.inbox)) : '')
+      // only a sound that has a file becomes a SoundWave: without one there is nothing for Unreal to import (Problems says so too)
+      + (noFile ? `<div class="knote warn">No WAV yet: until you load one, Unreal gets nothing from this sound.</div></div>`
+        : `<div class="knote">On the next import it becomes a SoundWave with this name. Keep the source WAV: Unreal's auto-import deletes the asset if the file disappears.</div></div>`);
   }
   /* notes for the team (audit C13): each one can be edited, resolved (dimmed, here and on the ruler) or reopened, and deleted.
      Read-only in the 3D tab. What is being typed lives in App (noteNew, noteDraft) so a redraw never loses it. */
@@ -1081,6 +1186,7 @@
       if (lit) info = App.adv ? `<span class="statinfo why"><span class="k">${esc(e.key)}</span> — hardwired in Unreal (${esc(lit.owner)}${lit.graph ? ' › ' + esc(lit.graph) : ''}) · changing it needs a graph change</span>`
         : `<span class="statinfo why" title="${esc(lit.owner + (lit.graph ? ' › ' + lit.graph : ''))}"><span class="k">${esc(e.key)}</span> — built into Unreal · changing it for real needs a change inside Unreal</span>`;
       else if (e.copyOf) info = `<span class="statinfo why"><span class="k">${esc(e.key)}</span> — copy${El(e.copyOf) ? ' of ' + esc(El(e.copyOf).key) : ''} · not in Unreal yet · drag to move, Ctrl+D duplicates it again</span>`;
+      else if (e.isNew && e.type === 'vo') info = `<span class="statinfo why"><span class="k">${esc(e.key)}</span> — new voice line · ${e.audio && e.audio.dur ? 'it lasts its recording' : 'its length is estimated from the words'} · not in Unreal yet</span>`;
       else if (e.isNew && hasAudio(e)) info = `<span class="statinfo why"><span class="k">${esc(e.key)}</span> — new sound · ${e.audio ? 'file loaded' : 'load a WAV in the inspector'}</span>`;
       else if (e.isNew && !e.gate) info = `<span class="statinfo why"><span class="k">${esc(e.key)}</span> — new, not in Unreal yet · drag to move, its anchored elements follow</span>`;
       else if (View.clockWait(e)) info = `<span class="statinfo"><span class="k">${esc(e.key)}</span> — the stage runs on its clock · the user only decides when they act and whether the help plays · drag to move, its anchored elements follow</span>`;
@@ -1110,8 +1216,11 @@
 
   /* ================= overlays: impact card, quick add, note ================= */
   let impactCb = null;
-  function impactCard(label, items, repairs, cb, ripple) {
+  /* fx = { list, why } (js/fixes.js, Fixes.suggest): the fixes proposed for what the card says. The first is the primary one ("Apply with this fix"); choosing
+     any applies the edit and that fix together (decision 'fix', the fix as the 4th argument of cb). Proceed anyway and Cancel are as ever */
+  function impactCard(label, items, repairs, cb, ripple, fx) {
     closeOverlay();
+    const fixes = (fx && fx.list) || [], pw = t => (App.adv ? t : Simple.plainWords(t));
     // block (or a locked final value) needs a written reason; a warning can go ahead with one click, and is still recorded (policy.js)
     const mustReason = Policy.needsReason(items), breaks = Policy.breaks(items);
     // a new anchor loop or an anchor across the sides of a decision can be accepted here, but the save refuses it until it is fixed (S.CYCLE.NEW, S.BRANCH.CROSS.NEW): say so now, not at Ctrl+S
@@ -1122,7 +1231,8 @@
     const d = document.createElement('div'); d.className = 'imp ov';
     d.innerHTML = `<h3>${esc(label)}<span>${items.filter(i => i.sv !== 'info').length} to review</span></h3>
       ${ripple ? `<div class="ripple">${ICO('curves', 11)} ${esc(ripple)}</div>` : ''}
-      ${items.map(i => `<div class="it">${dot(i.sv)}<div style="min-width:0;"><b>${word(i.sv)} · ${esc(App.adv ? i.title : Simple.plainWhy(i.title))}</b>${esc(i.body)}${i.keys && i.keys.length > 1 ? `<div class="evl">Also: ${i.keys.slice(1, 8).map(esc).join(', ')}${i.keys.length > 8 ? '…' : ''}</div>` : ''}${i.ev ? (App.adv ? `<div class="evl">${esc(i.ev)}${i.rule ? ' · ' + esc(i.rule) : ''}</div>` : /^rule /.test(i.ev) ? '' : `<div class="evl"${i.rule ? ` title="${esc('Rule ' + i.rule)}"` : ''}>${esc(i.ev)}</div>`) : ''}${i.before && i.sv !== 'info' ? `<div class="evl prev">You accepted this ${i.before.value == null ? esc(i.before.words) : 'before at ' + esc(i.before.words)}${i.before.who ? ' (' + esc(i.before.who) + ')' : ''}${i.before.reason ? ': "' + esc(i.before.reason) + '"' : ''}${i.before.state === 'reopened' ? ' · you reopened it' : ''}</div>` : ''}</div></div>`).join('')}
+      ${items.map(i => `<div class="it"${!App.adv && i.ev && !/^rule /.test(i.ev) ? ` title="${esc(i.ev)}"` : ''}>${dot(i.sv)}<div style="min-width:0;"><b>${word(i.sv)} · ${esc(App.adv ? i.title : Simple.plainWhy(i.title))}</b>${esc(i.body)}${i.keys && i.keys.length > 1 ? `<div class="evl">Also: ${i.keys.slice(1, 8).map(esc).join(', ')}${i.keys.length > 8 ? '…' : ''}</div>` : ''}${i.ev ? (App.adv ? `<div class="evl">${esc(i.ev)}${i.rule ? ' · ' + esc(i.rule) : ''}</div>` : '') : ''}${i.before && i.sv !== 'info' ? `<div class="evl prev">You accepted this ${i.before.value == null ? esc(i.before.words) : 'before at ' + esc(i.before.words)}${i.before.who ? ' (' + esc(i.before.who) + ')' : ''}${i.before.reason ? ': "' + esc(i.before.reason) + '"' : ''}${i.before.state === 'reopened' ? ' · you reopened it' : ''}</div>` : ''}</div></div>`).join('')}
+      ${fixes.length ? `<div class="fxs"><h4>Suggested fix</h4>${fixes.map((f, i) => `<button class="choice${i ? '' : ' pri'}" data-fix="${i}"${App.adv ? ` title="${esc(f.rule + ' · ' + f.id)}"` : ''}><b>${i ? 'Or: ' + esc(pw(f.label)) : 'Apply with this fix'}</b>${i ? '' : `<span class="fxl">${esc(pw(f.label))}</span>`}<span>${esc(pw(f.detail))}</span></button>`).join('')}</div>` : fx && fx.why ? `<div class="also">No automatic fix: ${esc(pw(fx.why))}</div>` : ''}
       ${repairs.length ? `<div class="rep">${repairs.map((r, k) => `<label><input type="radio" name="rep" value="${r.id}"${r.checked ? ' checked' : ''}> ${esc(r.label)}</label>`).join('')}</div>` : ''}
       ${breaks ? `<div class="rep"${repairs.length ? ' style="border-top:none;"' : ''}><input class="rsn" id="rsn" placeholder="${mustReason ? 'Reason (12+ characters)' : 'Reason (optional)'} · e.g. I'll connect it to a new cue in Unreal" spellcheck="false"><span style="color:var(--ink-3);font-size:10px;">It goes to Problems as accepted, signed by ${WHO[App.who].n}. This changes the score only: the APK keeps doing what Unreal does${items.every(i => i.rule === 'C3.BLOCKING') ? '' : ' (the clip shows ≠ APK)'}.${noSave ? ' It cannot be saved until it is fixed: the save refuses it.' : ''}</span></div>` : ''}
       <div class="btns"><button data-imp="cancel">Cancel</button>${breaks ? `<button class="anyway" data-imp="anyway"${mustReason ? ' disabled' : ''}>Proceed anyway</button>` : `<button class="pri" data-imp="repair">${repairs.length ? 'Proceed and repair' : 'Proceed'}</button>`}</div>`;
@@ -1135,13 +1245,23 @@
     if (rsn && pre) { rsn.value = pre.before.reason; if (mustReason && any) any.disabled = rsn.value.trim().length < 12; }
     if (rsn) { rsn.addEventListener('input', () => { if (mustReason) any.disabled = rsn.value.trim().length < 12; }); rsn.addEventListener('keydown', ev => { if (ev.key === 'Enter') ev.preventDefault(); if (ev.key === 'Escape') { ev.stopPropagation(); done('cancel'); } }); }
     // Enter never accepts a break: the default button is Cancel (a click is a decision)
-    setTimeout(() => { const p = breaks ? d.querySelector('[data-imp=cancel]') : d.querySelector('.pri'); if (p) p.focus(); }, 30);
-    const done = dec => { const rep = (d.querySelector('input[name=rep]:checked') || {}).value || null; const r = rsn ? rsn.value.trim() : ''; const f = impactCb; impactCb = null; back.remove(); d.remove(); f(dec, r, rep); };
-    d.addEventListener('click', ev => { const b = ev.target.closest('[data-imp]'); if (b && !b.disabled) done(b.dataset.imp); });
+    setTimeout(() => { const p = breaks ? d.querySelector('[data-imp=cancel]') : d.querySelector('.btns .pri'); if (p) p.focus(); }, 30);
+    const done = (dec, fix) => { const rep = (d.querySelector('input[name=rep]:checked') || {}).value || null; const r = rsn ? rsn.value.trim() : ''; const f = impactCb; impactCb = null; back.remove(); d.remove(); f(dec, r, rep, fix); };
+    d.addEventListener('click', ev => {
+      const x = ev.target.closest('[data-fix]'); if (x && fixes[+x.dataset.fix]) return done('fix', fixes[+x.dataset.fix]);
+      const b = ev.target.closest('[data-imp]'); if (b && !b.disabled) done(b.dataset.imp);
+    });
     back.addEventListener('click', () => done('cancel'));
     d._cancel = () => done('cancel');
   }
   function scaleOv(n) { if (App.k < 1) { n.style.transformOrigin = '0 0'; n.style.transform = `scale(${App.k})`; } }
+  /* an open card, menu or dialog was made at the scale the window had (App.k): when the window is resized it takes the new one, not the old one for good */
+  function refitOverlays() {
+    const k = App.k < 1 ? App.k : 0;
+    document.querySelectorAll('.imp.ov').forEach(n => { n.style.transform = k ? `translate(-50%,-50%) scale(${k})` : ''; });
+    document.querySelectorAll('.menu.ov, .qa.ov').forEach(n => { n.style.transformOrigin = k ? '0 0' : ''; n.style.transform = k ? `scale(${k})` : ''; });
+    document.querySelectorAll('.kbdov .kbdm').forEach(n => { n.style.transform = k ? `scale(${k})` : ''; });
+  }
   /* review before sending to Unreal: every change, what it would break, and a confirmation */
   function sendCard(o, onSend) {
     closeOverlay();
@@ -1252,6 +1372,8 @@
       ['Moment / Act', 'Zoom to fit the moment or the act at the playhead (buttons in the timeline bar)'],
       ['Double-click a moment chip', 'Zoom to fit that moment'],
       ['[Ctrl]+wheel', 'Zoom at the pointer', 'Premiere: Alt+wheel'],
+      ['[Alt]+wheel', 'Taller or shorter lanes (Compact / Comfortable go back to the base height)', 'as in Immersive Studio Pro'],
+      ['Middle-button drag', 'Hand: move the view in time and across lanes', 'as in Immersive Studio Pro'],
       ['[Ctrl+F]', 'Find clips and moments: by key, label or the words of a voice'],
       ['[Enter] / [Shift+Enter]', 'In the find field: select and show the next / previous match'],
       ['Hover a clip or a moment', 'Its card: what it is, when, how long, its anchor, its lane'],
@@ -1265,7 +1387,7 @@
       ['[Shift]+click', 'Add a clip to the selection'],
       ['Drag on an empty part of a lane', 'Select every clip the box touches · with Ctrl or Shift, add them (locked groups stay out)'],
       ['[Ctrl+A]', 'Select every element of the moment at the playhead (locked groups stay out)', 'Premiere, Resolve: everything in the timeline'],
-      ['[Esc]', 'Clear the selection'],
+      ['[Esc]', 'Clear the selection · drop a drag in progress · in a field, give back what it had'],
     ]],
     ['Edit', [
       ['Drag a clip', 'Move it: what hangs from it follows · with several selected, all of them move by the same time'],
@@ -1274,10 +1396,10 @@
       ['Drag the right edge', 'Change the duration (fixed clips and waits)'],
       ['[Alt+←] / [Alt+→]', 'Nudge the selection 0.1 s · with Shift, 1 s', 'Premiere: one frame · Resolve: , and .'],
       ['[Del] / [Backspace]', 'Delete the selection; it asks what happens to what hangs from it', 'Premiere: Delete lifts, Shift+Delete ripple-deletes'],
-      ['[Ctrl+C] / [Ctrl+V]', 'Copy the selection / paste it at the playhead, in the moment there. The copies are new: not in Unreal yet'],
+      ['[Ctrl+X] / [Ctrl+C] / [Ctrl+V]', 'Cut or copy the selection / paste it at the playhead, in the moment there. Cut is a copy and then the usual delete. The copies are new: not in Unreal yet'],
       ['[Ctrl+D]', 'Duplicate the selection right after itself, each part in its own moment', 'Premiere: applies the default transition'],
       ['[Shift+A]', 'Add at the playhead'],
-      ['[M]', 'Bookmark at the playhead'],
+      ['[M]', 'Bookmark at the playhead · again on one, it renames it'],
       ['[Shift+M]', 'Note for the team'],
       ['[Alt+T]', 'New lane'],
       ['[Ctrl+Z] / [Ctrl+Shift+Z]', 'Undo / redo (also Ctrl+Y)'],
@@ -1342,6 +1464,15 @@
 
   /* ================= pointer: timeline ================= */
   let drag = null;
+  /* while something is dragged the 3D preview (an iframe: another page) takes no mouse. Over it the editor got no moves and never
+     heard the button come up, so a drag of the timeline's edge froze there and then stayed stuck to the pointer after the release.
+     The cursor of a panel edge stays on while it is dragged */
+  function shield(D) {
+    const r = document.documentElement;
+    r.classList.toggle('dragging-ui', !!D);
+    r.classList.toggle('drag-row', !!D && D.kind === 'resize');
+    r.classList.toggle('drag-col', !!D && D.kind === 'gutter');
+  }
   const ghostEl = () => { let g = $('#dragGhost'); if (!g) { g = document.createElement('div'); g.id = 'dragGhost'; g.className = 'ghost'; g.innerHTML = '<div class="tt"></div>'; } return g; };
   const snapEl = () => { let s = $('#snapLine'); if (!s) { s = document.createElement('div'); s.id = 'snapLine'; s.className = 'snapline'; } return s; };
   function snapTimes(exclude) {
@@ -1384,7 +1515,7 @@
     const mom = t.closest('.momb');
     if (mom) { ev.preventDefault(); const b = mom.dataset.beat; drag = { kind: 'beat', id: b, x0: ev.clientX, s: App.sched.t[b][0], started: false, el: mom, left0: parseFloat(mom.style.left), snaps: snapTimes(new Set()) }; return; }
     const act = t.closest('.actb'); if (act) { const a = App.sched.acts.find(x => x.id === act.dataset.act); seek(a.s); revealTime(a.s); return; }
-    if (t.closest('.gch')) { const g = t.closest('.gch').dataset.col; App.collapsed[g] = !groupCollapsed(g); savePref(); renderTimeline(); return; }
+    if (t.closest('.gch')) { const g = t.closest('.gch').dataset.col; App.collapsed[g] = !groupCollapsed(g); savePref(); if (groupCollapsed(g)) deselectGroup(g); renderTimeline(); return; }   // collapsed: its clips leave the selection (no key edits what is hidden)
     if (t.closest('[data-lock]')) { const g = t.closest('[data-lock]').dataset.lock; App.locked[g] = !App.locked[g]; savePref(); renderTimeline(); renderInspector(); toast(App.locked[g] ? 'Group locked: nothing in it can be moved or deleted' : 'Group unlocked'); return; }
     if (t.closest('[data-newlane]')) { Act.newLane(t.closest('[data-newlane]').dataset.newlane); return; }
     const c = t.closest('[data-id]');
@@ -1436,8 +1567,10 @@
   function hueName(gid) { return (App.score.groups.find(g => g.id === gid) || {}).name || gid; }
   function onMove(ev) {
     if (!drag) return;
+    if (ev.isTrusted && !(ev.buttons & 1)) { onUp(ev); return; }   // the button came up where the editor could not hear it
+    if (!document.documentElement.classList.contains('dragging-ui')) shield(drag);
     if (drag.kind === 'scrub') { seek(timeFromClient(ev.clientX)); return; }
-    if (drag.kind === 'resize') { const h = Math.max(160, Math.min(innerHeight / App.k - 220, drag.h0 - (ev.clientY - drag.y0) / App.k)); document.documentElement.style.setProperty('--tlh', h + 'px'); App.tlhUser = true; return; }
+    if (drag.kind === 'resize') { const h = Math.max(160, Math.min(innerHeight / App.k - 220, drag.h0 - (ev.clientY - drag.y0) / App.k)); document.documentElement.style.setProperty('--tlh', h + 'px'); App.tlhUser = true; fitDrawer(); return; }
     if (drag.kind === 'gutter') { const w = Math.max(220, Math.min(520, drag.side === 'l' ? drag.w0 + (ev.clientX - drag.x0) / App.k : drag.w0 - (ev.clientX - drag.x0) / App.k)); drag.panel.style.width = w + 'px'; return; }
     if (drag.kind === 'marquee') { marqueeMove(ev); return; }
     const dx = (ev.clientX - drag.x0) / App.k;
@@ -1509,7 +1642,7 @@
   function setInfo(txt, why) { const s = document.querySelector('#status .statinfo') || (() => { const x = document.createElement('span'); $('#status').children[0].after(x); return x; })(); s.className = 'statinfo' + (why ? ' why' : ''); s.textContent = txt; }
   function onUp(ev) {
     if (!drag) return;
-    const D = drag; drag = null;
+    const D = drag; drag = null; shield(null);
     const g = $('#dragGhost'); if (g) g.remove(); const sl = $('#snapLine'); if (sl) sl.remove();
     document.querySelectorAll('.slot').forEach(s => { s.style.display = 'none'; });
     if (D.el) D.el.classList.remove('dragging');
@@ -1537,6 +1670,20 @@
     if (D.bad) { toast('Occupied: that lane already has something there. Drop it on another lane, or on "+ New lane".'); renderTimeline(); return; }
     Act.move(D.id, D.ns - D.s, D.newLane ? { newIn: D.group } : (D.target !== D.lane ? D.target : null), ev.ctrlKey || ev.metaKey);
     if (App.sel !== D.id) select(D.id);
+  }
+  /* Esc while a clip, a moment, a bookmark or the selection box is being dragged: the drag is dropped, nothing changes (the mouse coming up finds no drag).
+     true when it dropped one (the key is spent); a press that has not moved yet is a click, and Esc leaves it alone */
+  function cancelDrag() {
+    const D = drag; if (!D || !D.started || !['move', 'trim', 'beat', 'marker', 'marquee'].includes(D.kind)) return false;
+    drag = null; shield(null);
+    const g = $('#dragGhost'); if (g) g.remove(); const sl = $('#snapLine'); if (sl) sl.remove();
+    document.querySelectorAll('.slot').forEach(x => { x.style.display = 'none'; });
+    for (const o of D.others || []) { o.cl.remove(); o.src.classList.remove('dragging'); }
+    if (D.el) D.el.classList.remove('dragging');
+    if (D.box) D.box.remove();
+    renderTimeline(); renderStatus();   // the bookmark, the moment chip and the selection are drawn where they were
+    toast('Drag cancelled: nothing moved');
+    return true;
   }
   function onContext(ev) {
     hideHover();
@@ -1650,7 +1797,15 @@
   }
   function zoomMoment(b) { b = b || beatAt(App.ph); const T = App.sched.t[b]; if (T) zoomTo(T[0], T[1]); }
   function zoomAct() { const b = beatAt(App.ph), i = App.score.acts.findIndex(a => a.beats.includes(b)), A = App.sched.acts[i]; if (A) zoomTo(A.s, A.e); }
-  function setLaneSize(s) { if (s === App.laneSize || !LANE_H[s]) return; App.laneSize = s; savePref(); renderTimeline(); }
+  function setLaneSize(s) { if (!LANE_H[s] || (s === App.laneSize && (App.laneScale || 1) === 1)) return; App.laneSize = s; App.laneScale = 1; savePref(); renderTimeline(); }
+  /* Alt+wheel: taller or shorter lanes, like ISP; the lane under the pointer stays under it */
+  function wheelLaneHeight(ev) {
+    const sc = $('#sctl'), k0 = App.laneScale || 1, k1 = Math.max(LANE_SCALE.min, Math.min(LANE_SCALE.max, +(k0 * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)).toFixed(3)));
+    if (k1 === k0) return;
+    const y = ev.clientY - sc.getBoundingClientRect().top, top = sc.scrollTop;
+    App.laneScale = k1; savePref(); renderTimeline();
+    sc.scrollTop = Math.max(0, (top + y) * k1 / k0 - y);
+  }
 
   /* ================= wiring (once) ================= */
   function init() {
@@ -1664,7 +1819,19 @@
       const mom = ev.target.closest('.momb'); if (mom && !App.pick) { zoomMoment(mom.dataset.beat); return; }   // C11: zoom to fit that moment
       if (ev.target.closest('.fld') && !ev.target.closest('[data-id]')) seek(timeFromClient(ev.clientX));
     });
-    sctl.addEventListener('wheel', ev => { hideHover(); if (!(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); zoom(ev.deltaY < 0 ? 1.18 : 1 / 1.18, ev.clientX); }, { passive: false });
+    sctl.addEventListener('wheel', ev => { hideHover();
+      if (ev.altKey) { ev.preventDefault(); wheelLaneHeight(ev); return; }   // Alt+wheel: lane height (ISP)
+      if (!(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); zoom(ev.deltaY < 0 ? 1.18 : 1 / 1.18, ev.clientX); }, { passive: false });
+    /* middle-button drag pans the timeline on both axes, like ISP's hand (whatever is under the pointer); it also keeps
+       Windows' autoscroll from starting */
+    sctl.addEventListener('pointerdown', ev => {
+      if (ev.button !== 1) return; ev.preventDefault(); hideHover();
+      const x0 = ev.clientX, y0 = ev.clientY, sx = sctl.scrollLeft, sy = sctl.scrollTop; sctl.classList.add('panning'); shield({ kind: 'pan' });
+      const mv = e => { sctl.scrollLeft = sx - (e.clientX - x0); sctl.scrollTop = sy - (e.clientY - y0); };
+      const up = () => { sctl.classList.remove('panning'); shield(null); window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); };
+      window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+    });
+    sctl.addEventListener('mousedown', ev => { if (ev.button === 1) ev.preventDefault(); });
     sctl.addEventListener('scroll', () => { hideHover(); document.querySelectorAll('.menu.ov').forEach(n => n.remove()); });
     document.addEventListener('mousemove', onMove);
     sctl.addEventListener('mousemove', pickHover);
@@ -1672,13 +1839,17 @@
     sctl.addEventListener('mouseleave', hideHover);
     document.addEventListener('mouseup', onUp);
     document.addEventListener('mousedown', ev => { if (!ev.target.closest('.ov') && !ev.target.closest('[data-menu]') && !ev.target.closest('[data-persdd]') && !ev.target.closest('[data-branchdd]')) document.querySelectorAll('.menu.ov,.qa.ov').forEach(n => n.remove()); }, true);
-    $('#tlResize').addEventListener('mousedown', ev => { ev.preventDefault(); drag = { kind: 'resize', y0: ev.clientY, h0: $('#timeline').offsetHeight - (App.drawer ? 200 : 0) }; });
+    $('#tlResize').addEventListener('mousedown', ev => { ev.preventDefault(); drag = { kind: 'resize', y0: ev.clientY, h0: $('#timeline').offsetHeight - (App.drawer ? 200 : 0) }; shield(drag); });
     document.addEventListener('mousedown', ev => {
       const gt = ev.target.closest('.gutter'); if (!gt) return; ev.preventDefault();
       const prev = gt.previousElementSibling, next = gt.nextElementSibling;
       if (prev && prev.id === 'library') drag = { kind: 'gutter', side: 'l', panel: prev, x0: ev.clientX, w0: prev.offsetWidth };
       else if (next && next.id === 'inspector') drag = { kind: 'gutter', side: 'r', panel: next, x0: ev.clientX, w0: next.offsetWidth };
+      shield(drag);
     });
+    document.addEventListener('mousedown', () => { if (drag) shield(drag); });   // a clip, a moment, a bookmark: from the press too
+    // leaving the window mid-drag (Alt+Tab): a clip drag is dropped with nothing moved; a panel edge stays where it is
+    addEventListener('blur', () => { if (drag && !cancelDrag() && drag) onUp(new MouseEvent('mouseup')); });
     // top bar
     $('#top').addEventListener('click', ev => {
       const m = ev.target.closest('[data-menu]');
@@ -1708,6 +1879,8 @@
       const go = ev.target.closest('[data-goto]'); if (go) goto(go.dataset.goto);
       const kg = ev.target.closest('[data-knobgo]'); if (kg) goKnob(kg.dataset.knobgo);
       const ro = ev.target.closest('[data-reopen]'); if (ro) Act.reopen(ro.dataset.reopen);
+      const fg = ev.target.closest('[data-fixgo]'); if (fg) { const r = FX.map.get(fg.dataset.fixgo); if (r && r.fixes[0]) Act.applyFix(r.fixes[0]); return; }
+      const fm = ev.target.closest('[data-fixmore]'); if (fm) { openFixMenu(fm); return; }
       const fx = ev.target.closest('[data-pfix]'); if (fx) { const k = fx.dataset.pfix, id = fx.dataset.id;
         if (k === 'drift') Act.matchTimeout(id); else if (k === 'help') Act.addHelp(id); else if (k === 'loop') Act.breakLoop(id); else if (k === 'detach') Act.fixLostAnchor(id); else if (k === 'knob') Act.syncKnob(id, null); else if (k === 'voices') Act.useRealLengths(); else if (k === 'schema') Act.upgradeSchema(); else if (k === 'knobanchor') Act.matchKnobAnchor(id); else if (k === 'clean') Act.cleanAccepted();
         else if (k === 'branch') { select(id); pickAnchor(id, { k: fx.dataset.k, field: fx.dataset.field }); } }
@@ -1755,42 +1928,43 @@
       else if (k === 'mcopy') Act.copy();
       else if (k === 'mdup') Act.duplicate();
       else if (k === 'wav') { App.wavTarget = App.sel; $('#wavIn').click(); }
-      else if (k === 'play') { const u = BLOBS[App.sel]; if (u) new Audio(u).play().catch(() => {}); else toast('The file is in obra/audio/inbox; reload it here to listen.'); }
+      else if (k === 'play') playNew(App.sel);
       else if (k === 'psync1') Act.syncKnob(App.sel, null);
       else if (k === 'vreal') Act.useRealLengths([App.sel]);
       else if (a.hasAttribute('data-send')) Act.sendToUnreal();
       else if (k === 'punprop') Act.unpropose(App.sel);
-      else if (k === 'pprop') { const st = $('#pStage'); Act.propose(App.sel, st && st.value !== '' ? +st.value : null, parseFloat($('#pVal').value.trim().replace(',', '.')), $('#pWhy').value); }
+      else if (k === 'pprop') { const st = $('#pStage'); Act.propose(App.sel, st && st.value !== '' ? +st.value : null, View.parseNum($('#pVal').value), $('#pWhy').value); }
       else if (k === 'addnote') addNote();
     });
     ins.addEventListener('input', ev => { if (ev.target.id === 'noteIn') App.noteNew = ev.target.value; else if (ev.target.dataset.noteEdit) App.noteDraft = ev.target.value; });
     ins.addEventListener('change', ev => {
-      // number fields are text fields (always shown with a dot, whatever the computer's language): a comma is read as a dot
-      const f = ev.target.dataset.f; if (!f) return; const v = ev.target.classList.contains('ni') ? ev.target.value.trim().replace(',', '.') : ev.target.value, id = App.sel;
-      if (['off', 'dur', 'exp', 'fw', 'beatoff', 'mnudge', 'altoff'].includes(f) && !Number.isFinite(parseFloat(v))) { renderInspector(); return toast('Type a number'); }
-      if (f === 'mnudge') { if (!Act.moveMany(selIds(), parseFloat(v), false)) renderInspector(); }   // done or refused: it shows 0 again
-      else if (f === 'off') Act.setOffset(id, parseFloat(v));
-      else if (f === 'altoff') Act.setOffset(id, parseFloat(v), ev.target.dataset.k);
-      else if (f === 'branch') Act.setBranch([id], ev.target.dataset.on, v === '' ? null : v);
-      else if (f === 'dur') Act.trim(id, parseFloat(v));
-      else if (f === 'exp') Act.setGate(id, 'expected', parseFloat(v));
-      else if (f === 'fw') Act.setGate(id, 'fw', parseFloat(v));
-      else if (f === 'blocking') Act.setBlocking(id, ev.target.checked);
-      else if (f === 'lane') Act.setLane(id, v);
-      else if (f === 'text') Act.setText(id, v);
-      else if (f === 'name') Act.rename(id, cleanId(v));
-      else if (f === 'beatoff') { const B = App.score.beats[id], order = App.score.acts.flatMap(a => a.beats), prev = order[order.indexOf(id) - 1]; const cur = B.at ? B.at.off || 0 : 0; if (!Act.moveBeat(id, parseFloat(v) - cur)) renderInspector(); }   // refused (or no change): the field shows the offset it has
+      const t = ev.target, d = insDraw; if (!t.dataset.f) return;
+      if (t._applied != null && t._applied === t.value) { t._applied = null; return; }   // commitTyped made this edit already
+      // a number field is a text field (always shown with a dot, whatever the computer's language): applyChange reads "6,5" as 6.5
+      // the focus of a text field left because a button is being pressed: that click comes first (a select or a checkbox changes by its own click)
+      if (pressed && (t.tagName === 'TEXTAREA' || t.type === 'text')) { waiting.push(() => applyChange(t, d)); setTimeout(settle, 1500); return; }
+      applyChange(t, d);
     });
+    // (a native select list does not send the mouse coming up to the page, and a key means the mouse is not what is pressing)
+    document.addEventListener('mousedown', ev => { pressed = ev.button === 0 && !ev.target.closest('select, option'); }, true);
+    document.addEventListener('keydown', () => { pressed = false; }, true);
+    const released = () => { pressed = false; if (waiting.length) setTimeout(settle, 0); };   // after the click, which the browser delivers right after the mouse comes up
+    document.addEventListener('mouseup', released, true); document.addEventListener('dragend', released, true); addEventListener('blur', released);
     ins.addEventListener('keydown', ev => {
       if (ev.key === 'Enter' && ev.target.matches('input.ni,input.nmin')) ev.target.blur();
+      // Esc in a field gives back the value it had and leaves it: nothing is committed (what Premiere and Resolve do; the notes editor below does the same)
+      if (ev.key === 'Escape' && ev.target.dataset.f && ev.target.matches('input[type=text],input:not([type]),input[type=number],textarea')) {
+        const t = ev.target; ev.preventDefault(); ev.stopPropagation();
+        t.value = t.defaultValue; t._applied = t.value;   // the 'change' the browser may still send finds it done
+        t.blur(); return;
+      }
       if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && ev.target.id === 'noteIn') { ev.preventDefault(); addNote(); }
       const ne = ev.target.dataset.noteEdit;
       if (ne && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); noteAction(ne, 'save'); }
       if (ne && ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); noteAction(ne, 'cancel'); }
     });
-    ins.addEventListener('dragover', ev => { const d = ev.target.closest('[data-drop]'); if (d) { ev.preventDefault(); d.classList.add('hot'); } });
+    ins.addEventListener('dragover', ev => { const d = ev.target.closest('[data-drop]'); if (d) d.classList.add('hot'); });
     ins.addEventListener('dragleave', ev => { const d = ev.target.closest('[data-drop]'); if (d) d.classList.remove('hot'); });
-    ins.addEventListener('drop', ev => { const d = ev.target.closest('[data-drop]'); if (!d) return; ev.preventDefault(); const f = ev.dataTransfer.files && ev.dataTransfer.files[0]; if (f) loadWav(App.sel, f); });
     $('#wavIn').addEventListener('change', ev => { const f = ev.target.files && ev.target.files[0]; if (f && App.wavTarget) loadWav(App.wavTarget, f); ev.target.value = ''; });
     $('#jsonIn').addEventListener('change', ev => { const f = ev.target.files && ev.target.files[0]; if (f) importScore(f); ev.target.value = ''; });
     let rz = 0; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawAnchors, 120); });
@@ -1813,7 +1987,7 @@
     const P = Act.guionPlan(), d = P.d, st = d.stable, rows = d.rows, many = (n, a, b) => `${n} ${n === 1 ? a : b || a + 's'}`;
     const chosen = rows.reduce((n, r) => n + (P.sel[r.rid] || []).length, 0), names = P.names.length;
     const ck = (r, verb, text, why) => st ? `<label class="gck"${why ? ` title="${esc(why)}"` : ''}><input type="checkbox" data-gk="${esc(r.rid)}|${verb}"${(P.sel[r.rid] || []).includes(verb) ? ' checked' : ''}><span>${esc(text)}</span></label>` : '';
-    const line = f => `<div class="gl"><span class="gn">${esc(FN(f.field))}</span><span class="gw">${esc(W(f.field, f.was))}</span><span class="ga">→</span><span class="gv">${esc(W(f.field, f.now))}</span></div>`;
+    const line = f => `<div class="gl"><span class="gn">${esc(FN(f.field))}</span><span class="gw">${esc(W(f.field, f.was, f.now))}</span><span class="ga">→</span><span class="gv">${esc(W(f.field, f.now, f.was))}</span></div>`;
     const where = r => (r.moment ? ` <span class="dim">in ${esc(r.moment)}</span>` : '');
     const dismiss = r => st ? `<button class="gbtn" data-gact="dismiss" data-rid="${esc(r.rid)}" title="${r.kind === 'added' || r.kind === 'moment-added' ? 'Not wanted: the score stays without it and it is not offered again' : 'Hide this until guion.js changes it again'}">Dismiss</button>` : '';
     const edited = r => (r.edited ? ` <span class="chip prov" title="The score has changed this element since it took guion.js: the values on the left may be your own edit, so nothing is checked for you">edited here too</span>` : '');
@@ -1899,5 +2073,5 @@
 
   function renderAll() { init(); renderTop(); renderLibrary(); renderViewerBar(); renderTransport(); renderTimeline(); renderDrawer(); renderInspector(); renderStatus(); }
   window.UI = { chooseCard, sendCard, renderAll, renderTop, renderLibrary, renderViewerBar, renderTransport, renderTimeline, renderTimelineSelection, renderDrawer, renderInspector, renderStatus, movePlayhead, impactCard, quickAdd, noteBox, closeOverlay, goto, pickAnchor, endPick, guionPanel,
-    renderRange, revealTime, zoomAt, fit, shortcuts, quickStart, helpOpen, openFind, closeFind, fitTransport, setLaneSize, zoomMoment, zoomAct, hideHover };
+    renderRange, revealTime, zoomAt, fit, shortcuts, quickStart, helpOpen, openFind, closeFind, fitTransport, setLaneSize, zoomMoment, zoomAct, hideHover, flushTyped, refitOverlays, cancelDrag, renameMarker };
 })();
