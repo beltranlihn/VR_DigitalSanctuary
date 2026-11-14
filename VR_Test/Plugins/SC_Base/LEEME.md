@@ -6,7 +6,7 @@ Lo que comparten las mecánicas portables. `SC_Draw`, `SC_Breath` y `SC_Sequence
 | Carpeta | Contenido |
 |---|---|
 | `Blueprints/` | `BP_QuestCtrl_SC` (el mando de la obra: visual pasivo, `SetTrigger(0..1)`), `BPC_AppearLuz_SC` (la aparición "luz primero": `Appear()` / `Vanish()`), `BP_Anchor` (punto con etiqueta, oculto en juego) |
-| `Materials/` | familia `M_SCObject_SC` / `M_SCLight_SC` / `M_SCGlass_SC` / `M_SCObjectTrans_SC` / `M_SCChargeSlider_SC`, la traza de aparición, el puntero láser (`M_Beam_SC`, `M_Pointer_SC`, `M_PointerDot_SC`), los mandos, el pedestal, la membrana (`M_HeartScape_SC`), `M_TextUnlit`, `M_ProtoSoul_Amoeba`, `MI_Ghost`, `MPC_HUD_SC`, `MPC_Perf_SC` |
+| `Materials/` | familia `M_SCObject_SC` / `M_SCLight_SC` / `M_SCGlass_SC` / `M_SCObjectTrans_SC` / `M_SCChargeSlider_SC`, la traza de aparición, el puntero láser (`M_Beam_SC`, `M_Pointer_SC`, `M_PointerDot_SC`), los mandos, el pedestal, la membrana (`M_HeartScape_SC`), `M_TextUnlit`, `M_AnchorGhost_SC`, `MI_Ghost`, `MPC_HUD_SC`, `MPC_Perf_SC` |
 | `Meshes/` | mandos nuevos (`SM_QuestCtrl_*`) y viejos (`ControllerL/R`), pedestal `SM_DrawPalette_Base_SC`, la esfera `SM_AlmaSphere`, la membrana `SM_HeartMembraneLite_SC` |
 | `Audio/` | sonidos de interfaz (`VR_click1/2`, `VR_shep_scale_*`, `Charge1`, `ChargeFinal`, `ProtoHover`, `ProtoSelect`, `SBubbleHoverOn/Out`) y la atenuación `ATT_Objeto_SC` |
 

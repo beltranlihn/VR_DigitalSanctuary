@@ -157,9 +157,9 @@ Lista exacta: `docs/auditoria-2026-11-14/huerfanos.json`.
   copia a propósito para no tocar el plugin; se decide cuando se elija el camino de Mind.
 - `M_SpaceDust_SC`/`NS_SpaceDust_SC` y `M_HallDust_SC`/`NS_HallDust_SC` son dos polvos distintos colocados en `Test_Hall`. El
   primero también está en el menú de la demo: no son duplicados.
-- `M_ProtoSoul` (Core) es el material del alma: lo usan el alma, los créditos, la carga y tres experimentos. `M_ProtoSoul_Amoeba`
+- `M_ProtoSoul` (Core) es el material del alma: lo usan el alma, los créditos, la carga y tres experimentos. `M_AnchorGhost_SC`
   (SC_Base) solo lo usa `MI_Ghost`. Son dos materiales distintos con nombre parecido.
-- `M_ControllerOld_001/002` son los materiales de las mallas del mando (`ControllerL/R`) y del sensor (`BreathL/R`). Están en uso; el
+- `M_ControllerSecond_SC/002` son los materiales de las mallas del mando (`ControllerL/R`) y del sensor (`BreathL/R`). Están en uso; el
   nombre es solo heredado.
 - `M_SoulRibbon_SC` lo usa `BP_ProtoSoul_SC`: los anillos están apagados y se conservan por decisión de Beltrán.
 
@@ -168,9 +168,9 @@ Lista original del catálogo:
   - `BP_ChargeTest_SC` / `BP_ChargeFx_SC`: la Obra usa el segundo, pero el primero también llega a la Obra.
   - `NS_FocusMotes_SC` es `NS_OrbHalo_SC` sin cambios.
   - `M_SpaceDust_SC` / `NS_SpaceDust_SC` son copias del polvo del Hall.
-- **Nombres confusos:** `M_ProtoSoul` (Core) y `M_ProtoSoul_Amoeba` (SC_Base, el viejo `M_ProtoSoul` de Core/Amoeba).
+- **Nombres confusos:** `M_ProtoSoul` (Core) y `M_AnchorGhost_SC` (SC_Base, el viejo `M_ProtoSoul` de Core/Amoeba).
 - **Dudas de uso:**
-  - `M_ControllerOld_001/002` (materiales viejos del mando, en SC_Base): los alcanzan todos los proyectos.
+  - `M_ControllerSecond_SC/002` (materiales viejos del mando, en SC_Base): los alcanzan todos los proyectos.
   - `M_SoulRibbon_SC` sigue referenciado aunque los anillos del alma están apagados.
 - **Código apagado a propósito:** `BP_ProtoSoul_SC` tiene 61 nodos desenchufados (anillos y tarjeta del alma, apagados el 09-30 "sin
   borrar código", según su tracker). La limpieza de huérfanos los dejó.
