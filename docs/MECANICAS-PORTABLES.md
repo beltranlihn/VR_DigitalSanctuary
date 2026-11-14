@@ -17,8 +17,14 @@ Los tres alcanzan los mismos BPs de `SC_Base`, `SC_Breath`, `SC_Draw` y `SC_Sequ
 - 🔴 **Cambiar un BP de un plugin afecta a los tres.** Inner Canvas tocó `BP_QuestCtrl_SC`, `BP_SeqRig_SC`, `BP_TBDirector_NC`,
   `BP_DrawPalette_SC`, `BPC_TBTool_NC` y `BP_TBPalette` el 11-12 y 11-13 (poses PICO, gatillo animado, mano nueva). Después de un
   cambio en un plugin: `smoke_obra.py`, más un `-game` de la demo y de Inner Canvas.
-- `BP_SeqRig_SC` (el rig de mandos con láser) ya es más una pieza de base que del secuenciador: lo usan el menú de la demo y
-  Inner Canvas. Candidato a pasar a `SC_Base` cuando se toque.
+- `BP_SeqRig_SC` (el rig de mandos con láser) lo usan también el menú de la demo e Inner Canvas, pero **se queda en
+  `SC_Sequencer`** (Beltrán, 11-14):
+  - Hace cast a `BP_SoundOrb_SC` y a `BP_SaveMelody_SC` y usa `M_SeqCtrl_SC`. Moverlo crearía una dependencia circular
+    SC_Base ↔ SC_Sequencer.
+  - Para llevarlo a `SC_Base` (solo si el rig va a un proyecto sin el secuenciador): una interfaz `BPI_RigTarget_SC` en la base
+    (agarrar, soltar, apretar, soltar botón), implementada por la esfera y el SAVE. Las variables pasan a `Actor`, `MountButton`
+    busca por tag, se mueven el rig y `M_SeqCtrl_SC`, se actualizan las fuentes DSL que lo nombran por ruta, y se prueba Attracting
+    en visor.
 - Inner Canvas, además, usa 116 assets de `SoulCharger/Demo/` (HUD, voz, flujo). Si un día va a otro proyecto, esa es la
   dependencia que hay que cortar primero.
 
