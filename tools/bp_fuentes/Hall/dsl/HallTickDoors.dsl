@@ -1,0 +1,8 @@
+(fn HallTickDoors (DT)
+  (bind _k (/ 1.0 (Math|Float|Max(Float) (Variables|Default|GetDoorTime) 0.1)))
+  (Variables|Default|SetDoorW (Math|Interpolation|FInterptoConstant (Variables|Default|GetDoorW) (Variables|Default|GetDoorWT) DT _k))
+  (Variables|Default|SetDoorE (Math|Interpolation|FInterptoConstant (Variables|Default|GetDoorE) (Variables|Default|GetDoorET) DT _k))
+  (bind _lv (Variables|Default|GetLeaves))
+  (for _i (range (Utilities|Array|Length _lv))
+    (bind _o (Math|Float|FInterpEaseinOut 0.0 1.0 (select (Utilities|Array|Get(acopy) (Variables|Default|GetLeafEast) _i) (Variables|Default|GetDoorE) (Variables|Default|GetDoorW)) 2.0))
+    (Transformation|SetActorRotation :self (Utilities|Array|Get(acopy) _lv _i) :NewRotation (Math|Rotator|MakeRotator :Yaw (+ (Utilities|Array|Get(acopy) (Variables|Default|GetLeafYaw) _i) (* (* (Utilities|Array|Get(acopy) (Variables|Default|GetLeafSign) _i) (Variables|Default|GetDoorOpenDeg)) _o))) :bTeleportPhysics true)))

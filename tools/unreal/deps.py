@@ -1,19 +1,30 @@
 # deps.py - grafo de dependencias de Content/ leyendo las rutas /Game/ de cada .uasset/.umap (sin abrir Unreal).
-# Uso: python tools/unreal/deps.py  -> deps.json en la carpeta actual. Ver docs/AUDITORIA-ESTRUCTURA-2026-10-02.md
-import os, re, json, sys
-ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "VR_Test", "Content")
-pat = re.compile(rb"/Game/[A-Za-z0-9_/\-\.]+")
+# Uso: python tools/unreal/deps.py              -> deps.json en la carpeta actual (solo Content/, /Game/...)
+#      python tools/unreal/deps.py --plugins    -> tambien los plugins de contenido del proyecto (/SC_Draw/..., /PICOOpenXR/...)
+# Ver docs/AUDITORIA-ESTRUCTURA-2026-10-02.md. 2026-11-14: --plugins (las mecanicas viven en plugins desde el 10-02).
+import os, re, json, sys, collections
+VRT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "VR_Test")
+ROOTS = [(os.path.join(VRT, "Content"), "Game")]
+if "--plugins" in sys.argv:
+    for dp, dn, fn in os.walk(os.path.join(VRT, "Plugins")):
+        if "Binaries" in dn: dn.remove("Binaries")
+        if "Intermediate" in dn: dn.remove("Intermediate")
+        for f in fn:
+            if f.endswith(".uplugin") and os.path.isdir(os.path.join(dp, "Content")):
+                ROOTS.append((os.path.join(dp, "Content"), f[:-len(".uplugin")]))
+mounts = "|".join(re.escape(m) for _, m in ROOTS)
+pat = re.compile(rb"/(?:" + mounts.encode() + rb")/[A-Za-z0-9_/\-\.]+")
 pkgs = {}
-for dp, dn, fn in os.walk(ROOT):
-    for f in fn:
-        if f.endswith(('.uasset', '.umap')):
-            p = os.path.join(dp, f)
-            rel = os.path.relpath(p, ROOT).replace(os.sep, '/')
-            pkg = '/Game/' + rel.rsplit('.', 1)[0]
-            pkgs[pkg] = p
+for base, mount in ROOTS:
+    for dp, dn, fn in os.walk(base):
+        for f in fn:
+            if f.endswith(('.uasset', '.umap')):
+                p = os.path.join(dp, f)
+                rel = os.path.relpath(p, base).replace(os.sep, '/')
+                pkg = '/' + mount + '/' + rel.rsplit('.', 1)[0]
+                pkgs[pkg] = p
 # Unreal guarda los FName que terminan en _<numero> partidos (base + numero): "VO_14" queda como "VO" + 14.
 # Por eso una ruta base que no es paquete cuenta como referencia a todos sus hermanos base_<N> (conservador).
-import collections
 numbered = collections.defaultdict(list)
 for k in pkgs:
     m = re.match(r"^(.*)_(\d+)$", k)

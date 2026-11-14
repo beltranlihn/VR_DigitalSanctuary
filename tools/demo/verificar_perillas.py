@@ -25,7 +25,7 @@ PUBLICO = {
     # DrawShowTime = el reloj que muestra el HUD del menu al elegir Draw (tiene que coincidir con DrawTime de L_Demo_Draw)
     "L_Demo_Menu": dict(COMUN, DebugPick=("igual", -1), DrawShowTime=("igual", 150.0)),
     # bAutoStart de la etapa: el Blueprint la trae en TRUE (arrancaria el flujo viejo a los 1,5 s), el nivel tiene que decir false
-    "L_Demo_Breath": dict(COMUN, AutoHand=("igual", 0), AutoGo=("igual", 0.0), bTestSynth=("igual", False), Cycles=("exigir", 10),
+    "L_Demo_Breath": dict(COMUN, AutoHand=("igual", 0), AutoGo=("igual", 0.0), bTestSynth=("igual", False), Cycles=("exigir", 7),
                           GrabWait=("positivo", 0), ZoneWait=("positivo", 0), GoWait=("positivo", 0), BreathWait=("positivo", 0),
                           bAutoStart=("exigir", False), bContractTest=("igual", False), bShowMandoOnBegin=("igual", False),
                           TopeS=("igual", 170.0)),

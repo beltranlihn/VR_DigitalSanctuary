@@ -109,11 +109,27 @@ def main():
         # 1) la wifi local "Alma Digital" (192.168.0.x, 21-10: el laptop 192.168.0.190, el Quest 192.168.0.139);
         # 2) si este PC comparte un hotspot de Windows (192.168.137.1), esa es la IP que ve el Quest conectado a el
         f.write("$r = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -like '192.168.0.*' -and $_.AddressState -eq 'Preferred' } | Select-Object -First 1\r\nif ($r) { $r.IPAddress; exit }\r\n$h = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -like '192.168.137.*' } | Select-Object -First 1\r\nif ($h) { $h.IPAddress; exit }\r\n$c = Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up' } | Select-Object -First 1\r\nif ($c) { $c.IPv4Address[0].IPAddress } else { 'unknown' }\r\n")
+    # 2026-10-22 (feria, pedido de Beltran): Robot.bat abre en PANTALLA COMPLETA sin bordes en la SEGUNDA pantalla
+    # (-fullscreen = ventana a pantalla completa de UE5, en el monitor donde la ubican -WinX/-WinY; pantalla.ps1 da el
+    # rectangulo de la pantalla no principal, o la principal si hay una sola). Robot_ventana.bat = el de antes, con borde.
+    with open(os.path.join(os.path.dirname(exe), "pantalla.ps1"), "w", newline="") as f:
+        f.write("Add-Type -AssemblyName System.Windows.Forms\r\n"
+                "$s = [System.Windows.Forms.Screen]::AllScreens | Where-Object { -not $_.Primary } | Select-Object -First 1\r\n"
+                "if (-not $s) { $s = [System.Windows.Forms.Screen]::PrimaryScreen }\r\n"
+                "$b = $s.Bounds\r\n\"{0} {1} {2} {3}\" -f $b.X, $b.Y, $b.Width, $b.Height\r\n")
+    ip = 'for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0mi_ip.ps1"`) do set MYIP=%%i\r\n'
+    full = [x for x in args if x not in ("-windowed", "-ResX=1920", "-ResY=1080")]
     with open(bat, "w", newline="") as f:
-        f.write('@echo off\r\ncd /d "%~dp0"\r\nset MYIP=unknown\r\n'
-                'for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0mi_ip.ps1"`) do set MYIP=%%i\r\n'
+        f.write('@echo off\r\ncd /d "%~dp0"\r\nset MYIP=unknown\r\n' + ip +
+                'set WX=0\r\nset WY=0\r\nset WW=1920\r\nset WH=1080\r\n'
+                'for /f "usebackq tokens=1-4" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0pantalla.ps1"`) do (\r\n'
+                '  set WX=%%a\r\n  set WY=%%b\r\n  set WW=%%c\r\n  set WH=%%d\r\n)\r\n'
+                'start "" "' + os.path.basename(exe) + '" ' + " ".join(full) +
+                ' -WinX=%WX% -WinY=%WY% -ResX=%WW% -ResY=%WH% -fullscreen -MirrorMyIP=%MYIP%\r\n')
+    with open(os.path.join(os.path.dirname(exe), "Robot_ventana.bat"), "w", newline="") as f:
+        f.write('@echo off\r\ncd /d "%~dp0"\r\nset MYIP=unknown\r\n' + ip +
                 'start "" "' + os.path.basename(exe) + '" ' + " ".join(args) + ' -MirrorMyIP=%MYIP%\r\n')
-    print("robot: %s\nlanzador: %s" % (exe, bat))
+    print("robot: %s\nlanzador: %s (pantalla completa en la segunda pantalla; Robot_ventana.bat = con borde)" % (exe, bat))
 
 if __name__ == "__main__":
     main()

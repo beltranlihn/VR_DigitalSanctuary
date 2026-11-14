@@ -1,0 +1,6 @@
+(fn HallApplyTile (I V)
+  (bind _e (Math|Float|FInterpEaseinOut 0.0 1.0 V 2.0))
+  (bind _m (Utilities|Array|Get(acopy) (Variables|Default|GetTileMIDs) I))
+  (Rendering|Material|SetScalarParameterValue :self _m :ParameterName "Lift" :Value (* _e (Variables|Default|GetTileLiftCm)))
+  (Rendering|Material|SetScalarParameterValue :self _m :ParameterName "TileGlow" :Value (* _e (Variables|Default|GetTileGain)))
+  (Rendering|Material|SetScalarParameterValueonMaterials (Utilities|Array|Get(acopy) (Variables|Default|GetTitleComps) I) "Reveal" (select (Variables|Default|GetTitles) _e 0.0)))

@@ -66,3 +66,17 @@ _Deprecated/
 
 # Extraccion del prototipo (tools/score/extract_v1.mjs): se importa en el editor con File > Import score..., nunca pisa obra/score/score.json
 obra/score/score.extracted.json
+
+# EEG Alma Center: repo propio (github.com/beltranlihn/EEG_Alma_Center)
+EEG Alma Center/
+
+# Builds empaquetados (2026-11-14): las versiones entregadas van a Projects/Packagings (fuera del repo); las copias de cada
+# empaquetado quedan en Recursos/ como archivo local. Ninguno va al repo (son GB).
+Packaging/
+Recursos/Inner Canvas/APK/
+Recursos/Inner Canvas/APK Quest/
+Recursos/Inner Canvas/Pantalla/
+
+# Copias de respaldo a mano de scripts y json
+*.bak
+*.bak_*

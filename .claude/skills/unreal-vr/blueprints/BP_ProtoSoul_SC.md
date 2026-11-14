@@ -6,6 +6,8 @@
 > - `bRingKeys` quedó en false en el CDO.
 > Las instancias que no tengan override lo heredan; las 5 del Hall (`Test_Hall`) quedaron así explícitamente. **Para reactivarlos:** reconectar la salida del último nodo del CS a `BuildAllRings` y volver a poner la visibilidad. `ApplyRingScale` sigue corriendo en el Tick porque también empuja `FloatScale` al cuerpo; no desconectarlo.
 
+> 🆕 **2026-10-29 — la usa `BP_FeedDirector_SC` (`Test_Feed`)** como "amebitas" de conceptos: 6 instancias colocadas, cada una con su `Size`, `PhaseSeed` y colores. El director **no toca sus grafos**: le escribe `Size`, `EdgeIntensity` y `SpinSpeed` (su Tick los aplica) y llama `Appear` / `Disappear`. Con `bStartAsleep` true y sin `Reveal`, `bHoverEnabled` queda en false: sin hover de manos ni su sonido. ⚠ En Simulate, `HandNear → CachePawn` imprime `PROTO: sin pawn VR` **cada cuadro por instancia** (no hay pawn): llena el log, no es un error. ⚠ `SetbHovering` desde afuera no sirve: `HandNear` lo reescribe cada cuadro.
+
 > `/Game/SoulCharger/Core/ProtoSoul/` · creado 2026-08-18 · **duplicado de [BP_Alma_SC](BP_Alma_SC.md)**, con material propio `M_ProtoSoul` (también duplicado, para que tocarlo no afecte a Alma).
 > 🔴 **Hay 5 instancias COLOCADAS a mano en el persistente** (`L_SoulCharger`), tagueadas `soul_pick`, que son las candidatas de la elección (2026-08-19; antes se spawneaban, ver [BP_SoulPicker_SC](BP_SoulPicker_SC.md)). **La malla, el color y el tamaño de cada una son datos de autor EN LA INSTANCIA**, no en el CDO.
 > **Estado: 🟡 malla intercambiable + giro + hover + sistema de puntos completos y probados en Play; sembrado por el picker verificado en PIE. Falta el visor.**

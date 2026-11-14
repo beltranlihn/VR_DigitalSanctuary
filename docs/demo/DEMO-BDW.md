@@ -40,8 +40,8 @@ El de la Obra (`BP_SoulHUD3D_SC`): izquierda la hermana azul latiendo con el pul
 | Viaje del menú | `DemoMenu` (instancia) → `TravelCm` 1400 · `TravelTime` 32 · `AccelTime`/`BrakeTime` 4 · `VoDelay` 3 (espera de la bienvenida) · `VoGap` 1,2 · la niebla: `BP_HallFog_SC` → `FadeOut` 18 |
 | Sonido de los botones | cada `BP_ShareButton_SC` de los niveles → `PressSound` (`ProtoSelect`) |
 | Tiempos de cada experiencia | `DemoFlow` → `PanelAt` · `TopeS` (Breath 170) · `DrawTime` (Draw 150) · `PracticeM` (1 m) · `ResultsHold` 35 · `SpinTurnsT` 12 (= 2 vueltas a `SpinSpeed` 60) · `ShiftCm` · tiempos límite (arriba) |
-| Largo de Breath | `Entering_Pacer` → `Cycles` (10 ≈ 120 s) |
-| Tinta de Draw | `TBDirector` → `InkMeters` (22) · presentación: `HoldTime` 999 (el dibujo queda girando) y `SpinSpeed` 60 |
+| Largo de Breath | `Entering_Pacer` → `Cycles` (7: 5 de la parte 1 a 5-3-8-0 + los 2 de la parte final ≈ 114 s; 21-10, breathwork) |
+| Tinta de Draw | `TBDirector` → `InkMeters` (75: 2,5 min de dibujo continuo a ~50 cm/s; 22-10) · presentación: `HoldTime` 999 (el dibujo queda girando) y `SpinSpeed` 60 |
 | HUD | `HudKit` de cada nivel (`Mode`, colores) · `SoulHUD` (tamaño, curva) |
 | Música | `DemoMusic` → `Clip`; Ambient 2 del menú = `DemoMenu.Amb2` |
 
@@ -53,7 +53,7 @@ El de la Obra (`BP_SoulHUD3D_SC`): izquierda la hermana azul latiendo con el pul
 | `L_Demo_Menu` → `DemoMenu` | `DebugPick` · `DrawShowTime` (el reloj del HUD al elegir Draw = `DrawTime`) | **−1 · 150** |
 | `L_Demo_Breath` / `L_Demo_Draw` → `DemoFlow` | `AutoHand` · `AutoGo` · `bTestSynth` · `DrawTime` | **0 · 0 · false · 150** |
 | `L_Demo_Breath` / `L_Demo_Draw` → `DemoFlow` | `GrabWait` · `ZoneWait` · `BreathWait` · `GoWait` · `PracticeWait` | **> 0** (25 · 30 · 30 · 60 · 45) |
-| `L_Demo_Breath` → `Entering_Pacer` | `Cycles` | **10** |
+| `L_Demo_Breath` → `Entering_Pacer` | `Cycles` | **7** |
 | `L_Demo_Breath` → `DemoFlow` | `TopeS` | **170** |
 | `L_Demo_Heart` → `DemoFlow` | `AutoHand` · `AutoGo` · `TopeS` · `GrabWait`/`ZoneWait` | **0 · 0 · 150 · > 0** |
 | `L_Demo_Heart` → `HeartManager` | `bContractTest` · `bFakeBeat` · `bIgnoreTracking` · `HeartVDropMin` | **false · false · false · 10** (las tres últimas son las recetas de PIE de escritorio) |
@@ -64,7 +64,7 @@ El de la Obra (`BP_SoulHUD3D_SC`): izquierda la hermana azul latiendo con el pul
 | `DemoShots` (los 2 niveles) | `Every` | **0** |
 
 ## Valores de público (20-10 noche, para el APK `Demo_BDW`)
-`bFakeSignal` **true** en los 4 niveles desde la segunda tanda de la noche (antes false = Muse real; si se conecta un Muse real con esto en true, las dos señales entran por el mismo `Ingest` y se mezclan), Breath `TopeS` 170, Heart `TopeS` 150, Draw `DrawTime` 150, menú `DrawShowTime` 150. Para volver a probar en Unreal con experiencias cortas y Muse simulado: `bFakeSignal` true y 30 s (y devolverlos antes del próximo APK; la guardia lo exige).
+`bFakeSignal` **true** en los 4 niveles desde la segunda tanda de la noche (antes false = Muse real; si se conecta un Muse real con esto en true, las dos señales entran por el mismo `Ingest` y se mezclan), Breath `TopeS` 170, Heart `TopeS` 150, Draw `DrawTime` 150, menú `DrawShowTime` 150. **Resolución del visor** (21-10 noche): `RenderPct` por nivel, aplicado 1 s después del pawn (que pone 100): menú **120**, Draw **115**, Breath y Heart **100**. Para probar otro valor sin recompilar: `-DemoRenderPct=N` en `UECommandLine.txt` (pisa los 4 niveles). Para volver a probar en Unreal con experiencias cortas y Muse simulado: `bFakeSignal` true y 30 s (y devolverlos antes del próximo APK; la guardia lo exige).
 
 ## Probar sin visor
 ```

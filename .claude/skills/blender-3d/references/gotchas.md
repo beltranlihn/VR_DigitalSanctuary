@@ -84,3 +84,4 @@
     - La regla del HUD ("la lámina no se mete debajo de un contorno translúcido") sigue valiendo para los CONTORNOS: ahí la superposición parcial sí se ve como un escalón.
 
 <!-- Agregar acá cada trampa nueva con fecha, síntoma y arreglo. -->
+- 🔴 **Booleano EXACTO con `material_mode = 'TRANSFER'`: las caras del cortador pueden quedar TODAS en el slot 0** (2026-10-28, `gen_hang.py`: 9 bolsillos sobre una cúpula). El conteo por slot lo delata (`[n, 0, 0]`). Arreglo robusto: clasificar cada cara después del corte por geometría en el marco del cortador. Y en headless, **las rutas de `render.filepath` van absolutas**: con una relativa el render dijo OK y los PNG no aparecieron donde se esperaban.

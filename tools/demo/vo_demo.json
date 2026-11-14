@@ -1,13 +1,13 @@
 [
  {
   "id": "VO_D01b",
-  "uso": "menu, Breath elegido: bienvenida mientras se avanza",
-  "text": "Welcome to Soul Charger. For the next three minutes, you'll slow down and breathe with a guide. While you do, we'll gently listen to your body: your breath, your heart, and your mind."
+  "uso": "menu, Breath elegido: bienvenida mientras se avanza (21-10: \"Welcome to <experiencia>\", pedido de Beltran)",
+  "text": "Welcome to Entering. For the next three minutes, you'll slow down and breathe with a guide. While you do, we'll gently listen to your body: your breath, your heart, and your mind."
  },
  {
   "id": "VO_D01d",
-  "uso": "menu, Draw elegido: bienvenida mientras se avanza",
-  "text": "Welcome to Soul Charger. For the next three minutes, you'll draw with light in the space around you. While you do, we'll gently listen to your heart and your mind."
+  "uso": "menu, Draw elegido: bienvenida mientras se avanza (21-10: \"Welcome to <experiencia>\", pedido de Beltran)",
+  "text": "Welcome to Surrounding. For the next three minutes, you'll draw with light in the space around you. While you do, we'll gently listen to your heart and your mind."
  },
  {
   "id": "VO_D02",
@@ -21,8 +21,68 @@
  },
  {
   "id": "VO_DB2",
-  "uso": "Breath: arranca el pacer",
-  "text": "Now follow the guide. Let it set the rhythm."
+  "uso": "Breath: antes de la cuenta, explica la tecnica (21-10, arreglo 12: breathwork de referencia)",
+  "text": "Now, a breath to calm your nervous system. Breathe in through your nose, filling your belly, then your chest. Hold for a moment. Then breathe out slowly through your mouth, as if through a straw. I'll guide each breath."
+ },
+ {
+  "id": "VO_DBC",
+  "uso": "Breath, breathwork (21-10, arreglo 12): cuenta antes del primer ciclo (la dice la demo con subtitulo; la etapa queda en silencio)",
+  "text": "Three... two... one... inhale."
+ },
+ {
+  "id": "VO_BI1",
+  "uso": "Breath, breathwork (21-10, arreglo 12): inhalar, ciclo 2 (explica)",
+  "text": "Breathe in through your nose... fill your belly, then your chest."
+ },
+ {
+  "id": "VO_BI2",
+  "uso": "Breath, breathwork (21-10, arreglo 12): inhalar, ciclos 3 en adelante",
+  "text": "Breathe in."
+ },
+ {
+  "id": "VO_BH",
+  "uso": "Breath, breathwork (21-10, arreglo 12): sostener (todas las retenciones salvo la de pulmones vacios)",
+  "text": "Hold."
+ },
+ {
+  "id": "VO_BE1",
+  "uso": "Breath, breathwork (21-10, arreglo 12): exhalar, ciclo 1 (explica)",
+  "text": "Now breathe out slowly through your mouth, as if through a straw."
+ },
+ {
+  "id": "VO_BE2",
+  "uso": "Breath, breathwork (21-10, arreglo 12): exhalar, ciclos 2 en adelante",
+  "text": "And breathe out, slowly."
+ },
+ {
+  "id": "VO_BF1",
+  "uso": "Breath, breathwork (21-10, arreglo 12): final: ultima inhalacion profunda",
+  "text": "One last time... breathe in deeply."
+ },
+ {
+  "id": "VO_BF2",
+  "uso": "Breath, breathwork (21-10, arreglo 12): final: exhalacion larga",
+  "text": "Now a long, slow exhale... all the way out."
+ },
+ {
+  "id": "VO_BF3",
+  "uso": "Breath, breathwork (21-10, arreglo 12): final: sostener con los pulmones vacios",
+  "text": "Hold, with your lungs empty."
+ },
+ {
+  "id": "VO_BF4",
+  "uso": "Breath, breathwork (21-10, arreglo 12): final: inhalar por la nariz",
+  "text": "Breathe in through your nose."
+ },
+ {
+  "id": "VO_BF5",
+  "uso": "Breath, breathwork (21-10, arreglo 12): final: exhalar con un suspiro y una sonrisa",
+  "text": "And let it go, with a sigh... and a smile."
+ },
+ {
+  "id": "VO_BF6",
+  "uso": "Breath, breathwork (21-10, arreglo 12): final: vuelta a la respiracion natural",
+  "text": "Now let your breath return to its natural rhythm."
  },
  {
   "id": "VO_DB3",
@@ -76,8 +136,8 @@
  },
  {
   "id": "VO_D01h",
-  "uso": "menu, Heart elegido: bienvenida mientras se avanza (pedido de Beltran 20-10: tercera experiencia)",
-  "text": "Welcome to Soul Charger. For the next three minutes, you'll listen to your heart. While you do, we'll gently listen to your body: your heart, and your mind."
+  "uso": "menu, Heart elegido: bienvenida mientras se avanza (pedido de Beltran 20-10: tercera experiencia) (21-10: \"Welcome to <experiencia>\", pedido de Beltran)",
+  "text": "Welcome to Recognizing. For the next three minutes, you'll listen to your heart. While you do, we'll gently listen to your body: your heart, and your mind."
  },
  {
   "id": "VO_IH1",
@@ -108,6 +168,16 @@
   "id": "VO_DH3",
   "uso": "Heart: final, antes de los resultados (pedido de Beltran 20-10: tercera experiencia)",
   "text": "Beautifully done. Let's see what your heart shared with us."
+ },
+ {
+  "id": "VO_DH4",
+  "uso": "Heart: poema 1, a media etapa (21-10, pedido de Beltran: mas meditativo; del guion VO_15)",
+  "text": "Let's redirect the focus to the heart... melting the thoughts of the mind. Here, there is nothing to do... only to listen."
+ },
+ {
+  "id": "VO_DH5",
+  "uso": "Heart: poema 2, antes del cierre (21-10, pedido de Beltran: mas meditativo)",
+  "text": "Your heart has kept time for you, every moment of your life... quietly, without asking. Rest here, and thank it."
  },
  {
   "id": "HINT_START",

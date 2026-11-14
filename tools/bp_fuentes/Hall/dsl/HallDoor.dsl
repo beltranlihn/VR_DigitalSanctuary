@@ -1,0 +1,5 @@
+(fn HallDoor (East Open)
+  (Variables|Default|SetDoorET (select East Open (Variables|Default|GetDoorET)))
+  (Variables|Default|SetDoorWT (select East (Variables|Default|GetDoorWT) Open))
+  (if (> Open 0.5)
+    (Audio|PlaySound2D :Sound (Variables|Default|GetSndDoor) :VolumeMultiplier 0.8)))

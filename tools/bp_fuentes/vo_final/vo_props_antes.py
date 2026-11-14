@@ -1,0 +1,18 @@
+import json
+OT='editor_toolset.toolsets.object.ObjectTools.'
+AT='editor_toolset.toolsets.asset.AssetTools.'
+REFS=["/Game/SoulCharger/Mechanics/Breath/Audio/VO_12c.VO_12c", "/Game/SoulCharger/Mechanics/Breath/Audio/VO_12f1.VO_12f1", "/Game/SoulCharger/Mechanics/Breath/Audio/VO_12f2.VO_12f2", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_01a.VO_01a", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_01b.VO_01b", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_01c.VO_01c", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_01d.VO_01d", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_01h.VO_01h", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_02.VO_02", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_03.VO_03", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_03h.VO_03h", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_04.VO_04", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_04b.VO_04b", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_05.VO_05", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_06a.VO_06a", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_06b.VO_06b", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_06c.VO_06c", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_06d.VO_06d", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_06e.VO_06e", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_06f.VO_06f", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_06g.VO_06g", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_07.VO_07", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_34a.VO_34a", "/Game/SoulCharger/Mechanics/Hall/Audio/VO_35a.VO_35a", "/Game/SoulCharger/Obra/Audio/VO_10.VO_10", "/Game/SoulCharger/Obra/Audio/VO_12c.VO_12c", "/Game/SoulCharger/Obra/Audio/VO_13.VO_13", "/Game/SoulCharger/Obra/Audio/VO_14.VO_14", "/Game/SoulCharger/Obra/Audio/VO_15.VO_15", "/Game/SoulCharger/Obra/Audio/VO_18.VO_18", "/Game/SoulCharger/Obra/Audio/VO_19.VO_19", "/Game/SoulCharger/Obra/Audio/VO_20.VO_20", "/Game/SoulCharger/Obra/Audio/VO_24.VO_24", "/Game/SoulCharger/Obra/Audio/VO_25.VO_25", "/Game/SoulCharger/Obra/Audio/VO_26.VO_26", "/Game/SoulCharger/Obra/Audio/VO_29.VO_29", "/Game/SoulCharger/Obra/Audio/VO_30.VO_30", "/Game/SoulCharger/Obra/Audio/VO_31.VO_31", "/Game/SoulCharger/Obra/Audio/VO_33.VO_33", "/Game/SoulCharger/Obra/Audio/VO_34b.VO_34b", "/Game/SoulCharger/Obra/Audio/VO_34c.VO_34c", "/Game/SoulCharger/Obra/Audio/VO_35b.VO_35b", "/Game/SoulCharger/Obra/Audio/VO_35c.VO_35c", "/Game/SoulCharger/Obra/Audio/VO_36.VO_36", "/Game/SoulCharger/Obra/Audio/VO_36b.VO_36b", "/Game/SoulCharger/Obra/Audio/VO_36c.VO_36c", "/Game/SoulCharger/Obra/Audio/VO_36d.VO_36d", "/Game/SoulCharger/Obra/Audio/VO_36p.VO_36p", "/Game/SoulCharger/Obra/Audio/VO_37.VO_37"]
+OUT='C:/Users/beltr/Desktop/Alma Digital Studio/Projects/VR Unreal/VR_Test/Saved/ClaudeScripts/vo_final/vo_props_antes.json'
+def run():
+    out={};err=[]
+    for r in REFS:
+        try:
+            v=json.loads(execute_tool(OT+'get_properties', json.dumps({'instance':{'refPath':r},'properties':['bLooping','attenuationSettings','duration']}))['returnValue'])
+            out[r.split('/')[-2]+'/'+r.split('.')[-1]]=v
+        except BaseException as e:
+            err.append(r.split('.')[-1]+' :: '+str(e)[:120])
+    try: execute_tool(AT+'write_file', json.dumps({'file_path':OUT,'content':json.dumps(out,indent=1)}))
+    except BaseException as e: err.append('write :: '+str(e)[:120])
+    loops=[k for k,v in out.items() if v['bLooping']]
+    att=[k for k,v in out.items() if v['attenuationSettings'] not in (None,'None','')]
+    return {'n':len(out),'loop':loops,'atenuacion':att,'errores':err[:6]}

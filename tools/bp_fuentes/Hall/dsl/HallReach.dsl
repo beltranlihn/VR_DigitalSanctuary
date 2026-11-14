@@ -1,0 +1,8 @@
+(fn HallReach (Fwd Down Side)
+  (bind _cm (Game|GetPlayerCameraManager 0))
+  (bind _eye (Camera|GetCameraLocation _cm))
+  (bind _rot (Math|Rotator|MakeRotator :Yaw (.yaw (Camera|GetCameraRotation _cm))))
+  (bind _f (Math|Vector|GetForwardVector _rot))
+  (bind _r (Math|Vector|GetRightVector _rot))
+  (Variables|Default|SetEyeLoc _eye)
+  (Variables|Default|SetReachLoc (Math|Vector|MakeVector (+ (+ (.x _eye) (* (.x _f) Fwd)) (* (.x _r) Side)) (+ (+ (.y _eye) (* (.y _f) Fwd)) (* (.y _r) Side)) (- (.z _eye) Down))))

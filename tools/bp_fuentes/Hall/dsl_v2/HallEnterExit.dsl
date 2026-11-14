@@ -1,0 +1,25 @@
+(fn HallEnterExit ()
+  (switch int (Variables|Default|GetStep)
+    (:0
+      (Variables|Default|SetStepDur (Variables|Default|GetPaceDoorOpen))
+      (if (Variables|Default|GetTestExit)
+        (CallFunction|HallTeleport :To (Variables|Default|GetStopCard))
+        (CallFunction|HallDoor :East false :Open 1.0)
+        (else (Utilities|IsValid (Variables|Default|GetLeadActor)
+          (:"Is Valid")
+          (:"Is Not Valid" (if (< (Variables|Default|GetDoorWT) 0.5) (CallFunction|HallDoor :East false :Open 1.0)))))))
+    (:1
+      (CallFunction|HallWalk :To (Variables|Default|GetStopExit) :Dur (Variables|Default|GetExitTime))
+      (CallFunction|HallSay :I 20)
+      (Variables|Default|SetStepDur (Variables|Default|GetPaceExitLightsOff)))
+    (:2
+      (CallFunction|HallLight :Lit false)
+      (CallFunction|HallTiles :Count 5 :V 0.0)
+      (CallFunction|HallFogSet :Lit true)
+      (Variables|Default|SetWaitWalk true)
+      (Variables|Default|SetGate false))
+    (:3
+      (CallFunction|HallDoor :East false :Open 0.0)
+      (Variables|Default|SetExitDone true)
+      (Variables|Default|SetMode 0)
+      (Development|PrintString "HALL: HallExit terminado (bExitDone)" :bPrintToScreen false))))

@@ -41,3 +41,11 @@ Pedido de Beltrán: "los textos y gráficos de los resultados se vean en altísi
 - Antes de pasar a textura se probaron (visor, capturas `metacam`): `M_DemoTextAA_SC` afilado con su derivada (gotcha 592; sigue en el reloj del `BP_DemoHudKit_SC`) y los rótulos adelantados a la curva (gotcha 593). Se veía entero y sin tramado, pero seguía dentado: el TextRender recorta con el alfa del campo de distancia y a 1,6 m una letra de rótulo mide ~10 px del eye buffer.
 - Subir la resolución del visor solo durante los resultados NO entra: Heart ya usa ~10,5 ms de GPU de 13,9 al 100 % (VrApi `App=`); al 125 % serían ~16 ms.
 - Respaldo previo: `VR_Test/Saved/ClaudeScripts/Demo2/backup_1021a/` (BP y material) y `results_dsl_backup_1021a.py`.
+
+## 2026-10-21 (noche) — fondo translúcido del color de cada experiencia (arreglo 7)
+- `ResShow` tiñe la hoja y las cuatro ventanas según `Exp` (Breath 0,55/0,64/0,98 · Draw 0,5/0,92/0,68 · Heart 0,98/0,55/0,52): `Sheet` Color + `Base` 0,16 + `Opacity` 0,45; `WinEEG/WinPulse/WinBreath/WinCalm` Color + `Base` 0,08. Con `...onMaterials` del componente: `Rendering|Material|SetVectorParameterValue` a secas resuelve a la versión de Material Parameter Collection (falló la escritura y dejó `ResShow` vacía hasta reescribirla).
+- Las páginas de instrucciones (`MI_Instr2_*`) pasaron a `M_DemoPanelPage_SC` (translúcido, `BgOpacity` 0,86, `Base` = color de su carta).
+
+## 2026-10-22 (feria) — número de calma nítido y curvas orgánicas
+- **Número grande pixelado**: Canvas rasteriza el glifo al `LegacyFontSize` de la fuente (con `DPIScale` 1: `CanvasItem.cpp`, `DrawStringInternal_RuntimeCache`) y AGRANDA el bitmap por `Scale`; con Quicksand a 9 pt el número iba ×16,7. Copia de la fuente a **120 pt**: `/Game/SoulCharger/Demo/Fonts/Quicksand-SemiBold_Big_SC` (Runtime) solo para el número (`TEXTF`/`FONT_BIG` en `results_dsl.py`): ×1,25 en el RT de trabajo y después 2:1. Las etiquetas siguen con la de 9 pt (×4).
+- **Curvas poligonales**: eran rectas entre las casillas de 5 s del BioHub (datos reales del Muse, promediados). Ahora `graph()` dibuja **Catmull-Rom** (`GK` 6 tramos por intervalo, pasa por cada casilla real, recortada a la ventana) y los niveles demo usan casillas de **2 s** (`BioHub.BinSeconds` de la instancia en Breath, Draw y Heart; 180 × 2 s = 6 min). Heart -game: 107 casillas (antes 43), curva lisa, 0 errores.

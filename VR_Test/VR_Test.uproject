@@ -76,6 +76,18 @@
 		{
 			"Name": "ModelContextProtocol",
 			"Enabled": true
+		},
+		{
+			"Name": "AllToolsets",
+			"Enabled": true
+		},
+		{
+			"Name": "TechAudioTools",
+			"Enabled": true
+		},
+		{
+			"Name": "WaveFunctionCollapse",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

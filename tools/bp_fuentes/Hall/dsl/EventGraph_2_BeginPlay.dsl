@@ -1,0 +1,11 @@
+(event EventBeginPlay
+  (CallFunction|HallBoot)
+  (if (or (or (Variables|Default|GetTestIntro) (Variables|Default|GetTestReturn)) (Variables|Default|GetTestExit))
+    (Utilities|FlowControl|Delay :Duration (Variables|Default|GetTestDelay))
+    (Utilities|Time|SetGlobalTimeDilation :TimeDilation (Variables|Default|GetTestSpeed))
+    (if (Variables|Default|GetTestIntro)
+      (CallFunction|HallIntro)
+      (else (if (Variables|Default|GetTestReturn)
+        (CallFunction|HallReturn)
+        (elif (Variables|Default|GetTestExit)
+          (CallFunction|HallExit)))))))

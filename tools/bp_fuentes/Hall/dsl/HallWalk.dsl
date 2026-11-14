@@ -1,0 +1,7 @@
+(fn HallWalk (To Dur)
+  (Variables|Default|SetWalkA (Transformation|GetActorLocation :self (Variables|Default|GetPawn)))
+  (Variables|Default|SetWalkB (Transformation|GetWorldLocation :self To))
+  (Variables|Default|SetWalkT 0.0)
+  (Variables|Default|SetWalkDur (Math|Float|Max(Float) Dur 0.1))
+  (if (not (and (== (Variables|Default|GetMode) 1) (== (Variables|Default|GetStep) 1)))
+    (Variables|Default|SetStepsAudio (Audio|SpawnSound2D :Sound (Variables|Default|GetSndSteps) :VolumeMultiplier 0.6))))

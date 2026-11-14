@@ -34,17 +34,28 @@ Obra de **VR inmersiva de sanación/meditación** para **Meta Quest 3**. Experie
 
 **Antes de cada commit grande o APK: `python tools/unreal/smoke_obra.py`** (prueba de humo de la obra entera, sin visor, ≈9 min). Tiene que dar OK.
 
-| Etapa | Estado (2026-10-02) |
+| Etapa | Estado (2026-10-02; notas al 2026-11-14) |
 |---|---|
 | Hall (inicio, regreso, salida) | 🟢 en la Obra; visor ✓ |
 | Entering (respiración) | 🟢 en la Obra; visor ✓ |
 | Recognizing (latido) | 🟢 en la Obra; latido de respaldo sin sensor |
-| Loving (mente) | 🟢 en la Obra |
-| Attracting (secuenciador) | 🟢 en la Obra; SAVE al pedido de cierre |
+| Loving (mente) | 🟢 en la Obra · ⏸️ versión sin EEG en pausa: 3 caminos sin elegir (`Test_Thoughts`/`Feed`/`Focus`) |
+| Attracting (secuenciador) | 🟢 en la Obra; SAVE al pedido de cierre · 🟡 reconstrucción con un hang en curso (`Test_AttractingHang`) |
 | Surrounding (dibujo) | 🟢 en la Obra; corte con presentación (arreglo 10-02, falta visor) |
 | Final: resultados, SHARE, constelación, créditos | 🟢 en la Obra |
 
 La historia (V1 `Maps/L_Persistent`, V2 `MapsV2`, V3 `MapsV3`, la galería, calibración, Touch) **ya no está en el proyecto**: quedó en `_Deprecated/Content-2026-10-02/` y en el tag `respaldo-pre-reorden-2026-10-02`. Ver [`docs/AUDITORIA-ESTRUCTURA-2026-10-02.md`](docs/AUDITORIA-ESTRUCTURA-2026-10-02.md).
+
+### 3.b 🗺️ Además de la Obra: tres proyectos comparten este Content (desde 2026-10 / 11)
+| Proyecto | Dónde | Entregado |
+|---|---|---|
+| **Soul Charger · la Obra** | `SoulCharger/Obra` + celdas | — |
+| **Digital Sanctuary · la demo** (ferias; bilingüe; sensor Muse + robot de Windows) | `SoulCharger/Demo/Maps/L_Demo_*` | `Projects/Packagings/Digital Sanctuary V1.0` (BCN Design Week) |
+| **Inner Canvas** (dibujo de pie para varios visores PICO/Quest + pantalla del PC) | `InnerCanvas/Maps/L_InnerCanvas` + `_Wall` | `Projects/Packagings/Inner Canvas v1.0` (evento 2026-11-13) |
+
+🔴 **Dependen entre sí** (Inner Canvas usa 116 assets de `Demo/`; los tres usan los plugins `SC_*`): antes de mover o borrar,
+mirar quién lo usa. **Todos los niveles, carpetas, dependencias y cómo probar cada cosa: [`docs/MAPA-DEL-PROYECTO.md`](docs/MAPA-DEL-PROYECTO.md).**
+Qué hace cada BP, material y Niagara: [`docs/CATALOGO.md`](docs/CATALOGO.md). Último orden: [`docs/AUDITORIA-ESTRUCTURA-2026-11-14.md`](docs/AUDITORIA-ESTRUCTURA-2026-11-14.md).
 
 ## 4. Cómo se trabaja acá — la skill es la biblia
 Todo lo operativo de Unreal está en la skill **`unreal-vr`** (`.claude/skills/unreal-vr/`), que **se auto-activa** cuando la tarea toca Unreal:
@@ -73,6 +84,9 @@ VR Unreal/                      ← raíz del repo
 ├─ CLAUDE.md                    ← este archivo
 ├─ docs/                        ← GUIA-DE-DIRECCION, PARTITURA, PERILLAS, REGLAS-DE-ORO, WORKFLOW-EQUIPO, guion, auditorías
 ├─ tools/unreal/                ← prueba de humo, probar un nivel, empaquetar, instalar en el Quest, dependencias, archivo
+├─ tools/innercanvas/, demo/    ← herramientas de Inner Canvas y de la demo (voces, instaladores, simuladores)
+├─ tools/bp_fuentes/            ← copia de las fuentes .py/.dsl de los BPs escritos por script (el original vive en
+│                                  VR_Test/Saved/ClaudeScripts, que git ignora; /commit la actualiza)
 ├─ .claude/skills/unreal-vr/    ← la biblia técnica (se auto-activa)
 ├─ web/                         ← prototipo narrativo web y editor de la obra
 ├─ Recursos/                    ← material de trabajo y referencias (no se versiona lo pesado)
@@ -83,6 +97,7 @@ VR Unreal/                      ← raíz del repo
    │    SC_Base/ (mandos, aparición, puntero, sonidos de interfaz, pedestal) · SC_Draw/ (dibujo) · SC_Breath/ (respiración)
    │    · SC_Sequencer/ (secuenciador) · cada uno con su LEEME.md. Faltan Heart y Mind (ver docs/MECANICAS-PORTABLES.md §0)
    │    Regla: nada de un plugin apunta a /Game/SoulCharger → `python tools/unreal/verificar_plugins.py`
+   │    Marketplace/PICOOpenXR/ (Fab, para los PICO de Inner Canvas: ver §7)
    └─ Content/
       ├─ SoulCharger/Obra/            ← L_SoulCharger_Obra (el nivel final) + Blueprints/ (director, ensayos) + Partitura/ + Titles/ + Audio/ (voces)
       ├─ SoulCharger/Hall/            ← inicio, hall y regreso (+ timbre). Maps/Test_Hall
@@ -90,6 +105,10 @@ VR Unreal/                      ← raíz del repo
       │    Breath/ (Entering) · Heart/ (Recognizing) · Mind/ (Loving) · Sequencer/ (Attracting) · Draw/ (Surrounding)
       │    En Draw/, Breath/ y Sequencer/ queda solo la etapa (nivel de test, entorno, orquestador con voces): el sistema está
       │    en su plugin. Heart/ y Mind/ siguen enteros acá hasta separar su etapa (cirugía pendiente, con visor).
+      │    Mind/ guarda además Test_Thoughts/Feed/Focus (Loving sin EEG, en pausa) · Harp/ = arpa/hang + el Attracting nuevo
+      │    (Test_AttractingHang, en curso)
+      ├─ SoulCharger/Demo/            ← la demo (Digital Sanctuary): L_Demo_Menu/Breath/Heart/Draw. 🔴 Inner Canvas usa sus assets
+      ├─ InnerCanvas/                 ← Inner Canvas: L_InnerCanvas (visor) + L_InnerCanvas_Wall (PC), BPs *_IC
       ├─ SoulCharger/Shared/          ← piezas que usan varias etapas: HUD, Results, Ghost, UserTool, Appear, BioSensor, ChargeRing, QuestController, Subtitles
       ├─ SoulCharger/Core/            ← base de la obra: Alma, pawn, alma del usuario (ProtoSoul), señales (BioHub/OSC), luz, audio, puntero, input, UI → coordinar
       ├─ XRFramework/, XRMannequins/  ← base VR de Epic (GameMode, input, manos)
@@ -100,6 +119,7 @@ Dentro de cada mecánica, del Hall y de la Obra, los assets van **por tipo**: `B
 ## 7. 🔴 Qué NO tocar sin cuidado
 - **Los grafos de `BP_Obra_SC`**: para ajustar tiempos está la Partitura. Si hay que tocarlos, leer el tracker y correr la prueba de humo después.
 - **`Core/`** (pawn, Alma, alma del usuario) y **`VR_Test/Config/`**: compartidos → coordinar antes de tocar. El pawn queda liviano: cada mecánica en su propio BP.
+- 🔴 **Plugin PICO OpenXR** (`Plugins/Marketplace/PICOOpenXR`, desde 2026-11-11): mientras esté activo, **cada arranque del editor reescribe `DefaultEngine.ini`**. Borra los comentarios y mete ajustes de PICO que afectan también a Quest. Pendiente de aislar en una variante `pico`: [`docs/PICO-EMPAQUETADO.md`](docs/PICO-EMPAQUETADO.md).
 - **`.uasset`/`.umap` son binarios**: no se mergean. Nunca dos personas en el mismo `.uasset` a la vez.
 - **Colocar actores sí; sacarlos se pregunta.** Contar actores antes y después de cada tanda de scripts.
 
@@ -111,6 +131,8 @@ Dentro de cada mecánica, del Hall y de la Obra, los assets van **por tipo**: `B
 Reglas completas en [`docs/WORKFLOW-EQUIPO.md`](docs/WORKFLOW-EQUIPO.md). Resumen:
 - **Repo:** `github.com/beltranlihn/VR_DigitalSanctuary`. Rama de trabajo: `core/esqueleto`.
 - **Commitear hitos**, con la prueba de humo en OK. **Save All en Unreal antes de commitear.** Mini-skill: `/commit`.
+- **Versiones entregadas** (APK + build de Windows + LEEME) → `Projects/Packagings/<Nombre vX.Y>/`, fuera del repo. Nunca al
+  escritorio ni al repo (los builds son GB; `.gitignore` ya los excluye).
 - **APK:** `python tools/unreal/empaquetar_obra.py [--variante v2]` → `powershell -File tools/unreal/instalar_quest.ps1 [-Variante v2]`. Antes, el checklist de público de la guía §6.
 
 ## 9. Conocimiento y memoria — repo = canónico compartido

@@ -4,17 +4,21 @@
 #   powershell -File tools/unreal/instalar_quest.ps1 -Variante v2 (paquete com.almadigital.soulchargerv2, convive con el otro)
 #   powershell -File tools/unreal/instalar_quest.ps1 -Variante demo (paquete com.almadigital.soulchargerdemo, carpeta Android_Demo;
 #       en vez del Hall espera que cargue L_Demo_Menu; -Marcador '<regex>' cambia esa senal, p. ej. un PrintString del menu)
+#   -Variante demobi (24-10, feria): la demo bilingue (ENGLISH/ESPANOL), paquete com.almadigital.soulchargerdemobi, carpeta Android_DemoBi.
 #   -Simular: solo muestra paquete, carpeta, APK, OBB y destino en el visor; no toca adb.
 # Antes: python tools/unreal/empaquetar_obra.py [--variante v2|demo]. El visor tiene que estar conectado y con depuracion USB.
 # Si el OBB no queda (secure_mkdirs): abre la app una vez para que el sistema cree la carpeta y repite el push.
-param([ValidateSet("obra", "v2", "demo")][string]$Variante = "obra", [string]$Marcador = "", [switch]$Simular)
+#   -SinLanzar (22-10, feria): solo instala APK + OBB; no abre la app ni toca el sensor de proximidad ni el guardian (al final
+#       el flujo normal hace automation_disable, que deshace el "pantalla siempre encendida" de prox_close).
+param([ValidateSet("obra", "v2", "demo", "demobi")][string]$Variante = "obra", [string]$Marcador = "", [switch]$Simular, [switch]$SinLanzar)
 $adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 # $marca = linea de logcat que confirma que arranco; $resumen = lineas que se muestran al final; $meta = como se llama ese punto
 $marca = "HALL: modo 1 paso 1\b"; $resumen = "OBRA CONFIG|partitura cargada|OBRA: aviso|OBRA: Hall - inicio|HALL: modo 1 paso 1\b"; $meta = "HALL"
 if ($Variante -eq "v2") { $pkg = "com.almadigital.soulchargerv2"; $dir = Join-Path $root "VR_Test\Saved\Packaged\Android_ObraV2" }
-elseif ($Variante -eq "demo") {
+elseif ($Variante -eq "demo" -or $Variante -eq "demobi") {
   $pkg = "com.almadigital.soulchargerdemo"; $dir = Join-Path $root "VR_Test\Saved\Packaged\Android_Demo"
+  if ($Variante -eq "demobi") { $pkg = "com.almadigital.soulchargerdemobi"; $dir = Join-Path $root "VR_Test\Saved\Packaged\Android_DemoBi" }
   $marca = "seconds to LoadMap\(.*L_Demo_Menu"; $resumen = "DEMO:|seconds to LoadMap\(.*L_Demo_"; $meta = "MENU"
 }
 else { $pkg = "com.almadigital.soulcharger"; $dir = Join-Path $root "VR_Test\Saved\Packaged\Android_Obra" }
@@ -47,6 +51,7 @@ if ($rs -ne "$($obb.Length)") {
   $rs = (& $adb shell "stat -c %s /sdcard/Android/obb/$pkg/$($obb.Name) 2>/dev/null").Trim()
 }
 "OBB en el visor: $rs bytes (local $($obb.Length))"
+if ($SinLanzar) { "instalado sin abrir (-SinLanzar): la app queda cerrada y el sensor de proximidad como estaba"; exit 0 }
 & $adb shell am broadcast -a com.oculus.vrpowermanager.prox_close | Out-Null
 & $adb shell setprop debug.oculus.guardian_pause 1
 & $adb logcat -c

@@ -81,3 +81,20 @@ Fuente: `VR_Test/Saved/ClaudeScripts/Demo2/flow_dsl.py` (respaldos `flow_dsl_bac
 - Variable `MasterMix` (SoundSubmix, CDO `/Engine/EngineSounds/Submixes/MasterSubmixDefault`).
 - `FBoot` arranca con `SetSubmixOutputVolume(MasterMix, 1)`: el nivel anterior lo dejó en 0.
 - `EndTick` fase 18 (negro): rampa del maestro 1 → 0 en 3 s y el menú se abre a los **4 s** (antes 3: el `FadeAll` de la música todavía sonaba y el `OpenLevel` lo cortaba = click).
+
+## 2026-10-21 (noche) — arreglos de Beltrán (`docs/demo/ARREGLOS-2026-10-21.md`)
+DSL: `Saved/ClaudeScripts/Demo2/flow_dsl.py` (respaldos `flow_dsl_backup_1021{n,p,q,r}.py`). Variables nuevas creadas con `Test_QuestCtrl` abierto (las instancias de los niveles nacen con el valor del CDO).
+- **FINISH (4)**: `Fin` (BP_ShareButton_SC) + `bFinDone`. `FinSpawn` (una vez) · `FinShow` (150 cm al frente, 42 cm abajo, pitch 15, MI `MI_DemoBtn_PlateTopFinish_SC` = `T_Finish_Text`; `Appear` + `ResultsBeam` true) · `FinPick` (hover = `BeamHitActor == Fin` y `AppearT ≥ 0,999`; clic = cambió `ResPressN`). `EndTick :1` y `DrawTick :6` llaman `FinShow` después de `ResShow`; `EndTick :2` cierra con el tiempo **o** `bFinDone` (mismo cierre: `ResultsBeam` false, `Vanish` de FINISH si no se apretó, `ResHide`, negro, menú).
+- **Heart, dos poemas (11)**: `bSaidH3/H4`, `Poem1At` (CDO 60) / `Poem2At` (100), instance-editable. Fase 6: `VO_DH4` a `Poem1At` s de etapa (después del primer pulso, sin voz sonando), `VO_DH5` a `Poem2At` (después del primero, antes del pedido de cierre). Rutas de los clips escritas en el grafo.
+- **Heart, polvo más amplio (1)**: fase 0 (con el entorno) → `BP_HeartDust_SC.StaticMeshComponent.SetStaticMesh(SM_HeartDust_Demo_SC)`. La Obra sigue con `SM_HeartDust_SC`.
+- **Breath, breathwork (12)**: `Pacer` (ref), `LastPh` (int, CDO −1), `bSetF1/F2`, `bSaidCount`, `bSaidNat`, perillas `FinIn 5 · FinHold 3 · FinEx 10 · FinEmpty 5 · SighIn 5 · SighEx 6`.
+  - Fase 8: guarda el pacer y pone las banderas en cero. Fase 9: `Vo2` (la explicación) a `ExploreTime − (Vo2.Duration + 0,8)` · la cuenta `VO_DBC` cuando la etapa pasa a su fase 12 · `BreathCue` cada cuadro.
+  - **`BreathCue`**: con el pacer corriendo, al empezar el ciclo `Cycles − 2` → `PacerSetTimes(FinIn, FinHold, FinEx, FinEmpty)`; al empezar el `Cycles − 1` → `PacerSetTimes(SighIn, 0, SighEx, 0)` (el inhalar dura lo mismo en los tres patrones: el cambio no salta). Cambio de `CurPhase` → `BreathSay`. Cuando el pacer para después del último patrón → `VO_BF6`.
+  - **`BreathSay`**: por fase (0 inhalar · 1 sostener · 2 exhalar · 3 sostener 2) y ciclo; una retención de < 0,05 s no habla; el primer inhalar lo dice la cuenta.
+  - La etapa (`BP_BreathStage_SC` de `L_Demo_Breath`) quedó muda: `bCycleVO` false, `CountSound` = `SND_Demo_Silence` (0,1 s), `InhaleCueAt` 2,37 (= "inhale" en `VO_DBC`), `CountTime` 2,5, `ExploreTime` 30. Pacer de la instancia: 5-3-8-0, `Cycles` 7, pads `SND_PacerPad{Inhale,Exhale}_Demo`.
+  - ⚠ La lectura del DSL rotula `GetDuration` como `Components|GeometryCache` y `GetPhase` de la etapa como `Variables|Default`: `get_node_infos` confirma `self` = SoundBase y BP Breath Stage SC.
+- **Nitidez (2)**: `RenderPct` (instance-editable, CDO 100) + `bPctDone`. **`RenderPctStep`** (en `FlowTick`, después de `FVeil`): a RT ≥ 1 s (después del `BeginPlay` del pawn, que pone 100) ejecuta `xr.SecondaryScreenPercentage.HMDRenderTarget <RenderPct>`; `-DemoRenderPct=N` en la línea de comandos lo pisa. `L_Demo_Draw` 115; Breath y Heart 100 (CDO).
+- Probado en -game (sin visor): Heart completo (poemas a 50/100 s, polvo nuevo, cuadro + FINISH, 0 errores) · Breath completo (149,5 s de etapa, las 13 voces en orden, cuadro + FINISH, 0 errores).
+
+## 2026-10-23 — FINISH con los sonidos de la mezcla
+`FinSpawn` (respaldo `flow_dsl_backup_1023.py`): al crear FINISH le pone `HoverSound` `SND_Demo_HoverOn`, `HoverOutSound` `SND_Demo_HoverOut`, `PressSound` `SND_Demo_Select` y a su `AppearLuz` In/Out `SND_Demo_InOut` (FINISH se crea en tiempo de juego: no hay instancia que editar).

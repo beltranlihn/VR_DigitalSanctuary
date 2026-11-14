@@ -1,0 +1,154 @@
+[
+ {
+  "id": "VO_D01b",
+  "text": "Te damos la bienvenida a Entering. Durante los próximos tres minutos, vas a bajar el ritmo y a respirar con una guía. Mientras lo haces, escucharemos suavemente tu cuerpo: tu respiración, tu corazón y tu mente."
+ },
+ {
+  "id": "VO_D01d",
+  "text": "Te damos la bienvenida a Surrounding. Durante los próximos tres minutos, vas a dibujar con luz en el espacio que te rodea. Mientras lo haces, escucharemos suavemente tu corazón y tu mente."
+ },
+ {
+  "id": "VO_D01h",
+  "text": "Te damos la bienvenida a Recognizing. Durante los próximos tres minutos, vas a escuchar tu corazón. Mientras lo haces, escucharemos suavemente tu cuerpo: tu corazón y tu mente."
+ },
+ {
+  "id": "VO_D02",
+  "text": "Ya estamos captando tus señales. Todo está listo."
+ },
+ {
+  "id": "VO_D03",
+  "text": "Durante esta experiencia, mediremos tu actividad neuronal, tu actividad cardíaca y un índice de calma."
+ },
+ {
+  "id": "VO_DB1",
+  "text": "Esta luz se mueve con tu respiración. Respira despacio, y mira cómo te sigue."
+ },
+ {
+  "id": "VO_DB2",
+  "text": "Ahora, una respiración para calmar tu sistema nervioso. Inhala por la nariz, llenando primero el vientre y luego el pecho. Retén el aire un momento. Después suéltalo despacio por la boca, como si soplaras suavemente. Yo te iré guiando."
+ },
+ {
+  "id": "VO_DBC",
+  "text": "Tres... dos... uno... inhala."
+ },
+ {
+  "id": "VO_BI1",
+  "text": "Inhala por la nariz... llena el vientre, luego el pecho."
+ },
+ {
+  "id": "VO_BI2",
+  "text": "Inhala."
+ },
+ {
+  "id": "VO_BH",
+  "text": "Retén el aire."
+ },
+ {
+  "id": "VO_BE1",
+  "text": "Ahora suelta el aire despacio por la boca, como si soplaras suavemente."
+ },
+ {
+  "id": "VO_BE2",
+  "text": "Y suelta el aire, despacio."
+ },
+ {
+  "id": "VO_BF1",
+  "text": "Una última vez... inhala profundamente."
+ },
+ {
+  "id": "VO_BF2",
+  "text": "Ahora suelta el aire, largo y lento... hasta vaciarte."
+ },
+ {
+  "id": "VO_BF3",
+  "text": "Mantente así, con los pulmones vacíos."
+ },
+ {
+  "id": "VO_BF4",
+  "text": "Inhala por la nariz."
+ },
+ {
+  "id": "VO_BF5",
+  "text": "Y suéltalo, con un suspiro... y una sonrisa."
+ },
+ {
+  "id": "VO_BF6",
+  "text": "Ahora deja que tu respiración vuelva a su ritmo natural."
+ },
+ {
+  "id": "VO_DB3",
+  "text": "Lo has hecho muy bien. Veamos lo que nos ha contado tu cuerpo."
+ },
+ {
+  "id": "VO_DD1",
+  "text": "Bien. El espacio es tuyo. Dibuja hasta que se acabe el tiempo o la tinta."
+ },
+ {
+  "id": "VO_DD2",
+  "text": "Muy bien. Esto es lo que has creado, y lo que decía tu cuerpo mientras dibujabas."
+ },
+ {
+  "id": "VO_IB1",
+  "text": "Toma el sensor que tienes delante con tu mano dominante."
+ },
+ {
+  "id": "VO_IB2",
+  "text": "Apoya el sensor sobre tu vientre, justo debajo de las costillas. Respira con normalidad."
+ },
+ {
+  "id": "VO_IB3",
+  "text": "Inhala y exhala despacio. El círculo se mueve con tu vientre."
+ },
+ {
+  "id": "VO_IB4",
+  "text": "Vas a respirar en un ciclo constante: inhalar, retener, exhalar. Sigue la guía sin forzar."
+ },
+ {
+  "id": "VO_ID1",
+  "text": "Toma el pincel con tu mano dominante."
+ },
+ {
+  "id": "VO_ID2",
+  "text": "Tu paleta está en tu otra mano. Apunta a un color para elegirlo, y mantén el gatillo para dibujar. Prueba un primer trazo. La experiencia comienza después de tu primer trazo."
+ },
+ {
+  "id": "VO_IH1",
+  "text": "Toma el sensor que tienes delante con tu mano dominante."
+ },
+ {
+  "id": "VO_IH2",
+  "text": "Coloca el sensor sobre tu corazón, en el lado izquierdo del pecho, y mantente inmóvil un momento."
+ },
+ {
+  "id": "VO_IH3",
+  "text": "Cada latido se convierte en un pulso de luz a tu alrededor. Mantén el sensor sobre tu corazón, y escucha."
+ },
+ {
+  "id": "VO_DH1",
+  "text": "¿Puedes oír tu latido? ¿Puedes sentir su ritmo?"
+ },
+ {
+  "id": "VO_DH2",
+  "text": "¿Sientes la gratitud en cada latido?"
+ },
+ {
+  "id": "VO_DH3",
+  "text": "Lo has hecho muy bien. Veamos lo que nos ha contado tu corazón."
+ },
+ {
+  "id": "VO_DH4",
+  "text": "Lleva la atención al corazón... deja que los pensamientos se disuelvan. Aquí no hay nada que hacer... solo escuchar."
+ },
+ {
+  "id": "VO_DH5",
+  "text": "Tu corazón ha latido por ti en cada momento de tu vida... en silencio, sin pedir nada a cambio. Descansa aquí, y dale las gracias."
+ },
+ {
+  "id": "HINT_START",
+  "text": "Apunta al botón y aprieta el gatillo"
+ },
+ {
+  "id": "HINT_PICK",
+  "text": "Apunta a la experiencia que elijas y aprieta el gatillo"
+ }
+]

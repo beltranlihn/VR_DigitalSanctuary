@@ -391,6 +391,7 @@ mismos centroides empujados → costuras exactas); **la micro-vida en el shader*
 - **Orden de dibujo con histéresis** (`SortArm`): un brazo que se inclina hacia atrás se dibuja ANTES que la
   membrana del núcleo (prioridad 1+i) y vuelve (10+i) con histéresis −0,10/−0,05; solo al cambiar.
 - **`PreviewTime`** (4-Vida): en el Construction Script la coreografía se posa en ese instante; Play arranca de esa pose.
+  🔴 **Es también la semilla de la célula** (2026-10-29, `Test_Focus`): `Tau` y `Phase` nacen de `PreviewTime` × `Tempo`, así que varias células con el mismo `PreviewTime` se mueven en sincronía exacta. Con varias en un nivel, darle a cada una un `PreviewTime` distinto (gotcha 629). `Agitation` satura en 1 en el BP y en el shader.
 
 ### Variables nuevas
 **4-Vida** (editables): `FloatAmount` (1; 0 = la pose estática de antes) · `PreviewTime` (0 s).

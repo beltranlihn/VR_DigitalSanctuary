@@ -70,3 +70,7 @@
   - color de `PressedColor` (Beltrán);
   - integración al dibujo (sesión Drawing);
   - rigs de respiración y latido: ahí lo reemplaza el sensor `SM_BioSensor_SC`.
+
+
+## ⚠ Trampa conocida (2026-10-28, encontrada en el arpa)
+`ApplyHand` solo cambia las mallas: **no** mueve el gatillo a la bisagra espejada. Eso lo hace `ApplyTrigger`, que el CS corre al nacer (todavía con `bLeft` false), y el Tick solo si `Value != Target`. Un rig que spawnea el mando y después llama `SetLeft(true)` + `ApplyHand` deja el gatillo izquierdo en la bisagra DERECHA (se ve corrido). Arreglo del lado del rig: llamar también `ApplyTrigger` (hecho en `BP_Harp_SC.MountQCtrl`). `BP_SeqRig_SC` tiene el mismo patrón, pero ahí el mando izquierdo no se muestra. Arreglarlo dentro de `ApplyHand` cubriría a todos: es un BP compartido (SC_Base), así que se coordina antes.

@@ -63,6 +63,7 @@ Scripts superados (quedan de referencia; NO usar):
 | Pivote (cm) | (1.565, −2.432, −0.145) | (1.565, 2.432, −0.145) |
 | Eje | (0.976, 0.218, −0.008) | (0.976, −0.218, −0.008) |
 
+  - ⚠ **Al renderizar en Blender desde los FBX, el gatillo entra en el origen** (vértices referidos a la bisagra) y queda escondido dentro del cuerpo: hay que llevarlo a `pivot_mm` de `qc_trigger_hinge.json`. `render_quest_controller_unlit.py` NO lo hace (2026-11-12: render "de lado" sin gatillo; arreglado en `Recursos/Inner Canvas/Renders/scripts/render_mando_lado.py`).
   - Apretar en Blender es **+14°** sobre ese eje (mano derecha). En Unreal el sentido se verifica en el editor, porque el paso de mano derecha a izquierda invierte el signo.
   - Izquierdo: pivote con x negado; eje (−0.976, 0.218, −0.008) y signo invertido.
 - **Material** `M_QuestCtrl_SC` (HLSL en `unreal-vr/scripts/hlsl/QuestCtrlShadePS.hlsl`): unlit, con el sombreado falso de la paleta, borde de luz (fresnel), rodilla suave y `Pressed` 0..1 para el gatillo.

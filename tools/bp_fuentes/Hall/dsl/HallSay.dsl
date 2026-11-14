@@ -1,0 +1,6 @@
+(fn HallSay (I)
+  (bind _c (Utilities|Array|Get(acopy) (Variables|Default|GetVO) I))
+  (Variables|Default|SetStepDur (+ (Class|SoundBase|GetDuration _c) (Variables|Default|GetVOAir)))
+  (Utilities|IsValid (Variables|Default|GetAlma)
+    (:"Is Valid" (Class|BPAlmaSC|SayClip :self (Variables|Default|GetAlma) :Clip _c))
+    (:"Is Not Valid" (Audio|PlaySound2D :Sound _c))))

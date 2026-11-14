@@ -8,6 +8,20 @@
 
 ---
 
+## 0.a 🔴 Actualización 2026-11-14: los plugins ya tienen tres clientes
+Desde octubre, los cuatro plugins `SC_*` no los usa solo la Obra:
+- **la demo** (Digital Sanctuary, `SoulCharger/Demo/`);
+- **Inner Canvas** (`InnerCanvas/`).
+
+Los tres alcanzan los mismos BPs de `SC_Base`, `SC_Breath`, `SC_Draw` y `SC_Sequencer`, medido con `deps.py --plugins`. Por eso:
+- 🔴 **Cambiar un BP de un plugin afecta a los tres.** Inner Canvas tocó `BP_QuestCtrl_SC`, `BP_SeqRig_SC`, `BP_TBDirector_NC`,
+  `BP_DrawPalette_SC`, `BPC_TBTool_NC` y `BP_TBPalette` el 11-12 y 11-13 (poses PICO, gatillo animado, mano nueva). Después de un
+  cambio en un plugin: `smoke_obra.py`, más un `-game` de la demo y de Inner Canvas.
+- `BP_SeqRig_SC` (el rig de mandos con láser) ya es más una pieza de base que del secuenciador: lo usan el menú de la demo y
+  Inner Canvas. Candidato a pasar a `SC_Base` cuando se toque.
+- Inner Canvas, además, usa 116 assets de `SoulCharger/Demo/` (HUD, voz, flujo). Si un día va a otro proyecto, esa es la
+  dependencia que hay que cortar primero.
+
 ## 0. 🔴 Actualización 2026-10-02: las mecánicas vigentes y su dependencia medida
 > Las fichas de §4 son de septiembre y nombran mecánicas y rutas que ya no existen (`BP_DrawCanvas`, `Stages/...`). Lo vigente después del reordenamiento de carpetas:
 

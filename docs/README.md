@@ -14,6 +14,8 @@
 | [VO-SOUL-CHARGER-2026-10-01.md](VO-SOUL-CHARGER-2026-10-01.md) | Las voces de Alma |
 | [MECANICAS-PORTABLES.md](MECANICAS-PORTABLES.md) | Cómo llevar una mecánica a otro nivel o proyecto |
 | [AUDITORIA-ESTRUCTURA-2026-10-02.md](AUDITORIA-ESTRUCTURA-2026-10-02.md) | Por qué se reordenó el proyecto y qué se hizo |
+| [PICO-EMPAQUETADO.md](PICO-EMPAQUETADO.md) | Plugin PICO OpenXR: qué le hace al proyecto, qué aporta (72 Hz, AppSW, FFR), la variante `innercanvas` y las poses de los mandos en PICO |
+| [innercanvas/PLAN-INNER-CANVAS.md](innercanvas/PLAN-INNER-CANVAS.md) | **Inner Canvas** (evento corporativo): dibujo de pie para 8 visores PICO + pantalla del PC con los 8 dibujos. Guion, cómo está hecha, cómo probar sin visores, empaquetar e instalar |
 | [editor-obra/](editor-obra/) · [instalacion-feria/](instalacion-feria/) | El editor web de la obra · la instalación física del festival |
 
 ## Historia (consulta; puede no coincidir con el proyecto actual)

@@ -33,3 +33,15 @@
 ## 2026-10-20 (noche, 2.ª tanda) — "TEXT" en Heart
 - `KitSlot`: el bloque del modo 3 (punto rojo) terminaba en `IsValid(Heart)` y el writer colgó de su `else` la línea `SetVisibility(Timer)` y el bloque del modo 2 (gotcha 590). En Heart el reloj nunca se escondía y mostraba "Text" sobre el disco. Ahora el reloj va ANTES y el bloque del modo 3 es lo último de la función.
 - `Timer`: `Text` vacío en el CDO y `TextMaterial` = `M_DemoTextAA_SC` (alpha to coverage: borde suave en el Quest).
+
+## 2026-10-21 (noche) — manos más difusas y reloj de Draw en textura (arreglos 5 y 13)
+DSL: `Saved/ClaudeScripts/Demo2/kit_dsl.py` (respaldo `kit_dsl_backup_1021n.py`).
+- **Manos (5)**: `KitSetup` recorre los `SkeletalMeshComponent` del pawn y al que tiene un material `MI_Hand*` le pone `MI_Hand_Demo_SC` (hijo de `M_Hand_SC`: Opacity 0,14, EdgeBoost 0,24, EdgePower 1,15, Brightness 0,9, WristFadeStart −2, WristFadeLength 9). Solo en la demo: la Obra sigue con su MI.
+- **Reloj (13)**: componente `TimerQuad` (Plane, sin colisión ni sombra, oculto de nacimiento) + `TimerRT` (96²) y `TimerWork` (192²). `KitSetup` lo ubica sobre el arte (`_rl + n·0,45`, rotación `MakeRotfromZY(_dir, (0,0,−1))`, escala 0,03), lo pega al arte y le crea un MID de `M_DemoResPane_SC` con `Card` = `TimerRT` (Color 0, Base 0, Opacity 0, Gain 1,2, Fade 1, Boost 1,4). `KitSlot` esconde el TextRender `Timer`; con `Mode` 2 y `_sk` > 0,5 muestra el quad y, en cada segundo nuevo, dibuja "m:ss" (Quicksand, `TimerColor`) en `TimerWork` y lo reduce 2:1 a `TimerRT` (la receta del cuadro de resultados, `REGLAS-DE-ORO` §11).
+- 🐛 Pagado: con `MakeRotfromZX` el texto quedaba girado 90°; con ZY y arriba +1, de cabeza; ZY con arriba −1 = derecho.
+- Captura -game: "2:30" derecho y nítido sobre el HUD.
+- **22-10 (feria)**: Beltrán vio las manos **negras** en el visor con `MI_Hand_Demo_SC` (0,14 / 0,24 / `EdgePower` 1,15 / `Brightness` 0,9 / muñeca −2..9). Volvió a ser el blanco de `MI_Hand_SC` con un poco menos de opacidad: solo `Opacity` 0,17 · `EdgeBoost` 0,29 · `EdgePower` 1,6 (lo demás, del padre: blanco, `Brightness` 1, muñeca −2/7). La causa del negro no está confirmada (el material es unlit blanco translúcido): ⬜ verlo en el visor.
+
+## 2026-10-23 — manos con el material original + sonidos de la mezcla
+- **Manos**: Beltrán las seguía viendo **negras** con `MI_Hand_Demo_SC`. `KitSetup` ya NO cambia el material: a cada `SkeletalMeshComponent` del pawn con `MI_Hand*` le sube solo `Opacity` a **0,32** (`SetScalarParameterValueOnMaterials`, crea el MID sobre `MI_Hand_SC`, el blanco emisivo translúcido original, que viene en 0,22). `HAND_OPACITY` en `kit_dsl.py` (respaldo `kit_dsl_backup_1023.py`). `MI_Hand_Demo_SC` queda sin uso.
+- Sonidos: `ShowSound` `SND_Demo_HudIn`, `PlopSound` `SND_Demo_HudOut` (CDO + instancias de los 4 niveles).

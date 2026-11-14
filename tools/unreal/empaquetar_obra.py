@@ -43,7 +43,50 @@ DEMO = "/Game/SoulCharger/Demo/Maps/"
 VARIANTES = {"obra": dict(pkg="com.almadigital.soulcharger", nombre="Soul Charger", carpeta="Android_Obra", maps=MAPS, mapa_inicio=MAPA_OBRA),
              "v2": dict(pkg="com.almadigital.soulchargerv2", nombre="Soul Charger V2", carpeta="Android_ObraV2", maps=MAPS, mapa_inicio=MAPA_OBRA),
              "demo": dict(pkg="com.almadigital.soulchargerdemo", nombre="Soul Charger Demo", carpeta="Android_Demo",
-                          maps=[DEMO + "L_Demo_Menu", DEMO + "L_Demo_Breath", DEMO + "L_Demo_Draw", DEMO + "L_Demo_Heart"], mapa_inicio=DEMO + "L_Demo_Menu.L_Demo_Menu")}
+                          maps=[DEMO + "L_Demo_Menu", DEMO + "L_Demo_Breath", DEMO + "L_Demo_Draw", DEMO + "L_Demo_Heart"], mapa_inicio=DEMO + "L_Demo_Menu.L_Demo_Menu"),
+             # 2026-10-24 (feria): la demo con eleccion de idioma (ENGLISH / ESPANOL) como app aparte, para no pisar la instalada
+             "demobi": dict(pkg="com.almadigital.soulchargerdemobi", nombre="Soul Charger Demo Bilingual", carpeta="Android_DemoBi",
+                          maps=[DEMO + "L_Demo_Menu", DEMO + "L_Demo_Breath", DEMO + "L_Demo_Draw", DEMO + "L_Demo_Heart"], mapa_inicio=DEMO + "L_Demo_Menu.L_Demo_Menu"),
+             # 2026-11-11: Inner Canvas, la experiencia de dibujo de pie para 8 visores PICO 4 Ultra Enterprise (docs/innercanvas/PLAN-INNER-CANVAS.md).
+             # pico=True: mientras cocina, sin empaquetado de Meta Quest y con 72 Hz pedidos por el plugin PICO OpenXR (docs/PICO-EMPAQUETADO.md).
+             "innercanvas": dict(pkg="com.almadigital.innercanvas", nombre="Inner Canvas", carpeta="Android_InnerCanvas",
+                                 maps=["/Game/InnerCanvas/Maps/L_InnerCanvas"], mapa_inicio="/Game/InnerCanvas/Maps/L_InnerCanvas.L_InnerCanvas",
+                                 pico=True, hz="Rate72", copia=os.path.join("Recursos", "Inner Canvas", "APK")),
+             # 2026-11-13: Inner Canvas para Meta Quest (Quest 2/3), app aparte para no pisar la de PICO. Mismo nivel; empaquetado de Meta
+             # Quest como la Obra (el de PICO lo apaga y el Quest la abre como ventana 2D: cuadrado negro con audio) y con el hilo RHI.
+             "innercanvasquest": dict(pkg="com.almadigital.innercanvasquest", nombre="Inner Canvas", carpeta="Android_InnerCanvasQuest",
+                                      maps=["/Game/InnerCanvas/Maps/L_InnerCanvas"], mapa_inicio="/Game/InnerCanvas/Maps/L_InnerCanvas.L_InnerCanvas",
+                                      quest=True, copia=os.path.join("Recursos", "Inner Canvas", "APK Quest"))}
+
+PICO_SEC = "[/Script/PICOOpenXRRuntimeSettings.PICOOpenXRRuntimeSettings]"
+
+def ini_pico(ini, hz):
+    # solo mientras cocina la variante Pico: sin Meta Quest (paquete y dispositivos soportados), app de VR para PICO y la frecuencia
+    ini = re.sub(r"^bPackageForMetaQuest=.*$", "bPackageForMetaQuest=False", ini, flags=re.M)
+    ini = re.sub(r'<meta-data android:name="com\.oculus\.supportedDevices"[^>]*/>(\\n)?', "", ini)
+    if "pvr.app.type" not in ini:
+        ini = re.sub(r"^(\[/Script/AndroidRuntimeSettings\.AndroidRuntimeSettings\]\n)", r'\1ExtraActivitySettings=<meta-data android:name="pvr.app.type" android:value="vr" />\n', ini, flags=re.M)
+    if PICO_SEC not in ini:
+        ini = ini.rstrip("\n") + "\n\n" + PICO_SEC + "\n"
+    if re.search(r"^DisplayRefreshRate=.*$", ini, flags=re.M):
+        ini = re.sub(r"^DisplayRefreshRate=.*$", "DisplayRefreshRate=" + hz, ini, flags=re.M)
+    else:
+        ini = ini.replace(PICO_SEC + "\n", PICO_SEC + "\nDisplayRefreshRate=" + hz + "\n")
+    for k in ("bPackageForMetaQuest=False", "DisplayRefreshRate=" + hz):
+        if not re.search("^" + re.escape(k) + "$", ini, flags=re.M):
+            sys.exit("no pude poner '%s' en el ini para Pico: no cocino." % k)
+    return ini
+
+def ini_quest(ini):
+    # variante de Meta Quest con el plugin PICO OpenXR activo: el empaquetado de Quest tiene que estar (lo abre en VR, no en 2D) y
+    # DisableRHIThread=False, porque el plugin apaga el hilo RHI en Android aunque el visor no sea PICO (docs/PICO-EMPAQUETADO.md)
+    ini = re.sub(r"^DisableRHIThread=.*$", "DisableRHIThread=False", ini, flags=re.M)
+    for k in ("bPackageForMetaQuest=True",):
+        if not re.search("^" + re.escape(k) + "$", ini, flags=re.M):
+            sys.exit("el ini no tiene '%s': el APK no abriria en VR en el Quest. No cocino." % k)
+    if not re.search(r'com\.oculus\.supportedDevices" android:value="[^"]*quest2', ini):
+        sys.exit("el ini no lista quest2 en com.oculus.supportedDevices: no cocino.")
+    return ini
 
 def fix_mcp_autostart():
     # el cocinado arranca con bAutoStartServer=False para no pelear el puerto 8000 con el editor; si esa
@@ -66,6 +109,10 @@ def ini_para(v, ini0):
     for k in ("PackageName=" + v["pkg"], "ApplicationDisplayName=" + v["nombre"], "GameDefaultMap=" + v["mapa_inicio"]):
         if not re.search("^" + re.escape(k) + "$", ini, flags=re.M):
             sys.exit("DefaultEngine.ini no tiene la linea '%s' para reescribir: no cocino." % k.split("=")[0])
+    if v.get("pico"):
+        ini = ini_pico(ini, v.get("hz", "Rate72"))
+    if v.get("quest"):
+        ini = ini_quest(ini)
     return ini
 
 def comando_uat(v, arch):
@@ -94,11 +141,16 @@ def main():
     ini0 = ini_respaldo.ini_limpio(INI)
     ini = ini_para(v, ini0)
     cmd = comando_uat(v, arch)
-    if a.variante == "demo":
+    if a.variante.startswith("demo"):
         # la demo no se cocina con las perillas de prueba encendidas (autopiloto, senal falsa, reloj corto): ver tools/demo/verificar_perillas.py
         sys.path.insert(0, os.path.join(ROOT, "tools", "demo"))
         import verificar_perillas
         verificar_perillas.main()
+    if a.variante.startswith("innercanvas"):
+        # Inner Canvas tampoco (idioma/nombre/mano automaticos, trazo sintetico, tiempos cortos, capturas)
+        sys.path.insert(0, os.path.join(ROOT, "tools", "innercanvas"))
+        import verificar_perillas_ic
+        verificar_perillas_ic.main()
     if a.en_seco:
         print("variante %s: %s (%s)  archivo: %s" % (a.variante, nombre, pkg, arch))
         print("GameDefaultMap: " + v["mapa_inicio"])
@@ -130,7 +182,9 @@ def main():
     print("APK: %s (%.0f MB)" % (apk, os.path.getsize(apk) / 1e6))
     # rc 1 con APK presente = la regla del proyecto: 'Cook failed' por logs Error: que no rompen (ver memoria packaging-cook-exit-code)
     if not a.sin_copia:
-        dest = os.path.join(ROOT, "Recursos", "Soul Charger - Escritorio 2026-10", "APK", "%s APK %s" % (nombre, time.strftime("%Y-%m-%d %H%M")))
+        base = os.path.join(ROOT, v["copia"]) if v.get("copia") else os.path.join(ROOT, "Recursos", "Soul Charger - Escritorio 2026-10", "APK")
+        os.makedirs(base, exist_ok=True)
+        dest = os.path.join(base, "%s APK %s" % (nombre, time.strftime("%Y-%m-%d %H%M")))
         shutil.copytree(os.path.dirname(apk), dest)
         if a.nombre:
             # el .apk con el nombre pedido (el OBB conserva el suyo: el sistema lo busca por nombre de paquete)

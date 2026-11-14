@@ -61,3 +61,9 @@
 
 ## Pendientes
 - [ ] Visor: tamaño y legibilidad a 2 m.
+
+## 2026-10-23 — sonido de salida del hover
+- Variable nueva **`HoverOutSound`** (SoundBase, instance-editable, default None). `SetHover` (fuente `Saved/ClaudeScripts/Demo2/sharebutton_dsl_codes.json`): al encender suena `HoverSound`, al apagar `HoverOutSound` (antes solo sonaba al entrar). En la Obra sigue mudo al salir (None).
+- 🐛 Pagado: `Math|Boolean|NotEqual(Boolean)` no existe para escribir; el `write_graph_dsl` falló y dejó la función VACÍA. Con `(!= a b)` anda. Reescribir enseguida si falla.
+- 🐛 `set_properties` con dos sonidos a la vez sobre `<actor>.AppearLuz` (`AppearSound` + `VanishSound`) aplicó solo el primero: poner cada propiedad en su propia llamada y releer.
+- Demo (los 4 niveles): Hover `SND_Demo_HoverOn` / `SND_Demo_HoverOut`, Press `SND_Demo_Select`, AppearLuz In/Out `SND_Demo_InOut` (mezcla de Beltrán, `Demo/Audio/Mix/`).

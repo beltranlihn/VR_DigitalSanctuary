@@ -75,3 +75,17 @@ Título SOUL CHARGER sobre el fondo azul → botón **START** (láser + gatillo,
 - Fase 8: `VO_D03` a los 2,5 s del HUD (antes 4), "You're ready" a los 3 s (antes 5). Fase 9: el cierre arranca con `QuietT` ≥ 0,6 (antes `VoGap`) y **sin `FadeAll`** (la música seguía 3 s y después ~4 s de silencio). Fase 10: maestro 1 → 0 entre 3 y 6 s; `OpenLevel` a los 6,5 s.
 - CDO `VoGap` 1,2 (antes 2,5); instancia de `L_Demo_Menu`: `VoDelay` 3 (antes 6).
 - Cuadros (`BP_DemoCard_SC_C_0/1/2`) a X −3480 (1,20 m del PlayerStart; antes 1,50) para que el texto se lea más grande.
+
+## 2026-10-21 (noche) — entorno de Mind, pista con START, cartas en el plano de START, nitidez
+- **Pista (9)**: `HINT('HintStart')` salió de la fase 0 y va en la fase 1, justo después del `Appear` de START.
+- **Plano (8)**: cartas `BP_DemoCard_SC_C_0/1/2` a X −3450 (= START/BACK, z 140; cartas z 180, y ±35/0).
+- **Entorno (3)**: `MindFluid_Menu` = `BP_FluidMedium_SC` en (−3600, 0, 0) con los valores de la instancia de `Test_Mind` (paleta, luz, cáusticas, motas, células, `ActiveBoost` 2, `bHandStir`) + `bTravel` true y `TravelYaw` −180 (viaje lento hacia el usuario). `BP_HallFog_SC` (`bStartOn` false) y los 3 `NS_SpaceDust_SC` quedaron **ocultos** (`bHidden`, `bAutoActivate` false), no borrados. `TopMenu/HorMenu` = colores del fluido (el velo abre desde ellos). Actores 31 → 32.
+- **Nitidez (2)**: `RenderPct` (CDO 100; instancia 120) + `bPctDone`; `RenderPctStep` en `MenuTick` después de `VeilFx` (igual que en `BP_DemoFlow_SC`).
+- Captura -game: fluido morado con haces y motas, título, logos, START con la pista; 0 errores.
+
+## 2026-10-24 — idioma (ENGLISH / ESPAÑOL) en vez de START (feria, pedido de Beltrán)
+- Nivel: dos `BP_ShareButton_SC` nuevos, `BtnEnglish` (tag `demo_en`, Y −20) y `BtnEspanol` (tag `demo_es`, Y +20), X −3450 Z 140, pitch 15 yaw 180, escala 1,5, `TopShare` `MI_DemoBtn_PlateTop{English,Espanol}_SC` (texturas `T_English_Text`/`T_Espanol_Text`, `Saved/ClaudeScripts/Demo/gen_text.py`), sonidos de la mezcla. START (`demo_start`) queda solo como BACK.
+- Variables `BtnEn`, `BtnEs`. Boot los busca por tag; Place los mueve con el menú; fase 1 y fase 5 hacen `Appear` de los dos; Pick los detecta solo en la fase 2 (I 4 = ENGLISH, 5 = ESPAÑOL); Choose fase 2: `BP_DemoVoice_SC.SetLangES (I == 5)`, `Press` del elegido y `Vanish` del otro; fase 10: `OpenLevel ... :Options "Lang=es"|"Lang=en"`. La elección automática de prueba (`DebugPick`) entra por inglés.
+- `BP_DemoVoice_SC`: `LangES`, `LangInit` (primer VoiceTick lee `?Lang=` con `GameOptions|ParseOption` + `GameModeBase|GetOptionsString`), `Clip2`, `VoEN`/`VoES` (36 pares, mismo índice). `Say` cambia el clip por su par; el subtítulo se busca por el nombre del clip (`VO_X_ES`); `ShowHint` busca `<Id>_ES`. Subtítulos bilingües: `tools/demo/subs_bilingue.py` → `subs_demo_ue_bi.json` (76 ids; `HINT_START` bilingüe). Voces: `Content/SoulCharger/Demo/Audio/VO_ES/` (textos `tools/demo/vo_demo_es.json`, mezcla de Beltrán).
+- Empaquetado aparte: `empaquetar_obra.py --variante demobi` (paquete `com.almadigital.soulchargerdemobi`) para no pisar la demo instalada.
+- ⚠ Pendiente: el robot no recibe el idioma (sus niveles abren sin `?Lang`), `InhaleCueAt` 2,37 es el de la cuenta en inglés (en español "inhala" cae a los 2,87 s), paneles de instrucciones e imágenes con texto siguen en inglés.

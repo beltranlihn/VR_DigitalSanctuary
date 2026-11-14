@@ -228,3 +228,5 @@ tipo del argumento → dirección exacta.
 - Funciones nuevas: `SetCalmIndex(V)` (clamp ±100 + `bCalmIdxSeen`), `ClearCalmIndex()`, `FakeCalmIdx()` (simulado: 0 → ~+22 % en 150 s con vaivén; nunca pisa un índice real ya recibido). `CalmIndexOut` quedó vacía (el MCP no creó su salida): los demás leen **`GetCalmIdx`/`GetCalmIdxSeen` directo** (cross-class se ven).
 - `HandleOsc`: las dos direcciones nuevas van **fuera de `Ingest`** (no a las casillas). Con calidad 0 (la app antes de terminar su calibración) el índice se ignora. Al pasar de simulado a real se borra el índice simulado (`bCalmIdxSeen` false) hasta que llegue el real. `MaybeFake` llama `FakeCalmIdx` después de `FakeTick`.
 - Fuente: `VR_Test/Saved/ClaudeScripts/Demo2/biohub_calmidx_dsl.py` (cadena elif ANIDADA). Prueba: `tools/demo/muse_falso.py` (contrato 0.3; `--viejo` = el anterior).
+
+- **2026-10-22 (demo)**: `BinSeconds` **2** en las instancias de `L_Demo_Breath/Draw/Heart` (CDO y Obra: 5). Más puntos reales para las curvas del cuadro de resultados de la demo (180 casillas = 6 min por nivel; si un nivel dura más, la última casilla acumula).

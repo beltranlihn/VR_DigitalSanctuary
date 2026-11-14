@@ -102,3 +102,9 @@ Receptor en `-game` con el Quest falso: `cierre_draw` (toma, práctica, **dibujo
 - Verificar `quest_ip_espejo.ps1` en el visor.
 - ✅ (20-10 noche) El HUD en el robot cuelga de `SpecCam` (antes de la cámara del pawn: se salía de cuadro al mover el casco) y el mesh del visor del pawn queda oculto.
 - Los puntajes y resultados se calculan en el robot con la pose recibida: pueden diferir un poco de los del Quest. Si importa, mandar los puntajes del Quest en `/sc/st`.
+
+## Pantalla completa en la segunda pantalla (2026-10-22, feria)
+- `Robot.bat` abre el robot **a pantalla completa sin bordes en la segunda pantalla** (`-fullscreen` + `-WinX/-WinY/-ResX/-ResY` del monitor que no es el principal, que calcula `pantalla.ps1`; con una sola pantalla usa la principal). `Robot_ventana.bat` = el de antes (ventana 1920×1080 con borde). Lo genera `tools/unreal/empaquetar_robot.py`.
+- Copia lista para usar en el escritorio: `Soul Charger Demo - Windows` (doble clic en `Robot.bat`).
+- 🔴 **Abrirlo con doble clic, no desde Claude**: un proceso lanzado desde la terminal de Claude es hijo de la app y se cierra si la app se actualiza o reinicia (22-10, 13:53: el robot se cerró en medio de Heart justo cuando se actualizó Claude).
+- El robot escucha en todas las redes (UDP 9000): si se cambia de wifi con el robot abierto, sigue recibiendo; solo el cartel de conexión muestra la IP vieja.

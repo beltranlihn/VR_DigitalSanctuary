@@ -1,41 +1,43 @@
 # Sonidos de la demo (BDW) · listado por etapa, con la duración de cada animación
 
-2026-10-21. Duraciones sacadas de las perillas de cada pieza y medidas en el log del visor de la prueba de Beltrán de hoy (11:56-12:15).
+2026-10-21, actualizado el 2026-10-23 (breathwork nuevo, menú con el entorno de Mind, transición azul, botón FINISH, tinta 75 m). Duraciones sacadas de las perillas de cada pieza y medidas en el log del visor.
 **Regla de la obra: el tiempo lo manda la animación, no el sonido** (los sonidos son de un disparo; ninguna animación espera a que termine su sonido). Por eso la columna "dura" es el largo de la animación: el sonido puede ser igual o más corto, con cola.
 
 Estado: ✅ ya está bien (Beltrán) · 🟡 suena uno provisorio (el asset de hoy) · ⬜ no suena nada.
 Dónde: **2D** = en la cabeza (interfaz) · **3D** = sale del objeto (con atenuación `ATT_Objeto_SC`).
+
+**2026-10-23 · mezcla de Beltrán integrada** (`Content/SoulCharger/Demo/Audio/Mix/`, 15 sonidos; las 36 voces de `Audio/VO/` reemplazadas por las mezcladas, mismas duraciones). Vienen mezclados: suenan a volumen 1, sin atenuación (en la cabeza, como se mezclaron) y sin recortes ni fundidos: ningún tiempo de animación cambió. Hover tiene sonido propio al salir (`HoverOutSound`, nuevo en `BP_ShareButton_SC`). In/Out sirve para botones, cartas, el panel de instrucciones, FINISH y el cuadro de resultados. Lo que no vino en la mezcla (velos, título, metaball, pacer, latido...) sigue con el asset de antes.
 
 ---
 
 ## 0. Comunes (los usan el menú y las tres experiencias)
 | # | Sonido | Cuándo | Dura la animación | Tipo | Estado (asset de hoy) |
 |---|---|---|---|---|---|
-| 0.1 | Hover de botón | el láser entra en un botón | 0,12 s (sube 0,1 cm) · al salir 0,18 s | 3D, corto | ✅ `VR_click1` |
-| 0.2 | Click / confirmar | gatillo sobre un botón | 0,45 s (se hunde y confirma) | 3D | ✅ `ProtoSelect` |
-| 0.3 | **Entrada de botón** | aparece START, BACK, los 3 cuadros del menú, el botón START de Breath | 1,5 s (luz primero, después la forma) | 3D | 🟡 `SBubbleHoverOn` |
-| 0.4 | **Salida de botón** | se va un botón (después del click o al cambiar de paso) | 1,5 s (la misma curva al revés) | 3D | 🟡 `SBubbleHoverOut` |
-| 0.5 | **Entrada del panel de instrucciones** | al empezar cada experiencia (~10 s después de cargar el nivel, medido) | 1,5 s (luz primero) | 3D | 🟡 `SBubbleHoverOn` |
+| 0.1 | Hover de botón | el láser entra en un botón | 0,12 s (sube 0,1 cm) · al salir 0,18 s | 3D, corto | ✅ `SND_Demo_HoverOn` · al salir `SND_Demo_HoverOut` (mezcla 10-23) |
+| 0.2 | Click / confirmar | gatillo sobre un botón | 0,45 s (se hunde y confirma) | 3D | ✅ `SND_Demo_Select` (mezcla 10-23) |
+| 0.3 | **Entrada de botón** | aparece START, BACK, los 3 cuadros del menú, el botón START de Breath | 1,5 s (luz primero, después la forma) | 3D | ✅ `SND_Demo_InOut` (mezcla 10-23) |
+| 0.4 | **Salida de botón** | se va un botón (después del click o al cambiar de paso) | 1,5 s (la misma curva al revés) | 3D | ✅ `SND_Demo_InOut` (mezcla 10-23) |
+| 0.5 | **Entrada del panel de instrucciones** | al empezar cada experiencia (~10 s después de cargar el nivel, medido) | 1,5 s (luz primero) | 3D | ✅ `SND_Demo_InOut` (mezcla 10-23) |
 | 0.6 | **Pasar página** | cambia la página del panel (Breath 4 páginas, Draw 2, Heart 2) | instantáneo (la imagen cambia en un cuadro) → sonido corto, 0,2-0,5 s | 3D | ⬜ |
-| 0.7 | **Salida del panel de instrucciones** | termina la última página | 1,5 s | 3D | 🟡 `SBubbleHoverOut` |
+| 0.7 | **Salida del panel de instrucciones** | termina la última página | 1,5 s | 3D | ✅ `SND_Demo_InOut` (mezcla 10-23) |
 | 0.8 | **Aparece el objeto que flota** (sensor en Breath/Heart, mando-pincel en Draw) | con el panel | 1,5 s (luz primero) | 3D | ⬜ |
 | 0.9 | Objeto flotando (opcional, loop suave) | mientras espera que lo tomen: gira 40°, se inclina 28°, sube y baja 2,5 cm | hasta que lo toman (tope 25 s) | 3D, loop | ⬜ |
 | 0.10 | **Tomar el objeto** | lo toma una mano: desaparece el que flota y aparece en la mano | 0,8 s (crece en la mano) | 3D, en la mano | 🟡 `Tomado` |
-| 0.11 | HUD aparece | entra el HUD (en el menú, con la onda de luz) | onda 1,6 s; el EEG nace 1 s después | 2D | ✅ |
-| 0.12 | HUD sale | al final de cada experiencia: tiembla y se va con un "pop" | 0,9 s de temblor + pop | 2D | ✅ |
-| 0.13 | Música / ambient | cada nivel, en bucle; fundido de entrada 3 s, de salida 3 s | — | 2D, loop | ✅ |
+| 0.11 | HUD aparece | entra el HUD (en el menú, con la onda de luz) | onda 1,6 s; el EEG nace 1 s después | 2D | ✅ `SND_Demo_HudIn` (mezcla 10-23) |
+| 0.12 | HUD sale | al final de cada experiencia: tiembla y se va con un "pop" | 0,9 s de temblor + pop | 2D | ✅ `SND_Demo_HudOut` (mezcla 10-23) |
+| 0.13 | Música / ambient | cada nivel, en bucle; fundido de entrada 3 s, de salida 3 s | — | 2D, loop | ✅ `SND_Demo_AmbIntro` (menú) → `SND_Demo_AmbStart` (viaje) · `SND_Demo_AmbBreath` · `SND_Demo_AmbHeart` · `SND_Demo_AmbSurrounding` (mezcla 10-23, en bucle, volumen 1) |
 
 ## 1. Menú
 | # | Sonido | Cuándo | Dura la animación | Tipo | Estado |
 |---|---|---|---|---|---|
-| 1.1 | Aparece el título SOUL CHARGER + START | al abrir el menú (START visible a los ~4 s) | 1,5 s (START) | 3D | 🟡 0.3 |
+| 1.1 | Aparece el título SOUL CHARGER + START | al abrir el menú (START visible a los ~4 s) | 1,5 s (START) | 3D | ✅ 0.3 |
 | 1.2 | **Sale el título** | al apretar START | 2 s | 2D o 3D | ⬜ |
-| 1.3 | Entran BACK y los 3 cuadros | 2,2 s después del START | 1,5 s | 3D | 🟡 0.3 |
-| 1.4 | Hover / click en un cuadro | elegir experiencia | 0,12 s / 0,45 s | 3D | ✅ |
-| 1.5 | Se van los botones y los láseres | al elegir | 1,5 s | 3D | 🟡 0.4 |
-| 1.6 | **Viaje por el espacio azul** (whoosh de arranque + aire en loop) | al elegir: acelera 4 s y sigue sin frenar hasta el cambio de nivel | arranque 4 s · el viaje entero ~38 s (medido: elegir → HUD 17 s → negro 15 s → nivel 6 s) | 2D, arranque + loop | ⬜ (hoy solo pasa de Ambient 1 a Ambient 2) |
+| 1.3 | Entran BACK y los 3 cuadros | 2,2 s después del START | 1,5 s | 3D | ✅ 0.3 |
+| 1.4 | Hover / click en un cuadro | elegir experiencia | 0,12 s / 0,45 s | 3D | ✅ 0.1 / 0.2 |
+| 1.5 | Se van los botones y los láseres | al elegir | 1,5 s | 3D | ✅ 0.4 |
+| 1.6 | **Viaje por el fluido de Mind** (whoosh de arranque + aire/agua en loop; desde el 22-10 el menú tiene el entorno de Mind) | al elegir: acelera 4 s y sigue sin frenar hasta el cambio de nivel | arranque 4 s · el viaje entero ~38 s (medido: elegir → HUD 17 s → negro 15 s → nivel 6 s) | 2D, arranque + loop | ⬜ (hoy solo pasa de Ambient 1 a Ambient 2) |
 | 1.7 | HUD se instala | a los ~16 s del viaje | 1,6 s | 2D | ✅ 0.11 |
-| 1.8 | **Cierre al color de la experiencia** (transición) | ~15 s después del HUD, al terminar la voz | 6 s (el velo cierra) y el nivel abre a los 6,5 s | 2D | ⬜ (la música funde 3 s) |
+| 1.8 | **Cierre al velo azul suave** (transición; desde el 22-10 el mismo azul para las tres) | ~15 s después del HUD, al terminar la voz | 6 s (el velo cierra) y el nivel abre a los 6,5 s | 2D | ⬜ (la música funde 3 s) |
 
 ## 2. Entrada a cada experiencia (igual en las tres)
 | # | Sonido | Cuándo | Dura la animación | Tipo | Estado |
@@ -52,16 +54,16 @@ Dónde: **2D** = en la cabeza (interfaz) · **3D** = sale del objeto (con atenua
 | 3.3 | **Sensor sale del umbral** | se apaga el disco | inmediato | 2D (HUD) | ⬜ |
 | 3.4 | **Nace la metaball** | se va el panel → 2 s después | 4 s (morfeo de entrada) | 3D | 🟡 `VR_shep_scale_up_01` |
 | 3.5 | **El mando se convierte en el sensor** | 0,8 s después de la metaball | 1,5 s (el mando se achica, el sensor nace con luz) | 3D, en la mano | 🟡 `ProtoSelect` |
-| 3.6 | Exploración libre | 12 s antes de la cuenta | — (ambiente + ráfagas de "vida") | 3D | 🟡 `SND_VidaGustA/B/C`, `SND_VidaSoplo` |
-| 3.7 | Cuenta "three, two, one" | voz de Alma | 2,83 s | 2D | ✅ voz |
+| 3.6 | Exploración libre (21-10: con la explicación de la técnica, `VO_DB2` 18 s, al final) | **30 s** antes de la cuenta | — (ambiente + ráfagas de "vida") | 3D | 🟡 `SND_VidaGustA/B/C`, `SND_VidaSoplo` |
+| 3.7 | Cuenta "Three... two... one... inhale." (21-10: `VO_DBC`, con subtítulo) | voz de Alma | 3,3 s ("inhale" a los 2,37 s) | 2D | ✅ voz |
 | 3.8 | **Aparece el pacer** (la guía) | con la cuenta | 0,6 s | 3D | ⬜ |
-| 3.9 | **Inhalación** | fase inhala del pacer | **4 s** (el aro crece) | 3D/2D, una vez por ciclo | 🟡 `SND_PacerInhale` (+ `Pad` y `Pluck`) |
-| 3.10 | **Sostén** | después de inhalar | **3 s** | idem | 🟡 `SND_PacerHold` |
-| 3.11 | **Exhalación** | fase exhala | **4 s** (el aro se cierra) | idem | 🟡 `SND_PacerExhale` |
-| 3.12 | **Sostén** | después de exhalar | **3 s** | idem | 🟡 `SND_PacerHold` |
-| 3.13 | **Pluck de respiración** (marca el cambio de fase) | en cada cambio de fase (4 por ciclo) | instantáneo → 0,3-1 s con cola | 3D | 🟡 `SND_PacerPluckInhale/Hold/Exhale` |
+| 3.9 | **Inhalación** | fase inhala del pacer | **5 s** (el aro crece) | 3D/2D, una vez por ciclo | 🟡 `SND_PacerPadInhale_Demo` (pad de Beltrán estirado a 5 s) + `Pluck` |
+| 3.10 | **Sostén** | después de inhalar | **3 s** | idem | 🟡 `SND_PacerPadHold` |
+| 3.11 | **Exhalación** | fase exhala | **8 s** (el aro se cierra; 10 s en la exhalación larga del final, 6 s en el suspiro) | idem | 🟡 `SND_PacerPadExhale_Demo` (pad estirado a 8 s) |
+| 3.12 | **Sostén** | después de exhalar: **0 s** en la parte 1; **5 s con los pulmones vacíos** en el penúltimo ciclo | idem | 🟡 `SND_PacerPadHold` (3 s) |
+| 3.13 | **Pluck de respiración** (marca el cambio de fase) | en cada cambio de fase (3 por ciclo en la parte 1: la retención después de exhalar dura 0; 4 en el penúltimo ciclo, 2 en el último) | instantáneo → 0,3-1 s con cola | 3D | 🟡 `SND_PacerPluckInhale/Hold/Exhale` |
 | 3.14 | (opcional) Pulso/metrónomo | cada 1 s o solo en el cambio de fase | — | | 🟡 `SND_PacerPulse` |
-| — | El ciclo completo | 4 + 3 + 4 + 3 = **14 s**, **10 ciclos = 140 s** (medido: 142 s) | | | |
+| — | El ciclo completo (21-10, breathwork) | parte 1: 5 + 3 + 8 = **16 s** × 5 · final: 5 + 3 + 10 + 5 = 23 s y 5 + 6 = 11 s → **114 s** de pacer (medido en -game: 114 s; etapa completa 149,5 s) · una voz con subtítulo en cada fase (`VO_BI*`, `VO_BH`, `VO_BE*`, `VO_BF1-6`) | | | |
 | 3.15 | **Se va el pacer** | terminan los ciclos | 0,6 s | 3D | ⬜ |
 | 3.16 | **Se va la metaball** | después del pacer | 2,5 s | 3D | 🟡 `VR_shep_scale_down_02` |
 | 3.17 | Se va el sensor de la mano / vuelven las manos | final | 1,6 s | 3D | 🟡 `VR_shep_scale_down_02` |
@@ -73,7 +75,7 @@ Dónde: **2D** = en la cabeza (interfaz) · **3D** = sale del objeto (con atenua
 | 4.2 | **El sensor se tiñe de rojo** | al tomarlo (empieza la etapa) | 1,2 s | 3D | ⬜ |
 | 4.3 | **Mano en el pecho: entra al umbral** | el sensor reconoce el pecho (entra lento, sale rápido) | 1,5 s para entrar · 0,3 s para salir | 3D | ⬜ |
 | 4.4 | **Pulso del corazón** | cada latido, solo dentro del umbral; también el anillo que late en la página 2 del panel | un latido cada 60/BPM s (a 65 bpm, **0,92 s**): el sonido tiene que caber en ~0,6 s | 3D, en la mano | 🟡 `HeartBeat` |
-| 4.5 | **Se va el panel** | a los 3 latidos | 1,5 s | 3D | 🟡 0.7 |
+| 4.5 | **Se va el panel** | a los 3 latidos | 1,5 s | 3D | ✅ 0.7 |
 | 4.6 | **Sube la esfera** | después del panel (el latido en pausa) | **3 s** (medido 12:10:45 → 12:10:48) | 3D | ⬜ |
 | 4.7 | (opcional) El mar gira y vuelve | durante la etapa, muy lento | ~100 s ida, vuelve al final | 3D, loop/textura | ⬜ |
 | 4.8 | Se va el sensor | fin de la etapa (medido: 100-135 s después de que sube la esfera) | 1,6 s | 3D | 🟡 `VR_shep_scale_down_02` |
@@ -83,10 +85,10 @@ Dónde: **2D** = en la cabeza (interfaz) · **3D** = sale del objeto (con atenua
 |---|---|---|---|---|---|
 | 5.1 | Tomar el mando-pincel | 0.10 | 0,8 s | 3D | 🟡 `Tomado` |
 | 5.2 | **Aparece la paleta** (en la otra mano) | al tomar el pincel | 1,5 s (luz primero) | 3D, en la mano | ⬜ |
-| 5.3 | **Pincel 1 · Marcador** (TaperedMarker) | mientras se aprieta el gatillo y se mueve la mano | lo que dure el trazo | 3D, **loop** que sigue la velocidad y la presión | 🟡 3 loops viejos del dibujo (`ESM_..._Fire_Loop_01`, `FF_OHT_124_texture_loop`, `UZ_fx_..._bubbles`) |
-| 5.4 | **Pincel 2 · Óleo** (OilPaint) | idem | idem | loop | ⬜ |
-| 5.5 | **Pincel 3 · Luz** (Light) | idem | idem | loop | ⬜ |
-| 5.6 | **Pincel 4 · Pintura húmeda** (WetPaint) | idem | idem | loop | ⬜ |
+| 5.3 | **Pincel 1 · Marcador** (TaperedMarker) | mientras se aprieta el gatillo y se mueve la mano | lo que dure el trazo (a menudo 1-3 s) | 3D, **loop**. Hoy: CADA TRAZO LO EMPIEZA DESDE EL PRINCIPIO (sonido nuevo en la punta, entrada 0,25 s, salida 0,25 s al soltar), volumen fijo 1 desde el 10-23 (no sigue velocidad ni presión) | ✅ `SND_Demo_Pincel1` (mezcla 10-23; cada trazo arranca el loop desde el principio) |
+| 5.4 | **Pincel 2 · Óleo** (OilPaint) | idem | idem | loop | ✅ `SND_Demo_Pincel2` (mezcla 10-23) |
+| 5.5 | **Pincel 3 · Luz** (Light) | idem | idem | loop | ✅ `SND_Demo_Pincel3` (mezcla 10-23) |
+| 5.6 | **Pincel 4 · Pintura húmeda** (WetPaint) | idem | idem | loop | ✅ `SND_Demo_Pincel4` (mezcla 10-23) |
 | 5.7 | (opcional) Inicio y fin de trazo | al apretar / soltar el gatillo | instantáneo → 0,1-0,3 s | 3D | ⬜ |
 | 5.8 | **Selección de pincel** | tecla de pincel en la paleta | 0,35 s (la tecla sube 0,9 cm y brilla) | 3D, en la paleta | ⬜ |
 | 5.9 | **Selección de color** (4: terracota, ocre, salvia, azul) | tecla de color | 0,35 s | 3D | ⬜ |
@@ -96,7 +98,7 @@ Dónde: **2D** = en la cabeza (interfaz) · **3D** = sale del objeto (con atenua
 | 5.13 | **Se borra el trazo de práctica** | al terminar la práctica | 0,8 s (los trazos se achican) | 3D | ⬜ |
 | 5.14 | **Arranca el reloj** | con la voz `VO_DD1` | instantáneo (el reloj del HUD empieza en 2:30) | 2D | ⬜ |
 | 5.15 | (opcional) Últimos 10 s | el reloj llega a 0:10 | 10 s | 2D, tick | ⬜ |
-| 5.16 | **Se acaba el tiempo / la tinta** | a los 150 s o sin tinta | instantáneo | 2D | ⬜ |
+| 5.16 | **Se acaba el tiempo / la tinta** | a los 150 s o sin tinta (75 m desde el 22-10: alcanza para 2:30 de trazo continuo) | instantáneo | 2D | ⬜ |
 | 5.17 | **Se guarda y se presenta el dibujo** | el dibujo gira frente a la persona | **12 s** de giro (2 vueltas a 60°/s); medido del guardado al corrimiento: 14-15 s | 3D, loop corto o textura | ⬜ |
 | 5.18 | **El dibujo se corre a la derecha** | a la vez que se va el HUD y llegan los resultados | **1,5 s** (160 cm, con freno suave) | 3D, whoosh | ⬜ |
 | 5.19 | **Se van la paleta y el pincel** | final | 1,5 s | 3D | ⬜ |
@@ -104,10 +106,14 @@ Dónde: **2D** = en la cabeza (interfaz) · **3D** = sale del objeto (con atenua
 ## 6. Final (igual en las tres)
 | # | Sonido | Cuándo | Dura la animación | Tipo | Estado |
 |---|---|---|---|---|---|
-| 6.1 | HUD sale | 0.12 | 0,9 s + pop | 2D | ✅ |
-| 6.2 | **Aparece el cuadro de resultados** | con la salida del HUD | ~1,5 s (luz primero; los gráficos se encienden en el último 40 %) | 3D | 🟡 (la aparición de luz de los botones) |
+| 6.0 | **Termina la mecánica** (cierre de etapa; hoy no tiene sonido propio: lo marca el pop del HUD, 6.1) | Breath: el pacer completa el último ciclo · Heart: termina la etapa · Draw: se acaba el tiempo (2:30) o la tinta | instantáneo; después, en orden (medido en Breath): salen el pacer 0,6 s y la metaball 2,5 s · +1,2 s vuelven las manos · +2,8 s voz final (~3,5 s) · ~+7 s el HUD tiembla y hace pop | 2D | ⬜ (opcional: un acorde de "etapa completa", ~2-3 s) |
+| 6.1 | HUD sale | 0.12 | 0,9 s + pop | 2D | ✅ 0.12 |
+| 6.2 | **Aparece el cuadro de resultados** | con la salida del HUD | ~1,5 s (luz primero; los gráficos se encienden en el último 40 %) | 3D | ✅ `SND_Demo_InOut` (mezcla 10-23) |
 | 6.3 | (opcional) El número del índice de calma | al encenderse los gráficos | — (hoy aparece de una vez) | 2D | ⬜ |
-| 6.4 | **Se va el cuadro** | a los 35 s | ~1,5 s | 3D | 🟡 |
+| 6.4 | **Se va el cuadro** | a los 35 s, o antes si se aprieta FINISH | ~1,5 s | 3D | ✅ `SND_Demo_InOut` (mezcla 10-23) |
+| 6.4b | **Aparece el botón FINISH** (22-10) | con el cuadro, debajo | 1,5 s (luz primero) | 3D | ✅ 0.3 |
+| 6.4c | **Hover / click en FINISH** | láser + gatillo: cierra antes | 0,12 s / 0,45 s | 3D | ✅ 0.1 / 0.2 |
+| 6.4d | **Se va FINISH** (si no se apretó) | con el cuadro | 1,5 s | 3D | ✅ 0.4 |
 | 6.5 | **Cierre a negro** | después del cuadro | 2,5 s (la música funde 3 s) | 2D | ⬜ |
 | 6.6 | Vuelta al menú | a los 4 s del negro | — (el menú abre con su música) | 2D | ✅ |
 
