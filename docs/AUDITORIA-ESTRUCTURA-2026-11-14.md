@@ -150,7 +150,20 @@ Lista exacta: `docs/auditoria-2026-11-14/huerfanos.json`.
   antes de cada commit.
 - Los 2,3 GB restantes de `ClaudeScripts` son volcados y capturas regenerables.
 
-**H11 · Para revisar con Beltrán (salió al escribir el catálogo; no se tocó):**
+**H11 · Revisado el 11-14 (registro del editor): ninguno sobra, no se borra nada.**
+- `BP_ChargeTest_SC` (Shared/HUD) lo usa el ensayo del Hall (`BP_HallRunner_SC`, `Test_Hall`). `BP_ChargeFx_SC` lo usa la Obra
+  (`BP_Obra_SC`). Son dos clientes distintos y validados: unificarlos obliga a re-probar el Hall en visor.
+- `NS_FocusMotes_SC` es una copia de `NS_OrbHalo_SC` (plugin `SC_Sequencer`). La usan solo Feed y Focus, que están en pausa. Es una
+  copia a propósito para no tocar el plugin; se decide cuando se elija el camino de Mind.
+- `M_SpaceDust_SC`/`NS_SpaceDust_SC` y `M_HallDust_SC`/`NS_HallDust_SC` son dos polvos distintos colocados en `Test_Hall`. El
+  primero también está en el menú de la demo: no son duplicados.
+- `M_ProtoSoul` (Core) es el material del alma: lo usan el alma, los créditos, la carga y tres experimentos. `M_ProtoSoul_Amoeba`
+  (SC_Base) solo lo usa `MI_Ghost`. Son dos materiales distintos con nombre parecido.
+- `M_ControllerOld_001/002` son los materiales de las mallas del mando (`ControllerL/R`) y del sensor (`BreathL/R`). Están en uso; el
+  nombre es solo heredado.
+- `M_SoulRibbon_SC` lo usa `BP_ProtoSoul_SC`: los anillos están apagados y se conservan por decisión de Beltrán.
+
+Lista original del catálogo:
 - **Casi gemelos:**
   - `BP_ChargeTest_SC` / `BP_ChargeFx_SC`: la Obra usa el segundo, pero el primero también llega a la Obra.
   - `NS_FocusMotes_SC` es `NS_OrbHalo_SC` sin cambios.

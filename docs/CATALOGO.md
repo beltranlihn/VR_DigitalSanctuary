@@ -12,7 +12,7 @@ Mapa general: [`MAPA-DEL-PROYECTO.md`](MAPA-DEL-PROYECTO.md) · detalle de cada 
 
 | Asset | Tipo | Usado por | Qué hace |
 |---|---|---|---|
-| `BP_ChargeFx_SC` <br><sub>/Game/SoulCharger/Obra/Blueprints</sub> | Blueprint | Obra | Carga de la Obra: el anillo del HUD hace pum y renace grande en el punto de carga; duplicado de BP_ChargeTest_SC. |
+| `BP_ChargeFx_SC` <br><sub>/Game/SoulCharger/Obra/Blueprints</sub> | Blueprint | Obra | Carga de la Obra: el anillo del HUD hace pum y renace grande en el punto de carga; duplicado de BP_ChargeTest_SC. El del ensayo del Hall es BP_ChargeTest_SC (no es duplicado: otro cliente). |
 | `BP_Credits_SC` <br><sub>/Game/SoulCharger/Obra/Blueprints</sub> | Blueprint | Obra | Créditos del final de la Obra, frente a los ojos. |
 | `BP_Disclaimer_SC` <br><sub>/Game/SoulCharger/Obra/Blueprints</sub> | Blueprint | Obra | Aviso de inicio de la Obra antes del Hall (DiscShow, tiempo DiscTime). |
 | `BP_HallRunner_SC` <br><sub>/Game/SoulCharger/Obra/Blueprints</sub> | Blueprint | Obra | Ensayo del Hall (tag TestOnly): Play en Test_Hall corre el Hall como en la Obra; en la Obra se destruye. |
@@ -119,7 +119,7 @@ Mapa general: [`MAPA-DEL-PROYECTO.md`](MAPA-DEL-PROYECTO.md) · detalle de cada 
 | `M_Hall_Interior_SC` <br><sub>/Game/SoulCharger/Hall/Materials</sub> | material | Obra | Interior del Hall con líneas de luz que ondulan con GrooveFront; se enciende con HallLight. |
 | `M_Hall_Sky_SC` <br><sub>/Game/SoulCharger/Hall/Materials</sub> | material | Obra | Cielo del Hall; su emisivo escala con HallLight. |
 | `M_Hall_Tile_SC` <br><sub>/Game/SoulCharger/Hall/Materials</sub> | material | Obra | Baldosas del Hall: se elevan (Lift) y brillan (TileGlow) además de seguir HallLight. |
-| `M_SpaceDust_SC` <br><sub>/Game/SoulCharger/Hall/Materials</sub> | material | Obra, Demo | Polvo del viaje y la salida: duplicado de M_HallDust_SC que solo responde a DustLight. |
+| `M_SpaceDust_SC` <br><sub>/Game/SoulCharger/Hall/Materials</sub> | material | Obra, Demo | Polvo del viaje y la salida: duplicado de M_HallDust_SC que solo responde a DustLight. Distinto de M_HallDust_SC: también en el menú de la demo. |
 | `NS_HallDust_SC` <br><sub>/Game/SoulCharger/Hall/VFX</sub> | Niagara | Obra | Partículas de polvo del Hall (Niagara) con M_HallDust_SC. |
 | `NS_SpaceDust_SC` <br><sub>/Game/SoulCharger/Hall/VFX</sub> | Niagara | Obra, Demo | Polvo del viaje a oscuras (Niagara), duplicado de NS_HallDust_SC con M_SpaceDust_SC; también en el menú de la demo. |
 
@@ -171,7 +171,7 @@ Mapa general: [`MAPA-DEL-PROYECTO.md`](MAPA-DEL-PROYECTO.md) · detalle de cada 
 | `M_LovingDust_SC` <br><sub>/Game/SoulCharger/Mechanics/Mind/Materials</sub> | material | Obra, experimentos | Segunda membrana de partículas de la célula (sprites en el vertex shader). |
 | `M_LovingOuter_SC` <br><sub>/Game/SoulCharger/Mechanics/Mind/Materials</sub> | material | Obra, experimentos | Ameba translúcida exterior que encierra toda la célula; sus defaults afectan a todos los niveles. |
 | `M_ThoughtMote_SC` <br><sub>/Game/SoulCharger/Mechanics/Mind/Materials</sub> | material | experimentos | Sprite del polvo de Test_Thoughts (unlit translúcido, para Niagara). |
-| `NS_FocusMotes_SC` <br><sub>/Game/SoulCharger/Mechanics/Mind/VFX</sub> | Niagara | experimentos | Nube de partículas de carga de Focus y Feed; duplicado de NS_OrbHalo_SC. |
+| `NS_FocusMotes_SC` <br><sub>/Game/SoulCharger/Mechanics/Mind/VFX</sub> | Niagara | experimentos | Nube de partículas de carga de Focus y Feed; duplicado de NS_OrbHalo_SC. Copia a propósito de NS_OrbHalo_SC (plugin) para Feed/Focus. |
 | `NS_ThoughtMotes_SC` <br><sub>/Game/SoulCharger/Mechanics/Mind/VFX</sub> | Niagara | experimentos | Polvo de los pensamientos de Test_Thoughts (copia propia de NS_FocusMotes_SC). |
 
 ## SoulCharger/Shared
@@ -194,7 +194,7 @@ Mapa general: [`MAPA-DEL-PROYECTO.md`](MAPA-DEL-PROYECTO.md) · detalle de cada 
 | `DA_Ghost_Take` <br><sub>/Game/SoulCharger/Shared/Ghost/Data</sub> | data asset | Obra, pruebas | Toma del fantasma que toma el sensor en el Hall. |
 | `M_Ghost_SC` <br><sub>/Game/SoulCharger/Shared/Ghost/Materials</sub> | material | Obra, Demo, pruebas | Manos fantasma: unlit aditivo con borde Fresnel (Color, Opacity, Pressed). |
 | `BP_ChargeSoul_SC` <br><sub>/Game/SoulCharger/Shared/HUD/Blueprints</sub> | Blueprint | Obra | La ameba de 15 cm dentro del anillo de carga; también es la base del pez-cometa. |
-| `BP_ChargeTest_SC` <br><sub>/Game/SoulCharger/Shared/HUD/Blueprints</sub> | Blueprint | Obra | Prueba de la coreografía de carga (teletransporte del anillo del HUD); la Obra usa su duplicado BP_ChargeFx_SC. |
+| `BP_ChargeTest_SC` <br><sub>/Game/SoulCharger/Shared/HUD/Blueprints</sub> | Blueprint | Obra | Prueba de la coreografía de carga (teletransporte del anillo del HUD); la Obra usa su duplicado BP_ChargeFx_SC. Lo usa el ensayo del Hall (BP_HallRunner_SC); la Obra usa BP_ChargeFx_SC. |
 | `BP_HUDArt_SC` <br><sub>/Game/SoulCharger/Shared/HUD/Blueprints</sub> | Blueprint | Obra, Demo, Inner Canvas | Arte 3D del HUD: la píldora (borde, bisel, copas y vidrio) donde va el EEG. |
 | `BP_HUDRingSoul_SC` <br><sub>/Game/SoulCharger/Shared/HUD/Blueprints</sub> | Blueprint | Obra, Demo, Inner Canvas | El alma pequeña (1,5 cm) dentro del anillo del HUD, sin latido. |
 | `BP_HUDSister_SC` <br><sub>/Game/SoulCharger/Shared/HUD/Blueprints</sub> | Blueprint | Obra, Demo, Inner Canvas | La hermana del HUD: ameba de 3 cm que late a la mitad del ritmo. |
@@ -260,14 +260,14 @@ Mapa general: [`MAPA-DEL-PROYECTO.md`](MAPA-DEL-PROYECTO.md) · detalle de cada 
 | `MPC_Perf_SC` <br><sub>/SC_Base/Materials</sub> | parámetros de material | Obra, Demo, Inner Canvas, experimentos | PerfMode del banco de medición: los shaders lo leen para cambiar de modo; lo escribe BP_PerfSwitch_SC. |
 | `M_AppearTrace_SC` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos, pruebas | Trazo de luz de la aparición: aditivo de dos caras (Sweep, Head, Glow). |
 | `M_Beam_SC` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos | Haz unlit emisivo para punteros y rayos. |
-| `M_ControllerOld_001` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos | (inferido) Material viejo importado con la malla del mando (antes /Game/Material_001). |
-| `M_ControllerOld_002` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos | (inferido) Segundo material viejo importado con la malla del mando (antes /Game/Material_002). |
+| `M_ControllerOld_001` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos | (inferido) Material viejo importado con la malla del mando (antes /Game/Material_001). En uso: mallas ControllerL/R (nombre heredado). |
+| `M_ControllerOld_002` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos | (inferido) Segundo material viejo importado con la malla del mando (antes /Game/Material_002). En uso: mallas ControllerL/R y BreathL/R (nombre heredado). |
 | `M_DrawPalette_Groove_SC` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos, pruebas | Ranura de la paleta de dibujo con el color activo; también la usa la ranura del hang. |
 | `M_DrawPalette_SC` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos, pruebas | Cuerpo de la paleta de dibujo: unlit con sombreado HLSL; también padre de los materiales del hang. |
 | `M_HeartScape_SC` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos | Membrana mate del latido, con la esfera central y sus ondas. |
 | `M_PointerDot_SC` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos | Punto de impacto del puntero: unlit translúcido de dos caras sin depth test. |
 | `M_Pointer_SC` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos | Láser del puntero: unlit translúcido de dos caras que se desvanece hacia la punta. |
-| `M_ProtoSoul_Amoeba` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos | Material de ameba que viene de Core/Amoeba (antes también se llamaba M_ProtoSoul); en SC_Base. |
+| `M_ProtoSoul_Amoeba` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos | Material de ameba que viene de Core/Amoeba (antes también se llamaba M_ProtoSoul); en SC_Base. Solo lo usa MI_Ghost; no confundir con M_ProtoSoul (el alma). |
 | `M_QuestCtrl_SC` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos, pruebas | Mando de Quest: unlit con sombreado falso y borde de luz. |
 | `M_SCChargeSlider_SC` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas, experimentos, pruebas | Slider transparente aditivo que se llena con Progress 0..1 (timbre, SAVE). |
 | `M_SCGlass_SC` <br><sub>/SC_Base/Materials</sub> | material | Obra, Demo, Inner Canvas | Vidrio de la familia SC con el doblez del HUD. |
