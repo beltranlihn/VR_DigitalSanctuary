@@ -6,6 +6,8 @@
 # Recorrido v2 (2026-11-12 noche): en el visor (AutoPlace) el piso se ve SIEMPRE con el circulo del centro y la muesca hacia el titulo
 # (RingA, Front); el borde aparece con SpaceReveal (al elegir la mano); las paredes solo con la cercania (sin el destello). WarnOn = la
 # cabeza a menos de WarnIn cm de un borde (o afuera); se apaga a mas de WarnOut (lo lee el director para el aviso).
+# 2026-11-14: la muesca hacia el titulo se elige con un if de ejecucion, no con select. Un select es PURO y evalua las dos ramas:
+# en la pantalla del PC (sin "sc4_title") el Get(0) del arreglo vacio daba 32 avisos de Accessed None en cada arranque (gotcha 644).
 # Componentes (los arma build_ic.py, centrados en el actor = el PlayerStart, en el piso): Floor, WallXp, WallXn, WallYp, WallYn.
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -20,8 +22,11 @@ CODES['SpaceBoot'] = '''(fn SpaceBoot ()
     (Rendering|Material|SetVectorParameterValueonMaterials _c "Color" (Math|Conversions|ToVector(LinearColor) %(col)s))
     (Rendering|Material|SetScalarParameterValueonMaterials _c "Alpha" 0.0))
   (bind _tps (Actor|GetAllActorsWithTag "sc4_title"))
-  (bind _dir (select (> (Utilities|Array|Length _tps) 0) (Math|Vector|Normalize (* (- (Transformation|GetActorLocation (Utilities|Array|Get(acopy) _tps 0)) (Transformation|GetActorLocation self)) (Math|Vector|MakeVector 1.0 1.0 0.0))) (Math|Vector|MakeVector 1.0 0.0 0.0)))
-  (Rendering|Material|SetVectorParameterValueonMaterials %(floor)s "Front" (Math|Vector|MakeVector (* (.x _dir) %(fx)s) (* (.y _dir) %(fy)s) 0.0))
+  (bind _dir (Math|Vector|Normalize (* (- (Transformation|GetActorLocation (Utilities|Array|Get(acopy) _tps 0)) (Transformation|GetActorLocation self)) (Math|Vector|MakeVector 1.0 1.0 0.0))))
+  (if (> (Utilities|Array|Length _tps) 0)
+    (Rendering|Material|SetVectorParameterValueonMaterials %(floor)s "Front" (Math|Vector|MakeVector (* (.x _dir) %(fx)s) (* (.y _dir) %(fy)s) 0.0))
+    (else
+      (Rendering|Material|SetVectorParameterValueonMaterials %(floor)s "Front" (Math|Vector|MakeVector %(fx)s 0.0 0.0))))
   (Rendering|Material|SetScalarParameterValueonMaterials %(floor)s "RingA" (select %(ap)s %(ra)s 0.0))
   %(rt)s
   %(sh)s

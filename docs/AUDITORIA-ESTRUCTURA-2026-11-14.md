@@ -49,9 +49,10 @@ Método (reproducible):
 - `Packaging/` (duplicado). La demo solo en inglés se movió a `Packagings/Digital Sanctuary V1.0/Solo ingles (2026-10-23)`;
 - `Recursos/DrawingToolkit`, `GDXR`, `Test_3DDraw` salieron de git (siguen en el tag).
 
-**H12 · Preexistente, sin arreglar:** en `L_InnerCanvas_Wall`, las 8 copias de `BP_ICSpace_IC` buscan en `SpaceBoot` un actor por tag
-que solo existe en el nivel del visor (`GetAllActorsWithTag` vacío → `Get(0)` → Accessed None). Ya pasaba en el evento y no rompe la
-pantalla. Arreglo: un `IsValid`/largo > 0 antes del `Get`, o no colocar `BP_ICSpace_IC` en la pantalla.
+**H12 · ✅ Arreglado el mismo 11-14:** en `L_InnerCanvas_Wall`, las 8 copias de `BP_ICSpace_IC` daban 32 avisos en `SpaceBoot`.
+- La guarda era un `select`, que es puro y evalúa las dos ramas, así que el `Get(0)` del arreglo vacío corría igual (gotcha 644).
+- Ahora la elección es un `if` de ejecución.
+- La pantalla da 0 avisos y el visor 0 errores, con los mismos valores que antes.
 
 ## 1. Qué hay hoy
 
