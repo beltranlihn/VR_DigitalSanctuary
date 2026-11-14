@@ -2,7 +2,7 @@
 """make_mind_sounds.py - sonidos de la celula de Mind (Loving): APARECE y SE VA (2026-09-30).
 
 Estandar de Beltran para la noche: "experiencia high end... toda entrada y salida con curva, con sonido".
-Familia sonora del proyecto (medida en Recursos/Audio Calibration): La mayor con 6a y 7a (Pad: A2 E3 A3 C#4 F#4 G#4;
+Familia sonora del proyecto (medida en Recursos/Audio/Calibration): La mayor con 6a y 7a (Pad: A2 E3 A3 C#4 F#4 G#4;
 Inicio: La add9). Aca:
   SND_MindAppear (3,4 s) - "floracion acuosa": soplo de agua (ruido rosa en banda que sube 700 -> 2400 Hz) + acorde
       La add9 (A3 E4 B4 C#5 E5) que entra en arpegio ascendente (0,12 s entre voces), cada voz = dos senos desafinados

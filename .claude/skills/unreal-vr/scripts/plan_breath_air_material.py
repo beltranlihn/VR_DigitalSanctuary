@@ -4,7 +4,7 @@
 Lee (como plan_valley_material.py para el valle):
   - los dos Custom (scripts/hlsl/BreathAirVS.hlsl, BreathAirPS.hlsl): el CODIGO entero, la tabla ENTRADAS de la
     cabecera (nombre, tipo y de donde sale cada entrada) y las salidas adicionales;
-  - la tabla de parametros 5.3 de docs/PLAN-RESPIRACION-ENTORNO-2026-09-28.md (nombre, tipo, default, grupo).
+  - la tabla de parametros 5.3 de docs/historia/PLAN-RESPIRACION-ENTORNO-2026-09-28.md (nombre, tipo, default, grupo).
 Escribe VR_Test/Saved/ClaudeScripts/aliento/breath_air_build.json, que apply_breath_air_material.py lee con
 AssetTools.read_file dentro de Unreal. Asi el material se arma sin tipear a mano ni el codigo ni los parametros.
 

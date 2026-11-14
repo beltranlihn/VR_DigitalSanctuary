@@ -111,6 +111,10 @@ def ini_para(v, ini0):
             sys.exit("DefaultEngine.ini no tiene la linea '%s' para reescribir: no cocino." % k.split("=")[0])
     if v.get("pico"):
         ini = ini_pico(ini, v.get("hz", "Rate72"))
+    else:
+        # 2026-11-14 (auditoría H5): el plugin PICO OpenXR deja DisableRHIThread=True en el ini compartido y lo aplica en Android aunque
+        # el visor no sea PICO; los APK de Quest (Obra, demo) salían sin hilo RHI. Solo la variante PICO lo conserva.
+        ini = re.sub(r"^DisableRHIThread=.*$", "DisableRHIThread=False", ini, flags=re.M)
     if v.get("quest"):
         ini = ini_quest(ini)
     return ini

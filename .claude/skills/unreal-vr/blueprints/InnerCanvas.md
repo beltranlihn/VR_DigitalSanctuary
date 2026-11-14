@@ -250,6 +250,10 @@ pico; el pad de 7:12 pesa 79 MB en wav y 43 MB el asset). Todo se reproduce a vo
     (`bCaptureEveryFrame`/`bCaptureOnMovement` false). Los visores 5-8 se siguen recibiendo pero no se dibujan.
   - Carpeta lista en `Desktop/Inner Canvas Pantalla` (build 03:20, `InnerCanvas_Pantalla.bat` / `_Ventana.bat` en la pantalla 2;
     `Configurar_IP_Picos.bat` pide confirmación).
+- ⚠ **Aviso conocido (preexistente, visto el 11-14):** en `L_InnerCanvas_Wall`, las 8 copias de `BP_ICSpace_IC` dan 32 avisos en
+  `SpaceBoot` (`GetAllActorsWithTag` vacío → `Get(0)` → Accessed None). Ya salían en el build del evento y no afectan la pantalla.
+  Arreglo pendiente: comprobar el largo antes del `Get`, o no colocar `BP_ICSpace_IC` en la pantalla.
+- **Limpieza de huérfanos (11-14):** `BP_ICTutor_IC.MantleSet` (6 nodos) y `BP_ICWallHUD_IC.DrawCells` (6), con el DSL idéntico.
 - **Versión del evento archivada (11-14):** `Projects/Packagings/Inner Canvas v1.0/` (fuera del repo), con `APK PICO/` (02:28 +
   `visores_ic.json`), `APK Quest/` (variante `innercanvasquest`, 11-13 16:33), `Windows Pantalla/` (build 10:37, la que estaba en el
   escritorio) y un `LEEME.txt`. Ya no hay copia en el escritorio.

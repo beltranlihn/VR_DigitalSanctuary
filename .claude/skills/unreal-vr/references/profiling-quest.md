@@ -6,7 +6,7 @@
 ---
 
 > 📊 **Hay una medicion REAL de este proyecto, hecha en visor el 2026-09-24:**
-> [`docs/PERF-ATTRACTING-2026-09-24.md`](../../../../docs/PERF-ATTRACTING-2026-09-24.md).
+> [`docs/historia/PERF-ATTRACTING-2026-09-24.md`](../../../../docs/historia/PERF-ATTRACTING-2026-09-24.md).
 > La estacion Attracting corre a **24,85 ms donde necesita 13,9** y esta confirmada **fill-rate bound**
 > con el test de Meta de §2. Trae los numeros de cada palanca probada, las que faltan, y las trampas del
 > instrumental. **Antes de re-medir nada, leer eso.**

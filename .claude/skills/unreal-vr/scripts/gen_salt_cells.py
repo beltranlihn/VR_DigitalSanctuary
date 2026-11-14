@@ -2,7 +2,7 @@
 """gen_salt_cells.py - textura de los poligonos del salar para M_ChladniFloor_SC.
 
 Horneado (no en vivo) porque en la Quest un Voronoi por pixel cuesta 34 celdas por pixel: el prototipo web
-(docs/prototipos/placa-chladni.html, saltCells) lo calcula en vivo; aca queda en una textura que TESELA.
+(docs/historia/prototipos/placa-chladni.html, saltCells) lo calcula en vivo; aca queda en una textura que TESELA.
 
 Contenido: R = distancia al BORDE de la celda (en celdas, /0,5 -> 0..1), el mismo algoritmo de dos pasadas del
 prototipo (Inigo Quilez: celda mas cercana y despues la distancia al bisector con cada vecina).

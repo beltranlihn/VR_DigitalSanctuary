@@ -1,6 +1,6 @@
 # BP_Orb_SC + M_Orb_SC — el objeto que se ve HECHO DE ALGO (Core/Light/)
 
-> Creado 2026-09-04 por Nico, brief [`docs/BRIEF-NICO-EFECTOS.md`](../../../../docs/BRIEF-NICO-EFECTOS.md) §5.3 (galería de efectos, look-dev). Es el **primero de los tres efectos de Nico**. Un selector de *look* para orbes sólidos — lo que faltaba: todo lo del proyecto era superficie plana y la obra está llena de orbes (respiración, sonido, la ameba, las burbujas de Attracting).
+> Creado 2026-09-04 por Nico, brief [`docs/historia/BRIEF-NICO-EFECTOS.md`](../../../../docs/historia/BRIEF-NICO-EFECTOS.md) §5.3 (galería de efectos, look-dev). Es el **primero de los tres efectos de Nico**. Un selector de *look* para orbes sólidos — lo que faltaba: todo lo del proyecto era superficie plana y la obra está llena de orbes (respiración, sonido, la ameba, las burbujas de Attracting).
 > **Estado: 🟡 material + BP compilados sin errores, 3 instancias colocadas en `L_EffectTest_Nico` y juzgadas en el viewport del editor (los 3 looks se ven distintos y el material lee todos sus parámetros). Falta el juicio de Beltrán y el visor.**
 
 ## Qué es
@@ -63,14 +63,14 @@ Componente **`Orb`** (StaticMeshComponent, esfera del motor por `PrimitiveTools.
 🔴 **Otra trampa nueva (documentada en `dsl.md`): los getters de variables CON categoría llevan la categoría comprimida en el type_id** — `Variables|A-Forma|GetLook`, no `Variables|Default|GetLook` (los espacios del "A - Forma" se caen a "A-Forma"). `Variables|Default|` solo para las sin categoría (`Orb`, `MID`, `DefaultSceneRoot`). Confirmar siempre con `find_node_types(graph, "Variables|", [])`.
 
 ## Las texturas matcap
-3 PNG 256×256 RGB generados por [`docs/efectos-nico/gen_matcaps.py`](../../../../docs/efectos-nico/gen_matcaps.py) (PNG puro con `zlib`+`struct`, sin PIL/numpy): color base + highlight gaussiano desplazado arriba + luz de borde (rim), muestreado por `r=|uv centrado|`. `T_Matcap_01` perla · `T_Matcap_02` vidrio frío (azul) · `T_Matcap_03` seda cálida. ⚠ Están **importadas con sRGB** (son color, no data).
+3 PNG 256×256 RGB generados por [`docs/historia/efectos-nico/gen_matcaps.py`](../../../../docs/historia/efectos-nico/gen_matcaps.py) (PNG puro con `zlib`+`struct`, sin PIL/numpy): color base + highlight gaussiano desplazado arriba + luz de borde (rim), muestreado por `r=|uv centrado|`. `T_Matcap_01` perla · `T_Matcap_02` vidrio frío (azul) · `T_Matcap_03` seda cálida. ⚠ Están **importadas con sRGB** (son color, no data).
 
 ## Cómo se usa / se autora
 - Girás `Look` 0/1/2 en el panel de detalles y el look cambia en el viewport (el CS re-empuja). ⚠ **Si cambiás un valor y no reacciona, recargá el nivel** — un MID creado antes de que el material ganara un parámetro no lo honra (trampa 2 del brief), y también hay que recargar cuando se setean variables de instancia por MCP (el CS no se re-ejecuta solo).
 - `Mesh` = cubo/cilindro para looks no esféricos (el matcap y el volumen funcionan en cualquier malla).
 
 ## Session log
-- **2026-09-04 (Nico):** creado de cero. Nivel `L_EffectTest_Nico` (duplicado de `L_Test_Stage`, despejado de sky/luces/piso → vacío negro para look-dev). Material por 2 scripts seguros (51 nodos, 60 conexiones, 0 errores). BP con 16 variables + componente. CS por DSL (2 intentos fallidos por getters con categoría y por `MakeVector`→`Math|Vector|MakeVector`; el 3º limpio, verificado por `read_graph_dsl`, sin huérfanos). 3 instancias colocadas (Look 0/1/2), nivel recargado para re-correr el CS. **Verificado en editor:** los 3 looks se ven distintos (volumen ámbar, iridiscente pálido, matcap vidrio azul con rim), material lee todos los parámetros, escala 30 cm, MID aplicado. Capturas en `docs/efectos-nico/`.
+- **2026-09-04 (Nico):** creado de cero. Nivel `L_EffectTest_Nico` (duplicado de `L_Test_Stage`, despejado de sky/luces/piso → vacío negro para look-dev). Material por 2 scripts seguros (51 nodos, 60 conexiones, 0 errores). BP con 16 variables + componente. CS por DSL (2 intentos fallidos por getters con categoría y por `MakeVector`→`Math|Vector|MakeVector`; el 3º limpio, verificado por `read_graph_dsl`, sin huérfanos). 3 instancias colocadas (Look 0/1/2), nivel recargado para re-correr el CS. **Verificado en editor:** los 3 looks se ven distintos (volumen ámbar, iridiscente pálido, matcap vidrio azul con rim), material lee todos los parámetros, escala 30 cm, MID aplicado. Capturas en `docs/historia/efectos-nico/`.
 
 ## TODO
 - [ ] Juicio de Beltrán (editor + visor). El **iridiscente es el que menos pega** — quizá subir `HueCycles` default o saturar `ColorB`; se decide mirándolo.

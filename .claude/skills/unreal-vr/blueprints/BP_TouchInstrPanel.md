@@ -1,6 +1,6 @@
 # BP_TouchInstrPanel — progress tracker
 
-Panel de instrucciones del stage Touch (fase **R7** del brief [`docs/stages/touch-attracting.md`](../../../../docs/stages/touch-attracting.md)). Muestra las páginas de bienvenida/instrucciones en world-space y **bloquea la interacción hasta terminarlas**.
+Panel de instrucciones del stage Touch (fase **R7** del brief [`docs/historia/stages/touch-attracting.md`](../../../../docs/historia/stages/touch-attracting.md)). Muestra las páginas de bienvenida/instrucciones en world-space y **bloquea la interacción hasta terminarlas**.
 
 - **refPath**: `/Game/SoulCharger/Stages/Touch/BP_TouchInstrPanel.BP_TouchInstrPanel` · **parent**: Actor
 - **widget**: `/Game/SoulCharger/Stages/Touch/Widget/WBP_TouchInstr`

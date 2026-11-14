@@ -1,6 +1,6 @@
 # BP_DrawSea_SC — el océano de la etapa de dibujo
 
-`/Game/SoulCharger/Mechanics/Draw/Scape/` · construido el 2026-09-29 · plan: [`docs/PLAN-OCEANO-DIBUJO-2026-09-28.md`](../../../../docs/PLAN-OCEANO-DIBUJO-2026-09-28.md) · lookdev aprobado: `docs/prototipos/oceano-dibujo.html`.
+`/Game/SoulCharger/Mechanics/Draw/Scape/` · construido el 2026-09-29 · plan: [`docs/historia/PLAN-OCEANO-DIBUJO-2026-09-28.md`](../../../../docs/historia/PLAN-OCEANO-DIBUJO-2026-09-28.md) · lookdev aprobado: `docs/historia/prototipos/oceano-dibujo.html`.
 
 | Estado | |
 |---|---|

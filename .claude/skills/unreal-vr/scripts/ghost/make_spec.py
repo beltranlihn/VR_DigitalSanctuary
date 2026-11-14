@@ -2,7 +2,7 @@
 """make_spec.py (v2, 2026-10-01) - genera ghost_spec.json: variables (tipo, categoria, default, instance-editable),
 componentes del reproductor, parametros de cada funcion de BP_GhostTake_SC, BP_GhostPlayer_SC y BP_GhostRecorder_SC,
 y los valores de los 10 DA. Lo leen lint_dsl.py (chequeo cruzado) y ghost_build.py (armado en el turno).
-Plan: docs/PLAN-FANTASMAS-V2-2026-10-01.md. Datos de referencia (posiciones, mallas, montajes): scripts/ghost/v2_datos.md."""
+Plan: docs/historia/PLAN-FANTASMAS-V2-2026-10-01.md. Datos de referencia (posiciones, mallas, montajes): scripts/ghost/v2_datos.md."""
 import io
 import json
 import os

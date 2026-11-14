@@ -5,7 +5,7 @@ Lee:
   - los Custom (scripts/hlsl/DustVS.hlsl, DustPS.hlsl, GustLeanVS.hlsl): el CODIGO entero, la tabla ENTRADAS de la
     cabecera (nombre, tipo y de donde sale cada entrada) y las salidas adicionales;
   - los parametros y sus grupos de scripts/vida_model.py (MAT, MAT_INTERNO, GRUPOS, GUST_MAT). Vida_check.py verifica
-    que las tablas 5.2 y 6.3 del plan (docs/PLAN-VIDA-VALLE-2026-09-28.md) sean exactamente estas.
+    que las tablas 5.2 y 6.3 del plan (docs/historia/PLAN-VIDA-VALLE-2026-09-28.md) sean exactamente estas.
 Escribe VR_Test/Saved/ClaudeScripts/vida/vida_build.json, que leen dentro de Unreal (AssetTools.read_file):
   - apply_vida_dust_material.py   (arma M_ValleyDust_SC + MI_ValleyDust_SC: seccion "dust")
   - apply_vida_gust_valley.py     (agrega GustLeanVS y 5 parametros a M_BreathValley_SC: seccion "valley")

@@ -1,6 +1,6 @@
 # BP_SoundBubble — progress tracker
 
-Burbuja sonora del stage Touch (Fase 2 del brief [`docs/stages/touch-attracting.md`](../../../../docs/stages/touch-attracting.md)). Al apuntarla con el beam suena su clip en **loop con fade-in 1s** (preview); al salir del hover, **fade-out 1s**.
+Burbuja sonora del stage Touch (Fase 2 del brief [`docs/historia/stages/touch-attracting.md`](../../../../docs/historia/stages/touch-attracting.md)). Al apuntarla con el beam suena su clip en **loop con fade-in 1s** (preview); al salir del hover, **fade-out 1s**.
 
 - **refPath**: `/Game/SoulCharger/Stages/Touch/BP_SoundBubble.BP_SoundBubble`  ·  **parent**: Actor  ·  **in level**: **no se colocan a mano** — las spawnea `BP_AttractDirector` en `BeginPlay`, una por `TargetPoint` con tag **`BubbleSpawn`** (hoy `TP_Bubble_01..06` en `L_Touch`). Para recomponer: mover/duplicar TargetPoints, sin tocar BPs. (2026-08-03)
 - **Status**: 🟢 Fases 2-7 + **R1 (movimiento unificado e interpolado) y R2 (sacar burbujas a mano) PROBADOS EN VISOR** (2026-08-04). Encima, sin probar todavía: **hover-scale + `GrabSpeed` bajado a 6**. Las secciones de R1+R2 y de "ajustes de tacto" son las que mandan sobre movimiento y escala.
@@ -84,7 +84,7 @@ Con **dos beams** (uno por mano) el modelo viejo se rompía: `BeginPlay` hacía 
 **Pendiente:** que cada burbuja tome un clip distinto de `DA_SoundBank` (hoy todas comparten el default). Requiere una ref al DataAsset en `BP_AttractDirector` y usar el `Array Index` del ForEach del spawn para hacer `SetPreviewSound(Clips[i % Length])`.
 
 ## ✅ R1 + R2 CONSTRUIDOS Y COMPILANDO — 2026-08-04 (falta test en visor)
-Ver [`docs/stages/touch-attracting.md`](../../../../docs/stages/touch-attracting.md) §2.a y §4.b.
+Ver [`docs/historia/stages/touch-attracting.md`](../../../../docs/historia/stages/touch-attracting.md) §2.a y §4.b.
 
 ### El movimiento pasó a ser UNO SOLO: `UpdateMove(DeltaSeconds)`
 Antes había **tres caminos** de movimiento y solo uno interpolaba: `DoFollow` con `VInterpTo`, y `PlaceInNearestSlot` / `ReturnHome` con `SetActorLocation` **instantáneo** (se veían como teleports). Ahora hay **un único `VInterpTo`** y los otros dos solo **setean un destino**.

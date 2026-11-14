@@ -1,7 +1,7 @@
 # Guía de dirección · cómo se administra Soul Charger
 
 > Para quien dirige y para quien ajusta: qué se cambia dónde, cómo se prueba y qué no hay que romper.
-> Escrita el 2026-10-02, con el reordenamiento del proyecto (ver `docs/AUDITORIA-ESTRUCTURA-2026-10-02.md`).
+> Escrita el 2026-10-02, con el reordenamiento del proyecto (ver `docs/historia/AUDITORIA-ESTRUCTURA-2026-10-02.md`).
 
 ---
 

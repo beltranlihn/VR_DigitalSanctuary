@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """breath_air_model.py - MODELO DE REFERENCIA del ALIENTO VISIBLE (Entering, 2026-09-28, rev. 2).
 
-Plan: docs/PLAN-RESPIRACION-ENTORNO-2026-09-28.md. Es la cuenta EXACTA que hacen:
+Plan: docs/historia/PLAN-RESPIRACION-ENTORNO-2026-09-28.md. Es la cuenta EXACTA que hacen:
   - el vertex shader  scripts/hlsl/BreathAirVS.hlsl  (posicion, alfa y tamano de cada mota; sin estado)
   - el pixel shader   scripts/hlsl/BreathAirPS.hlsl  (punto suave premultiplicado)
   - el Blueprint      BP_BreathAir_SC (AirStep: velocidad filtrada, modo con histeresis, transporte integrado, frente,

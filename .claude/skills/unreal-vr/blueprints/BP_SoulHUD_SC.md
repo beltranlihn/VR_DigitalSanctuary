@@ -272,5 +272,5 @@ en el gráfico (`GraphArea` está en alpha 0) y el riel de la barra quedó en **
 [[BP_ProtoSoul_SC]] (el mismo truco de Disable Depth Test) · [[BP_FaceAnchor_SC]] (el doble del HMD)
 
 ## 2026-10-02 (Narrativa) — reordenamiento
-- Se cortaron las referencias al código viejo (V2/V3) que ya no existe (reordenamiento 1, commit d6d91f1). Ver `docs/AUDITORIA-ESTRUCTURA-2026-10-02.md`.
+- Se cortaron las referencias al código viejo (V2/V3) que ya no existe (reordenamiento 1, commit d6d91f1). Ver `docs/historia/AUDITORIA-ESTRUCTURA-2026-10-02.md`.
 - Carpeta nueva: ver la tabla de lo vigente en [_INDEX.md](_INDEX.md) (las rutas de este tracker ya están actualizadas).

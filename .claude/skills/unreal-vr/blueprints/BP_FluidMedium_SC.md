@@ -1,7 +1,7 @@
 # BP_FluidMedium_SC — el FLUIDO CEREBRAL (Mechanics/Mind/)
 
-> Creado 2026-09-28. Plan: `docs/PLAN-FLUIDO-CEREBRAL.md`. Referencia visual y matemática:
-> `docs/prototipos/fluido-cerebral.html` (publicado como artifact). Pedido de Beltrán: *"sumergidos en un entorno
+> Creado 2026-09-28. Plan: `docs/historia/PLAN-FLUIDO-CEREBRAL.md`. Referencia visual y matemática:
+> `docs/historia/prototipos/fluido-cerebral.html` (publicado como artifact). Pedido de Beltrán: *"sumergidos en un entorno
 > líquido, como el líquido del cerebro; 3D, amplio, etéreo"*, sin latido ni respiración, movimiento curl de fluido,
 > **única entrada: EEG 0-1** (0 activo, 1 calma — la misma convención que `GlobalState` de la célula).
 > **Estado: 🟢 F1 construida (fondo + 3 capas de partículas + MPC + BP) · 🟢 F2 (células medias AMEBA + siluetas lejanas) y

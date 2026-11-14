@@ -50,7 +50,7 @@ El único BP que conoce a los otros tres: [[BP_BreathRig_SC]] (controller), [[BP
 ⬜ **Sin verificar: `TourWake` y el corte de `TourSleep` con la etapa corriendo** — el MCP no manda comandos de consola a PIE (gotcha 441), así que `ke * TourWake` no se pudo probar. Se prueba con el director de `Test_Recorrido` o por consola a mano en PIE (`ke * TourWake`, `ke * TourSleep`).
 
 ## 🎬 Contrato de etapa de la Obra (2026-09-30 noche, pedido de Narrativa/Beltrán) — 🟢 PIE · ⬜ visor
-Plan: `docs/PLAN-NOCHE-2026-09-30.md`. Los stubs los creó Narrativa; los llenó Breath. DSL completo: `VR_Test/Saved/ClaudeScripts/usertool/stage_contract.dsl`.
+Plan: `docs/historia/PLAN-NOCHE-2026-09-30.md`. Los stubs los creó Narrativa; los llenó Breath. DSL completo: `VR_Test/Saved/ClaudeScripts/usertool/stage_contract.dsl`.
 | Función | Qué hace |
 |---|---|
 | `StageEnv()` | solo la capa de vida (`StageLife(true)`): la Obra la llama al encender la celda, detrás del velo |
@@ -98,7 +98,7 @@ Log en orden: `BREATHRIG: montado` → `activo` → `BLOB: entra` → `BREATHSTA
 - Construido con Test_Results abierto (regla de Narrativa: las variables nuevas no nacen en 0 en las instancias de Test_Breath/Obra); la instancia de Test_Breath leyó los valores del CDO (verificado). La lectura del DSL rotula `GetT`/`GetCycleIndex` con otras clases (colisión de nombres): `get_node_infos` confirma que el `self` es `BP Pacer SC`.
 - Verificado en PIE con el runner de Narrativa: `three, two, one` 55,610 → `pacer lanzado con la cuenta` 56,094 (+0,484) → el pacer corre a +3,48 s (= "inhale") → `fin de la cuenta` +3,60; a `T` 11,25 del ciclo 0 `CueStep` 3 (las tres voces disparadas). 0 errores, 0 Accessed None.
 
-## 🗣 2026-10-01 (madrugada) — las VO de ADENTRO de Entering (auditoría `docs/VO-AUDITORIA-2026-10-01.md`)
+## 🗣 2026-10-01 (madrugada) — las VO de ADENTRO de Entering (auditoría `docs/historia/VO-AUDITORIA-2026-10-01.md`)
 - **`StageSay(Clip)`**: `SayEndAt = GameTime + SoundBase.GetDuration(Clip)`; si hay `BP_Alma_SC` con `AppearT > 0,5` y sin `bLeaving` → `Alma.SayClip(Clip)`; si no → `PlaySound2D`.
 - **`StepStageVO(DT)`** en el Tick ENTRE `StageTick` y `ContractStep` (solo con `bContract`; `SayStep` 0-4, se resetea al volver a la fase 10): VO_11 (`ClipInstr`) a `ToolDelay + SayAfterTool` (fase 10 u 11) → VO_11b (`ClipExplore`) en fase 11 apenas queda libre (`SayEndAt + SayGap`) → VO_11h (`ClipHelp`) `HelpAfter` s después, SOLO si `Rig.bZone` es false → VO_12 (`ClipReady`) a `ExploreTime − dur − 0,4` (nunca antes de quedar libre). **La cuenta espera**: mientras `SayStep < 4` o no pasó `SayEndAt + 0,3`, `ContractTimer` se mantiene en `ExploreTime − 0,05`.
 - **`StepCycleVO`**: el cue del pacer en la fase 11 ahora también exige `SayStep ≥ 4` y `GameTime ≥ SayEndAt + 0,3 + (InhaleCueAt − LeadIn)` → sigue cayendo 0,44 s antes de la cuenta aunque la cuenta se retrase por la VO.

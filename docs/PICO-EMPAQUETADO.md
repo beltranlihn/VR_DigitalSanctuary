@@ -41,6 +41,9 @@ La primera reescritura fue el 2026-11-11 a las 18:26, un minuto después de inst
 ### 2.2 En tiempo de ejecución (APK)
 - **Sus cvars solo se aplican si el runtime es PICO**. Usa el nombre del runtime ("pico") en `PICO_HMD.cpp:637-639`. En Quest no corren.
 - **Excepción: `DisableRHIThread=True` apaga el hilo RHI en Android aunque el visor no sea PICO** (`PICO_HMD.cpp:811`, en `OnCreateSession`). Con el plugin activo, el APK de Quest también perdería el hilo RHI.
+  - ✅ **2026-11-14:** `tools/unreal/empaquetar_obra.py` pone `DisableRHIThread=False` mientras cocina toda variante que no sea PICO
+    (Obra, demo, `innercanvasquest`).
+  - Un APK de Inner Canvas PICO abre en Quest como ventana 2D. Para Quest: `--variante innercanvasquest` (gotcha 641).
 - El `PICOMobile_APL.xml` agrega `pvr.sdk.version` al manifiesto y copia `libopenxr_loader_pico.so` en el APK.
 - La frecuencia pedida (`DisplayRefreshRate`) se lee del ini y se solicita al iniciar la sesión (`PICO_HMD.cpp:915-916`). No necesita nodos de Blueprint.
 

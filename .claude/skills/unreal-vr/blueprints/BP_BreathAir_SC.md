@@ -3,7 +3,7 @@
 **Ruta:** `/Game/SoulCharger/Mechanics/Breath/Blueprints/BP_BreathAir_SC` · malla `SM_BreathAir_SC` · material `M_BreathAir_SC` / `MI_BreathAir_SC` (misma carpeta)
 **Colocado en:** `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath` como **`Entering_Aire`** (carpeta `Entering`), en (0, 0, 120) sin rotar = los ojos del usuario sentado sobre el `PlayerStart`.
 **Estado (2026-09-28):** 🟢 construido (receta E1-E14 del plan) · 🟢 **PIE verificado** (T1-T8, abajo) · 🟢 Simulate limpio · ⬜ banco del aire en PIE (`PerfMode` no se puede forzar desde el MCP, ver "Trampas del instrumento") · ⬜ APK, banco en la Quest y visor (fase S: con Beltrán) · ⬜ sin commitear (la carpeta `Mechanics/Breath/Air/` y el nivel están **sin versionar**).
-**Plan (fuente de verdad):** [`docs/PLAN-RESPIRACION-ENTORNO-2026-09-28.md`](../../../../docs/PLAN-RESPIRACION-ENTORNO-2026-09-28.md) — §2 arquitectura, §3 señales, §4 el efecto, §5 assets/parámetros/grafos (tablas 5.3, 5.4, 5.5, 5.6), §11 receta del editor, §15 qué cambió en la rev. 2.
+**Plan (fuente de verdad):** [`docs/historia/PLAN-RESPIRACION-ENTORNO-2026-09-28.md`](../../../../docs/historia/PLAN-RESPIRACION-ENTORNO-2026-09-28.md) — §2 arquitectura, §3 señales, §4 el efecto, §5 assets/parámetros/grafos (tablas 5.3, 5.4, 5.5, 5.6), §11 receta del editor, §15 qué cambió en la rev. 2.
 
 ## Qué es
 Pedido de Beltrán (directiva): *"cuando inhalas entren partículas muy pequeñitas y suaves y cuando exhales que salgan partículas de tu boca… attached a la cabeza del pawn para que si muevo la cabeza sigan entrando a mi boca"*.

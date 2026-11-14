@@ -1,6 +1,6 @@
 # BP_LightPanel_SC + M_LightPanel_SC — la superficie que hace cosas (Core/Light/)
 
-> Creado 2026-09-04 por Nico, brief [`docs/BRIEF-NICO-EFECTOS.md`](../../../../docs/BRIEF-NICO-EFECTOS.md) §5.1. **Tercer efecto de Nico** (el más grande). Un panel plano con un selector de modo que agrupa cuatro efectos que comparten toda la cañería, en vez de cuatro Blueprints casi idénticos. Es el vocabulario de una obra de luz mínima: una franja que recorre un muro, un halo que respira, un rosetón que gira, una pared que se enciende cuando te acercás.
+> Creado 2026-09-04 por Nico, brief [`docs/historia/BRIEF-NICO-EFECTOS.md`](../../../../docs/historia/BRIEF-NICO-EFECTOS.md) §5.1. **Tercer efecto de Nico** (el más grande). Un panel plano con un selector de modo que agrupa cuatro efectos que comparten toda la cañería, en vez de cuatro Blueprints casi idénticos. Es el vocabulario de una obra de luz mínima: una franja que recorre un muro, un halo que respira, un rosetón que gira, una pared que se enciende cuando te acercás.
 > **Estado: 🟡 material (107 expr) + BP compilados sin errores, 4 instancias (una por modo) en `L_EffectTest_Nico` juzgadas en el viewport — los 4 modos se ven claramente distintos. Falta juicio de Beltrán y visor.**
 
 ## 🔴 La decisión del selector: escalar por-píxel, NO static switch (diverge del brief §5.1)
@@ -45,7 +45,7 @@ Componente **`Panel`** (StaticMeshComponent; la malla la asigna el CS, default `
 `SetStaticMesh(Panel, Mesh)` → escala `(PanelSizeX·0.01, PanelSizeY·0.01, 1)` → `CreateDynamicMaterialInstance(Panel, 0, M_LightPanel_SC)` → `SetMID` → 17 escalares por `SetScalarParameterValueOnMaterials` + 1 color. Sin ramas. Verificado por `read_graph_dsl`, limpio.
 
 ## Session log
-- **2026-09-04 (Nico):** tercero de los tres. Material por 2 scripts (107 nodos, 135 conexiones, 0 errores). BP con 21 variables + componente StaticMesh. CS por DSL a la primera. 4 instancias colocadas (una por modo, 3 m, grid 2×2, planas mirando arriba), nivel recargado, capturado en cenital. **Verificado en editor:** los 4 modos se ven distintos (barrido/anillos/mandala/cercanía), la máscara de borde suaviza los cantos, `SphereMask` enciende el panel de cercanía. Capturas en `docs/efectos-nico/panel_4modos.png`.
+- **2026-09-04 (Nico):** tercero de los tres. Material por 2 scripts (107 nodos, 135 conexiones, 0 errores). BP con 21 variables + componente StaticMesh. CS por DSL a la primera. 4 instancias colocadas (una por modo, 3 m, grid 2×2, planas mirando arriba), nivel recargado, capturado en cenital. **Verificado en editor:** los 4 modos se ven distintos (barrido/anillos/mandala/cercanía), la máscara de borde suaviza los cantos, `SphereMask` enciende el panel de cercanía. Capturas en `docs/historia/efectos-nico/panel_4modos.png`.
 
 ## TODO
 - [ ] 🔴 **Charlar con Beltrán la decisión static-switch vs escalar por-píxel** (arriba). Si quiere la optimización → 4 MICs.

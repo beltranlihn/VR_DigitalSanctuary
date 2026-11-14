@@ -10,7 +10,7 @@
 #    Herramientas: Windows SDK (dxc/fxc) y Android NDK (glslc/spirv-val). Si falta alguna, se saltea.
 #    Verifica ademas que las ramas [branch] lleguen al SPIR-V como SelectionControl DontFlatten.
 # 3. Traduce MECANICAMENTE los .hlsl a Python y:
-#    a) reproduce los valores de control de la seccion 12 del plan (docs/PLAN-VALLE-ENTERING-2026-09-27.md);
+#    a) reproduce los valores de control de la seccion 12 del plan (docs/historia/PLAN-VALLE-ENTERING-2026-09-27.md);
 #    b) los compara con el MODELO NUMPY de referencia (scripts/valley_model.py) en miles de puntos al azar,
 #       con los defaults y con dos juegos de perillas no default (uno con HillEnd < HillFade);
 #    c) controles cruzados: h identica en las dos VS; gradiente contra diferencias finitas (sin el termino de

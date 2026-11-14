@@ -4,7 +4,7 @@
 QUE ES. Un disco PLANO (z = 0, normales +Z) en malla POLAR, centrado en el origen, que es
 donde late la esfera central. No tiene forma propia: todo el relieve (anillos del latido,
 pozo bajo la esfera, oleaje, bultos de salida) lo pone el VERTEX SHADER de
-M_HeartMembrane_SC. Plan: docs/PLAN-MEMBRANA-DEL-LATIDO-2026-09-27.md.
+M_HeartMembrane_SC. Plan: docs/historia/PLAN-MEMBRANA-DEL-LATIDO-2026-09-27.md.
 
 POR QUE POLAR Y CON ESPACIADO GEOMETRICO (y no la grilla uniforme de SM_CloudPlane):
   1. Radios r_j = R_MIN * q^j con q = 1 + 2*pi/SECTORES: cada celda queda casi CUADRADA

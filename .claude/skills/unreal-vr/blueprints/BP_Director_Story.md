@@ -193,7 +193,7 @@ Un `execute_tool_script` con un **error de Python no atrapado** (un `TypeError` 
 **Repuesto** (2026-08-26): `BP_Director_Story_C_0` en (−5000, 200, 0), carpeta `01 - Directores`, con `DebugStartRoom=3` / `bAutoTest=false` (los valores del tracker de ayer — ⚠ la última corrida real de Beltrán esa mañana usaba **4**: confirmar con él en qué valor la quiere), `WebOutTime=4`, y `StepGameTime=18` restaurado en CDO + instancia (se leía 10 tras el incidente).
 👉 Lecciones (van a gotchas): `except BaseException` por llamada **no** protege de los errores del script mismo; y tras CUALQUIER script fallido, **verificar el actor-diff contra HEAD**, no solo contar actores.
 
-## ✏️ 2026-08-26 (noche) — Surrounding V2: el dibujo integrado (plan: `docs/stages/surrounding-v2.md`)
+## ✏️ 2026-08-26 (noche) — Surrounding V2: el dibujo integrado (plan: `docs/historia/stages/surrounding-v2.md`)
 - **`ArmDraw()`** (nueva): `Room==5` → `Sensor.SetStage(5)` + `bPractice=true` + `MaybeInput()`. Colgada del **pin `else` del branch de `ArmBeam`** — la cadena quedó `ArmPractice → ArmHeart → ArmBeam → ArmDraw`.
 - **`TickDrawPractice()`** (nueva, al final de la cadena del Tick, tras `TickHeartFx`): mientras `Room==5 && WaitFor=="panel"`, si `Sensor.DrawTotalNow ≥ Sensor.PracticeCm` → `PanelRef.Finish()` — **el metro de práctica cierra las instrucciones** (patrón Attracting, sin botón: la instancia de `BP_InstrButton_SC` se ELIMINÓ de `L_Surrounding_SC` y el panel quedó en UNA página, `StartIndex=EndIndex=9`).
 - **El cierre de la etapa lo dispara el sensor**: a los 10 m llama `StepTimeDone` (la guarda `WaitFor=="time"` de siempre). **`StepTimes` CDO = `[0,90,240,0,300,300]`** — Surrounding tiene cortafuegos de 300 s.

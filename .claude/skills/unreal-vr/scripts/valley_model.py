@@ -2,7 +2,7 @@
 """valley_model.py - MODELO NUMPY DE REFERENCIA del valle de la respiracion (Entering), v2 (con las correcciones
 de la revision del 2026-09-28).
 
-Especificacion: docs/PLAN-VALLE-ENTERING-2026-09-27.md (seccion "v2" arriba de todo, y secciones 2-7 y 12).
+Especificacion: docs/historia/PLAN-VALLE-ENTERING-2026-09-27.md (seccion "v2" arriba de todo, y secciones 2-7 y 12).
 Es la misma cuenta que los tres Custom (scripts/hlsl/ValleyHeightVS.hlsl, ValleyGradVS.hlsl, ValleyPS.hlsl),
 escrita VECTORIZADA en numpy (float64). Solo numpy: no importa bpy ni Unreal.
 
@@ -101,7 +101,7 @@ P = dict(
 )
 
 # ---------------------------------------------------------------------------------------------
-# CAPA VIVA (docs/PLAN-RESPIRACION-ENTORNO-2026-09-28.md, rev. 2): la respiracion mueve luz, niebla y color, NUNCA
+# CAPA VIVA (docs/historia/PLAN-RESPIRACION-ENTORNO-2026-09-28.md, rev. 2): la respiracion mueve luz, niebla y color, NUNCA
 # geometria (ni el radio de la sombra ni la altura del resplandor: la rev. 1 los movia y la revision midio contornos que
 # se desplazaban 4 grados/s en el piso cercano y una banda del cielo que subia y bajaba).
 #   - En el MATERIAL: 9 entradas de ValleyPS llegan por preshader (cuentas de uniformes, en la CPU): Mul = A * Live,

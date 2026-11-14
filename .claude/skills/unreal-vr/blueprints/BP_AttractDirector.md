@@ -1,6 +1,6 @@
 # BP_AttractDirector — progress tracker
 
-Cerebro del stage **Touch = "Attracting"** (etapa de música). Plan completo y organigrama de construcción: [`docs/stages/touch-attracting.md`](../../../../docs/stages/touch-attracting.md). Este tracker es el detalle vivo del BP; actualizarlo al final de cada sesión.
+Cerebro del stage **Touch = "Attracting"** (etapa de música). Plan completo y organigrama de construcción: [`docs/historia/stages/touch-attracting.md`](../../../../docs/historia/stages/touch-attracting.md). Este tracker es el detalle vivo del BP; actualizarlo al final de cada sesión.
 
 - **refPath**: `/Game/SoulCharger/Stages/Touch/BP_AttractDirector.BP_AttractDirector`  ·  **parent**: Actor  ·  **in level**: sí — `L_Touch` (`BP_AttractDirector_C_0` en `(0,0,50)`)
 - **Purpose**: orquestador del stage — máquina de flujo (instrucciones → experiencia → guardar → cierre), **dueño del reloj Quartz y del step sequencer de 5 pasos** (avanza el playhead, dispara el clip del slot en su beat, corre el pad de fondo), cuenta bloques llenos → habilita el botón Guardar.

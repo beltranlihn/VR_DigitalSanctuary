@@ -1,7 +1,7 @@
 # Fantasmas de instrucciones: `BP_GhostPlayer_SC` + `BP_GhostRecorder_SC` + `BP_GhostTake_SC`
 
 Carpeta: `/Game/SoulCharger/Shared/Ghost/`. Encargo de Beltrán vía Narrativa (2026-09-30, noche), guion V5.
-Plan completo: [`docs/PLAN-FANTASMAS-2026-09-30.md`](../../../../docs/PLAN-FANTASMAS-2026-09-30.md).
+Plan completo: [`docs/historia/PLAN-FANTASMAS-2026-09-30.md`](../../../../docs/historia/PLAN-FANTASMAS-2026-09-30.md).
 Fuentes: `scripts/ghost/`. La hoja del turno es `TURNO.md`; los grafos están en `ghost_player.dsl` / `ghost_recorder.dsl` y las variables en `make_spec.py` -> `ghost_spec.json`.
 
 **Qué es:** Beltrán graba cada gesto de instrucción con los mandos. La obra lo reproduce como un "fantasma" translúcido, dos manos que hacen el gesto, en bucle hasta que el usuario lo hace.
@@ -13,7 +13,7 @@ Fuentes: `scripts/ghost/`. La hoja del turno es `TURNO.md`; los grafos están en
   - Las tomas usadas son Bell, Take, Pick, Breath, Heart, Attract y Draw. Loving, Save y Share están vacías.
   - CDO: `StepHz` 30 y `EchoAlpha` [1] (sin ecos; antes 11 poses/s con 4 ecos, que se superponían y no se leían).
   - Beltrán lo vio en PIE: "se ve bien".
-  - Integración encargada a Narrativa, con prioridad sobre los subtítulos y **con el texto oculto en la experiencia** (`bShowText` false en cada instancia). Plan: `docs/PLAN-FANTASMAS-V2-2026-10-01.md` §9.
+  - Integración encargada a Narrativa, con prioridad sobre los subtítulos y **con el texto oculto en la experiencia** (`bShowText` false en cada instancia). Plan: `docs/historia/PLAN-FANTASMAS-V2-2026-10-01.md` §9.
   - 📍 **Colocados en las celdas de la Obra (2026-10-01 tarde, sesión Animaciones)**. Todos con yaw 0, `bShowText` false, `bAutoPlay` false, `bPreview` true y carpeta `Fantasmas`. Encendido: `BP_Obra_SC.GhostTick` (Narrativa).
 
     | Nivel | Fantasma | Posición | `FollowTag` |
@@ -49,7 +49,7 @@ Fuentes: `scripts/ghost/`. La hoja del turno es `TURNO.md`; los grafos están en
   - El Construction Script ya NO llama `SetNumCustomDataFloats` (`GhInstInit`).
   - No cambiar `NumCustomDataFloats` de `BodyR/L`, `Stroke` ni `Path` con instancias colocadas y guardadas en algún nivel.
   - `L_GhostRec_SC` se rehízo: el viejo, que crashea, está en `VR_Test/Saved/GhostBackup/`.
-- **Plan:** `docs/PLAN-FANTASMAS-V2-2026-10-01.md`. **Hoja del turno:** `scripts/ghost/TURNO-V2.md`. **Datos:** `scripts/ghost/v2_datos.md`.
+- **Plan:** `docs/historia/PLAN-FANTASMAS-V2-2026-10-01.md`. **Hoja del turno:** `scripts/ghost/TURNO-V2.md`. **Datos:** `scripts/ghost/v2_datos.md`.
 - **Diseño:**
   - Un fantasma COLOCADO por instrucción (`Take` = su DA), en su nivel de test, que es la celda de la Obra.
   - Ancla en el nivel (sigue a un objeto con `FollowTag`) o en la cabeza (Breath, Heart).

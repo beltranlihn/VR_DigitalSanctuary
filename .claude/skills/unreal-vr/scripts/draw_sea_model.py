@@ -1,5 +1,5 @@
 # draw_sea_model.py - MODELO DE REFERENCIA del oceano del dibujo (numpy), escrito desde el prototipo aprobado
-# docs/prototipos/oceano-dibujo.html (v3). Plan: docs/PLAN-OCEANO-DIBUJO-2026-09-28.md.
+# docs/historia/prototipos/oceano-dibujo.html (v3). Plan: docs/historia/PLAN-OCEANO-DIBUJO-2026-09-28.md.
 # Es la segunda implementacion independiente contra la que DrawSea_check.py compara el HLSL generado.
 # Tambien calcula las constantes por oleaje (W/V/E 0..5) que escribe ApplyLook del Blueprint: sirve para
 # verificar en Unreal que el BP escribio los mismos numeros (python draw_sea_model.py las imprime).

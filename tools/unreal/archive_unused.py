@@ -10,7 +10,7 @@ sueltos (wav, mp4, fbx) de las carpetas que quedan sin ningun asset.
 
 🔴 Con Unreal CERRADO. Despues de mover: abrir el editor, abrir la Obra, correr smoke_obra.py.
 La lista sale del grafo de dependencias (deps.py) desde las raices declaradas en
-docs/AUDITORIA-ESTRUCTURA-2026-10-02.md. El git conserva todo en el tag respaldo-pre-reorden-2026-10-02.
+docs/historia/AUDITORIA-ESTRUCTURA-2026-10-02.md. El git conserva todo en el tag respaldo-pre-reorden-2026-10-02.
 """
 import argparse, json, os, shutil, sys
 
@@ -34,11 +34,17 @@ def move(src, dst_root, base):
     shutil.move(src, dst)
     return rel
 
+PROTEGIDAS = ("Collections", "Developers")   # carpetas del editor: vacías a propósito, Windows no deja borrarlas
+
 def remove_empty_dirs(base):
+    # 2026-11-14: protegía nada y se cortaba en Content/Collections (Acceso denegado) ANTES de escribir el manifiesto
     n = 0
     for dp, dn, fn in os.walk(base, topdown=False):
-        if dp != base and not os.listdir(dp):
-            os.rmdir(dp); n += 1
+        if dp != base and not os.listdir(dp) and os.path.basename(dp) not in PROTEGIDAS:
+            try:
+                os.rmdir(dp); n += 1
+            except OSError:
+                pass
     return n
 
 def archive(lst, name, apply):

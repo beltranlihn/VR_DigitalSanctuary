@@ -3,7 +3,7 @@
 desde los HLSL generados (scripts/hlsl/DrawSea*.hlsl, DrawDust*.hlsl) y los defaults del modelo (draw_sea_model.DEF).
 
 Escribe VR_Test/Saved/ClaudeScripts/oceano/draw_sea_build.json, que lee apply_draw_sea_material.py en Unreal.
-Plan: docs/PLAN-OCEANO-DIBUJO-2026-09-28.md. Receta copiada de plan_breath_air_material.py (el pipeline probado).
+Plan: docs/historia/PLAN-OCEANO-DIBUJO-2026-09-28.md. Receta copiada de plan_breath_air_material.py (el pipeline probado).
 
 Uso:  python gen_draw_sea_hlsl.py && python plan_draw_sea_material.py && python dryrun_draw_sea.py
 """

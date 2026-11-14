@@ -1,7 +1,7 @@
 # BP_SoulArchive_SC + SG_Portrait_SC — el retrato persistido (Core/Flow/)
 
 > Versión limpia (`_SC`) del viejo [[BP_SoulArchive]]. Nace del plan
-> [`docs/PLAN-CIERRE-2026-08-27.md`](../../../../docs/PLAN-CIERRE-2026-08-27.md), **fase F1**.
+> [`docs/historia/PLAN-CIERRE-2026-08-27.md`](../../../../docs/historia/PLAN-CIERRE-2026-08-27.md), **fase F1**.
 > El viejo queda como referencia; **este es el que se usa en `L_SoulCharger`**.
 
 - **refPath**: `/Game/SoulCharger/Core/Flow/BP_SoulArchive_SC.BP_SoulArchive_SC` · **parent**: Actor

@@ -122,7 +122,7 @@ Se intercambiaron las **cuatro parejas** `In`↔`Out` de la instancia `GAL_7_Met
 
 
 ## 🧬 2026-09-18 — CUATRO MODOS DE DEFORMACIÓN (`BlobMode`)
-Pedido de Beltrán con dibujo (CURL · SIMETRIC · ROUND · GROUP), para poder **explorar formas** y usar el mismo efecto en Breath, Mind y Heart. Plan: [`docs/PLAN-MODOS-METABALL-Y-PULSO-2026-09-18.md`](../../../../docs/PLAN-MODOS-METABALL-Y-PULSO-2026-09-18.md).
+Pedido de Beltrán con dibujo (CURL · SIMETRIC · ROUND · GROUP), para poder **explorar formas** y usar el mismo efecto en Breath, Mind y Heart. Plan: [`docs/historia/PLAN-MODOS-METABALL-Y-PULSO-2026-09-18.md`](../../../../docs/historia/PLAN-MODOS-METABALL-Y-PULSO-2026-09-18.md).
 
 ### Dónde entra, y por qué es barato
 Las posiciones se calculan **una vez por píxel, ANTES del march**, en un bucle de 3 líneas. El march (`NSteps × N`) es lo caro. 👉 **Cambiar la ley de `P[j]` no cuesta casi nada; lo que cuesta es `BlobCount`.**

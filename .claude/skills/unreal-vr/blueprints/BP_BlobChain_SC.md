@@ -12,7 +12,7 @@ Una gota de metaball **por slot** del secuenciador, igual que el raymarch, pero 
 resuelve el **vertex shader**: cada vértice del tubo se manda por bisección a la superficie del
 mismo `smin` de 9 esferas. Vive en `GAL_12` de `/Game/TestMeshes` como **`GAL_12_BlobChain`**.
 Por qué existe: el raymarch costaba ≥8,93 ms; la malla baja la estación de 22,8 a 14,0 ms
-(ver `docs/PLAN-ENFOQUE-C-MALLA.md`).
+(ver `docs/historia/PLAN-ENFOQUE-C-MALLA.md`).
 
 ## 🔴 Cómo se hizo compatible: los NOMBRES de parámetro, no la lógica
 El BP empuja al material por **nombre**. En vez de tocar el BP se le agregaron a `M_BlobMesh_SC`

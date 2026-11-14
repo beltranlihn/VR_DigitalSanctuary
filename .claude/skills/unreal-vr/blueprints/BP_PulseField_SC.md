@@ -1,7 +1,7 @@
 # BP_PulseField_SC + M_PulseField_SC — las ondas del latido (Core/Light/)
 
 > Creado 2026-09-18 a pedido de Beltrán, con dibujo: **anillos concéntricos que nacen en un centro y se expanden**, y de perfil un tren de olas que levanta la superficie. Pensado para **Heart**: cada onda sale con el latido.
-> Plan: [`docs/PLAN-MODOS-METABALL-Y-PULSO-2026-09-18.md`](../../../../docs/PLAN-MODOS-METABALL-Y-PULSO-2026-09-18.md).
+> Plan: [`docs/historia/PLAN-MODOS-METABALL-Y-PULSO-2026-09-18.md`](../../../../docs/historia/PLAN-MODOS-METABALL-Y-PULSO-2026-09-18.md).
 > **Estado: 🟡 construido, compilando y colocado como estación 12 de la galería (`GAL_11_PulseField`, x=333.604). Sin visor y sin juicio de Beltrán.**
 
 ## Qué es

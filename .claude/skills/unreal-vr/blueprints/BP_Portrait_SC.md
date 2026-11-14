@@ -1,6 +1,6 @@
 # BP_Portrait_SC + WBP_Portrait_SC — el retrato que la obra le devuelve al usuario (Core/UI/)
 
-> **F2** del plan [`docs/PLAN-CIERRE-2026-08-27.md`](../../../../docs/PLAN-CIERRE-2026-08-27.md).
+> **F2** del plan [`docs/historia/PLAN-CIERRE-2026-08-27.md`](../../../../docs/historia/PLAN-CIERRE-2026-08-27.md).
 > Aparece con el **VO 31**, cuando ya cerró Surrounding: la ameba se corre a un punto propio, el
 > dibujo reaparece a su lado, y debajo se enciende el panel con **sus** curvas de calma y ritmo y
 > **sus** ciclos de respiración.

@@ -232,7 +232,7 @@ Los motores (`BP_SoundOrb_SC`, `BP_SeqSlot_SC`, `BP_SaveMelody_SC`) están limpi
 ---
 
 ### 4.7 🟢 Respiración — `BP_BreathManager_SC` + `MPC_Breath` (extraído 2026-09-17)
-**El manager portable ya existe** ([tracker](../.claude/skills/unreal-vr/blueprints/BP_BreathManager_SC.md)): el motor de señal + umbral + háptica del modo 1 de `BP_Sensor_Soul`, con los valores del CDO afinado en visor, sin cast al pawn, sin directores y sin input. Primer consumidor: la galería de `/Game/TestMeshes` (7 efectos). Plan y mapeo por estación: [`PLAN-GALERIA-RESPIRACION-2026-09-17.md`](PLAN-GALERIA-RESPIRACION-2026-09-17.md).
+**El manager portable ya existe** ([tracker](../.claude/skills/unreal-vr/blueprints/BP_BreathManager_SC.md)): el motor de señal + umbral + háptica del modo 1 de `BP_Sensor_Soul`, con los valores del CDO afinado en visor, sin cast al pawn, sin directores y sin input. Primer consumidor: la galería de `/Game/TestMeshes` (7 efectos). Plan y mapeo por estación: [`PLAN-GALERIA-RESPIRACION-2026-09-17.md`](historia/PLAN-GALERIA-RESPIRACION-2026-09-17.md).
 
 - **Paquete:** la carpeta `Mechanics/Breath/` (manager + `MPC_Breath`) + `GrabHapticEffect` (perilla `HapticEffect`, reemplazable).
 - **Enchufe:** una instancia en el nivel persistente · pawn con `CameraComponent` y SceneComponents **`HandRight`/`HandLeft` hijos de su MotionController Grip**. Nada más: no necesita hubs, input ni tags.
@@ -251,7 +251,7 @@ La etapa entera, al modo del secuenciador y el dibujo. Nivel de test: **`/Game/S
 - **Estado:** 🟢 PIE + Simulate, cero `Accessed None`. ⬜ visor. Trackers: `BP_BreathRig_SC.md`, `BP_BreathBlob_SC.md`, `BP_BreathStage_SC.md`.
 
 #### 4.7.c 🟡 El aliento visible + el valle que respira (2026-09-28) — `BP_BreathAir_SC` + capa viva de `BP_BreathValley_SC`
-Consumidores de `MPC_Breath` que se suman a la etapa de 4.7.b. Plan: [`PLAN-RESPIRACION-ENTORNO-2026-09-28.md`](PLAN-RESPIRACION-ENTORNO-2026-09-28.md). Trackers: `BP_BreathAir_SC.md`, `BP_BreathValley_SC.md`.
+Consumidores de `MPC_Breath` que se suman a la etapa de 4.7.b. Plan: [`PLAN-RESPIRACION-ENTORNO-2026-09-28.md`](historia/PLAN-RESPIRACION-ENTORNO-2026-09-28.md). Trackers: `BP_BreathAir_SC.md`, `BP_BreathValley_SC.md`.
 - **Paquete del aire:** `Mechanics/Breath/Air/` (`BP_BreathAir_SC`, `SM_BreathAir_SC`, `M_BreathAir_SC`, `MI_BreathAir_SC`) + `MPC_Breath`. Nada del pawn ni de directores: la cámara la pide al rig.
 - **Paquete del valle:** `Mechanics/Breath/Valley/` (BP, mallas, `M_`/`MI_BreathValley_SC`) + `MPC_Breath`. La capa viva viaja dentro del BP y del material; sin rig en el nivel el valle queda en su look autoral (`On` 0).
 - **Enchufe del aire:** 🔴 **necesita `BP_BreathRig_SC` en el mismo nivel** (es el único que conoce al pawn; el aire hace `GetActorOfClass(BP_BreathRig_SC)` → `CamRef` y se cuelga de esa cámara con `SnapToTarget`). Colocar `Entering_Aire` a la altura de los ojos del usuario sentado (sobre el `PlayerStart`, Z ≈ 120) sin rotar: esa posición solo sirve para la vista previa del editor; en Play el aire se muda a la cámara. Sin rig: no monta, no dibuja, cero errores (verificado en Simulate). 🔴 Si otro nivel usa `BP_BreathManager_SC` en vez del rig, el aire **no monta** (busca la clase del rig): habría que darle la cámara por otro camino.

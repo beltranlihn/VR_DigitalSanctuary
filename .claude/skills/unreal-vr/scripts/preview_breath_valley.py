@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """preview_breath_valley.py - previsualiza el valle de la respiracion (Entering), v2 (revision 2026-09-28), en
-Blender headless, SIN Unreal. Especificacion: docs/PLAN-VALLE-ENTERING-2026-09-27.md.
+Blender headless, SIN Unreal. Especificacion: docs/historia/PLAN-VALLE-ENTERING-2026-09-27.md.
 
 QUE HACE
   1. Construye la malla real (reusa construir() de gen_breath_valley.py: misma topologia, mismos radios) y le
@@ -37,7 +37,7 @@ SALIDAS (VR_Test/Saved/ClaudeScripts/), <tag> = sufijo:
 USO (headless, no toca la sesion de Blender del usuario):
   "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe" --background --factory-startup --python preview_breath_valley.py -- tag=_v2
   Capa viva (2026-09-28): respira=<S> (-1 exhalado .. +1 inhalado; 0 = la v2 exacta, con los controles de la seccion
-  12) aplica live_desde_S + efectivos del modelo (docs/PLAN-RESPIRACION-ENTORNO-2026-09-28.md); carpeta=<ruta>
+  12) aplica live_desde_S + efectivos del modelo (docs/historia/PLAN-RESPIRACION-ENTORNO-2026-09-28.md); carpeta=<ruta>
   cambia la carpeta de salida.
   Perillas: despues de "--", pares clave=valor que pisan los defaults de la tabla 7.1 (los vectores van como
   0.4,0.5,0.8), mas estas opciones de escena:

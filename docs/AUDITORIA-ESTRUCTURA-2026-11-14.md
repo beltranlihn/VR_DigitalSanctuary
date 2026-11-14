@@ -1,5 +1,7 @@
 # Auditoría de estructura · 2026-11-14
 
+> ✅ **Cerrado el 2026-11-14** — lo hecho está en §0. Las secciones §1-§3 son la foto de la revisión, de antes de ordenar.
+
 Revisión completa del proyecto después de cinco semanas de trabajo intenso: la demo de la BCN Design Week, experimentos de
 Loving y Attracting, Inner Canvas para 8 PICO y el Quest 2. Pedido de Beltrán: entender el total primero, dejar la documentación
 al día y recién después ordenar, limpiar huérfanos y archivar lo obsoleto, sin romper nada.
@@ -10,6 +12,46 @@ Método (reproducible):
 - Con ese grafo se calcula qué alcanza cada grupo de niveles.
 - Los candidatos a huérfano se buscan además por nombre corto (cargas armadas por texto) y se confirman con
   `AssetTools.get_referencers` en el editor.
+
+## 0. Qué se hizo el 2026-11-14 (cerrado)
+
+**Respaldo.** Commit `f84d512` + tag `respaldo-pre-orden-2026-11-14`, con la prueba de humo de la Obra en OK antes y después
+(`smoke_20261114-174803` → `smoke_20261114-183722`, 0 errores de Blueprint).
+
+**Unreal**
+- **Archivados 65 assets huérfanos** (+11 fuentes `.wav`/`.png`) → `_Deprecated/Content-2026-11-14/`, con manifiesto. Volver:
+  `python tools/unreal/archive_unused.py --restore Content-2026-11-14`.
+- **51 nodos huérfanos borrados** en 9 BPs: `BP_ICTutor_IC`, `BP_ICWallHUD_IC`, `BP_Harp_SC`, `BP_StageRunner_SC`, `BPC_TBTool_NC`,
+  `BP_TBDirector_NC`, `BP_TBPalette`, `BP_SoundOrb_SC`. Todos con el DSL idéntico antes y después, compilados y guardados.
+  `BP_ProtoSoul_SC` no se tocó (H11).
+- **Verificado sin visor:**
+  - la Obra (smoke OK);
+  - el menú de la demo e Inner Canvas visor (`probar_nivel`, 0 errores);
+  - la pantalla del PC (los mismos 32 avisos de `BP_ICSpace_IC.SpaceBoot` que el build del evento: preexistentes, ver H12);
+  - `verificar_plugins.py` OK.
+
+**Documentación**
+- `docs/MAPA-DEL-PROYECTO.md` y `docs/CATALOGO.md`, nuevos (generado con `tools/unreal/gen_catalogo.py`).
+- `_INDEX.md` de BPs cuadrado con el disco; la historia pasó a `_HISTORIA.md`.
+- `CLAUDE.md` (§3.b, §6, §8), `MECANICAS-PORTABLES.md` §0.a, `PICO-EMPAQUETADO.md`, `README.md` de la raíz, `docs/README.md`,
+  `Recursos/LEEME.md`, `scripts/LEEME.md` de la skill y gotchas 636-643.
+
+**Carpeta del proyecto**
+- 48 documentos viejos → `docs/historia/` y `docs/investigacion/`; los 4 de diseño de julio de la raíz →
+  `docs/historia/raiz-2026-07/`. Enlaces reescritos y verificados: queda 1 roto, y ya estaba así antes.
+- `Recursos` reagrupado: `Marca e interfaz/`, `3D/Blender`, `Audio/…`.
+- `perf/` → `_Deprecated/perf-2026-09`.
+- **Fuentes DSL** → `tools/bp_fuentes/` (H10).
+
+**Borrado (con permiso de Beltrán)**
+- caché de Fab del launcher: 5,3 GB;
+- 39 builds intermedios: 32,2 GB; queda el último de cada app;
+- `Packaging/` (duplicado). La demo solo en inglés se movió a `Packagings/Digital Sanctuary V1.0/Solo ingles (2026-10-23)`;
+- `Recursos/DrawingToolkit`, `GDXR`, `Test_3DDraw` salieron de git (siguen en el tag).
+
+**H12 · Preexistente, sin arreglar:** en `L_InnerCanvas_Wall`, las 8 copias de `BP_ICSpace_IC` buscan en `SpaceBoot` un actor por tag
+que solo existe en el nivel del visor (`GetAllActorsWithTag` vacío → `Get(0)` → Accessed None). Ya pasaba en el evento y no rompe la
+pantalla. Arreglo: un `IsValid`/largo > 0 antes del `Get`, o no colocar `BP_ICSpace_IC` en la pantalla.
 
 ## 1. Qué hay hoy
 
@@ -79,6 +121,9 @@ Lista exacta: `docs/auditoria-2026-11-14/huerfanos.json`.
 - Reescribe el `DefaultEngine.ini` compartido en cada arranque del editor.
 - Su `DisableRHIThread=True` apaga el hilo RHI también en los APK de Quest. Solo la variante `innercanvasquest` lo corrige; la
   Obra y la demo salen sin hilo RHI.
+- ✅ Corregido el 11-14: `empaquetar_obra.py` pone `DisableRHIThread=False` en toda variante que no sea PICO, solo mientras cocina.
+- Sigue pendiente aislar el plugin entero (apagado por defecto, encendido solo en la variante pico). Hace falta un PICO a mano para
+  verificarlo.
 
 **H6 · Caché de descargas de Epic/Fab** (fuera del proyecto, en `C:\ProgramData\Epic\EpicGamesLauncher\VaultCache`): 5,4 GB.
 - Lyra 5.8: 5 GB, de julio.
@@ -103,6 +148,18 @@ Lista exacta: `docs/auditoria-2026-11-14/huerfanos.json`.
 - ✅ Hecho el 11-14: `tools/unreal/respaldar_fuentes_bp.py` las espeja en `tools/bp_fuentes/`. La mini-skill `/commit` lo corre
   antes de cada commit.
 - Los 2,3 GB restantes de `ClaudeScripts` son volcados y capturas regenerables.
+
+**H11 · Para revisar con Beltrán (salió al escribir el catálogo; no se tocó):**
+- **Casi gemelos:**
+  - `BP_ChargeTest_SC` / `BP_ChargeFx_SC`: la Obra usa el segundo, pero el primero también llega a la Obra.
+  - `NS_FocusMotes_SC` es `NS_OrbHalo_SC` sin cambios.
+  - `M_SpaceDust_SC` / `NS_SpaceDust_SC` son copias del polvo del Hall.
+- **Nombres confusos:** `M_ProtoSoul` (Core) y `M_ProtoSoul_Amoeba` (SC_Base, el viejo `M_ProtoSoul` de Core/Amoeba).
+- **Dudas de uso:**
+  - `M_ControllerOld_001/002` (materiales viejos del mando, en SC_Base): los alcanzan todos los proyectos.
+  - `M_SoulRibbon_SC` sigue referenciado aunque los anillos del alma están apagados.
+- **Código apagado a propósito:** `BP_ProtoSoul_SC` tiene 61 nodos desenchufados (anillos y tarjeta del alma, apagados el 09-30 "sin
+  borrar código", según su tracker). La limpieza de huérfanos los dejó.
 
 ## 3. Plan (de menor a mayor riesgo; cada fase se verifica antes de la siguiente)
 

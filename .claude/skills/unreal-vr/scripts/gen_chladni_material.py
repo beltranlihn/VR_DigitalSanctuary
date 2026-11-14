@@ -6,12 +6,12 @@ Escribe:
   - scripts/hlsl/ChladniPS.hlsl        (PS -> Emissive): piso (relieve por pixel, poligonos, grano, granito,
                                         luz rasante, agua, bruma) y cielo (Part 1)
   - VR_Test/Saved/ClaudeScripts/chladni_build.json  (lo leen apply_chladni_A.py / apply_chladni_B.py en Unreal)
-  - imprime la tabla de parametros en markdown (docs/PLAN-SALAR-CHLADNI-2026-09-28.md, seccion 7.1)
+  - imprime la tabla de parametros en markdown (docs/historia/PLAN-SALAR-CHLADNI-2026-09-28.md, seccion 7.1)
 
 Por que un generador: Adreno miscompila los arreglos con indice dinamico en el VS (gotcha 399) y un Custom no
 puede declarar funciones, asi que los 8 modos, las 3 evaluaciones del campo (valor + gradiente) y los hash se
 escriben DESPLEGADOS. Escribirlos a mano es donde entran los errores; aca salen de una sola plantilla.
-Matematica = la del prototipo web v6 (docs/prototipos/placa-chladni.html): modos con centro calmo (los petalos
+Matematica = la del prototipo web v6 (docs/historia/prototipos/placa-chladni.html): modos con centro calmo (los petalos
 NACEN a un radio, como Bessel J_n), deformacion organica fija, relieve exp(-(F/ReliefW)^2) sobre las lineas
 nodales, ola de formacion con la curva de Heart (la calcula el BP y llega en V0..V7).
 
@@ -478,7 +478,7 @@ def ps():
 
 def escribir(nombre, salida, ent, lineas, titulo):
     cab = ["// %s - M_ChladniFloor_SC. %s" % (nombre, titulo),
-           "// GENERADO por scripts/gen_chladni_material.py: NO editar a mano (se pisa). Plan: docs/PLAN-SALAR-CHLADNI-2026-09-28.md",
+           "// GENERADO por scripts/gen_chladni_material.py: NO editar a mano (se pisa). Plan: docs/historia/PLAN-SALAR-CHLADNI-2026-09-28.md",
            "// Modos DESPLEGADOS, sin arreglos ni bucles (gotcha 399); hash sin seno (gotcha 481). Cuerpo de un Custom: termina en return.",
            "// NODO  MaterialExpressionCustom  Description \"%s\"  OutputType %s" % (nombre, salida),
            "// ENTRADAS (%d, en este orden):" % len(ent)]

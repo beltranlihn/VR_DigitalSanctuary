@@ -1,6 +1,6 @@
 # BP_HeartScape_SC — la membrana del latido
 
-`/Game/SoulCharger/Mechanics/Heart/Scape/` · plan: [`docs/PLAN-MEMBRANA-DEL-LATIDO-2026-09-27.md`](../../../../docs/PLAN-MEMBRANA-DEL-LATIDO-2026-09-27.md) · lookdev en navegador: https://claude.ai/artifact/En9CRj53wBDrJfGLcB4LBK
+`/Game/SoulCharger/Mechanics/Heart/Scape/` · plan: [`docs/historia/PLAN-MEMBRANA-DEL-LATIDO-2026-09-27.md`](../../../../docs/historia/PLAN-MEMBRANA-DEL-LATIDO-2026-09-27.md) · lookdev en navegador: https://claude.ai/artifact/En9CRj53wBDrJfGLcB4LBK
 
 ## Propósito
 El paisaje del latido: una membrana mate enorme donde **cada latido** hace latir la esfera central, **nace una onda** en el borde del hoyuelo donde se asienta la esfera y viaja hacia afuera con colinas que cambian de lugar en cada latido. Reemplaza en aspecto al océano de `BP_PulseField_SC`, que **no se tocó** y queda como referencia. Diferencia clave con aquel: aquí la ola se lee **por la luz sobre la geometría** (normal analítica), no por un degradado de color según la altura.

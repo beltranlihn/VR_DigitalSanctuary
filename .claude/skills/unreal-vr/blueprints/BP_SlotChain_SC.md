@@ -266,8 +266,8 @@ re-aplicar solas, con la verificación por recorte de §378.
 
 ## 🚀 2026-09-24 (noche) — CIRUGÍA DE PERFORMANCE del march (fases A1+A2+A3 del plan)
 
-Contexto y enfoques: [`docs/PLAN-PERF-ATTRACTING.md`](../../../../docs/PLAN-PERF-ATTRACTING.md)
-(medición base: [`docs/PERF-ATTRACTING-2026-09-24.md`](../../../../docs/PERF-ATTRACTING-2026-09-24.md)).
+Contexto y enfoques: [`docs/historia/PLAN-PERF-ATTRACTING.md`](../../../../docs/historia/PLAN-PERF-ATTRACTING.md)
+(medición base: [`docs/historia/PERF-ATTRACTING-2026-09-24.md`](../../../../docs/historia/PERF-ATTRACTING-2026-09-24.md)).
 🔒 **Backup EXACTO del HLSL anterior:** `scripts/hlsl_backups/M_SlotChain_Custom0_2026-09-24_pre-cirugia.hlsl`
 (restaurar = `set_properties` de `code` sobre `MaterialExpressionCustom_0` + `recompile`).
 

@@ -4,7 +4,7 @@
 **Se coloca en:** `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath` como **`Entering_Vida`** (carpeta `Entering`), en (0, 0, 120) sin rotar = los ojos del usuario sentado.
 **Estado (2026-09-29):** 🟢 **construido** (receta §13 fases P/M/A hechas antes; **B1-B13 hechos**, B14 no hizo falta) · compile `warnings_as_errors` **0 errores / 0 warnings** · guardado (`is_dirty` false) · ⬜ C (colocar `Entering_Vida` + vista previa) · ⬜ PIE (T) · ⬜ APK, banco, visor · ⬜ sin commitear.
 **Receta que funcionó (de corrido, ~25 min):** `VR_Test/Saved/ClaudeScripts/vida/receta_bp_rapida.md` + los scripts `vida/bp/*.py`.
-**Plan (fuente de verdad):** [`docs/PLAN-VIDA-VALLE-2026-09-28.md`](../../../../docs/PLAN-VIDA-VALLE-2026-09-28.md) — §3 arquitectura, §4 ráfagas, §5 polvo (tablas 5.2, 5.3 juegos visible/sutil, 5.4, 5.5, 5.6), §6 la franja del valle (tabla 6.3), §7 sonido, §13 receta, §16 qué cambió en la rev. 2.
+**Plan (fuente de verdad):** [`docs/historia/PLAN-VIDA-VALLE-2026-09-28.md`](../../../../docs/historia/PLAN-VIDA-VALLE-2026-09-28.md) — §3 arquitectura, §4 ráfagas, §5 polvo (tablas 5.2, 5.3 juegos visible/sutil, 5.4, 5.5, 5.6), §6 la franja del valle (tabla 6.3), §7 sonido, §13 receta, §16 qué cambió en la rev. 2.
 
 ## Qué es
 Pedido de Beltrán: *"le falta algo para que se sienta un poco más vivo… partículas muy pequeñas tipo polvo o ráfagas como un poco de viento"*.

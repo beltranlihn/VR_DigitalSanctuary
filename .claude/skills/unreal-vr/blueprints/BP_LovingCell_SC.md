@@ -17,7 +17,7 @@
 > ⬜ sin PIE · ⬜ sin visor · ⬜ sin medir · ⬜ sin commitear.
 
 ## 🎭 ETAPA MIND para la Obra (2026-09-30, noche) — contrato, paleta morada, centrado, actividad, partículas, manos, sonido
-Pedido de Beltrán (audio 04:30), dirigido por Narrativa (`docs/PLAN-NOCHE-2026-09-30.md`; estándar "estudio grande": toda
+Pedido de Beltrán (audio 04:30), dirigido por Narrativa (`docs/historia/PLAN-NOCHE-2026-09-30.md`; estándar "estudio grande": toda
 entrada/salida con curva y sonido, sin saltos de un cuadro, paso ≤ 1/30, nada anima en BeginPlay). Fuentes versionadas:
 `scripts/loving_stage_contract.dsl` · `scripts/fluid_hands.dsl` · `scripts/make_mind_sounds.py` · `LovingDustVS.hlsl`.
 **Contrato** (lo llama `BP_Obra_SC`): `TourWake()` al encender la celda → escondida (escala 0,001 + `SetActorHiddenInGame`),

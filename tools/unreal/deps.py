@@ -1,7 +1,7 @@
 # deps.py - grafo de dependencias de Content/ leyendo las rutas /Game/ de cada .uasset/.umap (sin abrir Unreal).
 # Uso: python tools/unreal/deps.py              -> deps.json en la carpeta actual (solo Content/, /Game/...)
 #      python tools/unreal/deps.py --plugins    -> tambien los plugins de contenido del proyecto (/SC_Draw/..., /PICOOpenXR/...)
-# Ver docs/AUDITORIA-ESTRUCTURA-2026-10-02.md. 2026-11-14: --plugins (las mecanicas viven en plugins desde el 10-02).
+# Ver docs/historia/AUDITORIA-ESTRUCTURA-2026-10-02.md. 2026-11-14: --plugins (las mecanicas viven en plugins desde el 10-02).
 import os, re, json, sys, collections
 VRT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "VR_Test")
 ROOTS = [(os.path.join(VRT, "Content"), "Game")]

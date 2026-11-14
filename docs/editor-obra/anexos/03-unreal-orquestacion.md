@@ -24,7 +24,7 @@
    - Avanza cuando `StepTime ≥ StepDur` y `bGate` es verdadero. Cada paso es un `case` que fija `StepDur`, `bGate` y `bWaitWalk` (`TRK/BP_HallDirector_SC.md:33-34`, `:42-45`).
    - La Obra lo llama (`HallIntro/Return/Exit`) y lee sus banderas (`bHallDone`, `bHudBorn`, `DoorW/E`…) (`:15-27`).
 3. **Cada etapa**
-   - Contrato `StageIntro/StageBegin/StageOutro` + `bStageDone` (`docs/PLAN-NOCHE-2026-09-30.md:38-48`; `DUMP:487-501`).
+   - Contrato `StageIntro/StageBegin/StageOutro` + `bStageDone` (`docs/historia/PLAN-NOCHE-2026-09-30.md:38-48`; `DUMP:487-501`).
    - Por dentro, cada una tiene su propio reloj: ciclos del pacer, latidos, `StageDuration`, tinta, SAVE.
 
 **Entorno de ensayo, que duplica la coreografía:**
@@ -148,7 +148,7 @@ Notación de "dónde vive": **I** = instancia en el nivel · **CDO** = valor por
 - **No se pueden crear structs ni enums por MCP** (`references/gotchas.md:305`, `:670`). Una DataTable necesita un struct de fila hecho a mano (2 clics + campos).
 - **Gotcha 402:** cambiar la estructura de un BP con instancia colocada puede perder el actor (`gotchas.md:2586`). Hay que tocar `BP_Obra_SC` con la Obra cerrada (`TRK/BP_Obra_SC.md:98`).
 - Las variables nuevas instance-editable **nacen en 0** en la instancia del nivel abierto (`gotchas.md:1438`; caso real en `TRK/BP_Obra_SC.md:299`). Con el nivel cerrado, la instancia toma el CDO (`gotchas.md:2694`). El CDO no se propaga a las instancias colocadas (`gotchas.md:317`; `TRK/BP_HallDirector_SC.md:111`).
-- **Editor único compartido, con cola** (`docs/PLAN-NOCHE-2026-09-30.md:65-66`). Un `execute_tool_script` que falla dispara un Undo que se lleva trabajo (`CLAUDE.md` §2.b).
+- **Editor único compartido, con cola** (`docs/historia/PLAN-NOCHE-2026-09-30.md:65-66`). Un `execute_tool_script` que falla dispara un Undo que se lleva trabajo (`CLAUDE.md` §2.b).
 - `.uasset` y `.umap` son binarios y no se mergean.
 - **Quest standalone:** sin editor en runtime, todo dato tiene que ir cocinado. Se empaqueta en Development.
 - El empaque de la Obra usa `.ini` **temporales**: lo commiteado tiene `GameDefaultMap` = Test_Sequencer (`VR_Test/Config/DefaultEngine.ini:7`) y la Obra no está en `MapsToCook` (`DefaultGame.ini:131-137`).
@@ -221,7 +221,7 @@ Notación de "dónde vive": **I** = instancia en el nivel · **CDO** = valor por
 6. **El tiempo no es lineal.** Gates y cortafuegos dependen del usuario, y `bSimulated`/`SimCut` cambian la duración de las etapas (`TRK/BP_Obra_SC.md:123`). El editor tiene que modelar gates; si "aplana" la obra, miente.
 7. **Structs fuera del alcance del MCP.** La opción DataTable requiere un paso manual de Beltrán. Si no se hace, queda el DataAsset con Map, que todavía no está verificado.
 8. **Empaque con `.ini` temporales.** Un JSON en runtime exige staging nuevo en config compartida. El asset con referencia firme no tiene ese problema.
-9. **Costo en el Quest.** `BP_ScoreCues_SC` tiene que limitarse a detectar flancos (nada de buscar en Map cada cuadro dentro de `RunObra`) y respetar `Dt ≤ 1/30` y "nada arranca en el cuadro en que se enciende la celda" (`docs/PLAN-NOCHE-2026-09-30.md:102-108`).
+9. **Costo en el Quest.** `BP_ScoreCues_SC` tiene que limitarse a detectar flancos (nada de buscar en Map cada cuadro dentro de `RunObra`) y respetar `Dt ≤ 1/30` y "nada arranca en el cuadro en que se enciende la celda" (`docs/historia/PLAN-NOCHE-2026-09-30.md:102-108`).
 10. **Coreografía triplicada** (Obra, StageRunner, HallRunner). Mientras no lean la partitura, lo que se ensaya no es lo que se juega.
 11. **Sin versión ni dueño.** `gen_ensayo_js.py` está en el scratchpad de otra sesión (si esa sesión se borra, se pierde) y `docs/MAPA-DE-AJUSTES.md:136` ya está desactualizado.
 12. **Banderas de depuración.** La Obra quedó guardada con `DebugStart` 3 (`TRK/BP_Obra_SC.md:347`). Si el editor expone banderas de debug, `score_push` nunca debe escribirlas y el checklist del APK tiene que verificarlas.

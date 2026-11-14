@@ -1,44 +1,42 @@
-# Soul Charger — VR de sanación para Meta Quest 3
+# VR Unreal — Alma Digital Studio
 
-Obra de **VR inmersiva de meditación/sanación** para **Meta Quest 3 standalone** (Unreal Engine 5.8). Experiencia sentada, single-user, ~15 min, estética Turrell. El usuario atraviesa *stages* sensoriales donde su propio cuerpo (respiración, latido, gesto) maneja luz, sonido y forma.
+Un solo proyecto de Unreal Engine 5.8 (`VR_Test/`) con tres experiencias de VR standalone (Meta Quest; Inner Canvas también en PICO):
 
-> Producido por **Alma Digital Studio**. Repo privado.
+| Experiencia | Qué es | Entregada |
+|---|---|---|
+| **Soul Charger · la Obra** | VR de sanación sentada, ~15 min: Hall + 5 etapas (respiración, latido, mente, música, dibujo) guiadas por Alma | — |
+| **Digital Sanctuary · la demo** | demo corta para ferias, bilingüe, con sensor Muse y una pantalla de Windows | `Projects/Packagings/Digital Sanctuary V1.0` (BCN Design Week, oct 2026) |
+| **Inner Canvas** | dibujo de pie para varios visores a la vez + un PC que muestra los dibujos en vivo | `Projects/Packagings/Inner Canvas v1.0` (evento, 13-11-2026) |
 
----
+> Producido por **Alma Digital Studio**. Repo privado `github.com/beltranlihn/VR_DigitalSanctuary`, rama `core/esqueleto`.
 
-## 🚀 Empezar en 5 minutos (con Claude Code)
+## Qué hay en esta carpeta
 
-Este proyecto se desarrolla con **Claude Code + el MCP nativo de Unreal**. Casi todo el trabajo en Unreal (Blueprints, niveles, materiales) lo hace Claude conduciendo el editor por el MCP.
-
-1. **Requisitos:** Unreal Engine **5.8**, la Quest 3 con Meta Quest Link (o build por USB), Claude Code instalado.
-2. **Cloná el repo** y abrí `VR_Test/VR_Test.uproject` en Unreal 5.8.
-3. **Dejá Unreal abierto** (arranca solo el server MCP en `localhost:8000`).
-4. **Abrí Claude Code en la raíz del repo** (la carpeta que contiene este README). Claude carga solo el contexto (`CLAUDE.md`) y la skill `unreal-vr`.
-5. Verificá que el MCP conecta pidiéndole a Claude algo simple (ej. "¿qué nivel está cargado?").
-
-👉 **Guía de setup detallada (primera vez, incluye conectar el MCP):** [`docs/ONBOARDING.md`](docs/ONBOARDING.md)
-
-## 🧭 Por dónde empezar a leer
-| Si querés… | Leé |
+| Carpeta / archivo | Qué es |
 |---|---|
-| Entender la obra, el target y las reglas | [`CLAUDE.md`](CLAUDE.md) (Claude lo lee solo) |
-| Instalar y conectar todo por primera vez | [`docs/ONBOARDING.md`](docs/ONBOARDING.md) |
-| Trabajar en paralelo sin pisarnos (git, ramas, deploy) | [`docs/WORKFLOW-EQUIPO.md`](docs/WORKFLOW-EQUIPO.md) |
-| Ver en qué está cada stage | [`docs/ESTADO-STAGES.md`](docs/ESTADO-STAGES.md) |
-| Gastar menos tokens / que Claude rinda más | [`GUIA-RAPIDA.md`](GUIA-RAPIDA.md) |
-| Lo técnico de Unreal/VR (Blueprints, materiales, VR) | `.claude/skills/unreal-vr/SKILL.md` |
-| La visión de diseño completa | [`Soul-Charger-Design.md`](Soul-Charger-Design.md) ⚠️ ver caveat en CLAUDE.md §1 |
+| `CLAUDE.md` | el contexto que Claude Code lee al abrir el proyecto: qué es la obra, el target técnico, qué no romper. **Empezar acá** |
+| `VR_Test/` | **el proyecto Unreal** (Content, Config, Plugins, `.uproject`). Mapa completo: [`docs/MAPA-DEL-PROYECTO.md`](docs/MAPA-DEL-PROYECTO.md) |
+| `docs/` | documentación vigente (índice en [`docs/README.md`](docs/README.md)); `docs/historia/` = planes e informes viejos; `docs/investigacion/` = investigaciones |
+| `tools/` | scripts: `unreal/` (prueba de humo, empaquetar, instalar, dependencias, archivar), `innercanvas/`, `demo/`, `editor/` + `score/` (editor web), `pieeg/` (sensor EEG), `bp_fuentes/` (fuentes de los Blueprints escritos por script) |
+| `.claude/skills/` | las skills de Claude Code: `unreal-vr` (la biblia técnica de Unreal), `blender-3d`, `commit` |
+| `web/` | **Veation VR Studio**, el editor web de los tiempos de la obra (`web/editor-obra`), y el prototipo narrativo web |
+| `obra/` | la partitura de la obra que usa el editor web (`score/`), el mapa de sus sonidos (`audio/`) y su enlace con Unreal (`unreal/`) |
+| `Recursos/` | material de trabajo: audio, música, marca, 3D, referencias, la instalación de feria y la última copia de cada build ([`Recursos/LEEME.md`](Recursos/LEEME.md)) |
+| `EEG Alma Center/` | proyecto aparte con **su propio repo** (`github.com/beltranlihn/EEG_Alma_Center`); no es parte de este repo |
+| `_Deprecated/` | lo archivado fuera del proyecto Unreal (assets sin uso, niveles viejos, mediciones de septiembre). Local, fuera de git; cada tanda tiene su manifiesto |
+| `.mcp.json` | los servidores MCP del proyecto (Unreal, Blender) |
 
-## 🗂️ Estructura
-- `VR_Test/` — el proyecto Unreal 5.8 (Content, Config, .uproject).
-- `.claude/skills/unreal-vr/` — la "biblia" técnica: cómo operar Unreal por MCP, patrones VR, trackers por Blueprint, gotchas. Se auto-activa en Claude Code.
-- `docs/` — contexto de equipo (onboarding, workflow, estado de stages).
-- `Recursos/` — proyectos VR de referencia (solo consulta).
+Fuera de esta carpeta, en `Projects/Packagings/`: las versiones entregadas (APK + build de Windows + LEEME).
 
-## 🎯 Estado actual (resumen)
-**Breath** completo y funcional (plantilla de la obra). **Heart** en progreso. **Calibration** (herramienta de captura de datos multi-usuario) con pipeline listo. Resto de stages sin empezar. Detalle: [`docs/ESTADO-STAGES.md`](docs/ESTADO-STAGES.md).
+## Empezar
+1. Unreal Engine **5.8**, Claude Code y un Quest por USB con depuración.
+2. Abrir `VR_Test/VR_Test.uproject` y dejarlo abierto (levanta el servidor MCP en `localhost:8000`).
+3. Abrir Claude Code en esta carpeta: carga `CLAUDE.md` y la skill `unreal-vr`.
 
-## ⚠️ Reglas rápidas que evitan dolores
-- **Quest 3 standalone**, renderer móvil, todo horneado — no es PC VR (afecta materiales/luces/config).
-- `.uasset`/`.umap` son **binarios**: no se mergean. Trabajá tu stage en tu rama; no edites el mismo asset que el otro dev.
-- **Save All en Unreal antes de commitear.** Commiteá hitos, no micro-cambios.
+Guía detallada de la primera vez: [`docs/ONBOARDING.md`](docs/ONBOARDING.md). Git, ramas y empaquetado: [`docs/WORKFLOW-EQUIPO.md`](docs/WORKFLOW-EQUIPO.md).
+
+## Reglas rápidas
+- **Quest standalone**: renderer móvil, todo horneado; no es PC VR.
+- `.uasset`/`.umap` son **binarios**: no se mergean. Nunca dos personas en el mismo asset.
+- **Save All en Unreal y `python tools/unreal/smoke_obra.py` en OK antes de commitear un hito** (mini-skill `/commit`).
+- Los builds no van al repo: las copias quedan en `Recursos/` y las versiones entregadas en `Projects/Packagings/`.

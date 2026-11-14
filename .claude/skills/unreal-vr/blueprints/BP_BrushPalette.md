@@ -1,7 +1,7 @@
 # BP_BrushPalette — progress tracker
 
 - **refPath**: `/Game/SoulCharger/Stages/Movement/BP_BrushPalette.BP_BrushPalette` · **parent**: Actor · **en nivel**: no (la **spawnea `BP_BrushTool`** al agarrar el pincel).
-- **Propósito**: la **paleta de configuración** del stage Movement. Grilla plana de **9 celdas (3×3)** sobre la mano no hábil: 3 colores · 3 grosores · 3 pinceles. Se selecciona tocando con la punta del pincel. El pincel lee color/ancho/material de acá al empezar cada trazo. Plan: [`docs/stages/movement-surrounding.md`](../../../../docs/stages/movement-surrounding.md) §5.3 y §8.b.
+- **Propósito**: la **paleta de configuración** del stage Movement. Grilla plana de **9 celdas (3×3)** sobre la mano no hábil: 3 colores · 3 grosores · 3 pinceles. Se selecciona tocando con la punta del pincel. El pincel lee color/ancho/material de acá al empezar cada trazo. Plan: [`docs/historia/stages/movement-surrounding.md`](../../../../docs/historia/stages/movement-surrounding.md) §5.3 y §8.b.
 - **Estado**: 🟢 **Fases 4.1 + 4.2 + 4.3 construidas y VALIDADAS en visor (2026-08-03).** La paleta aparece en la mano contraria; **color y grosor funcionan end-to-end** (el grosor tras arreglar el bug del pin `Width`, ver abajo). El pincel todavía no se nota porque los 3 apuntan al mismo material → **falta 4.4**.
 
 ## 🆕 2026-09-04 — DESATADA DEL PAWN (paso 2 de `docs/MECANICAS-PORTABLES.md`)

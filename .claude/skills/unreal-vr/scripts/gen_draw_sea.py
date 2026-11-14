@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """gen_draw_sea.py - genera las mallas del oceano del dibujo: SM_DrawSea_SC y SM_DrawDust_SC.
-Plan: docs/PLAN-OCEANO-DIBUJO-2026-09-28.md. Base: gen_heart_membrane.py (misma receta, copiada).
+Plan: docs/historia/PLAN-OCEANO-DIBUJO-2026-09-28.md. Base: gen_heart_membrane.py (misma receta, copiada).
 
 SM_DrawSea_SC. Disco PLANO (z = 0, normales +Z) en malla POLAR centrada bajo los ojos. Todo el relieve lo
 pone el vertex shader (DrawSeaHeightVS / DrawSeaGradVS).

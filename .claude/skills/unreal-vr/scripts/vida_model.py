@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """vida_model.py - MODELO DE REFERENCIA de la CAPA DE VIDA del valle de Entering (2026-09-28).
 
-Plan: docs/PLAN-VIDA-VALLE-2026-09-28.md. Es la cuenta EXACTA que hacen:
+Plan: docs/historia/PLAN-VIDA-VALLE-2026-09-28.md. Es la cuenta EXACTA que hacen:
   - el vertex shader  scripts/hlsl/DustVS.hlsl      (cada mota de polvo, sin estado)
   - el pixel shader   scripts/hlsl/DustPS.hlsl      (punto suave premultiplicado, frio/tibio segun la luz)
   - el vertex shader  scripts/hlsl/GustLeanVS.hlsl  (la franja de luz de la rafaga en el llano: se suma al

@@ -1,6 +1,6 @@
 # Cableado de `M_BreathValley_SC`: los tres Custom del valle (v2, revisada el 2026-09-28)
 
-> **Fuente de verdad:** `docs/PLAN-VALLE-ENTERING-2026-09-27.md` (§7). Este archivo dice **qué expresión del material entra en cada pin** de cada Custom y **a qué salida del material va** cada uno. El código está en los `.hlsl` de esta carpeta: cada archivo es el **cuerpo** de un `MaterialExpressionCustom` (termina en `return`). Su cabecera lista las mismas entradas, en el mismo orden. Las tablas de las §4 y §5 salen de `valley_build.json` (lo genera `scripts/plan_valley_material.py`).
+> **Fuente de verdad:** `docs/historia/PLAN-VALLE-ENTERING-2026-09-27.md` (§7). Este archivo dice **qué expresión del material entra en cada pin** de cada Custom y **a qué salida del material va** cada uno. El código está en los `.hlsl` de esta carpeta: cada archivo es el **cuerpo** de un `MaterialExpressionCustom` (termina en `return`). Su cabecera lista las mismas entradas, en el mismo orden. Las tablas de las §4 y §5 salen de `valley_build.json` (lo genera `scripts/plan_valley_material.py`).
 >
 > **Estado (2026-09-28):** los HLSL de la **v2 revisada** están escritos y verificados **sin Unreal** (§9). El material que existe en Unreal es la **v1**: hay que rearmarlo (§8). La v1 de este archivo está en `VR_Test/Saved/ClaudeScripts/valle_v1_backup/Valley_CABLEADO.md`; la v2 antes de la revisión, en `valle_v2_backup_pre_correccion/`.
 >
@@ -291,7 +291,7 @@ Son 7 nodos por dirección (×3) más 1 para `MoonCosR`: **22 nodos**. Pines: lo
 
 ## 10. Capa viva (2026-09-28, rev. 2): 9 entradas de `ValleyPS` por preshader
 
-Plan: `docs/PLAN-RESPIRACION-ENTORNO-2026-09-28.md` §6. El código de los tres Custom **no cambia**; cambia qué expresión entra en 9 pines de `ValleyPS` (la rev. 1 eran 11: `ShadowRadius` y `GlowHeight` volvieron a su parámetro, como en la v2):
+Plan: `docs/historia/PLAN-RESPIRACION-ENTORNO-2026-09-28.md` §6. El código de los tres Custom **no cambia**; cambia qué expresión entra en 9 pines de `ValleyPS` (la rev. 1 eran 11: `ShadowRadius` y `GlowHeight` volvieron a su parámetro, como en la v2):
 
 | Entrada de `ValleyPS` | Antes (v2) | Capa viva | Helpers (`Desc`) |
 |---|---|---|---|

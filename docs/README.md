@@ -1,29 +1,45 @@
-# docs/ — qué leer
+# docs/ — qué leer (ordenado el 2026-11-14)
 
-## Para trabajar hoy (vigentes)
+En esta carpeta quedan **solo los documentos vigentes**. Lo viejo está en `historia/` y las investigaciones en `investigacion/`.
+
+## Para orientarse
 | Documento | Para qué |
 |---|---|
-| [GUIA-DE-DIRECCION.md](GUIA-DE-DIRECCION.md) | **Empezar acá.** Cómo se administra la obra: qué se cambia dónde, cómo probar, contrato de etapa, checklist de público |
-| [PARTITURA.md](PARTITURA.md) | Todos los tiempos de la obra (`DA_Partitura_Obra`), con qué hace cada uno |
-| [PERILLAS.md](PERILLAS.md) | Las perillas de cada mecánica (generado del editor) |
-| [MAPA-DE-AJUSTES.md](MAPA-DE-AJUSTES.md) | Mapa fino por objeto: qué actor y qué campo tocar para cada cambio |
+| [MAPA-DEL-PROYECTO.md](MAPA-DEL-PROYECTO.md) | **Dónde está cada cosa**: los tres proyectos (Obra, demo, Inner Canvas), todos los niveles y cómo probarlos, Content carpeta por carpeta, plugins, empaquetar, herramientas |
+| [CATALOGO.md](CATALOGO.md) | Qué hace cada Blueprint, material, Niagara y data asset, uno por uno |
+| [AUDITORIA-ESTRUCTURA-2026-11-14.md](AUDITORIA-ESTRUCTURA-2026-11-14.md) | La última revisión del proyecto: qué había, qué se ordenó y por qué |
+
+## La Obra (Soul Charger)
+| Documento | Para qué |
+|---|---|
+| [GUIA-DE-DIRECCION.md](GUIA-DE-DIRECCION.md) | **Cómo se administra la obra**: qué se cambia dónde, cómo probar, contrato de etapa, checklist de público |
+| [OBRA-SOUL-CHARGER.md](OBRA-SOUL-CHARGER.md) · [GUION-V5-2026-09-29.md](GUION-V5-2026-09-29.md) | Qué es la obra y su guion vigente |
+| [PARTITURA.md](PARTITURA.md) | Todos los tiempos de la obra (`DA_Partitura_Obra`) |
+| [PERILLAS.md](PERILLAS.md) · [MAPA-DE-AJUSTES.md](MAPA-DE-AJUSTES.md) | Las perillas de cada mecánica · qué actor y qué campo tocar para cada cambio |
+| [VO-SOUL-CHARGER-2026-10-01.md](VO-SOUL-CHARGER-2026-10-01.md) | Las voces de Alma |
+| [MECANICAS-PORTABLES.md](MECANICAS-PORTABLES.md) | Cómo llevar una mecánica a otro nivel o proyecto (los plugins `SC_*`) |
+
+## Los otros proyectos y el hardware
+| Documento | Para qué |
+|---|---|
+| [demo/DEMO-BDW.md](demo/DEMO-BDW.md) | La demo Digital Sanctuary (BCN Design Week): guion, robot de Windows, sensor Muse |
+| [innercanvas/PLAN-INNER-CANVAS.md](innercanvas/PLAN-INNER-CANVAS.md) | Inner Canvas: guion, cómo está hecha, probar sin visores, empaquetar e instalar |
+| [PICO-EMPAQUETADO.md](PICO-EMPAQUETADO.md) | El plugin PICO OpenXR: qué le hace al proyecto, la variante `innercanvas`, las poses en PICO |
+| [PIEEG-XR-ARRANQUE.md](PIEEG-XR-ARRANQUE.md) · [PIEEG-XR-DATOS.md](PIEEG-XR-DATOS.md) | El sensor EEG PiEEG XR: cómo arrancarlo y qué datos da |
+| [EEG-ALMA-CENTER-INVESTIGACION-Y-PLAN.md](EEG-ALMA-CENTER-INVESTIGACION-Y-PLAN.md) | El proyecto EEG Alma Center (repo propio) |
+| [editor-obra/](editor-obra/) · [instalacion-feria/](instalacion-feria/) | Veation VR Studio (el editor web) · la instalación física de feria |
+
+## Trabajo en equipo
+| Documento | Para qué |
+|---|---|
 | [REGLAS-DE-ORO.md](REGLAS-DE-ORO.md) | Las reglas cortas que evitan romper cosas (para quien toca Blueprints) |
 | [WORKFLOW-EQUIPO.md](WORKFLOW-EQUIPO.md) | Git, ramas, commits, empaquetado, grabaciones |
 | [ONBOARDING.md](ONBOARDING.md) | Instalar el entorno (Unreal, MCP, Claude Code) |
-| [OBRA-SOUL-CHARGER.md](OBRA-SOUL-CHARGER.md) · [GUION-V5-2026-09-29.md](GUION-V5-2026-09-29.md) | Qué es la obra y su guion vigente |
-| [VO-SOUL-CHARGER-2026-10-01.md](VO-SOUL-CHARGER-2026-10-01.md) | Las voces de Alma |
-| [MECANICAS-PORTABLES.md](MECANICAS-PORTABLES.md) | Cómo llevar una mecánica a otro nivel o proyecto |
-| [AUDITORIA-ESTRUCTURA-2026-10-02.md](AUDITORIA-ESTRUCTURA-2026-10-02.md) | Por qué se reordenó el proyecto y qué se hizo |
-| [PICO-EMPAQUETADO.md](PICO-EMPAQUETADO.md) | Plugin PICO OpenXR: qué le hace al proyecto, qué aporta (72 Hz, AppSW, FFR), la variante `innercanvas` y las poses de los mandos en PICO |
-| [innercanvas/PLAN-INNER-CANVAS.md](innercanvas/PLAN-INNER-CANVAS.md) | **Inner Canvas** (evento corporativo): dibujo de pie para 8 visores PICO + pantalla del PC con los 8 dibujos. Guion, cómo está hecha, cómo probar sin visores, empaquetar e instalar |
-| [editor-obra/](editor-obra/) · [instalacion-feria/](instalacion-feria/) | El editor web de la obra · la instalación física del festival |
 
-## Historia (consulta; puede no coincidir con el proyecto actual)
-Planes, informes y auditorías de cada noche de trabajo. Sirven para entender por qué algo es como es; **no describen el estado actual**.
-🔴 **Usan las rutas de antes del reordenamiento de carpetas del 2026-10-02** (`/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath`, `/Game/NeuralCanvas`, `Mechanics/Hall`...). La ruta nueva de cada asset está en `tools/unreal/reorden_contenido_2026-10-02.json`.
-- Planes por fecha: `PLAN-*.md` (agosto → 2026-10-01).
-- Informes y auditorías anteriores: `AUDITORIA-2026-09-30.md`, `INFORME-NOCHE-2026-10-01.md`, `VO-AUDITORIA-2026-10-01.md`, `NOTAS-BELTRAN-2026-10-01-correcciones.md`, `HALLAZGOS-ROBOT-2026-08-15.md`, `PERF-ATTRACTING-2026-09-24.md`, `ANALISIS-CALIBRACION-2026-08-24.md`.
-- Guion anterior: `GUION-V4-2026-09-28.md`, `Soul-Charger-Script-2026-08-14.pdf`.
-- Investigaciones e ideas: `INVESTIGACION-*`, `IDEAS-*`, `AJUSTES-ESTETICOS-ATTRACTING.md`, `AUDIO-QUE-PIDE-EL-MOTOR.md`, `BRIEF-*`, `PENDIENTE-espectador-pc.md`.
-- `ESTADO-STAGES.md` (actualizado por última vez en septiembre; el estado vigente está en `CLAUDE.md` §3).
-- Subcarpetas `stages/`, `prototipos/`, `snapshots/`, `efectos-nico/`.
+## historia/ e investigacion/ (consulta: no describen el estado actual)
+- `historia/`: planes por fecha (`PLAN-*`, agosto → octubre), informes de noche, auditorías anteriores (incluida la del reordenamiento del
+  2026-10-02), el guion V4, el script en PDF, briefs, `ESTADO-STAGES.md` (septiembre) y las carpetas `stages/`, `prototipos/`,
+  `snapshots/` y `efectos-nico/`. `historia/raiz-2026-07/` = los documentos de diseño de julio, de antes del pivote a Quest.
+  🔴 Muchos usan rutas de antes del reordenamiento del 2026-10-02. La ruta nueva de cada asset está en
+  `tools/unreal/reorden_contenido_2026-10-02.json`.
+- `investigacion/`: el océano de Entering, el sinte del arpa, el sonido del hang, ideas de respiración y entorno.

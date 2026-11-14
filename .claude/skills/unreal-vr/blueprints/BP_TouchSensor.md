@@ -1,6 +1,6 @@
 # BP_TouchSensor — progress tracker
 
-Sensor flotante del stage Touch (fase **R3** del brief [`docs/stages/touch-attracting.md`](../../../../docs/stages/touch-attracting.md)). El usuario **lo toca con la mano** y el sensor se le pega al mando: su mesh pasa a ser la herramienta visible y **enciende el beam de esa mano**. Es el gesto de "entrada" a la mecánica, en la línea de `BP_BrushTool` (Movement) y del sensor de Breath.
+Sensor flotante del stage Touch (fase **R3** del brief [`docs/historia/stages/touch-attracting.md`](../../../../docs/historia/stages/touch-attracting.md)). El usuario **lo toca con la mano** y el sensor se le pega al mando: su mesh pasa a ser la herramienta visible y **enciende el beam de esa mano**. Es el gesto de "entrada" a la mecánica, en la línea de `BP_BrushTool` (Movement) y del sensor de Breath.
 
 - **refPath**: `/Game/SoulCharger/Stages/Touch/BP_TouchSensor.BP_TouchSensor` · **parent**: Actor
 - **in level**: **2 instancias** en `L_Touch` — `TouchSensor_Right` (`BP_TouchSensor_C_0`, `bIsRight=true`, en `(40, 22, 95)`) y `TouchSensor_Left` (`BP_TouchSensor_C_1`, `bIsRight=false`, en `(40, -22, 95)`).

@@ -4,7 +4,7 @@
 #
 # 1. Estatico: la tabla de ENTRADAS de cada cabecera coincide con el codigo (toda entrada se usa), sin bucles, sin
 #    arreglos, sin half; OutputType; las salidas adicionales se escriben; el default de cada ScalarParameter de la
-#    cabecera = vida_model.MAT = la tabla 5.2 del plan (docs/PLAN-VIDA-VALLE-2026-09-28.md), y los parametros del
+#    cabecera = vida_model.MAT = la tabla 5.2 del plan (docs/historia/PLAN-VIDA-VALLE-2026-09-28.md), y los parametros del
 #    valle = la tabla 6.3.
 # 2. Compila un wrapper que imita la funcion que Unreal genera para un Custom (con salidas adicionales como inout):
 #    dxc SM6 (-WX), fxc SM5, glslc HLSL -> SPIR-V Vulkan 1.1 (-Werror) + spirv-val (el camino de la Quest); el PS

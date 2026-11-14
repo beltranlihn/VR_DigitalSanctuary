@@ -11,7 +11,7 @@
 
 **2026-11-04: haces apagados.** Beltrán: *"No quiero ver salir los espermatozoides del hang. No elimines ese código, pero que esté apagado"*. `bShowOrbs` → **false** en el CDO y en la instancia de `Test_AttractingHang`. La perilla corta en `OrbCheck` (`if bShowOrbs and LP > PadSeen[I]` → `OrbLaunch`), así que no sale ningún haz. El código de las esferas y los haces queda entero: para volver a verlos, `bShowOrbs` ✅. **Apagado no cuesta nada.** `OrbEnsure` solo lo llama `OrbLaunch` (reserva perezosa, al primer lanzamiento), y `OrbTick` recorre `OrbComps`, que queda vacío. Verificado en PIE: `OrbComps` [] y `OrbBeams` [], con `fails=0`. Beltrán: *"No las usaré"*. En `Test_Harp` no se tocó la instancia: no tenía la perilla sobrescrita, así que debería tomar el false del CDO al abrir el nivel. Verificarlo al abrirlo.
 **Nació:** 2026-10-27, pedido de Beltrán tras probar el *wHarp* de Virtuoso: *"un instrumento tipo arpa que se toque con las manos; las cuerdas vibran cuando se tocan y emiten sonido, además un par de efectos"*. Con háptica, las dos manos, polifónica, y estética elegante de Soul Charger (*"no un arpa neón fea como la de Virtuoso"*).
-**Investigación previa:** [`docs/INVESTIGACION-SINTE-ARPA-ARPEGIADOR-2026-10-27.md`](../../../../docs/INVESTIGACION-SINTE-ARPA-ARPEGIADOR-2026-10-27.md)
+**Investigación previa:** [`docs/investigacion/INVESTIGACION-SINTE-ARPA-ARPEGIADOR-2026-10-27.md`](../../../../docs/investigacion/INVESTIGACION-SINTE-ARPA-ARPEGIADOR-2026-10-27.md)
 **Estado:** 🟢 PIE: el sinte se arma con `fails=0`; con la mano de prueba se detectan los toques en orden, sin saltarse cuerdas; el `.wav` grabado suena y está afinado (cuerdas 0 y 8-13 a ±2 cents; la 14 a +18, dentro del error de medición). En PIE normal encuentra los dos mandos del pawn. ⬜ **visor** (tacto, latencia, volumen, timbre) · ⬜ APK (CPU de MetaSounds en Quest sin medir) · ⬜ sin commit.
 
 ---
@@ -192,7 +192,7 @@
   - **Verificado en Simulate** (mano de prueba + capturas desde atrás y de costado): esferas de color, haces curvos que serpentean, se pierden a ~12 m. Gotchas 617-621.
   - En el camino el arpa desapareció del nivel (un script que falló deshizo y se llevó el actor, gotcha 617): se recuperó recargando `Test_Harp` desde disco con permiso de Beltrán.
 
-- **2026-10-28 (17.ª vuelta): SONIDO 3 = HANG POR RESONADORES** (Beltrán: *"no sonaba ni por si acaso a hang pan, era un sinte más; el hang es metálico, con mucho rango dinámico"* → investigación en [`docs/INVESTIGACION-SONIDO-HANG-2026-10-28.md`](../../../../docs/INVESTIGACION-SONIDO-HANG-2026-10-28.md) → *"ármalo"*).
+- **2026-10-28 (17.ª vuelta): SONIDO 3 = HANG POR RESONADORES** (Beltrán: *"no sonaba ni por si acaso a hang pan, era un sinte más; el hang es metálico, con mucho rango dinámico"* → investigación en [`docs/investigacion/INVESTIGACION-SONIDO-HANG-2026-10-28.md`](../../../../docs/investigacion/INVESTIGACION-SONIDO-HANG-2026-10-28.md) → *"ármalo"*).
   - **Por qué sonaba a sinte:**
     - El batido iba a 0,2–1 Hz (suena a phaser). El medido en handpans reales es de 3–9 Hz.
     - El chorus estaba en 0,35.

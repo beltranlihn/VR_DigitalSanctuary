@@ -1,7 +1,7 @@
 # BP_BrushTool — progress tracker
 
 - **refPath**: `/Game/SoulCharger/Stages/Movement/BP_BrushTool.BP_BrushTool` · **parent**: Actor · **en nivel**: sí, `L_Test_Movement` en `(45, 0, 100)` (para el test; en la obra lo spawneará `BP_MovementInstructions`)
-- **Propósito**: **la herramienta**. Prop que se auto-adjunta por proximidad a la mano que lo toca (esa mano queda como la hábil), lee el gatillo de **esa** mano y le pasa puntos a `BP_DrawCanvas`. No sabe nada de geometría. Plan: [`docs/stages/movement-surrounding.md`](../../../../docs/stages/movement-surrounding.md).
+- **Propósito**: **la herramienta**. Prop que se auto-adjunta por proximidad a la mano que lo toca (esa mano queda como la hábil), lee el gatillo de **esa** mano y le pasa puntos a `BP_DrawCanvas`. No sabe nada de geometría. Plan: [`docs/historia/stages/movement-surrounding.md`](../../../../docs/historia/stages/movement-surrounding.md).
 - **Estado**: 🟡 **Fases 1–3 construidas, compila limpio, guardado.** Fase 1 probada en visor ✅. Fases 2 (One-Euro) y 3 (presión + calma) **sin probar todavía**. Falta paleta, háptico, audio.
 
 ## 🎚️ Fase 3 — presión del gatillo → ancho · calma → luz (2026-07-30)

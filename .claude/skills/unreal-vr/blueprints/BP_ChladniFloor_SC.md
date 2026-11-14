@@ -1,6 +1,6 @@
 # BP_ChladniFloor_SC — el salar de Chladni (entorno de Attracting)
 
-`/Game/SoulCharger/Mechanics/Sequencer/Chladni/` · plan: [`docs/PLAN-SALAR-CHLADNI-2026-09-28.md`](../../../../docs/PLAN-SALAR-CHLADNI-2026-09-28.md) · lookdev en navegador (v6, la aprobada para portar): `docs/prototipos/placa-chladni.html` · https://claude.ai/artifact/EUUZzbNmfxfHsZhrcE1C2P
+`/Game/SoulCharger/Mechanics/Sequencer/Chladni/` · plan: [`docs/historia/PLAN-SALAR-CHLADNI-2026-09-28.md`](../../../../docs/historia/PLAN-SALAR-CHLADNI-2026-09-28.md) · lookdev en navegador (v6, la aprobada para portar): `docs/historia/prototipos/placa-chladni.html` · https://claude.ai/artifact/EUUZzbNmfxfHsZhrcE1C2P
 
 ## Propósito
 El piso y el cielo de la etapa del secuenciador. Un salar de Uyuni pastel al ocaso (estética Six N. Five), con polígonos de sal y grano de granito. **Al empezar cada vuelta del secuenciador**, lo que se agregó o sacó en la mesa entra al patrón de una vez: la membrana hace **una ola** con la forma de las figuras de Chladni nuevas (la curva de Heart) y deja el mandala en **relieve de geometría**, como las ondas de Heart. Cada slot tiene su figura; todas comparten la simetría 5. Centro calmo alrededor del usuario (los pétalos nacen a un radio), deformación orgánica fija.

@@ -119,7 +119,7 @@ bQuiet = velocidadesQuietas AND (trackingVálido OR bIgnoreTracking)
 - **`TourWake()`** (pública, sin parámetros, idempotente): `ZoneTimer` 0, `BeatTimer` 9999, `SetActorTickEnabled(true)`. Arranca como al empezar la etapa: el primer latido sale en cuanto se abre el umbral.
 - Se eligió apagar el Tick y no un bool de estado: es el mínimo de nodos y no toca `TickHeart`.
 
-## 🎬 Contrato de etapa de la Obra (2026-09-30, `docs/PLAN-NOCHE-2026-09-30.md`)
+## 🎬 Contrato de etapa de la Obra (2026-09-30, `docs/historia/PLAN-NOCHE-2026-09-30.md`)
 Narrativa creó los stubs vacíos; Heart los llenó. La etapa es RECOGNIZING.
 
 | Función / variable | Qué hace |

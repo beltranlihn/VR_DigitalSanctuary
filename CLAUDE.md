@@ -7,7 +7,7 @@
 ## 1. Qué es Soul Charger
 Obra de **VR inmersiva de sanación/meditación** para **Meta Quest 3**. Experiencia **sentada, single-user, ~15 min**, estética tipo **James Turrell** (luz de color en el aire, vacíos oscuros, casi sin geometría). El usuario pasa por un Hall y **5 etapas** — Entering (respiración), Recognizing (latido), Loving (mente/EEG), Attracting (secuenciador musical), Surrounding (dibujo 3D) — y un final con resultados, compartir y constelación. No es un juego: es una experiencia contemplativa guiada por **Alma**.
 
-🔴 **Documento maestro de la obra:** [`docs/OBRA-SOUL-CHARGER.md`](docs/OBRA-SOUL-CHARGER.md) y el guion vigente [`docs/GUION-V5-2026-09-29.md`](docs/GUION-V5-2026-09-29.md). Los design docs de la raíz (`Soul-Charger-*.md`) son previos al pivote a Quest: donde choquen con esto o con la skill, **gana la skill**.
+🔴 **Documento maestro de la obra:** [`docs/OBRA-SOUL-CHARGER.md`](docs/OBRA-SOUL-CHARGER.md) y el guion vigente [`docs/GUION-V5-2026-09-29.md`](docs/GUION-V5-2026-09-29.md). Los design docs de julio (`docs/historia/raiz-2026-07/Soul-Charger-*.md`) son previos al pivote a Quest: donde choquen con esto o con la skill, **gana la skill**.
 
 🔴 **Idioma de los textos in-headset: INGLÉS.** Todo lo que ve el usuario dentro de la obra va en inglés.
 
@@ -44,7 +44,7 @@ Obra de **VR inmersiva de sanación/meditación** para **Meta Quest 3**. Experie
 | Surrounding (dibujo) | 🟢 en la Obra; corte con presentación (arreglo 10-02, falta visor) |
 | Final: resultados, SHARE, constelación, créditos | 🟢 en la Obra |
 
-La historia (V1 `Maps/L_Persistent`, V2 `MapsV2`, V3 `MapsV3`, la galería, calibración, Touch) **ya no está en el proyecto**: quedó en `_Deprecated/Content-2026-10-02/` y en el tag `respaldo-pre-reorden-2026-10-02`. Ver [`docs/AUDITORIA-ESTRUCTURA-2026-10-02.md`](docs/AUDITORIA-ESTRUCTURA-2026-10-02.md).
+La historia (V1 `Maps/L_Persistent`, V2 `MapsV2`, V3 `MapsV3`, la galería, calibración, Touch) **ya no está en el proyecto**: quedó en `_Deprecated/Content-2026-10-02/` y en el tag `respaldo-pre-reorden-2026-10-02`. Ver [`docs/historia/AUDITORIA-ESTRUCTURA-2026-10-02.md`](docs/historia/AUDITORIA-ESTRUCTURA-2026-10-02.md).
 
 ### 3.b 🗺️ Además de la Obra: tres proyectos comparten este Content (desde 2026-10 / 11)
 | Proyecto | Dónde | Entregado |

@@ -9,7 +9,7 @@ Un actor sin componentes cuyo único trabajo es **recibir un comando de consola 
 modo. Vive en `TestMeshes` como el actor **`PerfSwitch`**.
 
 Contexto completo del banco (qué decide, por qué está armado así):
-[`docs/PLAN-PERF-ATTRACTING.md`](../../../../docs/PLAN-PERF-ATTRACTING.md), sección "EL BANCO DE MEDICIÓN".
+[`docs/historia/PLAN-PERF-ATTRACTING.md`](../../../../docs/historia/PLAN-PERF-ATTRACTING.md), sección "EL BANCO DE MEDICIÓN".
 
 ## Estructura — todo el grafo
 | Evento | Qué hace |
@@ -64,7 +64,7 @@ build Shipping, este mecanismo no existe y hay que cambiarlo por una cvar.
 - [x] Correr la medición del split (2026-09-25 14:47). **Veredicto: LA CADENA DOMINA — ≥8,93 ms
       (≥61%) vs 5,81 ms exactos de las 20 esferas; solo-esferas clava 72 fps.** El modo 4 pasa a
       ser el A/B directo para iterar la cadena (`-Modos 0,4`). Detalle y plan reordenado en
-      `docs/PLAN-PERF-ATTRACTING.md`.
+      `docs/historia/PLAN-PERF-ATTRACTING.md`.
 - [x] Correr la medición (`quest_perfmodes.ps1`) — hecha el 2026-09-25 (mañana), resultado en el plan.
 - [ ] Cuando la decisión esté tomada: decidir si el banco se queda (útil para futuras estaciones) o
       se saca. 🔴 Sacar actores **se pregunta** — regla del proyecto.

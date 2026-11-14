@@ -4,7 +4,7 @@
 #
 # 1. Estatico: la tabla de ENTRADAS de la cabecera coincide con el codigo (toda entrada se usa), sin bucles, sin
 #    arreglos, sin half; OutputType; el default escrito en la cabecera de cada ScalarParameter = el modelo
-#    (breath_air_model.MAT) = la tabla 5.3 del plan (docs/PLAN-RESPIRACION-ENTORNO-2026-09-28.md).
+#    (breath_air_model.MAT) = la tabla 5.3 del plan (docs/historia/PLAN-RESPIRACION-ENTORNO-2026-09-28.md).
 # 2. Compila un wrapper que imita la funcion que Unreal genera para un Custom con salidas adicionales (inout):
 #    dxc SM6 (-WX), fxc SM5, glslc HLSL -> SPIR-V Vulkan 1.1 (-Werror) + spirv-val (el camino de la Quest) y el PS
 #    tambien con las ENTRADAS en half (-enable-16bit-types; asi las entrega la Quest; salidas en float como en

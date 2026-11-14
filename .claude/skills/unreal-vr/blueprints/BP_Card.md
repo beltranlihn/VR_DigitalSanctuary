@@ -1,7 +1,7 @@
 # BP_Card — la carta física de resultados (Core/Card/)
 
 > **El cierre de la obra rehecho como un OBJETO** (2026-09-02). Reemplaza al modelo en que los gráficos,
-> las esferas y el dibujo colgaban de la ameba. Plan: [`docs/PLAN-CARTA-2026-09-02.md`](../../../../docs/PLAN-CARTA-2026-09-02.md).
+> las esferas y el dibujo colgaban de la ameba. Plan: [`docs/historia/PLAN-CARTA-2026-09-02.md`](../../../../docs/historia/PLAN-CARTA-2026-09-02.md).
 >
 > Decisión de Beltrán: *"nos conviene armar un BP especifico de la carta de resultados, literalmente que
 > sea una carta fisica"*. **La carta es el contenedor; la ameba pasa a ser uno de sus seis contenidos.**

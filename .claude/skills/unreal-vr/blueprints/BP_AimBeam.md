@@ -1,6 +1,6 @@
 # BP_AimBeam — progress tracker
 
-Beam de apuntado del stage Touch (Fase 1 del brief [`docs/stages/touch-attracting.md`](../../../../docs/stages/touch-attracting.md)). Actor del lado del mando (NO en el pawn): line-trace desde la pose *aim*, láser, y hover/unhover sobre objetos apuntables.
+Beam de apuntado del stage Touch (Fase 1 del brief [`docs/historia/stages/touch-attracting.md`](../../../../docs/historia/stages/touch-attracting.md)). Actor del lado del mando (NO en el pawn): line-trace desde la pose *aim*, láser, y hover/unhover sobre objetos apuntables.
 
 - **refPath**: `/Game/SoulCharger/Stages/Touch/BP_AimBeam.BP_AimBeam`  ·  **parent**: Actor  ·  **in level**: **2 instancias** en `L_Touch` — `AimBeam_Right` (`bIsRight`=true, `MotionSource`=RightAim) y `AimBeam_Left` (`bIsRight`=false, `MotionSource`=LeftAim). Se **attachean al pawn en BeginPlay**, no viven en el origen del mundo. (2026-08-03)
 - **Status**: 🟢 **PROBADO EN VISOR (2026-08-03)** — apunta con las dos manos, hover, y far-grab con trigger sostenido. Falta fine tuning.
@@ -80,7 +80,7 @@ Type_ids localizados descubiertos (por si se sigue en español): trace `Colisió
 El seguimiento lo hace la burbuja (su Tick, leyendo `MC_RightAim` + `GrabHoldDistance` del beam). Ver `BP_SoundBubble.md`.
 
 ## ✅ El beam arranca APAGADO — CONSTRUIDO 2026-08-04 (falta test en visor)
-Ver [`docs/stages/touch-attracting.md`](../../../../docs/stages/touch-attracting.md) §2.a y fase **R3**. El beam dejó de estar siempre encendido: lo enciende el **sensor flotante** ([`BP_TouchSensor`](BP_TouchSensor.md)) que el usuario toma con su mano.
+Ver [`docs/historia/stages/touch-attracting.md`](../../../../docs/historia/stages/touch-attracting.md) §2.a y fase **R3**. El beam dejó de estar siempre encendido: lo enciende el **sensor flotante** ([`BP_TouchSensor`](BP_TouchSensor.md)) que el usuario toma con su mano.
 
 - **Var nueva `bEquipped : bool` = `false`**.
 - **Función `Equip(NewEquipped : bool)`** — setea `bEquipped` **y** la visibilidad de `BeamFX` (Niagara) y `Cursor`. La llama `BP_TouchSensor` con `Class|BPAimBeam|Equip`.

@@ -1,7 +1,7 @@
 # BP_DrawCanvas — progress tracker
 
 - **refPath**: `/Game/SoulCharger/Stages/Movement/BP_DrawCanvas.BP_DrawCanvas` · **parent**: Actor · **en nivel**: sí, en `L_Test_Movement` en el origen (🔴 **debe quedar en transform IDENTIDAD**, ver restricciones).
-- **Propósito**: el **motor de geometría** del stage Movement. Único dueño del `ProceduralMeshComponent` y de los datos del dibujo. No sabe nada de mandos ni de input: recibe puntos y los convierte en cinta. Plan completo: [`docs/stages/movement-surrounding.md`](../../../../docs/stages/movement-surrounding.md).
+- **Propósito**: el **motor de geometría** del stage Movement. Único dueño del `ProceduralMeshComponent` y de los datos del dibujo. No sabe nada de mandos ni de input: recibe puntos y los convierte en cinta. Plan completo: [`docs/historia/stages/movement-surrounding.md`](../../../../docs/historia/stages/movement-surrounding.md).
 - **Estado**: 🟡 **Fases 1 y 2 construidas, compila limpio (`warnings_as_errors`) y guardado**. Fase 1 **probada en visor y funcionando**; Fase 2 (taper + continuación de sección) **sin probar todavía**.
 
 ## Componente
@@ -355,7 +355,7 @@ escribirlo) es lo que destrabó el diagnóstico.
 Beltrán: *"el material se veía super bien, y partía y terminaba puntiagudo más suave. Tratemos de dejarlo
 igual estéticamente… pero bajo tu estructura de código."*
 
-Migraron **sólo assets de arte** desde Neural Canvas (ver `docs/stages/neural-canvas-port.md`). Ningún
+Migraron **sólo assets de arte** desde Neural Canvas (ver `docs/historia/stages/neural-canvas-port.md`). Ningún
 Blueprint de allá entró al proyecto: el reparto sensor↔canvas↔paleta queda como estaba.
 
 ### Los cuatro cambios

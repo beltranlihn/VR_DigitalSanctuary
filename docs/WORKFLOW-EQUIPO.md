@@ -93,7 +93,7 @@ Git no lo mergea. Opciones:
 El aprendizaje del equipo vive en el **repo**, no en la cabeza ni en la memoria local de Claude de cada uno:
 - **Técnica reusable** (un gotcha, un patrón de nodos, cómo se hace X en Quest) → PR a `.claude/skills/unreal-vr/` (a `references/` o `gotchas.md`).
 - **Estructura de un Blueprint** (qué hace cada variable, orden del grafo, qué palanca ajusta qué) → su tracker en `skills/unreal-vr/blueprints/<BP>.md`. 🔴 **Leelo antes de tocar el BP; actualizalo después.** Y actualizá su fila en el **índice maestro** `skills/unreal-vr/blueprints/_INDEX.md` (el mapa de todos los BPs: qué es, dónde, estado).
-- **Narrativa / diseño / concepto** → [`OBRA-SOUL-CHARGER.md`](OBRA-SOUL-CHARGER.md) y el guion vigente ([`GUION-V5-2026-09-29.md`](GUION-V5-2026-09-29.md)). `Soul-Charger-Design.md` (raíz) quedó superado.
+- **Narrativa / diseño / concepto** → [`OBRA-SOUL-CHARGER.md`](OBRA-SOUL-CHARGER.md) y el guion vigente ([`GUION-V5-2026-09-29.md`](GUION-V5-2026-09-29.md)). `Soul-Charger-Design.md` (julio, en `docs/historia/raiz-2026-07/`) quedó superado.
 - **Tiempos de la obra** → `DA_Partitura_Obra` + [`PARTITURA.md`](PARTITURA.md) (generado desde `tools/unreal/partitura_def.py`).
 - **Estado general** → `CLAUDE.md` §3 (`ESTADO-STAGES.md` es de septiembre).
 - **Memoria local de Claude Code** (`~/.claude/...`) = tus notas personales de sesión. NO es conocimiento de equipo (el otro no la ve). Si algo sirve al equipo, subilo al repo.

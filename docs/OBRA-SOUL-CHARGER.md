@@ -1,7 +1,7 @@
 # Soul Charger — documento maestro de la obra
 
-> 🔴 **Esta es la fuente autoritativa de la obra completa.** Reemplaza a [`Soul-Charger-Design.md`](../Soul-Charger-Design.md) de la raíz, que es previo al pivote a Quest y quedó desactualizado en narrativa, mecánicas y arquitectura. Donde choquen, **gana este documento**.
-> Lo técnico-operativo de Unreal vive en la skill `unreal-vr`. El detalle por etapa, en `docs/stages/`.
+> 🔴 **Esta es la fuente autoritativa de la obra completa.** Reemplaza a [`Soul-Charger-Design.md`](historia/raiz-2026-07/Soul-Charger-Design.md) (julio, ahora en `docs/historia/raiz-2026-07/`), que es previo al pivote a Quest y quedó desactualizado en narrativa, mecánicas y arquitectura. Donde choquen, **gana este documento**.
+> Lo técnico-operativo de Unreal vive en la skill `unreal-vr`. El detalle por etapa, en `docs/historia/stages/`.
 >
 > Última revisión completa de guión: **2026-08-06**.
 

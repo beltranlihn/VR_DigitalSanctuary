@@ -1,5 +1,5 @@
 # gen_draw_sea_hlsl.py - genera los Custom HLSL del oceano del dibujo (M_DrawSea_SC / M_DrawDust_SC).
-# Plan: docs/PLAN-OCEANO-DIBUJO-2026-09-28.md (seccion 2). Prototipo aprobado: docs/prototipos/oceano-dibujo.html.
+# Plan: docs/historia/PLAN-OCEANO-DIBUJO-2026-09-28.md (seccion 2). Prototipo aprobado: docs/historia/prototipos/oceano-dibujo.html.
 # Los 6 oleajes van ESCRITOS 6 VECES con vectores con nombre (W0..W5, V0..V5, E0..E5): sin arreglos ni bucles
 # (Adreno, gotcha 399). Este script existe para no copiarlos a mano.
 # Uso:  python gen_draw_sea_hlsl.py      -> escribe hlsl/DrawSea*.hlsl y hlsl/DrawDust*.hlsl
@@ -81,7 +81,7 @@ DUST_PS_IN = [
 
 def header(name, stage, cmot, out_desc, dest, ins, extra=""):
     lines = ["// %s - %s, %s. Generado por gen_draw_sea_hlsl.py: NO editar a mano." % (name, dest, stage),
-             "// Plan: docs/PLAN-OCEANO-DIBUJO-2026-09-28.md. Prototipo: docs/prototipos/oceano-dibujo.html (v3)."]
+             "// Plan: docs/historia/PLAN-OCEANO-DIBUJO-2026-09-28.md. Prototipo: docs/historia/prototipos/oceano-dibujo.html (v3)."]
     if extra:
         lines += ["// " + l for l in extra.split("\n")]
     lines += [RULE,

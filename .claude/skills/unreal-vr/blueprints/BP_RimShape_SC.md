@@ -1,6 +1,6 @@
 # BP_RimShape_SC + M_RimOnly_SC — formas que solo existen como su resplandor (Core/Light/)
 
-> Creado 2026-09-04 por Nico, brief [`docs/BRIEF-NICO-EFECTOS.md`](../../../../docs/BRIEF-NICO-EFECTOS.md) §5.2. **Segundo efecto de Nico.** Geometría invisible salvo por su silueta: relleno cero, borde encendido — presencia sin masa, lo contrario de la arista dura que la obra descarta. Dos momentos del guión lo piden: el **cascarón de Surrounding** ("el borde brilla suave al acercarse") y la **sala final que se abre** (esconde su muro para devolver el exterior).
+> Creado 2026-09-04 por Nico, brief [`docs/historia/BRIEF-NICO-EFECTOS.md`](../../../../docs/historia/BRIEF-NICO-EFECTOS.md) §5.2. **Segundo efecto de Nico.** Geometría invisible salvo por su silueta: relleno cero, borde encendido — presencia sin masa, lo contrario de la arista dura que la obra descarta. Dos momentos del guión lo piden: el **cascarón de Surrounding** ("el borde brilla suave al acercarse") y la **sala final que se abre** (esconde su muro para devolver el exterior).
 > **Estado: 🟡 material + BP compilados sin errores, 3 instancias en `L_EffectTest_Nico` (cascarón normal, disolviéndose, y cubo) juzgadas en el viewport — se ven distintas y el rim/disolución/borde encendido funcionan. Falta juicio de Beltrán y visor.**
 
 ## El material `M_RimOnly_SC` — unlit · translúcido · **two-sided** · Full Precision
@@ -47,7 +47,7 @@ Idéntico patrón al del [[BP_Orb_SC]]: componente `Orb` (esfera del motor, mall
 `SetStaticMesh(Orb, Mesh)` → escala `SizeCM·0.01` → `CreateDynamicMaterialInstance(Orb, 0, M_RimOnly_SC)` → `SetMID` → 10 escalares por `SetScalarParameterValueOnMaterials` + 2 colores por `SetColorParameterValueOnMaterials`. Sin ramas. Verificado por `read_graph_dsl`, limpio.
 
 ## Session log
-- **2026-09-04 (Nico):** creado tras `BP_Orb_SC`. Material por 2 scripts (47 nodos, 50 conexiones, 0 errores). BP con 15 variables. CS por DSL a la primera (ya conocía los getters con categoría y `Math|Vector|MakeVector`). 3 instancias colocadas (cascarón, disuelto a 0.5, cubo), nivel recargado. **Verificado en editor:** el rim brilla en la silueta con relleno cero, la disolución come la forma con el filo ámbar encendido, y funciona en cubo. Capturas en `docs/efectos-nico/rim_los_tres.png` y `rim_disuelto.png`.
+- **2026-09-04 (Nico):** creado tras `BP_Orb_SC`. Material por 2 scripts (47 nodos, 50 conexiones, 0 errores). BP con 15 variables. CS por DSL a la primera (ya conocía los getters con categoría y `Math|Vector|MakeVector`). 3 instancias colocadas (cascarón, disuelto a 0.5, cubo), nivel recargado. **Verificado en editor:** el rim brilla en la silueta con relleno cero, la disolución come la forma con el filo ámbar encendido, y funciona en cubo. Capturas en `docs/historia/efectos-nico/rim_los_tres.png` y `rim_disuelto.png`.
 
 ## TODO
 - [ ] Juicio de Beltrán (editor + visor). El **revelado por cámara** (`RevealAmount>0`) solo se juzga moviéndose en PIE/visor.

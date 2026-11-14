@@ -1,6 +1,6 @@
 # BP_ShadowStudy_SC + M_FakeShadow_SC + M_ShadowSphere_SC — la sombra falsa (Core/Light/)
 
-> Creado 2026-09-04. Efecto 1.7 del [plan de la galeria](../../../../docs/PLAN-GALERIA-EFECTOS.md), el ultimo de la mitad de Beltran.
+> Creado 2026-09-04. Efecto 1.7 del [plan de la galeria](../../../../docs/historia/PLAN-GALERIA-EFECTOS.md), el ultimo de la mitad de Beltran.
 > **Estado: 🟡 armado y juzgado en el viewport, colocado como estacion 6 de la galeria (`GAL_6_ShadowStudy`, en 180000/100000/0). Falta el visor.**
 
 ## Que es, y por que importa mas de lo que parece

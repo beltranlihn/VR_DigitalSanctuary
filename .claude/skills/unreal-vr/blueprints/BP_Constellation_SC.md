@@ -1,7 +1,7 @@
 # BP_Constellation_SC — el cielo de los que pasaron antes (Core/Flow/)
 
 > Versión limpia (`_SC`) del viejo [[BP_Constellation]] + [[BP_ConstExplorer]] **fusionados en un solo actor**.
-> Nace del plan [`docs/PLAN-CIERRE-2026-08-27.md`](../../../../docs/PLAN-CIERRE-2026-08-27.md), **fases F4 y F5**.
+> Nace del plan [`docs/historia/PLAN-CIERRE-2026-08-27.md`](../../../../docs/historia/PLAN-CIERRE-2026-08-27.md), **fases F4 y F5**.
 
 - **refPath**: `/Game/SoulCharger/Core/Flow/BP_Constellation_SC.BP_Constellation_SC` · **parent**: Actor
 - **En el nivel**: sí, `BP_Constellation_SC_C_0` en `L_SoulCharger` (persistente), en el origen.

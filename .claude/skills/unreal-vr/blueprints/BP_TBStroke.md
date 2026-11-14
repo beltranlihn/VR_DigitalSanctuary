@@ -2476,7 +2476,7 @@ Beltrán: *"el pincel 1 quedó demasiado plano, pero algo muy sutil, porque me g
 - ✅ **ETAPA CERRADA (2026-09-30).** Beltrán, después de probar en VR Preview: *"Funciona. Todo correcto. Damos por guardado esta etapa."* Incluye la estela, la punta, el gatillo, la tinta y la aparición y salida de la paleta (`BP_DrawPalette_SC.md` v6/v6b). Pendientes que no bloquean: APK/Quest (medir el trazo incremental y la paleta) y la prueba zurda (`MaskFlip`).
 
 ### 5ae - CONTRATO DE ETAPA para la Obra + guardas de Tip + PlaceSketch (2026-09-30, noche; turno pedido por Narrativa)
-Plan de la noche: `docs/PLAN-NOCHE-2026-09-30.md`. Borrador que se pego: `scripts/tb_contract.dsl`.
+Plan de la noche: `docs/historia/PLAN-NOCHE-2026-09-30.md`. Borrador que se pego: `scripts/tb_contract.dsl`.
 - **Guardas de Tip (el ruido de todas las sesiones).** Medido con el director dormido (`bForceTour`, = tag TOUR de la Obra): 903 `Accessed None trying to read property Tip` en 5 s, TODOS desde `BP_TBTrail_NC.TrailPush`. El mensaje nombra `BPC_TBTool_NC` porque `Tip` es variable de esa clase, pero el que lee es la estela: tickea siempre, aunque el director duerma.
   - Arreglo: `TrailTipCheck` / `TrailTipCheck2` escriben `bTipOk` = Tip valido Y visible. `TrailRun` lo exige para alimentar la estela; si no, la limpia.
   - Medido despues: dormido, 0 errores y `bTipOk` false; test normal, `bTipOk` true, la estela suma puntos, 0 errores.

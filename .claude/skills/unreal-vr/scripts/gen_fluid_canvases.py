@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """gen_fluid_canvases.py - lienzos del FLUIDO CEREBRAL (BP_FluidMedium_SC), 2026-09-28.
 
-Plan: docs/PLAN-FLUIDO-CEREBRAL.md. Referencia: docs/prototipos/fluido-cerebral.html.
+Plan: docs/historia/PLAN-FLUIDO-CEREBRAL.md. Referencia: docs/historia/prototipos/fluido-cerebral.html.
 
 Reusa polvo() de gen_loving_canvases.py (la nube de quads de SM_LovingDust_SC): N quads diminutos
 con sus numeros al azar en las UV. La posicion de la malla no importa (el vertex shader la

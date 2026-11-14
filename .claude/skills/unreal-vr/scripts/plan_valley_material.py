@@ -4,7 +4,7 @@
 Lee:
   - los tres Custom (scripts/hlsl/ValleyHeightVS.hlsl, ValleyGradVS.hlsl, ValleyPS.hlsl): el CODIGO
     entero y la tabla "ENTRADAS" del encabezado (nombre, tipo y de donde sale cada entrada);
-  - la tabla de parametros 7.1 de docs/PLAN-VALLE-ENTERING-2026-09-27.md (nombre, tipo, default, grupo).
+  - la tabla de parametros 7.1 de docs/historia/PLAN-VALLE-ENTERING-2026-09-27.md (nombre, tipo, default, grupo).
 Fuentes de una entrada (cabecera de cada .hlsl): ScalarParameter / VectorParameter (param), LocalPosition,
 VertexInterpolator_N, CameraVector (camlocal), Distance(...), preshader D(az, el), preshader Cosine(p) y, desde la
 capa viva (2026-09-28), preshader Mul(A, B), preshader Mix(A, B, T) y preshader Tint(A, B, T) (ver fuente()).

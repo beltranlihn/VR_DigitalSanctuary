@@ -1,6 +1,6 @@
 # Receta del sonido 3 (hang por resonadores, 17a). La corre execute_tool_script: arma las filas del sonido 3 y las escribe en el CDO y en la instancia.
 # Medido en .wav (17a): proporciones x1,997 / x2,985 / x7,50 / x8,16; T60 de la fundamental 3-4,5 s; batido de la octava 2,8 Hz (Re3) a 8,4 Hz (La4).
-# Fuente de los numeros: docs/INVESTIGACION-SONIDO-HANG-2026-10-28.md. Indices de nodo = locales al sonido 3.
+# Fuente de los numeros: docs/investigacion/INVESTIGACION-SONIDO-HANG-2026-10-28.md. Indices de nodo = locales al sonido 3.
 import json
 CDO = '/Game/SoulCharger/Mechanics/Harp/Blueprints/BP_Harp_SC.Default__BP_Harp_SC_C'
 INST = '/Game/SoulCharger/Mechanics/Harp/Maps/Test_Harp.Test_Harp:PersistentLevel.BP_Harp_SC_C_0'

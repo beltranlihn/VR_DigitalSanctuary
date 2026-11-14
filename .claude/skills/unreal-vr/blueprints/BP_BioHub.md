@@ -140,7 +140,7 @@ BinCalmCount [17,15,17,15,15,17,15,1,0,0,0, ... 0]
 
 
 ## 🆕 2026-08-27 — `Series(bHeart)` : las casillas como CSV (F1 del plan de cierre)
-El consumidor del retrato (plan `docs/PLAN-CIERRE-2026-08-27.md`) no quiere las casillas de a una:
+El consumidor del retrato (plan `docs/historia/PLAN-CIERRE-2026-08-27.md`) no quiere las casillas de a una:
 quiere **la serie entera como texto** para meterla en el `.sav`. Eso es **`Series(bHeart) -> CSV`**,
 la única función nueva de este BP.
 

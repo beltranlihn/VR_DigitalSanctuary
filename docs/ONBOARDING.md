@@ -37,7 +37,7 @@ El proyecto ya trae habilitado el plugin **ModelContextProtocol** de UE 5.8. Al 
 Pedile a Claude algo mínimo, por ejemplo: **"¿qué nivel está cargado en Unreal?"**. Internamente Claude llama `SceneTools.get_current_level`. Si responde con un nivel, el puente funciona. 🎉
 
 ## 6. El ritmo de trabajo (para gastar menos y rendir más)
-Leé [`../GUIA-RAPIDA.md`](../GUIA-RAPIDA.md). Lo clave:
+Leé [`historia/raiz-2026-07/GUIA-RAPIDA.md`](historia/raiz-2026-07/GUIA-RAPIDA.md). Lo clave:
 - **Unreal abierto antes que Claude**, toda la sesión.
 - **`/clear` al cambiar de tema** (otro BP, otro subsistema). No arrastres una sesión eterna.
 - **Elegí modelo/effort al inicio** y no los cambies a mitad (reprocesa todo el contexto).
@@ -48,7 +48,7 @@ Leé [`../GUIA-RAPIDA.md`](../GUIA-RAPIDA.md). Lo clave:
 ## 7. Antes de tu primer cambio
 1. Leé [`../CLAUDE.md`](../CLAUDE.md) entero (5 min).
 2. Leé [`WORKFLOW-EQUIPO.md`](WORKFLOW-EQUIPO.md) — cómo trabajamos en paralelo sin pisarnos. 🔴 **Arrancá por la §0 "El modelo mental: git sube cambios, no tu carpeta"** (el `pull` antes de `push` y por qué nadie pierde su trabajo).
-3. Mirá [`ESTADO-STAGES.md`](ESTADO-STAGES.md) para saber qué stage te toca y qué existe.
+3. Mirá [`ESTADO-STAGES.md`](historia/ESTADO-STAGES.md) para saber qué stage te toca y qué existe.
 4. Creá tu rama de stage: `git checkout -b stage/<tu-stage>`.
 5. Antes de tocar cualquier Blueprint, pedile a Claude que **lea su tracker** en `.claude/skills/unreal-vr/blueprints/`.
 

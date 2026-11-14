@@ -1,6 +1,6 @@
 # BP_VoidField_SC + M_VoidDots_SC — profundidad sin geometria (Core/Light/)
 
-> Creado 2026-09-04. Efecto 1.2 del [plan de la galeria](../../../../docs/PLAN-GALERIA-EFECTOS.md).
+> Creado 2026-09-04. Efecto 1.2 del [plan de la galeria](../../../../docs/historia/PLAN-GALERIA-EFECTOS.md).
 > **Estado: 🟡 compilado y colocado en `/Game/TestMeshes` (dos instancias; la autorada esta en 120000/100000/0). Juzgado en el viewport. Falta el visor — y el visor es el unico lugar donde se puede juzgar de verdad, ver abajo.**
 > **2026-09-07: la deriva se reemplazo por GIRO por esfera** (`E - Giro`, 6 perillas) — ver esa seccion; la deriva vieja tenia un bug que hacia que las tres capas se movieran en la misma direccion.
 

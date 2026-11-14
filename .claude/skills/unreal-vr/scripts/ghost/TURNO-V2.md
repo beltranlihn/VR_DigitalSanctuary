@@ -30,7 +30,7 @@
 - `remove_function_graph` + `add_function_graph` con el MISMO nombre en la misma sesión falla: usar otro nombre.
 - Un `_StrictDict.get(k, default)` en el sandbox revienta el script y dispara un Deshacer.
 
-Plan: `docs/PLAN-FANTASMAS-V2-2026-10-01.md`. Datos: `v2_datos.md`. La v1 queda en git (`80a03c9`), que hace de respaldo de los assets de `Shared/Ghost/`.
+Plan: `docs/historia/PLAN-FANTASMAS-V2-2026-10-01.md`. Datos: `v2_datos.md`. La v1 queda en git (`80a03c9`), que hace de respaldo de los assets de `Shared/Ghost/`.
 
 ## Preparado fuera del editor
 - **Fuentes**:

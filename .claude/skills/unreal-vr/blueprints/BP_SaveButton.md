@@ -1,6 +1,6 @@
 # BP_SaveButton — progress tracker
 
-Botón **"FINISH MELODY"** del stage Touch (fase **R5** del brief [`docs/stages/touch-attracting.md`](../../../../docs/stages/touch-attracting.md)). Cierra la etapa: cuando los 5 slots están llenos, el usuario lo apunta con el láser y **sostiene el gatillo 3 segundos** para guardar la melodía.
+Botón **"FINISH MELODY"** del stage Touch (fase **R5** del brief [`docs/historia/stages/touch-attracting.md`](../../../../docs/historia/stages/touch-attracting.md)). Cierra la etapa: cuando los 5 slots están llenos, el usuario lo apunta con el láser y **sostiene el gatillo 3 segundos** para guardar la melodía.
 
 - **refPath**: `/Game/SoulCharger/Stages/Touch/BP_SaveButton.BP_SaveButton` · **parent**: Actor
 - **in level**: `FinishMelodyButton` (`BP_SaveButton_C_0`) en `L_Touch`, en **(55, 0, 55)** con pitch 90 — o sea **al centro de la fila de slots (que están en X=55, Z=75) y 20 cm por debajo**.

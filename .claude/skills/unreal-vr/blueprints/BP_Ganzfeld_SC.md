@@ -1,6 +1,6 @@
 # BP_Ganzfeld_SC + M_Ganzfeld_SC — el cascaron sin borde (Core/Light/)
 
-> Creado 2026-09-04. Efecto 1.1 del [plan de la galeria](../../../../docs/PLAN-GALERIA-EFECTOS.md).
+> Creado 2026-09-04. Efecto 1.1 del [plan de la galeria](../../../../docs/historia/PLAN-GALERIA-EFECTOS.md).
 > **Estado: 🟡 compilado y colocado en `/Game/TestMeshes` en dos estaciones (`GAL_3_Ganzfeld` en 90000/100000/0, autorado; `GAL_9_Ganzfeld` en 270000/100000/0). Juzgado en el viewport. Falta el visor.**
 > **2026-09-07: solo se usa el MODO 2 (fluido)** — las perillas de los modos 0 y 1 estan ocultas; el codigo de los tres sigue entero. Ver la seccion al final.
 

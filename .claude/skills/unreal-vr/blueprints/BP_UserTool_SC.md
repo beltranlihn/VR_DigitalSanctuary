@@ -1,7 +1,7 @@
 # BP_UserTool_SC — el objeto que el usuario lleva en la mano dominante (mando → sensor)
 
 **Ruta:** `/Game/SoulCharger/Shared/UserTool/BP_UserTool_SC`
-**Nació:** 2026-09-30 (noche), sesión Breath, aprobado por Narrativa (director de la noche; plan `docs/PLAN-NOCHE-2026-09-30.md`).
+**Nació:** 2026-09-30 (noche), sesión Breath, aprobado por Narrativa (director de la noche; plan `docs/historia/PLAN-NOCHE-2026-09-30.md`).
 **Colocado en:** `/Game/SoulCharger/Mechanics/Breath/Maps/Test_Breath` como `Entering_UserTool` (carpeta `Entering`, **tag `TestOnly`**, `bShowMandoOnBegin` true: flag SOLO de test). En la Obra lo coloca Narrativa en el persistente (uno solo).
 **Estado:** 🟢 compila (`warnings_as_errors`), PIE verificado con el contrato de Entering · ⬜ visor (pose del sensor en la mano, tamaño, aparición).
 

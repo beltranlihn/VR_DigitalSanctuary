@@ -2,7 +2,7 @@
 
 📊 **Performance: MEDIDA en visor el 2026-09-24 y no llega.** 24,85 ms contra un presupuesto de
 13,9 (40 fps de 72), **fill-rate bound** confirmado. Numeros, palancas probadas y pendientes en
-[`docs/PERF-ATTRACTING-2026-09-24.md`](../../../../docs/PERF-ATTRACTING-2026-09-24.md).
+[`docs/historia/PERF-ATTRACTING-2026-09-24.md`](../../../../docs/historia/PERF-ATTRACTING-2026-09-24.md).
 
 > Ecosistema completo de la sala 4 (2026-08-26): **`BP_Sequencer_SC`** (director de la sala) + **`BP_SoundOrb_SC`** (la esfera con sonido) + **`BP_SeqSlot_SC`** (el slot) + **`BP_SaveMelody_SC`** (el botón SAVE MELODY). Todo en `/Game/SoulCharger/Mechanics/Sequencer/`.
 > Colocados en **`MapsV2/RoomsV2/L_Attracting_SC`**: `Sequencer_Attracting` (5720,0,60) · 8 `SeqSlot_0..7` (X=5720, Y=−105..+105 cada 30, Z=85, `StepIndex` 0-7 izquierda→derecha) · `SaveMelody_Attracting` (5720,0,62, pitch 90) · `TP_orb_intro_attracting` (5745,0,115, en el panel) · **20 `BP_Anchor` `TP_orb_attracting_01..20` DETRÁS del widget** (x 5850-6250, y ±180, z 105-190 — una por sonido del módulo).
@@ -506,7 +506,7 @@ Pedido de Beltrán: *"meter los slot dentro del BP de blob chain… si agrando, 
 
 
 ## 🎬 2026-09-30 (noche) — CONTRATO DE LA OBRA + SAVE nuevo + cuadro de resultados (turno Secuencer, director Narrativa)
-Plan de la noche: `docs/PLAN-NOCHE-2026-09-30.md`. Todo verificado en PIE de punta a punta (sin errores ni Accessed None).
+Plan de la noche: `docs/historia/PLAN-NOCHE-2026-09-30.md`. Todo verificado en PIE de punta a punta (sin errores ni Accessed None).
 
 ### Contrato (lo llama `BP_Obra_SC`; en la Obra **no** se llama `TourWake`, que arranca el flujo viejo `SeqIntro`)
 | API | Qué hace |

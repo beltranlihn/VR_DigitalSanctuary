@@ -4,7 +4,7 @@
 QUE ES. Un disco PLANO (z = 0, normales +Z) en malla POLAR, centrado en el USUARIO (el origen), de 640 m de
 radio. No tiene forma propia: todo el relieve (el oleaje, las colinas medias, el anillo y las colinas lejanas)
 lo pone el VERTEX SHADER de M_BreathValley_SC.
-Especificacion: docs/PLAN-VALLE-ENTERING-2026-09-27.md, seccion 2 (esta es su implementacion).
+Especificacion: docs/historia/PLAN-VALLE-ENTERING-2026-09-27.md, seccion 2 (esta es su implementacion).
 Patron copiado de gen_heart_membrane.py (que NO se toca).
 
 LOS ANILLOS, EN CUATRO ZONAS (v2):

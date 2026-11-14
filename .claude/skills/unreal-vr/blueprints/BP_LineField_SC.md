@@ -1,6 +1,6 @@
 # BP_LineField_SC + M_LineGlow_SC — la luz dibujada con lineas (Core/Light/)
 
-> Creado 2026-09-04. Efecto 1.6 del [plan de la galeria](../../../../docs/PLAN-GALERIA-EFECTOS.md).
+> Creado 2026-09-04. Efecto 1.6 del [plan de la galeria](../../../../docs/historia/PLAN-GALERIA-EFECTOS.md).
 > **Estado: 🟡 compilado, colocado en `/Game/TestMeshes` (`LineField_Test`, en 0/40000/150) y juzgado en el viewport. Falta el visor — y aca el visor importa mas que en los otros, ver "el riesgo" abajo.**
 
 ## Que es
